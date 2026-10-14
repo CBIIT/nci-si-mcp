@@ -1,13 +1,27 @@
 """Real MCP and CLI integration of the caDSR registry tools."""
 
 import asyncio
+import io
 import json
+import logging
+import re
+import sys
+from contextlib import redirect_stdout
+from pathlib import Path
+from types import SimpleNamespace
+from unittest import TestCase
 from unittest.mock import patch
 
-from fakes import data_element
-from nci_si_mcp.cli import build_parser
-from nci_si_mcp.release import RegistryState
-from test_cadsr_forms import code_map, form
+import yaml
+from pydantic import TypeAdapter
+
+from fakes import code_map, data_element
+from nci_si_mcp import results
+from nci_si_mcp.cli import build_parser, main
+from nci_si_mcp.context import Context
+from nci_si_mcp.registry import invoke
+from nci_si_mcp.release import RegistryState, registry_state
+from test_cadsr_forms import form
 from test_cadsr_matching import cde_response, cde_row, vm_response, vm_row
 from test_server import ServerFixture
 
@@ -265,3 +279,226 @@ class CaDSRProtocolTest(ServerFixture):
         self.assertEqual((args.publicId, args.registryRelease), ("123", "known"))
         search = parser.parse_args(["search-data-elements", "Q", "--filters", '{"context":"TEST"}'])
         self.assertEqual(search.filters, {"context": "TEST"})
+
+
+ROOT = Path(__file__).resolve().parents[1]
+RECORDS = yaml.safe_load((ROOT / "spec/records.yaml").read_text())
+TOOLS = yaml.safe_load((ROOT / "spec/tools.yaml").read_text())
+RECORD_TYPES = {
+    "registry_release": results.RegistryReleaseResult,
+    "data_element": results.DataElement,
+    "permissible_value": results.PermissibleValue,
+    "classification_scheme": results.ClassificationScheme,
+    "context": results.RegistryContext,
+    "data_element_match": results.DataElementMatch,
+    "value_meaning_match": results.ValueMeaningMatch,
+    "form": results.Form,
+    "code_map": results.CodeMap,
+}
+
+
+def schema(record):
+    return TypeAdapter(record).json_schema()
+
+
+def fields_in(text, occurrence=0):
+    declaration = re.findall(r"\{([^{}]*)\}", text)[occurrence]
+    return {
+        part.strip().removesuffix("[]").removesuffix("?"): "?" not in part
+        for part in declaration.split(",")
+    }
+
+
+class CaDSRAdapterBoundaryTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.enterContext(
+            patch(
+                "nci_si_mcp.http_client._open",
+                side_effect=AssertionError("Unexpected HTTP request"),
+            )
+        )
+
+    def injected_context(self):
+        self.state = registry_state(
+            "1901-02-03T04:05", None, source_distribution="releasedCDEsXML-OD.zip"
+        )
+        client = SimpleNamespace(resolve_registry_release=lambda: self.state)
+        return Context(
+            self.settings,
+            cadsr=client,
+            evs=self.evs,
+            index=self.context.index,
+            embedding_provider=self.context.embedding_provider,
+        )
+
+    def test_injected_cadsr_produces_the_result_without_a_release_selection_audit(self):
+        context = self.injected_context()
+        logging.disable(logging.NOTSET)
+        with self.assertLogs("nci_si_mcp.audit", level="INFO") as captured:
+            result = invoke(context, "resolve_registry_release")
+        self.assertEqual(result, self.state.to_dict())
+        self.assertNotIn("selection", captured.records[-1].structured.get("release", {}))
+
+    def test_registry_resolution_cli_command_returns_the_injected_content_state(self):
+        self.assertIn("resolve-registry-release", build_parser().format_help())
+        context = self.injected_context()
+        output = io.StringIO()
+        with (
+            patch.object(sys, "argv", ["nci-si-mcp", "resolve-registry-release"]),
+            patch("nci_si_mcp.cli.Context", return_value=context),
+            patch("nci_si_mcp.cli.configure_logging"),
+            redirect_stdout(output),
+        ):
+            status = main()
+        self.assertEqual(status, 0)
+        self.assertEqual(json.loads(output.getvalue()), self.state.to_dict())
+
+    def test_real_mcp_names_missing_top_level_and_malformed_nested_arguments(self):
+        async def interact(client):
+            results = []
+            for operation, arguments in (
+                ("get_concept", {"terminology": "ncit"}),
+                ("match_data_elements", {"entities": [{}]}),
+                ("match_data_elements", {"entities": [{"name": 5}]}),
+            ):
+                result = await client.call_tool(operation, arguments)
+                results.append(result.structured_content["error"])
+            return results
+
+        errors = self.session(interact)
+        self.assertEqual([error["code"] for error in errors], ["invalid_request"] * 3)
+        self.assertEqual(
+            [error.get("details", {}).get("parameter") for error in errors],
+            ["code", "entities.0", "entities"],
+        )
+        self.assertEqual(self.evs.calls, [])
+
+
+class CaDSRRecordSchemaTest(TestCase):
+    def assert_fields(self, record, fields):
+        actual = schema(record)
+        self.assertEqual(set(actual["properties"]), set(fields))
+        self.assertEqual(
+            set(actual.get("required", [])), {key for key, required in fields.items() if required}
+        )
+
+    def test_all_cadsr_record_keys_and_optionality_match_specification(self):
+        for name, record in RECORD_TYPES.items():
+            with self.subTest(record=name):
+                fields = {
+                    key: not field.get("optional", False)
+                    for key, field in RECORDS[name]["fields"].items()
+                }
+                if name == "registry_release":
+                    # The same record is a tool result and a resource; M3.2 adds
+                    # top-level provenance only for its resource representation.
+                    fields["provenance"] = False
+                self.assert_fields(record, fields)
+
+    def test_nested_record_fields_match_the_specification_declarations(self):
+        pv = RECORDS["permissible_value"]["fields"]["valueMeaning"]["content"]
+        cases = (
+            (results.ValueMeaning, pv, 0),
+            (results.ValueMeaningConcept, pv, 1),
+            (
+                results.RegistryItemIdentity,
+                RECORDS["classification_scheme"]["fields"]["items"]["content"],
+                0,
+            ),
+            (
+                results.ConceptAssociation,
+                RECORDS["data_element"]["fields"]["conceptAssociations"]["content"],
+                0,
+            ),
+            (
+                results.MatchedRegistryItem,
+                RECORDS["value_meaning_match"]["fields"]["item"]["content"],
+                0,
+            ),
+            (
+                results.MatchCrosswalk,
+                RECORDS["value_meaning_match"]["fields"]["crosswalk"]["content"],
+                0,
+            ),
+            (results.CodeMapIdentity, RECORDS["code_map"]["fields"]["dataElement"]["content"], 0),
+            (results.CodeMapValue, RECORDS["code_map"]["fields"]["values"]["content"], 0),
+            (
+                results.RegistryReference,
+                RECORDS["provenance"]["fields"]["release"]["forms"]["registry"],
+                0,
+            ),
+            (results.DataElementHit, TOOLS["search_data_elements"]["returns"], 0),
+        )
+        for record, text, occurrence in cases:
+            with self.subTest(record=record.__name__):
+                self.assert_fields(record, fields_in(text, occurrence))
+
+    def test_search_envelope_matches_the_tool_contract_and_empty_page_provenance(self):
+        declared = TOOLS["search_data_elements"]["returns"]
+        outer = re.sub(r"\[\{[^{}]*\}\]", "[]", declared)
+        self.assert_fields(results.DataElementSearch, fields_in(outer) | {"provenance": False})
+
+    def test_nested_closed_value_sets_remain_closed(self):
+        declarations = (
+            (results.RegistryReference, "registry", ["cadsr"], "provenance", "release"),
+            (
+                results.MatchedRegistryItem,
+                "itemType",
+                ["Concept", "ValueMeaning"],
+                "value_meaning_match",
+                "item",
+            ),
+            (
+                results.ConceptAssociation,
+                "role",
+                ["objectClass", "property"],
+                "data_element",
+                "conceptAssociations",
+            ),
+        )
+        for record, field, values, name, specification_field in declarations:
+            with self.subTest(record=record.__name__, field=field):
+                text = str(RECORDS[name]["fields"][specification_field])
+                self.assertTrue(all(value in text for value in values))
+                declaration = schema(record)["properties"][field]
+                actual = declaration.get("enum", [declaration.get("const")])
+                self.assertEqual(set(actual), set(values))
+
+    def test_every_cadsr_field_preserves_its_nullability_contract(self):
+        # caDSR's own nullable text metadata passes through unchanged (A9.1); a registry item's
+        # name and statuses never do (#295). vmMatch's optional metadata is instead absent on
+        # null, per its record.
+        item_text = {"context", "dateCreated", "dateModified"}
+        nullable = {
+            results.DataElement: item_text
+            | {
+                "definition",
+                "shortName",
+                "latestVersionIndicator",
+                "beginDate",
+                "endDate",
+                "origin",
+            },
+            results.Form: item_text | {"definition", "type", "beginDate", "endDate"},
+            results.RegistryItemIdentity: set(),
+            results.ValueMeaning: set(),
+            results.ValueMeaningConcept: {"longName"},
+            results.ConceptAssociation: {"longName"},
+            results.ClassificationScheme: set(),
+            results.CodeMap: {"crdcName"},
+        }
+        nested = {
+            results.MatchedRegistryItem,
+            results.MatchCrosswalk,
+            results.CodeMapIdentity,
+            results.CodeMapValue,
+            results.RegistryReference,
+            results.DataElementHit,
+            results.DataElementSearch,
+        }
+        for record in set(RECORD_TYPES.values()) | set(nullable) | nested:
+            for field, declaration in schema(record)["properties"].items():
+                with self.subTest(record=record.__name__, field=field):
+                    permits_null = {"type": "null"} in declaration.get("anyOf", [])
+                    self.assertEqual(permits_null, field in nullable.get(record, set()))

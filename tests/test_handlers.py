@@ -39,11 +39,14 @@ from ncit_index.embeddings import HashingEmbeddingProvider
 from ncit_index.errors import (
     IndexBuildError,
     IndexCompatibilityError,
+    IndexEvaluationError,
+    IndexStateError,
     IndexStorageError,
     NoActiveIndexError,
 )
 from ncit_index.index import LocalIndex
 from test_index import normalized
+from test_server import ServerFixture
 from test_traversal import complete_graph
 
 # Two releases that EVS marks latest for the monthly channel at once.
@@ -861,3 +864,51 @@ class ErrorModelTest(HandlerTestCase):
 
         self.assertIn("26.06e", message)
         self.assertIn("26.07a", message)
+
+
+class OperatorErrorRemedyTest(ServerFixture):
+    def test_operator_failures_include_actionable_next_steps(self):
+        for error, ending in (
+            (
+                IndexEvaluationError,
+                "Inspect `index-builds` and resolve the reported evaluation problem "
+                "before retrying.",
+            ),
+            (
+                IndexStateError,
+                "Inspect `index-builds` and retry against an available completed build.",
+            ),
+        ):
+            with (
+                self.subTest(error=error),
+                patch("nci_si_mcp.indexing.open_index", return_value=self.local_index),
+                patch.object(self.local_index, "activate", side_effect=error("Rejected build.")),
+            ):
+                result = invoke(self.context, "index_activate", "a" * 32)
+                self.assertEqual(result["error"]["code"], "internal_error")
+                self.assertTrue(result["error"]["message"].endswith(ending))
+
+
+class UpstreamAndIndexErrorRemedyTest(ServerFixture):
+    def test_incompatible_index_error_names_the_rebuild_next_step(self):
+        with patch.object(
+            self.context.index, "search_page", side_effect=IndexCompatibilityError("bad")
+        ):
+            result = invoke(self.context, "search", "Neoplasm")
+        self.assertEqual(result["error"]["code"], "internal_error")
+        self.assertTrue(
+            result["error"]["message"].endswith(
+                "Use the original embedding settings, or run `index-rebuild` and activate its "
+                "evaluated build with `index-activate`."
+            )
+        )
+
+    def test_rejected_upstream_error_names_the_base_url_next_step(self):
+        self.evs.errors["get_concept"] = UpstreamRejectedError("rejected", status=403)
+        result = invoke(self.context, "lookup", "C3262", live_only=True)
+        self.assertEqual(result["error"]["code"], "upstream_unavailable")
+        self.assertTrue(
+            result["error"]["message"].endswith(
+                "Check the configured base URL and credentials for this upstream."
+            )
+        )

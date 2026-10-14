@@ -6,6 +6,7 @@ from unittest.mock import patch
 from jsonschema import Draft202012Validator
 
 from nci_si_mcp.context import Context
+from nci_si_mcp.http_client import UpstreamTooLargeError, UpstreamUnavailableError
 from nci_si_mcp.registry import invoke
 from test_evs_client import FakeResponse, http_error
 from test_server import ServerFixture
@@ -242,3 +243,39 @@ class ValueSetTest(ServerFixture):
         self.raw["expansion"]["offset"] = False
         result, _ = self.reply()
         self.assertEqual(result["error"]["code"], "upstream_unavailable")
+
+
+def http_failure():
+    raise http_error(503, b"{}")
+
+
+class FHIRTransportSettingsTest(ServerFixture):
+    def fhir_context(self):
+        return Context(
+            replace(self.settings, evs_max_attempts=2, evs_max_response_bytes=8),
+            evs=self.evs,
+            index=self.context.index,
+            embedding_provider=self.context.embedding_provider,
+        )
+
+    def test_fhir_retries_use_configured_attempts_and_surface_label(self):
+        context = self.fhir_context()
+        with (
+            patch("nci_si_mcp.http_client._open", side_effect=lambda *args: http_failure()),
+            patch("nci_si_mcp.http_client.time.sleep"),
+            self.assertRaises(UpstreamUnavailableError) as raised,
+        ):
+            context.fhir.get_json("/ValueSet/$expand")
+        self.assertEqual(raised.exception.details["attempts"], 2)
+        self.assertEqual(raised.exception.details["surface"], "evs_fhir")
+
+    def test_fhir_response_limit_uses_configured_bytes(self):
+        context = self.fhir_context()
+        with (
+            patch("nci_si_mcp.http_client._open", return_value=FakeResponse(b'{"large":"value"}')),
+            self.assertRaises(UpstreamTooLargeError) as raised,
+        ):
+            context.fhir.get_json("/ValueSet/$expand")
+        self.assertEqual(raised.exception.details["limit"], 8)
+        self.assertEqual(raised.exception.details["reached"], 9)
+        self.assertEqual(raised.exception.details["bound"], "NCI_SI_EVS_MAX_RESPONSE_BYTES")

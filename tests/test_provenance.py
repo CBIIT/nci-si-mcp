@@ -8,16 +8,19 @@ import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
+from unittest import TestCase
 
 import yaml
+from pydantic import TypeAdapter
 
 from fakes import FakeEVS, concept, release
+from nci_si_mcp import results
 from nci_si_mcp.config import Settings
 from nci_si_mcp.context import Context
 from nci_si_mcp.errors import call_correlation_id, correlated
 from nci_si_mcp.http_client import UpstreamTooLargeError, UpstreamUnavailableError
 from nci_si_mcp.index_adapter import LocalIndexAdapter, results_truncation
-from nci_si_mcp.models import NcitConcept, utc_now_iso
+from nci_si_mcp.models import NcitConcept, TraversalProvenance, utc_now_iso
 from nci_si_mcp.registry import invoke
 from ncit_index.embeddings import HashingEmbeddingProvider
 from ncit_index.index import LocalIndex
@@ -789,3 +792,37 @@ class ExactnessBoundaryTest(ProvenanceTestCase):
 
         self.assertEqual((at_cap.exact, at_cap.omitted), (True, 108))
         self.assertEqual((below_cap.exact, below_cap.omitted), (True, 107))
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class ProvenanceRecordSchemaTest(TestCase):
+    def test_provenance_graphs_are_optional_in_the_record_and_in_the_schema(self):
+        # EVS items carry no graphs; only the Shared SI Service's do.
+        fields = yaml.safe_load((ROOT / "spec/records.yaml").read_text())["provenance"]["fields"]
+        schema = TypeAdapter(results.Provenance).json_schema()
+        self.assertTrue(fields["graphs"].get("optional"))
+        self.assertNotIn("graphs", schema["required"])
+
+    def test_a_traversal_relationship_requires_its_kind_and_name(self):
+        # The record gives the shape as { code?, name, kind } in prose.
+        schema = TypeAdapter(results.Relationship).json_schema()
+        self.assertEqual(set(schema["required"]), {"kind", "name"})
+        self.assertEqual(set(schema["properties"]), {"kind", "name", "code"})
+
+    def test_empty_qualifiers_and_evidence_pass_through_unchanged(self):
+        for empty in ({}, [], "", False, 0):
+            with self.subTest(empty=empty):
+                record = TraversalProvenance(
+                    release={"terminology": "ncit", "identifier": "26.06e"},
+                    source="evs_rest",
+                    served_by="live",
+                    retrieved_at="2026-10-01T00:00:00Z",
+                    correlation_id="test",
+                    depth=1,
+                    qualifiers=empty,
+                    evidence=empty,
+                ).to_dict()
+                self.assertEqual(record["qualifiers"], empty)
+                self.assertEqual(record["evidence"], empty)

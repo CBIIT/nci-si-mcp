@@ -3,7 +3,7 @@
 import json
 from urllib.parse import parse_qs, urlsplit
 
-from fakes import data_element
+from fakes import code_map, data_element
 from test_cadsr_client import reply
 from test_cadsr_content import CaDSRFixture
 from test_http_client import Reply
@@ -19,19 +19,6 @@ def form(**extra):
         }
         | extra
     )
-
-
-def code_map(identifier="123", **extra):
-    return {
-        "CDE Public ID": identifier,
-        "Version": "2",
-        "CRDC Name": "Map",
-        "Used By": "CRDC, CIP, ",
-        "permissibleValues": [
-            {"Permissible Value": "A", "Concept Code": "C1:C2"},
-            {"Permissible Value": "B", "Concept Code": None},
-        ],
-    } | extra
 
 
 class FormsTest(CaDSRFixture):
@@ -253,3 +240,74 @@ class FormsTest(CaDSRFixture):
                 )
                 result = self.call(server, "get_code_map", registryRelease="known")
                 self.assertEqual(result["error"]["code"], "release_mismatch")
+
+
+class FormAndCodeMapBoundaryTest(CaDSRFixture):
+    def test_form_provenance_uri_keeps_version(self):
+        server = self.serve(reply({"form": form()}))
+        result = self.call(server, "get_form", publicId="123", version="2")
+        self.assertEqual(result["provenance"]["source"], "cadsr_rest")
+        self.assertEqual(result["provenance"]["sourceUri"], server.url + server.seen[0][0])
+        self.assertEqual(
+            parse_qs(urlsplit(result["provenance"]["sourceUri"]).query), {"version": ["2"]}
+        )
+
+    def test_code_map_single_unmapped_value_has_zero_coverage(self):
+        raw = code_map(permissibleValues=[{"Permissible Value": "A", "Concept Code": ""}])
+        result = self.call(self.serve(reply({"CRDCDataElements": [raw]})), "get_code_map")[
+            "codeMaps"
+        ][0]
+        self.assertEqual(result["crdcName"], "Map")
+        self.assertIs(result["valueLevelBinding"], True)
+        self.assertEqual(result["coverage"], 0)
+        self.assertEqual(result["values"], [{"value": "A"}])
+
+    def test_malformed_code_map_fields_fail_instead_of_returning_content(self):
+        for changes in (
+            {"permissibleValues": [{"Concept Code": "C1"}]},
+            {"CDE Public ID": "0"},
+            {"Version": "1.x"},
+            {"permissibleValues": {}},
+            {"CRDC Name": 1},
+            {"Used By": []},
+        ):
+            with self.subTest(changes=changes):
+                result = self.call(
+                    self.serve(reply({"CRDCDataElements": [code_map(**changes)]})), "get_code_map"
+                )
+                self.assertIn("error", result)
+                self.assertEqual(result["error"]["code"], "upstream_unavailable")
+                self.assertEqual(result["error"]["details"]["surface"], "cadsr")
+
+    def test_code_map_limits_follow_spec_and_filters_are_exact(self):
+        rows = [code_map(str(i + 1)) for i in range(1001)]
+        for limit, expected in ((101, 101), (1000, 1000), (1001, 1000)):
+            with self.subTest(limit=limit):
+                result = self.call(
+                    self.serve(reply({"CRDCDataElements": rows})), "get_code_map", limit=limit
+                )
+                self.assertEqual(len(result["codeMaps"]), expected)
+        for target, identifier, expected in (("cip", "12", []), ("CIP", "12", ["12"])):
+            with self.subTest(target=target):
+                result = self.call(
+                    self.serve(reply({"CRDCDataElements": [code_map("12"), code_map("123")]})),
+                    "get_code_map",
+                    targetContext=target,
+                    dataElementId=identifier,
+                )
+                self.assertEqual(
+                    [row["dataElement"]["publicId"] for row in result["codeMaps"]], expected
+                )
+
+    def test_crosswalk_exact_cap_is_complete_and_only_empty_has_top_provenance(self):
+        for size in (0, 1000):
+            with self.subTest(size=size):
+                result = self.call(
+                    self.serve(
+                        reply({"CRDCDataElements": [code_map(str(i + 1)) for i in range(size)]})
+                    ),
+                    "crosswalk_resource",
+                )
+                self.assertEqual(len(result["codeMaps"]), size)
+                self.assertNotIn("truncation", result)
+                self.assertEqual("provenance" in result, size == 0)

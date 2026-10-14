@@ -1,14 +1,18 @@
 import json
+import unittest
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
 
-from fakes import concept, terminology_row
+from fakes import concept, release, terminology_row
+from nci_si_mcp.errors import correlated
 from nci_si_mcp.evaluation import evaluate_build
 from nci_si_mcp.evaluation_sets import parse_set
 from nci_si_mcp.evs import EVSClient, EVSReleaseMismatchError, EVSResponseError
+from nci_si_mcp.index_adapter import manifest_record
 from nci_si_mcp.indexing import full_build
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.release import ReleaseContext
-from ncit_index.errors import IndexBuildError
+from ncit_index.errors import IndexBuildError, IndexCompatibilityError
 from test_audit import captured, records
 from test_evaluation_sets import sample_set_payload
 from test_evs_client import FakeResponse
@@ -209,3 +213,88 @@ class FullBuildTest(ServerFixture):
         self.assertEqual(self.context.index.get_active_manifest(), self.active)
         self.local_index.activate(candidate.build_id)
         self.assertEqual(self.context.index.get_active_manifest().evaluation_report, result)
+
+
+class IndexOperatorResultTest(ServerFixture):
+    def candidate(self):
+        return self.local_index.build(
+            normalized([concept("C1", "One", active=True)]), None, self.context.embedding_provider
+        )
+
+    def test_activate_returns_selected_build_and_its_manifest(self):
+        candidate = self.candidate()
+        result = invoke(self.context, "index_activate", candidate.build_id)
+        active = self.context.index.get_active_manifest()
+        with correlated(result["manifest"]["provenance"]["correlationId"]):
+            self.assertEqual(
+                result, {"buildId": candidate.build_id, "manifest": active.to_result()}
+            )
+        self.assertEqual(active.build_id, candidate.build_id)
+
+    def test_sample_rebuild_has_exact_ungated_build_shape(self):
+        candidate = self.candidate()
+        result = invoke(self.context, "index_rebuild", candidate.build_id)
+        rebuilt = next(
+            item for item in self.local_index.list_builds() if item.build_id == result["buildId"]
+        )
+        with correlated(result["manifest"]["provenance"]["correlationId"]):
+            self.assertEqual(
+                result,
+                {"buildId": rebuilt.build_id, "manifest": manifest_record(rebuilt).to_result()},
+            )
+        self.assertIsNone(rebuilt.evaluation_version)
+
+
+class FullBuildInputValidationTest(ServerFixture):
+    def setUp(self):
+        super().setUp()
+        self.context.evs = EVSClient("https://example.invalid")
+
+    def test_downloaded_build_must_match_the_requested_release(self):
+        with (
+            patch.object(
+                self.context.evs,
+                "get_index_page",
+                return_value=(1, [concept("C1", version="wrong")]),
+            ),
+            self.assertRaises(IndexCompatibilityError),
+        ):
+            full_build(self.context, release())
+        self.assertEqual(self.local_index.list_builds(), [])
+
+    def test_full_build_rejects_null_nontext_and_whitespace_names(self):
+        for name in (None, 7, " \t\n "):
+            with (
+                self.subTest(name=name),
+                patch.object(
+                    self.context.evs,
+                    "get_index_page",
+                    return_value=(
+                        1,
+                        [concept("C1", synonyms=[{"name": "Searchable alias"}]) | {"name": name}],
+                    ),
+                ),
+                self.assertRaisesRegex(EVSResponseError, "preferred name"),
+            ):
+                full_build(self.context, release())
+        self.assertEqual(self.local_index.list_builds(), [])
+
+
+class FullBuildRequestTest(unittest.TestCase):
+    def setUp(self):
+        self.client = EVSClient("https://evs.invalid", max_attempts=1)
+        self.release = release()
+
+    def reply(self, value):
+        return patch(
+            "nci_si_mcp.http_client._open", return_value=FakeResponse(json.dumps(value).encode())
+        )
+
+    def test_full_build_requests_all_indexed_fields_and_rejects_zero_total(self):
+        with self.reply({"total": 1, "concepts": [concept("C1")]}) as opened:
+            total, rows = self.client.get_index_page(self.release, 0)
+        self.assertEqual((total, rows[0]["code"]), (1, "C1"))
+        params = parse_qs(urlsplit(opened.call_args.args[0].full_url).query)
+        self.assertEqual(params["include"], ["summary,definitions,synonyms,properties"])
+        with self.reply({"total": 0, "concepts": []}), self.assertRaises(EVSResponseError):
+            self.client.get_index_page(self.release, 0)
