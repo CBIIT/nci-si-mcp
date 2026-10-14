@@ -16,6 +16,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import ClassVar
 from unittest.mock import patch
 
+from nci_si_mcp.cadsr import CaDSRClient
+from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import PlatformError, correlated
 from nci_si_mcp.evs import LICENSE_KEY_HEADER, EVSClient
 from nci_si_mcp.http_client import (
@@ -664,3 +666,21 @@ class CredentialsStayOutTest(ServerTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ClientBoundaryTest(ServerTestCase):
+    def cadsr(self, server, **options):
+        client = CaDSRClient(
+            Settings(cadsr_base_url=server.url, cadsr_ftp_url=server.url, **options)
+        )
+        for http in (client.http, client.match_http, client.export_http):
+            http.sleep = lambda _: None
+        return client
+
+    def test_307_post_redirect_is_refused_without_replaying_the_body(self):
+        server = self.serve(Reply(307, headers={"Location": "/redirected"}))
+        with self.assertRaises(UpstreamRejectedError) as raised:
+            self.cadsr(server).match_value_meanings([{"name": "X"}], {})
+        self.assertEqual(raised.exception.details["status"], 307)
+        self.assertIn("POST redirect refused", str(raised.exception))
+        self.assertEqual(len(server.seen), 1)

@@ -350,3 +350,25 @@ class ContentMutationTest(ServerFixture):
                 result = invoke(self.context, "list_terminologies")
                 self.assertIn("terminologies", result)
                 self.assertEqual([item["release"] for item in result["terminologies"]], [channel])
+
+
+class SelectionMetadataTest(unittest.TestCase):
+    def test_invalid_tags_versions_and_segments_are_release_errors(self):
+        for change in (
+            {"tags": None},
+            {"tags": {"monthly": "false"}},
+            {"version": ".26"},
+            {"version": "_26"},
+            {"terminologyVersion": "ncit_.26"},
+            {"terminologyVersion": "ncit_-26"},
+            {"terminologyVersion": 26},
+        ):
+            with (
+                patch(
+                    "nci_si_mcp.evs.EVSClient.get_terminologies", return_value=[MONTHLY | change]
+                ),
+                self.subTest(change=change),
+                self.assertRaises(PlatformError) as raised,
+            ):
+                resolve_evs_release(EVSClient("https://example.invalid"), "ncit", "monthly")
+            self.assertEqual(raised.exception.code, "release_not_available")
