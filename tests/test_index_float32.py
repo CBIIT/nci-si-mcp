@@ -228,7 +228,7 @@ class ArrayVectorTest(IndexTestCase):
             self.assertIn(reason, str(raised.exception))
 
 
-class ScoringReviewTest(IndexTestCase):
+class BinaryVectorIntegrityTest(IndexTestCase):
     def test_nonbinary_vector_kind_storage_is_reported_as_database_corruption(self):
         index = self.build([concept("C1", "Alpha")])
         for kinds in ("x", 1):

@@ -797,7 +797,7 @@ class ExactnessBoundaryTest(ProvenanceTestCase):
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class RecordReviewTest(TestCase):
+class ProvenanceRecordSchemaTest(TestCase):
     def test_provenance_graphs_are_optional_in_the_record_and_in_the_schema(self):
         # EVS items carry no graphs; only the Shared SI Service's do.
         fields = yaml.safe_load((ROOT / "spec/records.yaml").read_text())["provenance"]["fields"]

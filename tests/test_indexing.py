@@ -215,7 +215,7 @@ class FullBuildTest(ServerFixture):
         self.assertEqual(self.context.index.get_active_manifest().evaluation_report, result)
 
 
-class AdapterReviewTest(ServerFixture):
+class IndexOperatorResultTest(ServerFixture):
     def candidate(self):
         return self.local_index.build(
             normalized([concept("C1", "One", active=True)]), None, self.context.embedding_provider
@@ -245,7 +245,7 @@ class AdapterReviewTest(ServerFixture):
         self.assertIsNone(rebuilt.evaluation_version)
 
 
-class FullBuildStorageReviewTest(ServerFixture):
+class FullBuildInputValidationTest(ServerFixture):
     def setUp(self):
         super().setUp()
         self.context.evs = EVSClient("https://example.invalid")
@@ -280,7 +280,7 @@ class FullBuildStorageReviewTest(ServerFixture):
         self.assertEqual(self.local_index.list_builds(), [])
 
 
-class UpstreamReviewTest(unittest.TestCase):
+class FullBuildRequestTest(unittest.TestCase):
     def setUp(self):
         self.client = EVSClient("https://evs.invalid", max_attempts=1)
         self.release = release()

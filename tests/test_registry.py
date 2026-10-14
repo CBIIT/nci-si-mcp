@@ -171,8 +171,8 @@ ITEM_TYPES = {
 }
 
 
-class RecordReviewTest(TestCase):
-    def test_phase_two_item_keys_and_optionality_match_specification(self):
+class ContentRecordSchemaTest(TestCase):
+    def test_content_item_keys_and_optionality_match_specification(self):
         records = yaml.safe_load((ROOT / "spec/records.yaml").read_text())
         for name, type_name in ITEM_TYPES.items():
             with self.subTest(record=name):
@@ -224,7 +224,7 @@ def validator(operation):
     return Draft202012Validator(TypeAdapter(OPERATIONS[operation].output).json_schema())
 
 
-class RegistryMutationTest(ServerFixture):
+class OutputSchemaValidationTest(ServerFixture):
     def test_provenance_correlation_is_required_in_output_schema(self):
         result = invoke(self.context, "lookup", "C3262")
         schema = validator("lookup")

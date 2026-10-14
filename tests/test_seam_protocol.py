@@ -72,7 +72,7 @@ class SeamProtocolTest(ServerFixture):
 
 
 @patch("nci_si_mcp.server.configure_logging")
-class SeamContractMutationTest(ServerFixture):
+class CrossDomainRecordSchemaTest(ServerFixture):
     def setUp(self):
         super().setUp()
         self.context.ssis = FakeSSIS(self.settings)

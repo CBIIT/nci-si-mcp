@@ -249,7 +249,7 @@ def http_failure():
     raise http_error(503, b"{}")
 
 
-class AdapterReviewTest(ServerFixture):
+class FHIRTransportSettingsTest(ServerFixture):
     def fhir_context(self):
         return Context(
             replace(self.settings, evs_max_attempts=2, evs_max_response_bytes=8),

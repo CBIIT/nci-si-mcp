@@ -480,6 +480,8 @@ def _free_text_roots(tool: str) -> set[str]:
     return {p.split("[")[0].split(".")[0] for p in TOOLS[tool].get("free_text", [])}
 
 
+# Parameters whose values are free text or opaque (audited as a SHA-256 digest); every other
+# parameter of these tools is an identifier, a closed value or a number, audited in the clear.
 HASHED = {
     "get_form": {"keyword"},
     "get_permissible_value": set(),
@@ -494,7 +496,7 @@ HASHED = {
 }
 
 
-class CaDSRSchemaMutationTest(TestCase):
+class CaDSRAuditClassificationTest(TestCase):
     def test_each_cadsr_parameter_has_the_specification_audit_class(self):
         tools = {spec.name: spec for spec in SPECS if spec.group == "cadsr" and spec.name in TOOLS}
         self.assertEqual(set(tools), set(HASHED))
@@ -526,7 +528,7 @@ def digest_record(value):
     return {"sha256": hashlib.sha256(encoded.encode()).hexdigest()}
 
 
-class RegistryMutationTest(ServerFixture):
+class RegistryAuditPrivacyTest(ServerFixture):
     def test_search_cursor_is_hashed_even_when_the_option_is_refused(self):
         cursor = "private-cursor-canary"
         with captured() as stream:
@@ -569,7 +571,7 @@ class RegistryMutationTest(ServerFixture):
         self.assertEqual(record["correlationId"], "hidden-tool")
 
 
-class AuditMutationTest(unittest.TestCase):
+class AuditDiagnosticPrivacyTest(unittest.TestCase):
     def test_request_and_retry_diagnostics_hash_each_original_value(self):
         client = EVSClient("https://example.invalid", retry_backoff_seconds=0).http
         path = "/private-path-canary"
@@ -623,8 +625,8 @@ class AuditMutationTest(unittest.TestCase):
         self.assertIsNone(result["resultSize"])
 
 
-class IndexAuditMutationTest(ServerFixture):
-    def test_replacing_an_index_logs_the_release_it_replaced(self):
+class IndexActivationAuditTest(ServerFixture):
+    def test_each_index_activation_logs_its_new_release_and_build_identity(self):
         with captured() as stream:
             for version in ("26.06e", "26.07a"):
                 self.local_index.upsert_concepts(
@@ -639,7 +641,7 @@ class IndexAuditMutationTest(ServerFixture):
 
 
 @patch("nci_si_mcp.server.configure_logging")
-class SeamContractMutationTest(ServerFixture):
+class CrossDomainAuditPrivacyTest(ServerFixture):
     def setUp(self):
         super().setUp()
         self.context.ssis = FakeSSIS(self.settings)

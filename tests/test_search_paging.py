@@ -11,6 +11,7 @@ from ncit_index.embeddings import HashingEmbeddingProvider
 from ncit_index.scoring import rank_page
 from test_evs_client import FakeResponse
 from test_index import normalized
+from test_release_cursor_validation import padded_token
 from test_server import ServerFixture, pinned
 
 
@@ -360,14 +361,7 @@ def reposition(value, offset):
     return padded_token(payload | {"offset": offset})
 
 
-def padded_token(payload, size=None):
-    text = json.dumps(payload)
-    if size is not None:
-        text = text.ljust(size)
-    return base64.urlsafe_b64encode(text.encode()).decode()
-
-
-class ContentReviewTest(ServerFixture):
+class SearchContinuationTest(ServerFixture):
     def setUp(self):
         super().setUp()
         self.evs.concepts = {
@@ -468,7 +462,7 @@ class ContentReviewTest(ServerFixture):
         self.assertEqual(result["error"]["details"]["parameter"], "query")
 
 
-class ContentMutationTest(ServerFixture):
+class IndexedSearchBoundaryTest(ServerFixture):
     def content(self, operation, **arguments):
         return invoke(self.context, operation, **pinned(**arguments))
 
@@ -480,7 +474,7 @@ class ContentMutationTest(ServerFixture):
             expected_release_version="26.06e",
         )
 
-    def test_search_keeps_more_than_one_hundred_hits_and_clamps_large_limits(self):
+    def test_search_returns_all_150_hits_for_large_requested_limits(self):
         self.index_concepts([concept(f"C{i}", "Kinase", active=True) for i in range(1, 151)])
         for limit in (500, 5000):
             with self.subTest(limit=limit):
@@ -520,7 +514,7 @@ class ContentMutationTest(ServerFixture):
                             set(),
                         )
 
-    def test_unsupported_search_options_are_refused_even_with_a_usable_index(self):
+    def test_invalid_mode_cursor_and_unselectable_retirement_are_refused_with_a_usable_index(self):
         self.index_concepts([concept("C1", "Kinase", active=True)])
         options = ({"mode": "bm25"}, {"cursor": "cursor"}, {"retired": "only"})
         for option in options:

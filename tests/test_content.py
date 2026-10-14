@@ -532,7 +532,7 @@ def relation(code, name="relation"):
     return {"relatedCode": code, "relatedName": code, "type": name}
 
 
-class ContentReviewTest(ServerFixture):
+class LiveContentBoundaryTest(ServerFixture):
     def setUp(self):
         super().setUp()
         self.evs.concepts = {
@@ -582,7 +582,7 @@ class ContentReviewTest(ServerFixture):
                 self.assertNotIn("results", result)
 
 
-class ContentMutationTest(ServerFixture):
+class NeighborhoodLimitsTest(ServerFixture):
     def content(self, operation, **arguments):
         return invoke(self.context, operation, **pinned(**arguments))
 
@@ -666,7 +666,7 @@ class ContentMutationTest(ServerFixture):
         self.assertEqual(kinds["inverseAssociation"]["bound"], "kind_budget")
 
 
-class StatusReviewTest(ServerFixture):
+class UpstreamStatusTest(ServerFixture):
     def setUp(self):
         super().setUp()
         self.evs.concepts = {
@@ -725,7 +725,7 @@ class StatusReviewTest(ServerFixture):
         self.assertEqual([record["status"] for record in records], ["  Upstream status  "] * 8)
 
 
-class AdapterReviewTest(ServerFixture):
+class SearchCapabilityTest(ServerFixture):
     def test_missing_index_names_unavailable_search_capability(self):
         result = invoke(self.context, "search_concepts", "ncit", "One", "26.06e", mode="semantic")
         self.assertEqual(result["error"]["code"], "capability_unavailable")

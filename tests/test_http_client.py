@@ -665,10 +665,6 @@ class CredentialsStayOutTest(ServerTestCase):
         self.assertNotIn(KEY, f"{raised.exception} {raised.exception.details}")
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class ClientBoundaryTest(ServerTestCase):
     def cadsr(self, server, **options):
         client = CaDSRClient(
@@ -687,7 +683,7 @@ class ClientBoundaryTest(ServerTestCase):
         self.assertEqual(len(server.seen), 1)
 
 
-class AuditMutationTest(unittest.TestCase):
+class CredentialRedactionTest(unittest.TestCase):
     def test_request_observer_receives_a_redacted_url(self):
         client = EVSClient("https://example.invalid", license_key="key-canary").http
         observed = []
@@ -708,3 +704,7 @@ class AuditMutationTest(unittest.TestCase):
             client.get_json("/metadata", reject=lambda payload: "unusable key-canary")
         self.assertEqual(str(raised.exception), "unusable [redacted]")
         self.assertEqual(raised.exception.details, {"surface": "evs", "status": 200, "attempts": 1})
+
+
+if __name__ == "__main__":
+    unittest.main()

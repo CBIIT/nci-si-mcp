@@ -338,7 +338,7 @@ class RegistryStateTest(unittest.TestCase):
                 self.assertIn("distribution", error["message"])
 
 
-class ContentMutationTest(ServerFixture):
+class TerminologyChannelTest(ServerFixture):
     def test_listing_ignores_false_channel_tags_and_uses_the_configured_channel(self):
         self.evs.rows = [
             terminology_row("weekly", monthly="false", weekly="true"),
@@ -374,7 +374,7 @@ class SelectionMetadataTest(unittest.TestCase):
             self.assertEqual(raised.exception.code, "release_not_available")
 
 
-class ServedReleaseReviewTest(unittest.TestCase):
+class ServedReleaseIdentityTest(unittest.TestCase):
     def test_another_terminology_with_the_same_version_is_not_the_requested_release(self):
         row = terminology_row() | {"terminology": "other"}
         with self.assertRaises(PlatformError) as raised:

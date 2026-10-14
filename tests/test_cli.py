@@ -446,11 +446,7 @@ class ProcessTest(unittest.TestCase):
         )
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
-class RegistryMutationTest(ServerFixture):
+class CommandValidationTest(ServerFixture):
     def test_invalid_environment_error_has_an_actionable_next_step(self):
         output = io.StringIO()
         with (
@@ -477,3 +473,7 @@ class RegistryMutationTest(ServerFixture):
             if spec.command:
                 with self.subTest(command=spec.command):
                     self.assertIn(" ".join(spec.description.splitlines()[0].split()), help_text)
+
+
+if __name__ == "__main__":
+    unittest.main()

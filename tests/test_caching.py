@@ -207,7 +207,7 @@ class CacheDeclarationTest(unittest.TestCase):
             select_cache_hint(resolution=False)
 
 
-class AdapterReviewTest(ServerFixture):
+class PinnedContentCacheTest(ServerFixture):
     def test_three_pinned_content_tools_select_long_public_cache_hints(self):
         for tool, arguments in (
             ("list_relationships", {}),

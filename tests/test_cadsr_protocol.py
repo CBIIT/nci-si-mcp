@@ -15,13 +15,13 @@ from unittest.mock import patch
 import yaml
 from pydantic import TypeAdapter
 
-from fakes import data_element
+from fakes import code_map, data_element
 from nci_si_mcp import results
 from nci_si_mcp.cli import build_parser, main
 from nci_si_mcp.context import Context
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.release import RegistryState, registry_state
-from test_cadsr_forms import code_map, form
+from test_cadsr_forms import form
 from test_cadsr_matching import cde_response, cde_row, vm_response, vm_row
 from test_server import ServerFixture
 
@@ -309,7 +309,7 @@ def fields_in(text, occurrence=0):
     }
 
 
-class CaDSRAdapterMutationTest(ServerFixture):
+class CaDSRAdapterBoundaryTest(ServerFixture):
     def setUp(self):
         super().setUp()
         self.enterContext(
@@ -375,7 +375,7 @@ class CaDSRAdapterMutationTest(ServerFixture):
         self.assertEqual(self.evs.calls, [])
 
 
-class CaDSRSchemaMutationTest(TestCase):
+class CaDSRRecordSchemaTest(TestCase):
     def assert_fields(self, record, fields):
         actual = schema(record)
         self.assertEqual(set(actual["properties"]), set(fields))

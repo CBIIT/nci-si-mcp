@@ -102,7 +102,7 @@ def padded_token(payload, size=None):
     return base64.urlsafe_b64encode(text.encode()).decode()
 
 
-class CursorReviewTest(TestCase):
+class CursorEncodingTest(TestCase):
     def test_unknown_version_is_rejected(self):
         value = padded_token({"v": 2, "arguments": {}, "offset": 1})
         with self.assertRaises(InputValidationError):

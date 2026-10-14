@@ -463,7 +463,7 @@ HEADERS = {
 }
 
 
-class HTTPMutationRegressionTest(GovernedFixture):
+class GovernedPrivacyTest(GovernedFixture):
     def test_governed_transport_refusals_are_not_cacheable(self):
         async def scenario():
             async with http_app(self.configured(), self.context) as client:

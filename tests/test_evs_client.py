@@ -520,11 +520,7 @@ class EVSClientTest(unittest.TestCase):
                 self.assertEqual(urlopen.call_count, 1)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
-class UpstreamReviewTest(unittest.TestCase):
+class EVSContentBoundaryTest(unittest.TestCase):
     def setUp(self):
         self.client = EVSClient("https://evs.invalid", max_attempts=1)
         self.release = release()
@@ -601,3 +597,7 @@ class UpstreamReviewTest(unittest.TestCase):
             "nci_si_mcp.http_client._open", side_effect=AssertionError("unexpected request")
         ):
             self.assertEqual(self.client.get_concepts_by_codes([], self.release), [])
+
+
+if __name__ == "__main__":
+    unittest.main()

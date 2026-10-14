@@ -105,11 +105,7 @@ class EvaluationTest(unittest.TestCase):
             self.assertIsNone(index.get_concept_snapshot("C8")[1])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
-class EvaluationReviewTest(IndexTestCase):
+class MetricBoundaryTest(IndexTestCase):
     def test_rank_five_counts_in_hit_at_five(self):
         index = self.build([concept(f"C{i}", "Same") for i in range(1, 7)])
         results = evaluate_retrieval(index, self.provider, [GoldQuery("Same", ("C5",))])
@@ -118,3 +114,7 @@ class EvaluationReviewTest(IndexTestCase):
                 self.assertEqual(result.per_query[0].first_expected_rank, 5)
                 self.assertEqual(result.hit_at_5, 1.0)
                 self.assertEqual(result.mean_reciprocal_rank, 0.2)
+
+
+if __name__ == "__main__":
+    unittest.main()

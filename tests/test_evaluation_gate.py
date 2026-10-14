@@ -257,7 +257,7 @@ class EvaluationGateTests(unittest.TestCase):
         self.assertIsNone(self.index.get_active_manifest())
 
 
-class StorageReviewTest(IndexTestCase):
+class EvaluationStorageIntegrityTest(IndexTestCase):
     def test_classified_rebuild_does_not_claim_an_unclassified_source(self):
         index = LocalIndex(self.path)
         for kind in ("sample", "production"):
@@ -294,7 +294,7 @@ class StorageReviewTest(IndexTestCase):
         self.assertEqual(result.evaluation_report, report)
 
 
-class EvaluationReviewTest(IndexTestCase):
+class CandidateEvidenceIntegrityTest(IndexTestCase):
     def candidate(self):
         index = LocalIndex(self.path)
         build = index.build(

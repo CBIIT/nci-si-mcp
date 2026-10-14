@@ -242,7 +242,7 @@ class FormsTest(CaDSRFixture):
                 self.assertEqual(result["error"]["code"], "release_mismatch")
 
 
-class CaDSRContentBoundaryTest(CaDSRFixture):
+class FormAndCodeMapBoundaryTest(CaDSRFixture):
     def test_form_provenance_uri_keeps_version(self):
         server = self.serve(reply({"form": form()}))
         result = self.call(server, "get_form", publicId="123", version="2")

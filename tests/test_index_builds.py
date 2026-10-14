@@ -391,7 +391,7 @@ class FieldSearchTest(IndexTestCase):
                 self.assertEqual(hit.matched_on, expected)
 
 
-class StorageReviewTest(IndexTestCase):
+class BuildStorageIntegrityTest(IndexTestCase):
     def test_expired_cursor_names_requested_and_current_releases(self):
         index = self.build([concept("C1")])
         old = index.get_active_manifest()
@@ -468,7 +468,7 @@ class StorageReviewTest(IndexTestCase):
             clean_stale_builds(conn, self.path)
 
 
-class ScoringReviewTest(IndexTestCase):
+class RankingBoundaryTest(IndexTestCase):
     def test_exact_name_beats_a_better_vector_before_page_selection(self):
         provider = HashingEmbeddingProvider(dimensions=2)
         values = {"Exact": [1.0, 0.0], "Other": [0.0, 1.0]}

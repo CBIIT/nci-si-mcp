@@ -703,7 +703,7 @@ def bindings(rows):
     }
 
 
-class SeamQueryMutationTest(unittest.TestCase):
+class CrossDomainQueryBoundaryTest(unittest.TestCase):
     def setUp(self):
         directory = TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -952,7 +952,7 @@ def crosswalk_row(identifier, bindings):
     }
 
 
-class SeamStateMutationTest(unittest.TestCase):
+class StoredValueAndAlignmentTest(unittest.TestCase):
     def setUp(self):
         directory = TemporaryDirectory()
         self.addCleanup(directory.cleanup)

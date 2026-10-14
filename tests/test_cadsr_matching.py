@@ -462,7 +462,7 @@ class MatchingBoundariesTest(ServerTestCase):
             {"entity": "Q", "pvvmData": []},
         )
 
-    def test_ten_values_preserve_request_order_and_duplicate_occurrences(self):
+    def test_ten_values_keep_request_occurrences_and_platform_response_order(self):
         names = ["Z", "A", "Z", "B", "C", "D", "E", "F", "G", "H"]
         groups = [
             {"name": name, "matches": [vm_row(itemId=str(100 + i))]} for i, name in enumerate(names)

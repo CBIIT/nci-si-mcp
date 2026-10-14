@@ -808,11 +808,7 @@ class SearchTest(IndexTestCase):
         )
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
-class StorageReviewTest(IndexTestCase):
+class ManifestIntegrityTest(IndexTestCase):
     def test_sample_needing_rebuild_cannot_be_updated(self):
         index = self.build([concept("C1")])
         active = replace(index.get_active_manifest(), needs_rebuild=True)
@@ -859,7 +855,7 @@ class StorageReviewTest(IndexTestCase):
         self.assertEqual(sum(item.active for item in index.list_builds()), 1)
 
 
-class LegacyStorageReviewTest(IndexTestCase):
+class LegacyMigrationIntegrityTest(IndexTestCase):
     legacy_database = MigrationTest.legacy_database
 
     def test_empty_legacy_manifest_without_dimensions_still_blocks_sample_updates(self):
@@ -895,3 +891,7 @@ class LegacyStorageReviewTest(IndexTestCase):
             self.assertEqual(
                 conn.execute("SELECT release_version FROM concepts").fetchone()[0], "orphan"
             )
+
+
+if __name__ == "__main__":
+    unittest.main()

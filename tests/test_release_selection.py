@@ -438,7 +438,7 @@ async def modern_concept(client, release=None):
     return response
 
 
-class ReleaseSelectionMutationTest(ServerFixture):
+class ReleaseSelectionBoundaryTest(ServerFixture):
     def test_expired_search_cursor_discovers_the_configured_weekly_release(self):
         self.context.settings = replace(self.settings, release_channel="weekly")
         arguments = {

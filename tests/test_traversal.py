@@ -1002,13 +1002,9 @@ class BoundedFrontierTest(unittest.TestCase):
         self.assertLess(len(json.dumps(found)), 1000)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
-class TraversalMutationTest(unittest.TestCase):
+class InitialBatchValidationTest(unittest.TestCase):
     def setUp(self):
-        self.enterContext(correlated("mutation-review"))
+        self.enterContext(correlated("initial-batch"))
 
     def test_unrequested_concept_in_the_initial_batch_is_an_error(self):
         with (
@@ -1020,7 +1016,7 @@ class TraversalMutationTest(unittest.TestCase):
             walk(FakeEVS(), max_depth=1, edge_types=["child"])
 
 
-class TraversalReviewTest(unittest.TestCase):
+class TraversalTerminologyTest(unittest.TestCase):
     def test_other_terminology_is_kept_on_start_and_reached_nodes(self):
         client = FakeEVS(
             [
@@ -1044,3 +1040,7 @@ class TraversalReviewTest(unittest.TestCase):
             [("root", "other"), ("child", "other")],
         )
         self.assertEqual(result.truncation.to_dict(), {"occurred": False})
+
+
+if __name__ == "__main__":
+    unittest.main()

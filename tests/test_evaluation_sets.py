@@ -6,7 +6,6 @@ import unittest
 from pathlib import Path
 
 from nci_si_mcp.evaluation_sets import load_set, parse_set, production_set
-from test_index import IndexTestCase
 
 
 def sample_set_payload():
@@ -145,6 +144,6 @@ class EvaluationSetTests(unittest.TestCase):
                 load_set(path)
 
 
-class EvaluationReviewTest(IndexTestCase):
+class CalibrationReleaseTest(unittest.TestCase):
     def test_shipped_calibration_names_the_measured_release(self):
         self.assertEqual(production_set().release, "26.09d")

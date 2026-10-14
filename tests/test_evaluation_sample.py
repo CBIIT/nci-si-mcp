@@ -70,7 +70,7 @@ class RecordedEvaluationTests(unittest.TestCase):
                         self.assertIn(query["ranked_codes"][0], query["expected_codes"])
 
 
-class AdapterReviewTest(ServerFixture):
+class LegacyEvaluationTest(ServerFixture):
     def candidate(self):
         return self.local_index.build(
             normalized([concept("C1", "One", active=True)]), None, self.context.embedding_provider

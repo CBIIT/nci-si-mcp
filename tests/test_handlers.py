@@ -866,7 +866,7 @@ class ErrorModelTest(HandlerTestCase):
         self.assertIn("26.07a", message)
 
 
-class AdapterReviewTest(ServerFixture):
+class OperatorErrorRemedyTest(ServerFixture):
     def test_operator_failures_include_actionable_next_steps(self):
         for error, ending in (
             (
@@ -889,7 +889,7 @@ class AdapterReviewTest(ServerFixture):
                 self.assertTrue(result["error"]["message"].endswith(ending))
 
 
-class RegistryMutationTest(ServerFixture):
+class UpstreamAndIndexErrorRemedyTest(ServerFixture):
     def test_incompatible_index_error_names_the_rebuild_next_step(self):
         with patch.object(
             self.context.index, "search_page", side_effect=IndexCompatibilityError("bad")

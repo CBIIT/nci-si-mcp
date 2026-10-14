@@ -273,9 +273,9 @@ class DepthTruncationTest(unittest.TestCase):
         self.assertEqual(codes(result), ["C1", "C2"])
 
 
-class TraversalMutationTest(unittest.TestCase):
+class FinalFrontierBoundsTest(unittest.TestCase):
     def setUp(self):
-        self.enterContext(correlated("mutation-review"))
+        self.enterContext(correlated("final-frontier"))
 
     def test_final_fetch_caps_preserve_an_earlier_kind_budget(self):
         concepts = [

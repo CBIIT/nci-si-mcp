@@ -214,7 +214,7 @@ class RetiredCodeTest(ServerFixture):
         self.assertEqual(failed.structured_content["error"]["code"], "invalid_request")
 
 
-class ContentReviewTest(ServerFixture):
+class RetiredIdentityTest(ServerFixture):
     def setUp(self):
         super().setUp()
         self.evs.concepts = {

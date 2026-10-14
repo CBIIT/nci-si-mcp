@@ -143,7 +143,7 @@ class ResourceTest(ServerFixture):
         self.assertEqual(result["provenance"]["servedBy"], "index")
 
 
-class AdapterReviewTest(ServerFixture):
+class IndexResourceCapabilityTest(ServerFixture):
     def test_absent_index_resource_names_its_capability(self):
         result = invoke(self.context, "index_resource", "26.06e")
         self.assertEqual(result["error"]["code"], "capability_unavailable")

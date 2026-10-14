@@ -1,5 +1,3 @@
-import base64
-import json
 from unittest.mock import patch
 
 from fakes import concept, release
@@ -7,6 +5,7 @@ from nci_si_mcp import cursor as cursors
 from nci_si_mcp.bounds import Budget, current_budget
 from nci_si_mcp.evs import EVSReleaseNotFoundError
 from nci_si_mcp.registry import invoke
+from test_search_paging import reposition
 from test_server import ServerFixture, pinned
 from test_traversal import HubEVS
 
@@ -246,19 +245,7 @@ class HierarchyPagingTest(ServerFixture):
                 self.assertEqual([node["code"] for node in continued["nodes"]], ["C3"])
 
 
-def reposition(value, offset):
-    payload = json.loads(base64.urlsafe_b64decode(value))
-    return padded_token(payload | {"offset": offset})
-
-
-def padded_token(payload, size=None):
-    text = json.dumps(payload)
-    if size is not None:
-        text = text.ljust(size)
-    return base64.urlsafe_b64encode(text.encode()).decode()
-
-
-class ContentReviewTest(ServerFixture):
+class HierarchyContinuationTest(ServerFixture):
     def setUp(self):
         super().setUp()
         self.evs.concepts = {
@@ -298,7 +285,7 @@ class ContentReviewTest(ServerFixture):
         self.assertNotIn("nodes", result)
 
 
-class ContentMutationTest(ServerFixture):
+class HierarchyDefaultsTest(ServerFixture):
     def content(self, operation, **arguments):
         return invoke(self.context, operation, **pinned(**arguments))
 

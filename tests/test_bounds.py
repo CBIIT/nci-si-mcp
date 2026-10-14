@@ -59,9 +59,9 @@ def roles(*targets):
     return [related(f"r{n}", code) for n, code in enumerate(targets)]
 
 
-class BoundsReviewTest(unittest.TestCase):
+class BoundPrecedenceTest(unittest.TestCase):
     def setUp(self):
-        self.enterContext(correlated("bounds-review"))
+        self.enterContext(correlated("bound-precedence"))
 
     def test_node_bound_precedes_later_request_exhaustion(self):
         client = BudgetEVS([concept("C1", children=[child("C2"), child("C3"), child("C4")])])
