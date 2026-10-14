@@ -18,7 +18,7 @@ concurrency:
 jobs:
   changes:
     name: image selection
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       image: ${{ steps.select.outputs.image }}
@@ -43,7 +43,7 @@ jobs:
     name: companion containers (amd64)
     needs: [changes, documentation]
     if: ${{ !cancelled() && (github.event_name != 'pull_request' || needs.changes.outputs.companions == 'true') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Require the documentation producer
@@ -87,7 +87,7 @@ jobs:
 
   documentation:
     name: documentation artifact
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -127,7 +127,7 @@ jobs:
     name: container (amd64)
     needs: [changes]
     if: github.event_name != 'pull_request' || needs.changes.outputs.image == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -140,7 +140,7 @@ jobs:
   # so this also catches a file that a change elsewhere (a rule, a pin) put in breach.
   quality:
     name: quality
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -156,7 +156,7 @@ jobs:
 
   test:
     name: test (3.14)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -193,7 +193,7 @@ jobs:
   # updates that file in the same pull request. It depends on no other job.
   acceptance:
     name: acceptance (fixture)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -252,7 +252,7 @@ jobs:
   # Offered as a required check for the owner; this change does not alter branch rulesets.
   acceptance-http:
     name: acceptance (HTTP fixture)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -275,7 +275,7 @@ jobs:
   # pace of CI: add a shard when one takes more than about four minutes.
   selftest:
     name: selftest (${{ matrix.shard }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -304,7 +304,7 @@ jobs:
   coverage:
     name: coverage
     needs: selftest
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -337,7 +337,7 @@ jobs:
   coverage-badges-render:
     name: render coverage badges
     needs: [test, coverage]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -368,7 +368,7 @@ jobs:
     name: publish coverage badges
     needs: [changes, quality, test, coverage, acceptance, acceptance-http, image, documentation, companions, coverage-badges-render]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write  # only fixed data publication; no checkout or repository execution
