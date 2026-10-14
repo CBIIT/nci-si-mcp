@@ -304,7 +304,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
         self.assertEqual(job()["runs-on"], "${{ matrix.os }}")
         self.assertEqual(
             job()["strategy"],
-            {"fail-fast": False, "matrix": {"os": ["macos-latest", "ubuntu-latest"]}},
+            {"fail-fast": False, "matrix": {"os": ["macos-latest", "ubuntu-24.04"]}},
         )
         self.assertEqual(job()["timeout-minutes"], 40)
 

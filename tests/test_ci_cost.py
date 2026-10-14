@@ -1,4 +1,4 @@
-"""The per-PR CI keeps its cost: the same events start it, and every job runs on Linux.
+"""Workflow runner identities stay pinned; the per-PR CI keeps its events and Linux jobs.
 
 The macOS walk lives in its own workflow; the jobs' dependencies and conditions are owned by
 the tests of the image selection and the badge isolation.
@@ -16,6 +16,39 @@ class CiCostTest(unittest.TestCase):
     def test_ci_starts_on_the_same_events(self):
         self.assertEqual(CI[True], {"push": {"branches": ["main"]}, "pull_request": None})
 
-    def test_every_ci_job_runs_on_linux(self):
-        runners = {job.get("runs-on") for job in CI["jobs"].values()}
-        self.assertEqual(runners, {"ubuntu-latest"})
+    def test_every_workflow_job_has_its_exact_runner(self):
+        runners = {
+            path.name: {
+                name: job.get("runs-on")
+                for name, job in yaml.safe_load(path.read_text(encoding="utf-8"))["jobs"].items()
+            }
+            for path in Path(".github/workflows").glob("*.y*ml")
+        }
+        self.assertEqual(
+            runners,
+            {
+                "acceptance-live.yml": {"acceptance-live": "ubuntu-24.04"},
+                "audit.yml": {
+                    "pip-audit": "ubuntu-24.04",
+                    "dependency-review": "ubuntu-24.04",
+                },
+                "branch-cleanup.yml": {"cleanup": "ubuntu-24.04"},
+                "ci.yml": {
+                    "changes": "ubuntu-24.04",
+                    "companions": "ubuntu-24.04",
+                    "documentation": "ubuntu-24.04",
+                    "image": "ubuntu-24.04",
+                    "quality": "ubuntu-24.04",
+                    "test": "ubuntu-24.04",
+                    "acceptance": "ubuntu-24.04",
+                    "acceptance-http": "ubuntu-24.04",
+                    "selftest": "ubuntu-24.04",
+                    "coverage": "ubuntu-24.04",
+                    "coverage-badges-render": "ubuntu-24.04",
+                    "coverage-badges": "ubuntu-24.04",
+                },
+                "local-run.yml": {"local-run": "${{ matrix.os }}"},
+                "pr-title.yml": {"conventional": "ubuntu-24.04"},
+                "release.yml": {"release": "ubuntu-24.04", "image": "ubuntu-24.04"},
+            },
+        )
