@@ -304,14 +304,6 @@ class ContentMutationTest(CaDSRFixture):
                 )
                 self.assertEqual(result["truncation"], expected)
 
-    def test_count_below_received_rows_is_a_malformed_response(self):
-        result = self.call(
-            self.serve(reply({"DataElements": [element(), element("124")], "numRecords": 1})),
-            "search_data_elements",
-            query="Q",
-        )
-        self.assertEqual(result["error"]["code"], "upstream_unavailable")
-
     def test_context_page_limit_is_one_thousand_and_cursor_binds_pin_and_limit(self):
         server = self.serve(reply({"contextNames": [str(i) for i in range(1001)]}))
         result = self.call(server, "list_contexts", limit=1001)

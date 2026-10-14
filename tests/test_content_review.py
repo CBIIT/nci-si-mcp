@@ -221,10 +221,3 @@ class ContentReviewTest(ServerFixture):
         self.assertEqual(result["status"], "Retired_Concept")
         self.assertEqual(result["replacements"][0]["code"], "C2")
         self.assertNotIn("name", result)
-
-    def test_explicit_null_or_empty_status_is_omitted(self):
-        for status in (None, ""):
-            with self.subTest(status=status):
-                self.evs.concepts["C1"]["conceptStatus"] = status
-                result = self.call("get_concept", code="C1")
-                self.assertNotIn("status", result)

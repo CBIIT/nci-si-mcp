@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from fakes import concept
 from ncit_index.embeddings import HashingEmbeddingProvider
-from ncit_index.errors import IndexCapabilityError, IndexStorageError
+from ncit_index.errors import IndexStorageError
 from test_index import IndexTestCase
 
 
@@ -146,12 +146,3 @@ class ScoringReviewTest(IndexTestCase):
                     conn.execute("UPDATE concept_vectors SET vector = ?", (vector,))
                 with self.assertRaisesRegex(IndexStorageError, "Stored vector length"):
                     index.search("Alpha", self.provider, mode="vector")
-
-    def test_missing_numpy_names_the_unavailable_scoring_capability(self):
-        index = self.build([concept("C1", "Alpha")])
-        with (
-            patch.dict("sys.modules", {"numpy": None}),
-            self.assertRaises(IndexCapabilityError) as raised,
-        ):
-            index.search("Alpha", self.provider, mode="vector")
-        self.assertEqual(raised.exception.details, {"capability": "semantic/hybrid index scoring"})

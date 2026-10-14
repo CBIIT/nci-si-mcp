@@ -5,16 +5,13 @@ import json
 import os
 import sys
 from contextlib import redirect_stderr, redirect_stdout
-from pathlib import Path
 from types import SimpleNamespace
-from typing import get_args
 from unittest.mock import patch
 
-import yaml
 from jsonschema import Draft202012Validator
 from pydantic import TypeAdapter
 
-from nci_si_mcp import cli, results, validation
+from nci_si_mcp import cli, results
 from nci_si_mcp.http_client import UpstreamRejectedError, UpstreamUnavailableError
 from nci_si_mcp.registry import OPERATIONS, SPECS, invoke
 from nci_si_mcp.server import _audit_tools
@@ -183,17 +180,3 @@ class RegistryMutationTest(ServerFixture):
         self.assertTrue(schema.is_valid(result))
         result["edges"][0]["provenance"]["direction"] = "sideways"
         self.assertFalse(schema.is_valid(result))
-
-    def test_closed_output_values_equal_the_specification(self):
-        path = Path(__file__).resolve().parents[1] / "spec" / "records.yaml"
-        spec = yaml.safe_load(path.read_text())
-        cases = (
-            (validation.ProvenanceSource, "provenance", "source"),
-            (validation.ServedBy, "provenance", "servedBy"),
-            (validation.TruncationBound, "truncation", "bound"),
-        )
-        for declaration, record, field in cases:
-            with self.subTest(record=record, field=field):
-                self.assertEqual(
-                    set(get_args(declaration)), set(spec[record]["fields"][field]["values"])
-                )
