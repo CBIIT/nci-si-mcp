@@ -1,5 +1,7 @@
 import json
+import unittest
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
 
 from fakes import concept, release, terminology_row
 from nci_si_mcp.errors import correlated
@@ -276,3 +278,23 @@ class FullBuildStorageReviewTest(ServerFixture):
             ):
                 full_build(self.context, release())
         self.assertEqual(self.local_index.list_builds(), [])
+
+
+class UpstreamReviewTest(unittest.TestCase):
+    def setUp(self):
+        self.client = EVSClient("https://evs.invalid", max_attempts=1)
+        self.release = release()
+
+    def reply(self, value):
+        return patch(
+            "nci_si_mcp.http_client._open", return_value=FakeResponse(json.dumps(value).encode())
+        )
+
+    def test_full_build_requests_all_indexed_fields_and_rejects_zero_total(self):
+        with self.reply({"total": 1, "concepts": [concept("C1")]}) as opened:
+            total, rows = self.client.get_index_page(self.release, 0)
+        self.assertEqual((total, rows[0]["code"]), (1, "C1"))
+        params = parse_qs(urlsplit(opened.call_args.args[0].full_url).query)
+        self.assertEqual(params["include"], ["summary,definitions,synonyms,properties"])
+        with self.reply({"total": 0, "concepts": []}), self.assertRaises(EVSResponseError):
+            self.client.get_index_page(self.release, 0)

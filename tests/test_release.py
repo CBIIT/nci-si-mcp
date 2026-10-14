@@ -372,3 +372,17 @@ class SelectionMetadataTest(unittest.TestCase):
             ):
                 resolve_evs_release(EVSClient("https://example.invalid"), "ncit", "monthly")
             self.assertEqual(raised.exception.code, "release_not_available")
+
+
+class ServedReleaseReviewTest(unittest.TestCase):
+    def test_another_terminology_with_the_same_version_is_not_the_requested_release(self):
+        row = terminology_row() | {"terminology": "other"}
+        with self.assertRaises(PlatformError) as raised:
+            served_evs_release([row], "ncit", "26.06e", "monthly")
+        self.assertEqual(raised.exception.code, "release_not_available")
+
+    def test_a_served_release_retains_its_upstream_pinned_identifier(self):
+        row = terminology_row() | {"terminologyVersion": "upstream-specific-pin"}
+        selected = served_evs_release([row], "ncit", "26.06e", "monthly")
+        self.assertEqual(selected.pinned_terminology, "upstream-specific-pin")
+        self.assertEqual(selected.version, "26.06e")
