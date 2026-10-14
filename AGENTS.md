@@ -152,7 +152,7 @@ diff of `expected/fixture.json` is what the review reads. The `Acceptance (live)
 suite against the live services by hand and every Monday; its outcomes are not ratcheted, but
 the weekly run fails when a test that passes on the fixtures fails live (upstream drift).
 The `Local run` workflow (`local-run.yml`) walks the documented setup on `macos-latest` and
-`ubuntu-latest`: every `run:` line is copied from the document that tells a developer to run it,
+`ubuntu-24.04`: every `run:` line is copied from the document that tells a developer to run it,
 and `tests/test_local_run_workflow.py` lists the few CI-only lines with their reasons. Change a
 documented command and its workflow line together.
 The harness has its own
