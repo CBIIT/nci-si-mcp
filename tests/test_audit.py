@@ -612,13 +612,12 @@ class AuditDiagnosticPrivacyTest(unittest.TestCase):
         self.assertNotIn("upstream-canary", stream.getvalue())
 
     def test_cancellation_propagates_and_discards_a_previously_set_result(self):
-        with (
-            captured() as stream,
-            self.assertRaises(asyncio.CancelledError),
-            audited("lookup", {}, {}, ()) as record,
-        ):
-            record.result = {"code": "C1"}
-            raise asyncio.CancelledError()
+        # Nested contexts let CodeQL see that assertRaises consumes the cancellation.
+        with captured() as stream:  # noqa: SIM117
+            with self.assertRaises(asyncio.CancelledError):
+                with audited("lookup", {}, {}, ()) as record:
+                    record.result = {"code": "C1"}
+                    raise asyncio.CancelledError()
         (result,) = records(stream)
         self.assertEqual(result["errorType"], "CancelledError")
         self.assertEqual(result["status"], "error")
