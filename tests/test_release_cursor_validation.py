@@ -3,6 +3,7 @@
 import base64
 import json
 from unittest import TestCase
+from unittest.mock import patch
 
 from nci_si_mcp import cursor
 from nci_si_mcp.errors import InputValidationError
@@ -37,6 +38,9 @@ class CursorValidationTest(ServerFixture):
         return arguments | {"tool": tool} if tool == "search_concepts" else arguments
 
     def test_malformed_cursor_parts_fail_before_discovery(self):
+        self.enterContext(
+            patch.object(self.evs, "search_concepts", return_value=(0, []), create=True)
+        )
         for tool in ("search_concepts", "get_concept_hierarchy"):
             record = {"v": 1, "arguments": self.encoded_arguments(tool), "offset": 1}
             for invalid in (
