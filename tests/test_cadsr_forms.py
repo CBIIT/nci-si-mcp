@@ -3,7 +3,7 @@
 import json
 from urllib.parse import parse_qs, urlsplit
 
-from fakes import data_element
+from fakes import code_map, data_element
 from test_cadsr_client import reply
 from test_cadsr_content import CaDSRFixture
 from test_http_client import Reply
@@ -19,19 +19,6 @@ def form(**extra):
         }
         | extra
     )
-
-
-def code_map(identifier="123", **extra):
-    return {
-        "CDE Public ID": identifier,
-        "Version": "2",
-        "CRDC Name": "Map",
-        "Used By": "CRDC, CIP, ",
-        "permissibleValues": [
-            {"Permissible Value": "A", "Concept Code": "C1:C2"},
-            {"Permissible Value": "B", "Concept Code": None},
-        ],
-    } | extra
 
 
 class FormsTest(CaDSRFixture):

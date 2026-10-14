@@ -2,13 +2,14 @@
 
 from urllib.parse import parse_qs, urlsplit
 
+from fakes import code_map
 from fakes import data_element as element
 from nci_si_mcp import cursor
 from nci_si_mcp.cadsr import EXPORT_FOLDER
 from nci_si_mcp.registry import invoke
 from test_cadsr_client import LISTING, reply
 from test_cadsr_content import CaDSRFixture
-from test_cadsr_forms import code_map, form
+from test_cadsr_forms import form
 from test_http_client import Reply
 
 PIN = {"identifier": "26.1", "generatedAt": "2026-07-01T22:19"}
