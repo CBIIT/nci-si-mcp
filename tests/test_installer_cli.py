@@ -1,11 +1,12 @@
 import json
 import os
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
-INSTALLER = ROOT / ".venv" / "bin" / "nci-si-install"
+INSTALLER = Path(sys.executable).with_name("nci-si-install")
 
 ROOT_HELP = """usage: nci-si-install [-h] {plan} ...
 
@@ -37,10 +38,11 @@ options:
 class InstallerCliTest(unittest.TestCase):
     def run_installer(self, *arguments, force_color=None):
         environment = os.environ.copy()
+        environment["COLUMNS"] = "80"
         if force_color is not None:
             environment["FORCE_COLOR"] = force_color
         process = subprocess.run(  # noqa: S603 - fixed project entry point with test arguments
-            ["pdm", "run", "nci-si-install", *arguments],  # noqa: S607
+            [INSTALLER, *arguments],
             cwd=ROOT,
             env=environment,
             capture_output=True,
