@@ -156,10 +156,15 @@ def _state_record(state: InstallationState) -> dict[str, object]:
 
 
 def write_state(data_dir: Path, state: InstallationState) -> None:
-    data_dir.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary = tempfile.mkstemp(
-        prefix=".installer-state.", suffix=".tmp", dir=data_dir
-    )
+    try:
+        data_dir.mkdir(parents=True, exist_ok=True)
+        descriptor, temporary = tempfile.mkstemp(
+            prefix=".installer-state.", suffix=".tmp", dir=data_dir
+        )
+    except OSError:
+        raise InstallerStateError(
+            f"Cannot write state in {data_dir}; fix access and retry."
+        ) from None
     temporary_path = Path(temporary)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
@@ -179,8 +184,14 @@ def write_state(data_dir: Path, state: InstallationState) -> None:
 
 @contextmanager
 def state_lock(data_dir: Path) -> Iterator[None]:
-    data_dir.mkdir(parents=True, exist_ok=True)
-    with (data_dir / LOCK_NAME).open("a+b") as handle:
+    try:
+        data_dir.mkdir(parents=True, exist_ok=True)
+        handle = (data_dir / LOCK_NAME).open("a+b")
+    except OSError:
+        raise InstallerStateError(
+            f"Cannot lock state in {data_dir}; fix access and retry."
+        ) from None
+    with handle:
         try:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
@@ -266,10 +277,9 @@ def reverify(state: InstallationState, actions: StepActions) -> InstallationStat
     outcomes = _verified_prefix(state, actions)
     if len(outcomes) < len(state.outcomes):
         stale = state.outcomes[len(outcomes)]
-        if stale.status == "blocked":
-            missing = actions.missing_inputs(stale.step)
-            if missing:
-                outcomes = (*outcomes, StepOutcome(stale.step, "blocked", missing))
+        missing = actions.missing_inputs(stale.step)
+        if missing:
+            outcomes = (*outcomes, StepOutcome(stale.step, "blocked", missing))
         elif stale.status == "failed":
             outcomes = (*outcomes, stale)
     return replace(state, outcomes=outcomes)

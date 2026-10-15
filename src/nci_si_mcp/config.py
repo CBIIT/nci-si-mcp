@@ -148,6 +148,21 @@ def _resolve_base_urls(settings: Settings) -> None:
         object.__setattr__(settings, name, value)
 
 
+def upstream_base_urls(*fields: str) -> tuple[str, ...]:
+    """Validate and return selected upstream URLs without reading unrelated settings."""
+
+    mode = os.getenv("NCI_SI_UPSTREAM_MODE", "live")
+    _require_choice("NCI_SI_UPSTREAM_MODE", mode, UPSTREAM_MODES)
+    resolved = []
+    for name in fields:
+        variable = BASE_URL_VARIABLES[name]
+        value = _env_url(variable)
+        if not value and mode == "fixture":
+            raise ValueError(f"{variable} must be given when NCI_SI_UPSTREAM_MODE is fixture")
+        resolved.append(value or PRODUCTION_BASE_URLS[name])
+    return tuple(resolved)
+
+
 def _env_number[Number: (int, float)](
     name: str, default: str, cast: Callable[[str], Number]
 ) -> Number:

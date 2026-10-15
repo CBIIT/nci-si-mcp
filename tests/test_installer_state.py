@@ -140,6 +140,16 @@ class InstallerStateTest(unittest.TestCase):
         ):
             self.fail("second lock acquired")
 
+    def test_data_directory_access_failures_are_operator_refusals(self):
+        file_path = self.data_dir / "not-a-directory"
+        file_path.write_text("x", encoding="utf-8")
+
+        with (
+            self.assertRaisesRegex(API.InstallerStateError, "fix access"),
+            API.state_lock(file_path),
+        ):
+            self.fail("lock acquired")
+
 
 if __name__ == "__main__":
     unittest.main()

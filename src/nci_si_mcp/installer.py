@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import platform
 import re
@@ -17,7 +18,7 @@ from typing import Any, cast
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
-from .config import Settings
+from .config import upstream_base_urls
 from .installer_state import (
     InstallerStateError,
     current_status,
@@ -26,6 +27,7 @@ from .installer_state import (
     reconcile,
     reverify,
     state_lock,
+    validate_outcomes,
     write_state,
 )
 
@@ -193,26 +195,26 @@ def _supported_os() -> bool:
     return platform.system() in ("Darwin", "Linux")
 
 
-def _container_runtime() -> str | None:
-    return next((name for name in ("docker", "podman") if shutil.which(name)), None)
+def _container_runtimes() -> tuple[str, ...]:
+    return tuple(name for name in ("docker", "podman") if shutil.which(name))
 
 
 def _compose_available() -> bool:
-    runtime = _container_runtime()
-    if runtime is None:
-        return False
-    try:
-        result = subprocess.run(  # noqa: S603 - fixed executable selected from PATH
-            [runtime, "compose", "version"],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            timeout=10,
-            check=False,
-        )
-    except OSError, subprocess.TimeoutExpired:
-        return False
-    return result.returncode == 0
+    for runtime in _container_runtimes():
+        try:
+            result = subprocess.run(  # noqa: S603 - fixed executable selected from PATH
+                [runtime, "compose", "version"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+                check=False,
+            )
+        except FileNotFoundError, subprocess.TimeoutExpired:
+            continue
+        if result.returncode == 0:
+            return True
+    return False
 
 
 def _node_available() -> bool:
@@ -225,7 +227,7 @@ def _node_available() -> bool:
             timeout=10,
             check=False,
         )
-    except OSError, subprocess.TimeoutExpired:
+    except FileNotFoundError, subprocess.TimeoutExpired:
         return False
     matched = NODE_VERSION.fullmatch(result.stdout.strip())
     return (
@@ -237,13 +239,11 @@ def _port_available(port: int) -> bool:
     try:
         with socket.socket() as listener:
             listener.bind(("127.0.0.1", port))
-    except OSError:
-        return False
+    except OSError as error:
+        if error.errno == errno.EADDRINUSE:
+            return False
+        raise
     return True
-
-
-def _base_url(field: str) -> str:
-    return getattr(Settings.from_env(), field)
 
 
 def local_prerequisites(components: Sequence[str]) -> tuple[Prerequisite, ...]:
@@ -259,7 +259,7 @@ def local_prerequisites(components: Sequence[str]) -> tuple[Prerequisite, ...]:
                 Prerequisite(
                     "container_runtime",
                     "Install Docker or Podman as QUICKSTART.md documents.",
-                    lambda: _container_runtime() is not None,
+                    lambda: bool(_container_runtimes()),
                 ),
                 Prerequisite(
                     "compose",
@@ -285,16 +285,17 @@ def local_prerequisites(components: Sequence[str]) -> tuple[Prerequisite, ...]:
                     lambda: _port_available(8081),
                 )
             )
+    evs_url, cadsr_url = upstream_base_urls("evs_base_url", "cadsr_base_url")
     checks.extend(
         (
             reachability_prerequisite(
                 "evs_reachable",
-                _base_url("evs_base_url"),
+                evs_url,
                 "Restore network access to NCI_SI_EVS_BASE_URL.",
             ),
             reachability_prerequisite(
                 "cadsr_reachable",
-                _base_url("cadsr_base_url"),
+                cadsr_url,
                 "Restore network access to NCI_SI_CADSR_BASE_URL.",
             ),
         )
@@ -367,6 +368,7 @@ def _state_command(
         read_state(args.data_dir, plan.target, plan.components)
         with state_lock(args.data_dir):
             state = read_state(args.data_dir, plan.target, plan.components)
+            validate_outcomes(state, actions.step_names)
             current = reverify(state, actions)
             if current != state:
                 write_state(args.data_dir, current)

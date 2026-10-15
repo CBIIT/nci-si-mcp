@@ -130,7 +130,7 @@ class AggregatePrerequisiteTest(unittest.TestCase):
 
     def test_a_hung_compose_command_is_an_expected_failed_prerequisite(self):
         with (
-            patch("nci_si_mcp.installer._container_runtime", return_value="docker"),
+            patch("nci_si_mcp.installer._container_runtimes", return_value=("docker",)),
             patch(
                 "nci_si_mcp.installer.subprocess.run",
                 side_effect=subprocess.TimeoutExpired(["docker", "compose", "version"], 10),
@@ -139,6 +139,19 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             result = self.local_check("compose", ("server", "companion")).observe()
 
         self.assertFalse(result)
+
+    def test_compose_passes_when_any_available_runtime_supports_it(self):
+        answers = (
+            subprocess.CompletedProcess(["docker", "compose", "version"], 1),
+            subprocess.CompletedProcess(["podman", "compose", "version"], 0),
+        )
+        with (
+            patch("nci_si_mcp.installer._container_runtimes", return_value=("docker", "podman")),
+            patch("nci_si_mcp.installer.subprocess.run", side_effect=answers),
+        ):
+            result = self.local_check("compose", ("server", "companion")).observe()
+
+        self.assertTrue(result)
 
 
 if __name__ == "__main__":
