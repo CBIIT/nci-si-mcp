@@ -30,12 +30,13 @@ class InstallerGuidanceTest(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         values = iter(observations)
         check = installer.Prerequisite(
-            "required_input", "Fix PRIVATE-CANARY safely.", lambda: next(values)
+            "required_input", "Repair the required input.", lambda: next(values)
         )
         stdout, stderr = io.StringIO(), io.StringIO()
         with (
             patch.object(installer.sys, "stdin", stream),
             patch.object(installer, "local_prerequisites", return_value=(check,)),
+            patch.dict(installer.os.environ, {"PRIVATE_VALUE": "PRIVATE-CANARY"}),
             redirect_stdout(stdout),
             redirect_stderr(stderr),
         ):
@@ -51,15 +52,15 @@ class InstallerGuidanceTest(unittest.TestCase):
         code, result, prompt, state = self.run_main(stream, (False, True, True, True))
 
         self.assertEqual((code, stream.reads), (0, 1))
-        self.assertIn("Fix PRIVATE-CANARY safely.", prompt)
-        self.assertNotIn("PRIVATE-CANARY", json.dumps(result))
+        self.assertIn("Repair the required input.", prompt)
+        self.assertNotIn("PRIVATE-CANARY", prompt + json.dumps(result))
         self.assertEqual(state.outcomes[0].status, "completed")
 
     def test_tty_eof_keeps_the_step_blocked(self):
         code, result, _, state = self.run_main(Input("", tty=True), (False,))
 
         self.assertEqual(code, 1)
-        self.assertEqual(result["blocked"][0]["missing"], ["Fix PRIVATE-CANARY safely."])
+        self.assertEqual(result["blocked"][0]["missing"], ["Repair the required input."])
         self.assertEqual(state.outcomes[0].status, "blocked")
 
     def test_non_tty_and_explicit_non_interactive_never_read_stdin(self):

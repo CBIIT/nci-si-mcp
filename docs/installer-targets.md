@@ -46,3 +46,9 @@ static corrective actions. Later targets add install, configure and verify actio
 or delete resources. A different selection fails closed and asks for a new `--data-dir`, because
 adopting it could orphan a component removed from the recorded installation. Invalid, truncated or
 unsupported state is left unchanged for inspection.
+
+On a terminal, a BLOCKED `run` prints every corrective action on stderr and waits for Enter before
+rerunning the machine checks. Enter never confirms completion. EOF returns the current BLOCKED JSON.
+With non-TTY stdin, or with `--non-interactive`, `run` never reads stdin and returns every unresolved
+action at once. `help check_prerequisites --target local` explains the only executable Phase 32
+step; help for install, configure and verify arrives with their Phase 33 implementations.
