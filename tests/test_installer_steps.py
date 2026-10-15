@@ -1,11 +1,10 @@
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any
 
-import nci_si_mcp
+from nci_si_mcp import installer_state
 
-API: Any = getattr(nci_si_mcp, "installer_state", None)
+API = installer_state
 
 
 class Actions:

@@ -29,3 +29,20 @@ is approved.
 
 Azure and GCP are future targets. They have no command flags or implementation. A future target
 implements the same install flow without adding a plugin loader.
+
+## State and resume
+
+`run` and `status` require an installation `--data-dir`. They do not read `NCI_SI_DATA_DIR`, which
+belongs to a serving process. The installer stores `installer-state.json` there and holds
+`installer-state.lock` while reconciling or reporting. State is written through an fsynced
+temporary sibling, atomic replacement and a directory fsync.
+
+Every run reverifies completed steps from the beginning. The first stale step and all later
+records are discarded before safe-to-repeat work resumes. In Phase 32 the real production step is
+`check_prerequisites`: verification reruns every selected check, and a failure is BLOCKED with its
+static corrective actions. Later targets add install, configure and verify actions.
+
+`--restart` resets progress only for the same target and component selection. It does not uninstall
+or delete resources. A different selection fails closed and asks for a new `--data-dir`, because
+adopting it could orphan a component removed from the recorded installation. Invalid, truncated or
+unsupported state is left unchanged for inspection.

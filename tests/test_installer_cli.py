@@ -17,13 +17,13 @@ components.
 
 positional arguments:
   {plan,check,run,status}
-    plan        Print the ordered installation plan
-    check       Check every prerequisite before installation
-    run         Run and record verified installation steps
-    status      Reverify and show installation status
+    plan                Print the ordered installation plan
+    check               Check every prerequisite before installation
+    run                 Run and record verified installation steps
+    status              Reverify and show installation status
 
 options:
-  -h, --help    show this help message and exit
+  -h, --help            show this help message and exit
 """
 
 PLAN_HELP = """usage: nci-si-install plan [-h] --target {local,aws,cloud-one} [--with-index]
@@ -53,8 +53,8 @@ options:
 """
 
 RUN_HELP = """usage: nci-si-install run [-h] --target {local,aws,cloud-one} [--with-index]
-                          [--with-documentation] [--with-companion] --data-dir
-                          DATA_DIR [--restart]
+                          [--with-documentation] [--with-companion]
+                          --data-dir DATA_DIR [--restart]
 
 options:
   -h, --help            show this help message and exit
@@ -68,9 +68,9 @@ options:
   --restart             reset progress for the same selection
 """
 
-STATUS_HELP = """usage: nci-si-install status [-h] --target {local,aws,cloud-one} [--with-index]
-                             [--with-documentation] [--with-companion] --data-dir
-                             DATA_DIR
+STATUS_HELP = """usage: nci-si-install status [-h] --target {local,aws,cloud-one}
+                             [--with-index] [--with-documentation]
+                             [--with-companion] --data-dir DATA_DIR
 
 options:
   -h, --help            show this help message and exit
