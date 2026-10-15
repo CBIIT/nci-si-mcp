@@ -98,6 +98,16 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             ],
         )
 
+    def test_incomplete_fixture_configuration_never_falls_back_to_production_urls(self):
+        with (
+            patch.dict("os.environ", {"NCI_SI_UPSTREAM_MODE": "fixture"}, clear=True),
+            patch("nci_si_mcp.installer.urlopen") as opened,
+            self.assertRaisesRegex(ValueError, "NCI_SI_EVS_BASE_URL"),
+        ):
+            API.local_prerequisites(("server",))
+
+        opened.assert_not_called()
+
     def test_node_requires_major_version_24_and_a_parseable_successful_answer(self):
         cases = (
             (None, False),

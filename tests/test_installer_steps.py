@@ -136,6 +136,22 @@ class InstallerStepsTest(unittest.TestCase):
         state = API.read_state(self.data_dir, "local", ("server",))
         self.assertEqual(state.outcomes, (API.StepOutcome("first", "completed"),))
 
+    def test_post_apply_verification_failure_is_persisted_and_stops_later_steps(self):
+        self.actions.bug = "verify_second"
+        original_verify = self.actions.verify
+
+        def verify(step):
+            return False if step == "second" else original_verify(step)
+
+        self.actions.verify = verify
+
+        state = self.reconcile()
+        status = API.current_status(state, self.actions)
+
+        self.assertEqual(state.outcomes[-1], API.StepOutcome("second", "failed"))
+        self.assertNotIn(("apply", "third"), self.actions.calls)
+        self.assertEqual(status["nextAction"], "Retry failed step second.")
+
 
 if __name__ == "__main__":
     unittest.main()

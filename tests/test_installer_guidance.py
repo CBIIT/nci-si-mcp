@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -36,7 +37,7 @@ class InstallerGuidanceTest(unittest.TestCase):
         with (
             patch.object(installer.sys, "stdin", stream),
             patch.object(installer, "local_prerequisites", return_value=(check,)),
-            patch.dict(installer.os.environ, {"PRIVATE_VALUE": "PRIVATE-CANARY"}),
+            patch.dict(os.environ, {"PRIVATE_VALUE": "PRIVATE-CANARY"}),
             redirect_stdout(stdout),
             redirect_stderr(stderr),
         ):
@@ -47,12 +48,12 @@ class InstallerGuidanceTest(unittest.TestCase):
         return code, json.loads(stdout.getvalue()), stderr.getvalue(), state
 
     def test_tty_confirmation_only_rechecks_and_advances_after_verification(self):
-        stream = Input("\n", tty=True)
+        stream = Input("\n\n", tty=True)
 
-        code, result, prompt, state = self.run_main(stream, (False, True, True, True))
+        code, result, prompt, state = self.run_main(stream, (False, False, True, True, True))
 
-        self.assertEqual((code, stream.reads), (0, 1))
-        self.assertIn("Repair the required input.", prompt)
+        self.assertEqual((code, stream.reads), (0, 2))
+        self.assertEqual(prompt.count("Repair the required input."), 2)
         self.assertNotIn("PRIVATE-CANARY", prompt + json.dumps(result))
         self.assertEqual(state.outcomes[0].status, "completed")
 
@@ -72,6 +73,13 @@ class InstallerGuidanceTest(unittest.TestCase):
 
                 self.assertEqual((code, stream.reads, prompt), (1, 0, ""))
                 self.assertEqual(len(result["blocked"]), 1)
+
+    def test_failed_post_apply_verification_exits_nonzero(self):
+        code, result, _, state = self.run_main(Input("", tty=False), (True, True, False))
+
+        self.assertEqual(code, 1)
+        self.assertEqual(result["failed"], ["check_prerequisites"])
+        self.assertEqual(state.outcomes[0].status, "failed")
 
 
 if __name__ == "__main__":

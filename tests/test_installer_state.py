@@ -92,6 +92,46 @@ class InstallerStateTest(unittest.TestCase):
         self.assertIn("Fix access", str(error.exception))
         self.assertNotIn("PRIVATE-CANARY", str(error.exception))
 
+    def test_semantically_invalid_state_is_refused_without_changing_bytes(self):
+        cases = (
+            b'{"version":true,"target":"local","components":["server"],"outcomes":[]}',
+            b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"unknown","status":"completed"}]}',
+            b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"completed"},{"step":"check_prerequisites","status":"completed"}]}',
+            b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"blocked"}]}',
+            b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"completed","missing":["x"]}]}',
+            b'{"version":1,"target":"local","components":["server","server"],"outcomes":[]}',
+            b'{"version":1,"target":"local","components":["alien"],"outcomes":[]}',
+        )
+        for content in cases:
+            with self.subTest(content=content):
+                self.path.write_bytes(content)
+                with self.assertRaisesRegex(API.InstallerStateError, "malformed"):
+                    state = API.read_state(self.data_dir, "local", ("server",))
+                    API.validate_outcomes(state, ("check_prerequisites",))
+                self.assertEqual(self.path.read_bytes(), content)
+
+    def test_atomic_state_write_fsyncs_and_closes_the_parent_directory(self):
+        opened_descriptors = []
+        real_open = API.os.open
+
+        def open_directory(*args):
+            descriptor = real_open(*args)
+            opened_descriptors.append(descriptor)
+            return descriptor
+
+        with (
+            patch("nci_si_mcp.installer_state.os.open", side_effect=open_directory) as opened,
+            patch("nci_si_mcp.installer_state.os.fsync", wraps=API.os.fsync) as fsync,
+            patch("nci_si_mcp.installer_state.os.close", wraps=API.os.close) as closed,
+        ):
+            API.write_state(self.data_dir, self.state)
+
+        opened.assert_any_call(self.data_dir, API.os.O_RDONLY)
+        directory_descriptor = opened_descriptors[-1]
+        fsync.assert_any_call(directory_descriptor)
+        closed.assert_called_once_with(directory_descriptor)
+        self.assertEqual(API.read_state(self.data_dir, "local", ("server",)), self.state)
+
     def test_a_second_owner_cannot_acquire_the_installation_lock(self):
         with (
             API.state_lock(self.data_dir),

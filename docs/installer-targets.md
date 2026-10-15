@@ -10,10 +10,11 @@ Every target follows the same install order:
 
 **check prerequisites → install → configure → verify**
 
-Uninstall is a separate operation, not a stage of installation. Later installer phases add target
-execution, resumable state, status, verified manual steps and uninstall. `plan` prints the selected
-flow as JSON. `check` runs every applicable prerequisite before any change and reports every
-failure with its corrective action; one failed check never hides another.
+Uninstall is a separate operation, not a stage of installation. This phase provides planning,
+prerequisite execution, resumable state, status and prerequisite guidance. Later phases add target
+install, configure and verify actions and uninstall. `plan` prints the selected flow as JSON.
+`check` runs every applicable prerequisite before any change and reports every failure with its
+corrective action; one failed check never hides another.
 
 The local checks cover the supported operating system, git, PDM, component-gated Node.js and
 container tools, fixed loopback ports 8080 and 8081 where selected, and reachability of the
@@ -34,11 +35,11 @@ implements the same install flow without adding a plugin loader.
 
 `run` and `status` require an installation `--data-dir`. They do not read `NCI_SI_DATA_DIR`, which
 belongs to a serving process. The installer stores `installer-state.json` there and holds
-`installer-state.lock` while reconciling or reporting. State is written through an fsynced
+`installer-state.lock` while reconciling and while taking the state snapshot used for status. State is written through an fsynced
 temporary sibling, atomic replacement and a directory fsync.
 
-Every run reverifies completed steps from the beginning. The first stale step and all later
-records are discarded before safe-to-repeat work resumes. In Phase 32 the real production step is
+Every non-restart run reverifies completed steps from the beginning. The first stale step and all
+later records are discarded before safe-to-repeat work resumes. In Phase 32 the real production step is
 `check_prerequisites`: verification reruns every selected check, and a failure is BLOCKED with its
 static corrective actions. Later targets add install, configure and verify actions.
 

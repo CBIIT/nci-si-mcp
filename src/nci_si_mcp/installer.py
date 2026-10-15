@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import platform
 import re
 import shutil
@@ -18,7 +17,7 @@ from typing import Any, cast
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
-from .config import BASE_URL_VARIABLES, PRODUCTION_BASE_URLS
+from .config import Settings
 from .installer_state import (
     InstallerStateError,
     current_status,
@@ -244,7 +243,7 @@ def _port_available(port: int) -> bool:
 
 
 def _base_url(field: str) -> str:
-    return os.getenv(BASE_URL_VARIABLES[field], PRODUCTION_BASE_URLS[field])
+    return getattr(Settings.from_env(), field)
 
 
 def local_prerequisites(components: Sequence[str]) -> tuple[Prerequisite, ...]:
@@ -375,7 +374,8 @@ def _state_command(
     record = (
         current_status(state, actions) if args.command == "run" else project_status(state, actions)
     )
-    return (0 if not record["blocked"] and not record["pending"] else 1), record
+    unresolved = record["blocked"] or record["failed"] or record["pending"]
+    return (1 if unresolved else 0), record
 
 
 def _guided_run(args: argparse.Namespace, plan: InstallationPlan) -> tuple[int, dict[str, object]]:

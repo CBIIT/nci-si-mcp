@@ -16,6 +16,8 @@ STATE_VERSION = 1
 STATE_NAME = "installer-state.json"
 LOCK_NAME = "installer-state.lock"
 STATUSES = frozenset({"completed", "blocked", "failed"})
+TARGETS = frozenset({"local", "aws"})
+COMPONENTS = ("server", "index", "documentation", "companion")
 
 
 class InstallerStateError(Exception):
@@ -73,6 +75,17 @@ def _parse_outcome(value: object) -> StepOutcome:
     return StepOutcome(step, status, _string_list(value.get("missing", [])))
 
 
+def _valid_identity(state: InstallationState) -> bool:
+    canonical = tuple(item for item in COMPONENTS if item in state.components)
+    return (
+        type(state.version) is int
+        and state.target in TARGETS
+        and state.components == canonical
+        and bool(state.components)
+        and state.components[0] == "server"
+    )
+
+
 def _decode_state(content: str) -> InstallationState:
     value = json.loads(content)
     if not isinstance(value, dict) or set(value) != {
@@ -85,12 +98,15 @@ def _decode_state(content: str) -> InstallationState:
     outcomes = value["outcomes"]
     if not isinstance(outcomes, list):
         raise _malformed_state()
-    return InstallationState(
+    state = InstallationState(
         version=value["version"],
         target=value["target"],
         components=_string_list(value["components"]),
         outcomes=tuple(_parse_outcome(item) for item in outcomes),
     )
+    if not _valid_identity(state):
+        raise _malformed_state()
+    return state
 
 
 def _selection_matches(state: InstallationState, target: str, components: tuple[str, ...]) -> bool:
@@ -198,6 +214,22 @@ def _verified_prefix(state: InstallationState, actions: StepActions) -> tuple[St
     return tuple(verified)
 
 
+def _valid_outcome(outcome: StepOutcome, index: int, last: int) -> bool:
+    terminal = outcome.status in ("blocked", "failed")
+    missing_matches_status = (outcome.status == "blocked") == bool(outcome.missing)
+    return missing_matches_status and (not terminal or index == last)
+
+
+def validate_outcomes(state: InstallationState, step_names: tuple[str, ...]) -> None:
+    names = tuple(outcome.step for outcome in state.outcomes)
+    if len(set(step_names)) != len(step_names) or names != step_names[: len(names)]:
+        raise _malformed_state()
+    last = len(state.outcomes) - 1
+    for index, outcome in enumerate(state.outcomes):
+        if not _valid_outcome(outcome, index, last):
+            raise _malformed_state()
+
+
 def reconcile(
     data_dir: Path,
     target: str,
@@ -208,6 +240,7 @@ def reconcile(
 ) -> InstallationState:
     with state_lock(data_dir):
         state = _load_or_create(data_dir, target, components)
+        validate_outcomes(state, actions.step_names)
         outcomes = () if restart else _verified_prefix(state, actions)
         state = replace(state, outcomes=outcomes)
         write_state(data_dir, state)
@@ -285,4 +318,5 @@ def current_status(state: InstallationState, actions: StepActions) -> dict[str, 
 
 
 def project_status(state: InstallationState, actions: StepActions) -> dict[str, object]:
-    return current_status(reverify(state, actions), actions)
+    validate_outcomes(state, actions.step_names)
+    return current_status(state, actions)

@@ -347,11 +347,19 @@ class InstallerCliTest(unittest.TestCase):
                 "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:2",
             }
             with patch.dict(os.environ, environment, clear=True):
-                code, stdout, stderr = self.run_installer(
-                    "help", "check_prerequisites", "--target", "local"
+                process = subprocess.run(  # noqa: S603 - installed project entry point
+                    [INSTALLER, "help", "check_prerequisites", "--target", "local"],
+                    cwd=ROOT,
+                    env=environment,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
                 )
 
-            self.assertEqual((code, stdout, stderr), (0, STEP_HELP, ""))
+            self.assertEqual(
+                (process.returncode, process.stdout, process.stderr), (0, STEP_HELP, "")
+            )
             self.assertFalse(data_dir.exists())
         for step in ("install", "configure", "verify", "unknown"):
             with self.subTest(step=step):
