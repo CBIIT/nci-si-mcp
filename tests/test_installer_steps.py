@@ -163,7 +163,3 @@ class InstallerStepsTest(unittest.TestCase):
         self.assertEqual(state.outcomes[-1], API.StepOutcome("second", "failed"))
         self.assertNotIn(("apply", "third"), self.actions.calls)
         self.assertEqual(status["nextAction"], "Retry failed step second.")
-
-
-if __name__ == "__main__":
-    unittest.main()

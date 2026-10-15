@@ -29,48 +29,43 @@ options:
   -h, --help            show this help message and exit
 """
 
-PLAN_HELP = """usage: nci-si-install plan [-h] --target {local,aws,cloud-one} [--with-index]
+SELECTION_OPTIONS = """
+options:
+  -h, --help            show this help message and exit
+  --target {local,aws,cloud-one}
+                        installation target
+  --with-index          include an existing NCIt index and its embedding
+                        runtime
+  --with-documentation  include the static documentation site
+  --with-companion      include the validation companion
+"""
+
+PLAN_HELP = (
+    """usage: nci-si-install plan [-h] --target {local,aws,cloud-one} [--with-index]
                            [--with-documentation] [--with-companion]
-
-options:
-  -h, --help            show this help message and exit
-  --target {local,aws,cloud-one}
-                        installation target
-  --with-index          include an existing NCIt index and its embedding
-                        runtime
-  --with-documentation  include the static documentation site
-  --with-companion      include the validation companion
 """
+    + SELECTION_OPTIONS
+)
 
-CHECK_HELP = """usage: nci-si-install check [-h] --target {local,aws,cloud-one} [--with-index]
+CHECK_HELP = (
+    """usage: nci-si-install check [-h] --target {local,aws,cloud-one} [--with-index]
                             [--with-documentation] [--with-companion]
-
-options:
-  -h, --help            show this help message and exit
-  --target {local,aws,cloud-one}
-                        installation target
-  --with-index          include an existing NCIt index and its embedding
-                        runtime
-  --with-documentation  include the static documentation site
-  --with-companion      include the validation companion
 """
+    + SELECTION_OPTIONS
+)
 
-RUN_HELP = """usage: nci-si-install run [-h] --target {local,aws,cloud-one} [--with-index]
+RUN_HELP = (
+    """usage: nci-si-install run [-h] --target {local,aws,cloud-one} [--with-index]
                           [--with-documentation] [--with-companion]
                           --data-dir DATA_DIR [--restart] [--non-interactive]
-
-options:
-  -h, --help            show this help message and exit
-  --target {local,aws,cloud-one}
-                        installation target
-  --with-index          include an existing NCIt index and its embedding
-                        runtime
-  --with-documentation  include the static documentation site
-  --with-companion      include the validation companion
+"""
+    + SELECTION_OPTIONS.rstrip()
+    + """
   --data-dir DATA_DIR   installation state directory
   --restart             reset progress for the same selection
   --non-interactive     report unresolved actions without prompting
 """
+)
 
 STEP_HELP = """Step: check_prerequisites
 Purpose: Check every selected requirement before installation changes anything.
@@ -81,20 +76,16 @@ Common failures: missing tools, occupied ports, or unreachable EVS and caDSR end
 Guide: docs/installer-targets.md
 """
 
-STATUS_HELP = """usage: nci-si-install status [-h] --target {local,aws,cloud-one}
+STATUS_HELP = (
+    """usage: nci-si-install status [-h] --target {local,aws,cloud-one}
                              [--with-index] [--with-documentation]
                              [--with-companion] --data-dir DATA_DIR
-
-options:
-  -h, --help            show this help message and exit
-  --target {local,aws,cloud-one}
-                        installation target
-  --with-index          include an existing NCIt index and its embedding
-                        runtime
-  --with-documentation  include the static documentation site
-  --with-companion      include the validation companion
+"""
+    + SELECTION_OPTIONS.rstrip()
+    + """
   --data-dir DATA_DIR   installation state directory
 """
+)
 
 
 class InstallerCliTest(unittest.TestCase):
@@ -263,6 +254,23 @@ class InstallerCliTest(unittest.TestCase):
             self.assertEqual((code, stdout), (2, ""))
             self.assertIn("new --data-dir", stderr)
 
+    def test_run_and_status_refuse_semantically_invalid_state_without_rewriting(self):
+        content = (
+            b'{"version":1,"target":"local","components":["server"],'
+            b'"outcomes":[{"step":"unknown","status":"completed"}]}'
+        )
+        for command in ("run", "status"):
+            with self.subTest(command=command), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "installer-state.json"
+                path.write_bytes(content)
+                arguments = [command, "--target", "local", "--data-dir", directory]
+                if command == "run":
+                    arguments.append("--non-interactive")
+                code, stdout, stderr = self.run_installer(*arguments)
+                self.assertEqual((code, stdout), (2, ""))
+                self.assertIn("malformed", stderr)
+                self.assertEqual(path.read_bytes(), content)
+
     def test_status_without_recorded_state_does_not_create_the_directory(self):
         with tempfile.TemporaryDirectory() as parent:
             data_dir = Path(parent) / "absent"
@@ -382,7 +390,3 @@ class InstallerCliTest(unittest.TestCase):
 
     def test_the_installed_distribution_exposes_the_installer_command(self):
         self.assertTrue(INSTALLER.is_file())
-
-
-if __name__ == "__main__":
-    unittest.main()

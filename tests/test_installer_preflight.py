@@ -1,7 +1,9 @@
 import subprocess
 import unittest
+from email.message import Message
 from typing import Any
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 from nci_si_mcp import installer
 
@@ -81,6 +83,32 @@ class AggregatePrerequisiteTest(unittest.TestCase):
         )
         self.assertNotIn(canary, repr(records))
 
+    def test_supported_platforms_and_http_reachability_are_observed(self):
+        os_check = self.local_check("supported_os", ("server",))
+        for system, expected in (("Darwin", True), ("Linux", True), ("Windows", False)):
+            with (
+                self.subTest(system=system),
+                patch("nci_si_mcp.installer.platform.system", return_value=system),
+            ):
+                self.assertEqual(os_check.observe(), expected)
+        http_error = HTTPError("http://example", 401, "denied", Message(), None)
+        with patch("nci_si_mcp.installer.urlopen", side_effect=http_error):
+            self.assertTrue(API.reachability_prerequisite("x", "http://example", "fix").observe())
+
+    def test_occupied_selected_port_fails_with_its_static_fix(self):
+        check = self.local_check("port_8080")
+        with patch("nci_si_mcp.installer.socket.socket") as socket:
+            socket.return_value.__enter__.return_value.bind.side_effect = OSError(48, "in use")
+            result = API.run_prerequisites((check,))[0]
+        self.assertEqual(
+            API.result_record(result),
+            {
+                "name": "port_8080",
+                "status": "failed",
+                "fix": "Free loopback port 8080 for documentation.",
+            },
+        )
+
     def test_companion_only_needs_its_container_disk_and_port_but_not_node_or_docs_port(self):
         checks = API.local_prerequisites(("server", "companion"))
 
@@ -152,7 +180,3 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             result = self.local_check("compose", ("server", "companion")).observe()
 
         self.assertTrue(result)
-
-
-if __name__ == "__main__":
-    unittest.main()

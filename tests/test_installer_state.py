@@ -149,7 +149,3 @@ class InstallerStateTest(unittest.TestCase):
             API.state_lock(file_path),
         ):
             self.fail("lock acquired")
-
-
-if __name__ == "__main__":
-    unittest.main()

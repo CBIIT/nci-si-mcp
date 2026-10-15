@@ -80,7 +80,3 @@ class InstallerGuidanceTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(result["failed"], ["check_prerequisites"])
         self.assertEqual(state.outcomes[0].status, "failed")
-
-
-if __name__ == "__main__":
-    unittest.main()
