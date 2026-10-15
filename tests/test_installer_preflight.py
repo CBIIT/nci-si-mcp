@@ -1,3 +1,4 @@
+import subprocess
 import unittest
 from typing import Any
 from unittest.mock import patch
@@ -8,6 +9,10 @@ API: Any = installer
 
 
 class AggregatePrerequisiteTest(unittest.TestCase):
+    @staticmethod
+    def local_check(name, components=("server", "documentation")):
+        return next(check for check in API.local_prerequisites(components) if check.name == name)
+
     def test_every_check_runs_and_failures_keep_static_fixes(self):
         observed = []
 
@@ -83,15 +88,44 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             [check.name for check in checks],
             [
                 "supported_os",
+                "git",
                 "pdm",
                 "container_runtime",
                 "compose",
-                "disk_space",
                 "port_8081",
                 "evs_reachable",
                 "cadsr_reachable",
             ],
         )
+
+    def test_node_requires_major_version_24_and_a_parseable_successful_answer(self):
+        cases = (
+            (None, False),
+            (subprocess.CompletedProcess(["node", "--version"], 1, stdout="v24.0.0"), False),
+            (subprocess.CompletedProcess(["node", "--version"], 0, stdout="not-a-version"), False),
+            (subprocess.CompletedProcess(["node", "--version"], 0, stdout="v23.9.0"), False),
+            (subprocess.CompletedProcess(["node", "--version"], 0, stdout="v24.0.0"), True),
+            (subprocess.CompletedProcess(["node", "--version"], 0, stdout="v25.1.2"), True),
+        )
+        for answer, expected in cases:
+            with self.subTest(answer=answer):
+                effect = FileNotFoundError if answer is None else answer
+                with patch("nci_si_mcp.installer.subprocess.run", side_effect=effect):
+                    result = self.local_check("node").observe()
+
+                self.assertEqual(result, expected)
+
+    def test_a_hung_compose_command_is_an_expected_failed_prerequisite(self):
+        with (
+            patch("nci_si_mcp.installer._container_runtime", return_value="docker"),
+            patch(
+                "nci_si_mcp.installer.subprocess.run",
+                side_effect=subprocess.TimeoutExpired(["docker", "compose", "version"], 10),
+            ),
+        ):
+            result = self.local_check("compose", ("server", "companion")).observe()
+
+        self.assertFalse(result)
 
 
 if __name__ == "__main__":

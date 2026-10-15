@@ -101,10 +101,10 @@ class InstallerCliTest(unittest.TestCase):
             [result["name"] for result in report["results"]],
             [
                 "supported_os",
+                "git",
                 "pdm",
                 "container_runtime",
                 "compose",
-                "disk_space",
                 "node",
                 "port_8080",
                 "port_8081",
@@ -114,7 +114,15 @@ class InstallerCliTest(unittest.TestCase):
         )
         failed = {result["name"] for result in report["results"] if result["status"] == "failed"}
         self.assertLessEqual(
-            {"pdm", "container_runtime", "compose", "node", "evs_reachable", "cadsr_reachable"},
+            {
+                "git",
+                "pdm",
+                "container_runtime",
+                "compose",
+                "node",
+                "evs_reachable",
+                "cadsr_reachable",
+            },
             failed,
         )
         self.assertNotIn("PRIVATE-CANARY", process.stdout + process.stderr)
@@ -127,7 +135,7 @@ class InstallerCliTest(unittest.TestCase):
         self.assertEqual(stderr, "")
         self.assertEqual(
             [result["name"] for result in json.loads(stdout)["results"]],
-            ["supported_os", "pdm", "evs_reachable", "cadsr_reachable"],
+            ["supported_os", "git", "pdm", "evs_reachable", "cadsr_reachable"],
         )
 
     def test_aws_checks_are_blocked_until_their_own_issue(self):
