@@ -109,8 +109,11 @@ class AggregatePrerequisiteTest(unittest.TestCase):
         )
         for answer, expected in cases:
             with self.subTest(answer=answer):
-                effect = FileNotFoundError if answer is None else answer
-                with patch("nci_si_mcp.installer.subprocess.run", side_effect=effect):
+                with patch("nci_si_mcp.installer.subprocess.run") as run:
+                    if answer is None:
+                        run.side_effect = FileNotFoundError
+                    else:
+                        run.return_value = answer
                     result = self.local_check("node").observe()
 
                 self.assertEqual(result, expected)

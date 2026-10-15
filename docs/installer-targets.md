@@ -15,9 +15,9 @@ execution, resumable state, status, verified manual steps and uninstall. `plan` 
 flow as JSON. `check` runs every applicable prerequisite before any change and reports every
 failure with its corrective action; one failed check never hides another.
 
-The local checks cover the supported operating system, PDM, component-gated Node.js and container
-tools, at least 2 GiB of free working-directory space for companion image builds, fixed loopback
-ports 8080 and 8081 where selected, and reachability of the configured EVS and caDSR endpoints.
+The local checks cover the supported operating system, git, PDM, component-gated Node.js and
+container tools, fixed loopback ports 8080 and 8081 where selected, and reachability of the
+configured EVS and caDSR endpoints.
 Checks do not create installer state or install anything. Expected observation failures become a
 failed prerequisite with its static correction; an unexpected bug propagates rather than being
 reported as an environmental failure. Standard-AWS prerequisite checks arrive with #324.

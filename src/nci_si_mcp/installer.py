@@ -6,21 +6,22 @@ import argparse
 import json
 import os
 import platform
+import re
 import shutil
 import socket
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from pathlib import Path
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 from urllib.request import urlopen
 
 from .config import BASE_URL_VARIABLES, PRODUCTION_BASE_URLS
 
 COMPONENTS = ("server", "index", "documentation", "companion")
 INSTALL_STAGES = ("check_prerequisites", "install", "configure", "verify")
-MIN_COMPONENT_DISK_BYTES = 2 * 1024**3
+NODE_VERSION = re.compile(r"v([0-9]+)(?:\.[0-9]+){2}\Z")
+MIN_NODE_MAJOR = 24
 
 
 @dataclass(frozen=True)
@@ -132,7 +133,7 @@ def reachability_prerequisite(name: str, url: str, fix: str) -> Prerequisite:
                 return True
         except HTTPError:
             return True
-        except OSError, URLError:
+        except OSError:
             return False
 
     return Prerequisite(name, fix, reachable)
@@ -159,16 +160,27 @@ def _compose_available() -> bool:
             timeout=10,
             check=False,
         )
-    except FileNotFoundError, OSError:
+    except OSError, subprocess.TimeoutExpired:
         return False
     return result.returncode == 0
 
 
-def _disk_available() -> bool:
+def _node_available() -> bool:
     try:
-        return shutil.disk_usage(Path.cwd()).free >= MIN_COMPONENT_DISK_BYTES
-    except OSError:
+        result = subprocess.run(
+            ["node", "--version"],  # noqa: S607
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except OSError, subprocess.TimeoutExpired:
         return False
+    matched = NODE_VERSION.fullmatch(result.stdout.strip())
+    return (
+        result.returncode == 0 and matched is not None and int(matched.group(1)) >= MIN_NODE_MAJOR
+    )
 
 
 def _port_available(port: int) -> bool:
@@ -187,6 +199,7 @@ def _base_url(field: str) -> str:
 def local_prerequisites(components: Sequence[str]) -> tuple[Prerequisite, ...]:
     checks = [
         Prerequisite("supported_os", "Run the local installer on macOS or Linux.", _supported_os),
+        executable_prerequisite("git", "Install git with release tags as QUICKSTART.md documents."),
         executable_prerequisite("pdm", "Install PDM as QUICKSTART.md documents."),
     ]
     companions = "documentation" in components or "companion" in components
@@ -203,15 +216,10 @@ def local_prerequisites(components: Sequence[str]) -> tuple[Prerequisite, ...]:
                     "Install Compose for the selected container runtime.",
                     _compose_available,
                 ),
-                Prerequisite(
-                    "disk_space",
-                    "Free at least 2 GiB in the installation working directory.",
-                    _disk_available,
-                ),
             )
         )
         if "documentation" in components:
-            checks.append(executable_prerequisite("node", "Install Node.js 24 or newer."))
+            checks.append(Prerequisite("node", "Install Node.js 24 or newer.", _node_available))
             checks.append(
                 Prerequisite(
                     "port_8080",
