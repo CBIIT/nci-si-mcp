@@ -203,7 +203,6 @@ def local_prerequisites(components: Sequence[str]) -> tuple[Prerequisite, ...]:
                     "Install Compose for the selected container runtime.",
                     _compose_available,
                 ),
-                executable_prerequisite("node", "Install Node.js 24 or newer."),
                 Prerequisite(
                     "disk_space",
                     "Free at least 2 GiB in the installation working directory.",
@@ -212,6 +211,7 @@ def local_prerequisites(components: Sequence[str]) -> tuple[Prerequisite, ...]:
             )
         )
         if "documentation" in components:
+            checks.append(executable_prerequisite("node", "Install Node.js 24 or newer."))
             checks.append(
                 Prerequisite(
                     "port_8080",
