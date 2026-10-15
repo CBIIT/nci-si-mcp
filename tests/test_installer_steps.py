@@ -81,7 +81,7 @@ class InstallerStepsTest(unittest.TestCase):
         )
 
     def test_blocked_is_not_pending_and_names_the_missing_input(self):
-        self.actions.missing["second"] = ("approved credential",)
+        self.actions.missing["second"] = ("Install git.", "Restore EVS access.")
 
         state = self.reconcile()
         status = API.project_status(state, self.actions)
@@ -91,11 +91,31 @@ class InstallerStepsTest(unittest.TestCase):
             {
                 "components": ["server"],
                 "completed": ["first"],
-                "blocked": [{"step": "second", "missing": ["approved credential"]}],
+                "failed": [],
+                "blocked": [{"step": "second", "missing": ["Install git.", "Restore EVS access."]}],
                 "pending": ["third"],
-                "nextAction": "Provide approved credential for second.",
+                "nextAction": "Resolve the failed prerequisites: Install git.; Restore EVS access.",
             },
         )
+
+    def test_failed_step_stays_failed_in_status_instead_of_becoming_pending(self):
+        state = API.InstallationState(
+            version=1,
+            target="local",
+            components=("server",),
+            outcomes=(
+                API.StepOutcome("first", "completed"),
+                API.StepOutcome("second", "failed"),
+            ),
+        )
+        self.actions.present.add("first")
+
+        status = API.project_status(state, self.actions)
+
+        self.assertEqual(status["completed"], ["first"])
+        self.assertEqual(status["failed"], ["second"])
+        self.assertEqual(status["pending"], ["third"])
+        self.assertEqual(status["nextAction"], "Retry failed step second.")
 
     def test_restart_resets_progress_for_the_same_selection_without_uninstall(self):
         self.reconcile()

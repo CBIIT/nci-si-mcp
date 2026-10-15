@@ -2,11 +2,12 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from nci_si_mcp import installer_state
 
-API = installer_state
+API: Any = installer_state
 
 
 class InstallerStateTest(unittest.TestCase):
@@ -51,21 +52,45 @@ class InstallerStateTest(unittest.TestCase):
 
     def test_invalid_or_mismatched_state_fails_closed_without_rewriting(self):
         cases = (
-            b"{",
-            b'{"version":2,"target":"local","components":["server"],"outcomes":[]}',
-            b'{"version":1,"target":"local","components":["server"],"outcomes":[],"extra":1}',
-            b'{"version":1,"target":"aws","components":["server"],"outcomes":[]}',
-            b'{"version":1,"target":"local","components":["server","index"],"outcomes":[]}',
+            (b"{", "malformed"),
+            (
+                b'{"version":2,"target":"local","components":["server"],"outcomes":[]}',
+                "unsupported version",
+            ),
+            (
+                b'{"version":1,"target":"local","components":["server"],"outcomes":[],"extra":1}',
+                "malformed",
+            ),
+            (
+                b'{"version":1,"target":"aws","components":["server"],"outcomes":[]}',
+                "another selection",
+            ),
+            (
+                b'{"version":1,"target":"local","components":["server","index"],"outcomes":[]}',
+                "another selection",
+            ),
         )
-        for content in cases:
+        for content, message in cases:
             with self.subTest(content=content):
                 self.path.write_bytes(content)
 
-                with self.assertRaisesRegex(ValueError, "new --data-dir") as error:
+                with self.assertRaisesRegex(API.InstallerStateError, message) as error:
                     API.read_state(self.data_dir, "local", ("server",))
 
                 self.assertEqual(self.path.read_bytes(), content)
                 self.assertNotIn(content.decode(errors="ignore"), str(error.exception))
+
+    def test_unreadable_state_names_the_file_and_access_next_step(self):
+        self.path.write_text("{}", encoding="utf-8")
+
+        with (
+            patch.object(Path, "read_text", side_effect=PermissionError("PRIVATE-CANARY")),
+            self.assertRaisesRegex(API.InstallerStateError, str(self.path)) as error,
+        ):
+            API.read_state(self.data_dir, "local", ("server",))
+
+        self.assertIn("Fix access", str(error.exception))
+        self.assertNotIn("PRIVATE-CANARY", str(error.exception))
 
     def test_a_second_owner_cannot_acquire_the_installation_lock(self):
         with (

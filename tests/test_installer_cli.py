@@ -7,6 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from nci_si_mcp import installer
+
 ROOT = Path(__file__).parent.parent
 INSTALLER = Path(sys.executable).with_name("nci-si-install")
 
@@ -174,11 +176,25 @@ class InstallerCliTest(unittest.TestCase):
         )
 
     def test_aws_checks_are_blocked_until_their_own_issue(self):
-        code, stdout, stderr = self.run_installer("check", "--target", "aws")
+        for command in ("check", "run", "status"):
+            arguments = [command, "--target", "aws"]
+            if command in ("run", "status"):
+                arguments.extend(("--data-dir", "unused"))
+            with self.subTest(command=command):
+                code, stdout, stderr = self.run_installer(*arguments)
 
-        self.assertEqual((code, stdout), (2, ""))
-        self.assertIn("#324", stderr)
-        self.assertIn("BLOCKED", stderr)
+                self.assertEqual((code, stdout), (2, ""))
+                self.assertIn("#324", stderr)
+                self.assertIn("BLOCKED", stderr)
+
+    def test_unexpected_value_and_runtime_bugs_propagate_from_main(self):
+        for error in (ValueError("PRIVATE-CANARY"), RuntimeError("PRIVATE-CANARY")):
+            with (
+                self.subTest(error=type(error).__name__),
+                patch.object(installer, "_state_command", side_effect=error),
+                self.assertRaisesRegex(type(error), "PRIVATE-CANARY"),
+            ):
+                installer.main(["status", "--target", "local", "--data-dir", "unused"])
 
     def test_run_records_and_status_reverifies_the_real_prerequisite_stage(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -229,6 +245,19 @@ class InstallerCliTest(unittest.TestCase):
 
             self.assertEqual((code, stdout), (2, ""))
             self.assertIn("new --data-dir", stderr)
+
+    def test_status_without_recorded_state_does_not_create_the_directory(self):
+        with tempfile.TemporaryDirectory() as parent:
+            data_dir = Path(parent) / "absent"
+
+            code, stdout, stderr = self.run_installer(
+                "status", "--target", "local", "--data-dir", str(data_dir)
+            )
+
+            self.assertEqual((code, stdout), (2, ""))
+            self.assertIn(f"no installation recorded in {data_dir}", stderr)
+            self.assertIn("run first", stderr)
+            self.assertFalse(data_dir.exists())
 
     def test_server_only_and_optional_components_have_one_ordered_plan(self):
         cases = (
