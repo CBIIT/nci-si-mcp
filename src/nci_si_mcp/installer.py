@@ -14,12 +14,14 @@ import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
 from .config import BASE_URL_VARIABLES, PRODUCTION_BASE_URLS
 from .installer_state import (
     InstallerStateError,
+    current_status,
     project_status,
     read_state,
     reconcile,
@@ -61,6 +63,26 @@ class CheckResult:
     fix: str
 
 
+@dataclass(frozen=True)
+class StepHelp:
+    purpose: str
+    why: str
+    action: str
+    verification: str
+    failures: str
+
+
+STEP_HELP = {
+    "check_prerequisites": StepHelp(
+        purpose="Check every selected requirement before installation changes anything.",
+        why="A partial installation must not be created when required inputs are missing.",
+        action="Apply every fix reported by `check` or a BLOCKED `run`.",
+        verification="Rerun every selected prerequisite; confirmation alone is never accepted.",
+        failures="missing tools, occupied ports, or unreachable EVS and caDSR endpoints.",
+    )
+}
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="nci-si-install",
@@ -81,11 +103,21 @@ def build_parser() -> argparse.ArgumentParser:
     _selection_arguments(run)
     run.add_argument("--data-dir", type=Path, required=True, help="installation state directory")
     run.add_argument("--restart", action="store_true", help="reset progress for the same selection")
+    run.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="report unresolved actions without prompting",
+    )
     status = commands.add_parser(
         "status", help="Reverify and show installation status", color=False
     )
     _selection_arguments(status)
     status.add_argument("--data-dir", type=Path, required=True, help="installation state directory")
+    step_help = commands.add_parser(
+        "help", help="Explain an executable installation step", color=False
+    )
+    step_help.add_argument("step", help="executable step name")
+    _selection_arguments(step_help)
     return parser
 
 
@@ -305,6 +337,21 @@ class PrerequisiteActions:
         return all(result.passed for result in self._check())
 
 
+def _step_help(step: str) -> str | None:
+    guidance = STEP_HELP.get(step)
+    if guidance is None:
+        return None
+    return (
+        f"Step: {step}\n"
+        f"Purpose: {guidance.purpose}\n"
+        f"Why: {guidance.why}\n"
+        f"Action: {guidance.action}\n"
+        f"Verification: {guidance.verification}\n"
+        f"Common failures: {guidance.failures}\n"
+        "Guide: docs/installer-targets.md\n"
+    )
+
+
 def _state_command(
     args: argparse.Namespace, plan: InstallationPlan
 ) -> tuple[int, dict[str, object]]:
@@ -325,8 +372,47 @@ def _state_command(
             if current != state:
                 write_state(args.data_dir, current)
             state = current
-    record = project_status(state, actions)
+    record = (
+        current_status(state, actions) if args.command == "run" else project_status(state, actions)
+    )
     return (0 if not record["blocked"] and not record["pending"] else 1), record
+
+
+def _guided_run(args: argparse.Namespace, plan: InstallationPlan) -> tuple[int, dict[str, object]]:
+    code, record = _state_command(args, plan)
+    interactive = not args.non_interactive and sys.stdin.isatty()
+    while code == 1 and record["blocked"] and interactive:
+        blocked = cast("list[dict[str, Any]]", record["blocked"])[0]
+        missing = blocked["missing"]
+        sys.stderr.write("Resolve these requirements, then press Enter to recheck:\n")
+        for fix in missing:
+            sys.stderr.write(f"- {fix}\n")
+        sys.stderr.write("> ")
+        if sys.stdin.readline() == "":
+            break
+        code, record = _state_command(args, plan)
+    return code, record
+
+
+def _help_command(step: str) -> int:
+    text = _step_help(step)
+    if text is None:
+        sys.stderr.write(f"Step {step!r} is not executable yet; #320 brings later steps.\n")
+        return 2
+    sys.stdout.write(text)
+    return 0
+
+
+def _state_main(args: argparse.Namespace, plan: InstallationPlan) -> int:
+    try:
+        code, record = (
+            _guided_run(args, plan) if args.command == "run" else _state_command(args, plan)
+        )
+    except InstallerStateError as error:
+        sys.stderr.write(str(error) + "\n")
+        return 2
+    sys.stdout.write(json.dumps(record, indent=2) + "\n")
+    return code
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -340,14 +426,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         code, record = _check_record(plan)
         sys.stdout.write(json.dumps(record, indent=2) + "\n")
         return code
+    if args.command == "help":
+        return _help_command(args.step)
     if args.command in ("run", "status"):
-        try:
-            code, record = _state_command(args, plan)
-        except InstallerStateError as error:
-            sys.stderr.write(str(error) + "\n")
-            return 2
-        sys.stdout.write(json.dumps(record, indent=2) + "\n")
-        return code
+        return _state_main(args, plan)
     record = {
         "target": plan.target,
         "components": plan.components,

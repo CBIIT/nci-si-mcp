@@ -268,18 +268,21 @@ def _blocked_steps(state: InstallationState) -> list[dict[str, object]]:
     ]
 
 
-def project_status(state: InstallationState, actions: StepActions) -> dict[str, object]:
-    current = reverify(state, actions)
-    completed = _steps_with(current, "completed")
-    failed = _steps_with(current, "failed")
-    blocked = _blocked_steps(current)
-    recorded = {outcome.step for outcome in current.outcomes}
+def current_status(state: InstallationState, actions: StepActions) -> dict[str, object]:
+    completed = _steps_with(state, "completed")
+    failed = _steps_with(state, "failed")
+    blocked = _blocked_steps(state)
+    recorded = {outcome.step for outcome in state.outcomes}
     pending = [step for step in actions.step_names if step not in recorded]
     return {
-        "components": list(current.components),
+        "components": list(state.components),
         "completed": completed,
         "failed": failed,
         "blocked": blocked,
         "pending": pending,
         "nextAction": _next_action(blocked, failed, pending),
     }
+
+
+def project_status(state: InstallationState, actions: StepActions) -> dict[str, object]:
+    return current_status(reverify(state, actions), actions)
