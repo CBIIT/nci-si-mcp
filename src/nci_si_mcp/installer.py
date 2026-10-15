@@ -13,10 +13,19 @@ import subprocess
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
 from .config import BASE_URL_VARIABLES, PRODUCTION_BASE_URLS
+from .installer_state import (
+    project_status,
+    read_state,
+    reconcile,
+    reverify,
+    state_lock,
+    write_state,
+)
 
 COMPONENTS = ("server", "index", "documentation", "companion")
 INSTALL_STAGES = ("check_prerequisites", "install", "configure", "verify")
@@ -67,6 +76,15 @@ def build_parser() -> argparse.ArgumentParser:
         "check", help="Check every prerequisite before installation", color=False
     )
     _selection_arguments(check)
+    run = commands.add_parser("run", help="Run and record verified installation steps", color=False)
+    _selection_arguments(run)
+    run.add_argument("--data-dir", type=Path, required=True, help="installation state directory")
+    run.add_argument("--restart", action="store_true", help="reset progress for the same selection")
+    status = commands.add_parser(
+        "status", help="Reverify and show installation status", color=False
+    )
+    _selection_arguments(status)
+    status.add_argument("--data-dir", type=Path, required=True, help="installation state directory")
     return parser
 
 
@@ -263,6 +281,52 @@ def _check_record(plan: InstallationPlan) -> tuple[int, dict[str, object]]:
     }
 
 
+class PrerequisiteActions:
+    """The prerequisite stage as the first production reconciliation action."""
+
+    step_names: tuple[str, ...] = ("check_prerequisites",)
+
+    def __init__(self, components: tuple[str, ...]) -> None:
+        self.components = components
+        self.results: tuple[CheckResult, ...] = ()
+
+    def _check(self) -> tuple[CheckResult, ...]:
+        self.results = run_prerequisites(local_prerequisites(self.components))
+        return self.results
+
+    def missing_inputs(self, step: str) -> tuple[str, ...]:
+        return tuple(result.fix for result in self._check() if not result.passed)
+
+    def apply(self, step: str) -> None:
+        self._check()
+
+    def verify(self, step: str) -> bool:
+        return all(result.passed for result in self._check())
+
+
+def _state_command(
+    args: argparse.Namespace, plan: InstallationPlan
+) -> tuple[int, dict[str, object]]:
+    actions = PrerequisiteActions(plan.components)
+    if args.command == "run":
+        state = reconcile(
+            args.data_dir,
+            plan.target,
+            plan.components,
+            actions,
+            restart=args.restart,
+        )
+    else:
+        with state_lock(args.data_dir):
+            state = read_state(args.data_dir, plan.target, plan.components)
+            current = reverify(state, actions)
+            if current != state:
+                write_state(args.data_dir, current)
+            state = current
+    record = project_status(state, actions)
+    return (0 if not record["blocked"] and not record["pending"] else 1), record
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     blocked = _blocked(args)
@@ -272,6 +336,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     plan = InstallationPlan(args.target, _components(args))
     if args.command == "check":
         code, record = _check_record(plan)
+        sys.stdout.write(json.dumps(record, indent=2) + "\n")
+        return code
+    if args.command in ("run", "status"):
+        try:
+            code, record = _state_command(args, plan)
+        except (ValueError, RuntimeError) as error:
+            sys.stderr.write(str(error) + "\n")
+            return 2
         sys.stdout.write(json.dumps(record, indent=2) + "\n")
         return code
     record = {
