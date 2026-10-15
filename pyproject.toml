@@ -26,6 +26,7 @@ embeddings = [
 ]
 
 [project.scripts]
+nci-si-install = "nci_si_mcp.installer:main"
 nci-si-mcp = "nci_si_mcp.cli:main"
 
 [dependency-groups]

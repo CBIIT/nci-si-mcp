@@ -77,11 +77,18 @@ class PullRequestTitleTest(unittest.TestCase):
 
 
 class PackageDependenciesTest(unittest.TestCase):
-    def test_the_core_package_has_no_dependencies(self):
+    def test_the_core_package_has_no_dependencies_and_exposes_both_commands(self):
         with (ROOT / "pyproject.toml").open("rb") as file:
             project = tomllib.load(file)["project"]
 
         self.assertEqual(project["dependencies"], [])
+        self.assertEqual(
+            project["scripts"],
+            {
+                "nci-si-install": "nci_si_mcp.installer:main",
+                "nci-si-mcp": "nci_si_mcp.cli:main",
+            },
+        )
 
 
 if __name__ == "__main__":
