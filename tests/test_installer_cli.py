@@ -2,21 +2,25 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).parent.parent
 INSTALLER = Path(sys.executable).with_name("nci-si-install")
 
-ROOT_HELP = """usage: nci-si-install [-h] {plan,check} ...
+ROOT_HELP = """usage: nci-si-install [-h] {plan,check,run,status} ...
 
 Plan installation of the NCI Semantic Infrastructure MCP server and optional
 components.
 
 positional arguments:
-  {plan,check}
+  {plan,check,run,status}
     plan        Print the ordered installation plan
     check       Check every prerequisite before installation
+    run         Run and record verified installation steps
+    status      Reverify and show installation status
 
 options:
   -h, --help    show this help message and exit
@@ -46,6 +50,37 @@ options:
                         runtime
   --with-documentation  include the static documentation site
   --with-companion      include the validation companion
+"""
+
+RUN_HELP = """usage: nci-si-install run [-h] --target {local,aws,cloud-one} [--with-index]
+                          [--with-documentation] [--with-companion] --data-dir
+                          DATA_DIR [--restart]
+
+options:
+  -h, --help            show this help message and exit
+  --target {local,aws,cloud-one}
+                        installation target
+  --with-index          include an existing NCIt index and its embedding
+                        runtime
+  --with-documentation  include the static documentation site
+  --with-companion      include the validation companion
+  --data-dir DATA_DIR   installation state directory
+  --restart             reset progress for the same selection
+"""
+
+STATUS_HELP = """usage: nci-si-install status [-h] --target {local,aws,cloud-one} [--with-index]
+                             [--with-documentation] [--with-companion] --data-dir
+                             DATA_DIR
+
+options:
+  -h, --help            show this help message and exit
+  --target {local,aws,cloud-one}
+                        installation target
+  --with-index          include an existing NCIt index and its embedding
+                        runtime
+  --with-documentation  include the static documentation site
+  --with-companion      include the validation companion
+  --data-dir DATA_DIR   installation state directory
 """
 
 
@@ -145,6 +180,56 @@ class InstallerCliTest(unittest.TestCase):
         self.assertIn("#324", stderr)
         self.assertIn("BLOCKED", stderr)
 
+    def test_run_records_and_status_reverifies_the_real_prerequisite_stage(self):
+        with tempfile.TemporaryDirectory() as directory:
+            environment = {
+                "PATH": "",
+                "NCI_SI_EVS_BASE_URL": "http://127.0.0.1:1",
+                "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:2",
+            }
+            with patch.dict(os.environ, environment, clear=False):
+                run = self.run_installer("run", "--target", "local", "--data-dir", directory)
+                status = self.run_installer("status", "--target", "local", "--data-dir", directory)
+
+            self.assertEqual((run[0], run[2]), (1, ""))
+            self.assertEqual((status[0], status[2]), (1, ""))
+            expected = {
+                "components": ["server"],
+                "completed": [],
+                "blocked": [
+                    {
+                        "step": "check_prerequisites",
+                        "missing": [
+                            "Install git with release tags as QUICKSTART.md documents.",
+                            "Install PDM as QUICKSTART.md documents.",
+                            "Restore network access to NCI_SI_EVS_BASE_URL.",
+                            "Restore network access to NCI_SI_CADSR_BASE_URL.",
+                        ],
+                    }
+                ],
+                "pending": [],
+                "nextAction": "Resolve the missing prerequisites for check_prerequisites.",
+            }
+            self.assertEqual(json.loads(run[1]), expected)
+            self.assertEqual(json.loads(status[1]), expected)
+
+    def test_restart_cannot_adopt_another_component_selection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.run_installer("run", "--target", "local", "--data-dir", directory)
+
+            code, stdout, stderr = self.run_installer(
+                "run",
+                "--target",
+                "local",
+                "--with-index",
+                "--data-dir",
+                directory,
+                "--restart",
+            )
+
+            self.assertEqual((code, stdout), (2, ""))
+            self.assertIn("new --data-dir", stderr)
+
     def test_server_only_and_optional_components_have_one_ordered_plan(self):
         cases = (
             ((), ["server"]),
@@ -212,6 +297,8 @@ class InstallerCliTest(unittest.TestCase):
             (("--help",), ROOT_HELP),
             (("plan", "--help"), PLAN_HELP),
             (("check", "--help"), CHECK_HELP),
+            (("run", "--help"), RUN_HELP),
+            (("status", "--help"), STATUS_HELP),
         ):
             with self.subTest(arguments=arguments):
                 code, stdout, stderr = self.run_installer(*arguments, force_color="1")
