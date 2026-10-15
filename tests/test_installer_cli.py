@@ -12,17 +12,18 @@ from nci_si_mcp import installer
 ROOT = Path(__file__).parent.parent
 INSTALLER = Path(sys.executable).with_name("nci-si-install")
 
-ROOT_HELP = """usage: nci-si-install [-h] {plan,check,run,status} ...
+ROOT_HELP = """usage: nci-si-install [-h] {plan,check,run,status,help} ...
 
 Plan installation of the NCI Semantic Infrastructure MCP server and optional
 components.
 
 positional arguments:
-  {plan,check,run,status}
+  {plan,check,run,status,help}
     plan                Print the ordered installation plan
     check               Check every prerequisite before installation
     run                 Run and record verified installation steps
     status              Reverify and show installation status
+    help                Explain an executable installation step
 
 options:
   -h, --help            show this help message and exit
@@ -56,7 +57,7 @@ options:
 
 RUN_HELP = """usage: nci-si-install run [-h] --target {local,aws,cloud-one} [--with-index]
                           [--with-documentation] [--with-companion]
-                          --data-dir DATA_DIR [--restart]
+                          --data-dir DATA_DIR [--restart] [--non-interactive]
 
 options:
   -h, --help            show this help message and exit
@@ -68,6 +69,16 @@ options:
   --with-companion      include the validation companion
   --data-dir DATA_DIR   installation state directory
   --restart             reset progress for the same selection
+  --non-interactive     report unresolved actions without prompting
+"""
+
+STEP_HELP = """Step: check_prerequisites
+Purpose: Check every selected requirement before installation changes anything.
+Why: A partial installation must not be created when required inputs are missing.
+Action: Apply every fix reported by `check` or a BLOCKED `run`.
+Verification: Rerun every selected prerequisite; confirmation alone is never accepted.
+Common failures: missing tools, occupied ports, or unreachable EVS and caDSR endpoints.
+Guide: docs/installer-targets.md
 """
 
 STATUS_HELP = """usage: nci-si-install status [-h] --target {local,aws,cloud-one}
@@ -326,6 +337,27 @@ class InstallerCliTest(unittest.TestCase):
 
                 self.assertEqual((code, stdout), (2, ""))
                 self.assertIn("invalid choice", stderr)
+
+    def test_step_help_is_side_effect_free_and_unimplemented_steps_name_phase_33(self):
+        with tempfile.TemporaryDirectory() as parent:
+            data_dir = Path(parent) / "empty"
+            environment = os.environ | {
+                "PATH": "",
+                "NCI_SI_EVS_BASE_URL": "http://127.0.0.1:1",
+                "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:2",
+            }
+            with patch.dict(os.environ, environment, clear=True):
+                code, stdout, stderr = self.run_installer(
+                    "help", "check_prerequisites", "--target", "local"
+                )
+
+            self.assertEqual((code, stdout, stderr), (0, STEP_HELP, ""))
+            self.assertFalse(data_dir.exists())
+        for step in ("install", "configure", "verify", "unknown"):
+            with self.subTest(step=step):
+                code, stdout, stderr = self.run_installer("help", step, "--target", "local")
+                self.assertEqual((code, stdout), (2, ""))
+                self.assertIn("#320", stderr)
 
     def test_help_is_exact_and_ignores_forced_colour(self):
         for arguments, expected in (
