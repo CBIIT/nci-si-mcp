@@ -15,11 +15,11 @@ components.
 
 positional arguments:
   {plan,check}
-    plan      Print the ordered installation plan
-    check     Check every prerequisite before installation
+    plan        Print the ordered installation plan
+    check       Check every prerequisite before installation
 
 options:
-  -h, --help  show this help message and exit
+  -h, --help    show this help message and exit
 """
 
 PLAN_HELP = """usage: nci-si-install plan [-h] --target {local,aws,cloud-one} [--with-index]
