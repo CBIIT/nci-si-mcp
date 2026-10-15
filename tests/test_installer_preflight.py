@@ -76,6 +76,23 @@ class AggregatePrerequisiteTest(unittest.TestCase):
         )
         self.assertNotIn(canary, repr(records))
 
+    def test_companion_only_needs_its_container_disk_and_port_but_not_node_or_docs_port(self):
+        checks = API.local_prerequisites(("server", "companion"))
+
+        self.assertEqual(
+            [check.name for check in checks],
+            [
+                "supported_os",
+                "pdm",
+                "container_runtime",
+                "compose",
+                "disk_space",
+                "port_8081",
+                "evs_reachable",
+                "cadsr_reachable",
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
