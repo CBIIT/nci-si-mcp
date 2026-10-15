@@ -9,7 +9,8 @@ INSTALLER = ROOT / ".venv" / "bin" / "nci-si-install"
 
 ROOT_HELP = """usage: nci-si-install [-h] {plan} ...
 
-Plan installation of the NCI Semantic Infrastructure MCP server and optional components.
+Plan installation of the NCI Semantic Infrastructure MCP server and optional
+components.
 
 positional arguments:
   {plan}
@@ -19,15 +20,15 @@ options:
   -h, --help  show this help message and exit
 """
 
-PLAN_HELP = """usage: nci-si-install plan [-h] --target {local,aws,cloud-one}
-                           [--with-index] [--with-documentation]
-                           [--with-companion]
+PLAN_HELP = """usage: nci-si-install plan [-h] --target {local,aws,cloud-one} [--with-index]
+                           [--with-documentation] [--with-companion]
 
 options:
   -h, --help            show this help message and exit
   --target {local,aws,cloud-one}
                         installation target
-  --with-index          include an existing NCIt index and its embedding runtime
+  --with-index          include an existing NCIt index and its embedding
+                        runtime
   --with-documentation  include the static documentation site
   --with-companion      include the validation companion
 """
@@ -112,7 +113,10 @@ class InstallerCliTest(unittest.TestCase):
                 self.assertIn("invalid choice", stderr)
 
     def test_help_is_exact_and_ignores_forced_colour(self):
-        for arguments, expected in (((), ROOT_HELP), (("plan", "--help"), PLAN_HELP)):
+        for arguments, expected in (
+            (("--help",), ROOT_HELP),
+            (("plan", "--help"), PLAN_HELP),
+        ):
             with self.subTest(arguments=arguments):
                 code, stdout, stderr = self.run_installer(*arguments, force_color="1")
 
