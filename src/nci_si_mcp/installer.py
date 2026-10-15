@@ -19,6 +19,7 @@ from urllib.request import urlopen
 
 from .config import BASE_URL_VARIABLES, PRODUCTION_BASE_URLS
 from .installer_state import (
+    InstallerStateError,
     project_status,
     read_state,
     reconcile,
@@ -122,7 +123,7 @@ def _blocked(args: argparse.Namespace) -> str | None:
         return "BLOCKED: the Cloud One target awaits the consultation decisions in #292."
     if args.target == "aws" and args.with_companion:
         return "BLOCKED: AWS validation administration awaits approved platform protection in #197."
-    if args.command == "check" and args.target == "aws":
+    if args.command in ("check", "run", "status") and args.target == "aws":
         return "BLOCKED: standard-AWS prerequisite checks arrive with #324."
     return None
 
@@ -317,6 +318,7 @@ def _state_command(
             restart=args.restart,
         )
     else:
+        read_state(args.data_dir, plan.target, plan.components)
         with state_lock(args.data_dir):
             state = read_state(args.data_dir, plan.target, plan.components)
             current = reverify(state, actions)
@@ -341,7 +343,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command in ("run", "status"):
         try:
             code, record = _state_command(args, plan)
-        except (ValueError, RuntimeError) as error:
+        except InstallerStateError as error:
             sys.stderr.write(str(error) + "\n")
             return 2
         sys.stdout.write(json.dumps(record, indent=2) + "\n")

@@ -18,6 +18,10 @@ LOCK_NAME = "installer-state.lock"
 STATUSES = frozenset({"completed", "blocked", "failed"})
 
 
+class InstallerStateError(Exception):
+    """An operator-correctable refusal to read or lock installer state."""
+
+
 class StepActions(Protocol):
     """The four operations reconciliation needs from an installation target."""
 
@@ -50,24 +54,22 @@ def _state_path(data_dir: Path) -> Path:
     return data_dir / STATE_NAME
 
 
-def _invalid_state() -> ValueError:
-    return ValueError(
-        "Installer state is invalid or belongs to another selection; use a new --data-dir."
-    )
+def _malformed_state() -> InstallerStateError:
+    return InstallerStateError("Installer state is malformed; inspect or replace the state file.")
 
 
 def _string_list(value: object) -> tuple[str, ...]:
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-        raise _invalid_state()
+        raise _malformed_state()
     return tuple(value)
 
 
 def _parse_outcome(value: object) -> StepOutcome:
     if not isinstance(value, dict) or set(value) - {"step", "status", "missing"}:
-        raise _invalid_state()
+        raise _malformed_state()
     step, status = value.get("step"), value.get("status")
     if not isinstance(step, str) or status not in STATUSES:
-        raise _invalid_state()
+        raise _malformed_state()
     return StepOutcome(step, status, _string_list(value.get("missing", [])))
 
 
@@ -79,10 +81,10 @@ def _decode_state(content: str) -> InstallationState:
         "components",
         "outcomes",
     }:
-        raise _invalid_state()
+        raise _malformed_state()
     outcomes = value["outcomes"]
     if not isinstance(outcomes, list):
-        raise _invalid_state()
+        raise _malformed_state()
     return InstallationState(
         version=value["version"],
         target=value["target"],
@@ -98,12 +100,27 @@ def _selection_matches(state: InstallationState, target: str, components: tuple[
 
 
 def read_state(data_dir: Path, target: str, components: tuple[str, ...]) -> InstallationState:
+    path = _state_path(data_dir)
     try:
-        state = _decode_state(_state_path(data_dir).read_text(encoding="utf-8"))
-    except OSError, json.JSONDecodeError, KeyError, TypeError, ValueError:
-        raise _invalid_state() from None
+        content = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        raise InstallerStateError(
+            f"There is no installation recorded in {data_dir}; run `run` first."
+        ) from None
+    except OSError:
+        raise InstallerStateError(f"Cannot read {path}; Fix access and retry.") from None
+    try:
+        state = _decode_state(content)
+    except json.JSONDecodeError, KeyError, TypeError, ValueError, InstallerStateError:
+        raise _malformed_state() from None
+    if state.version != STATE_VERSION:
+        raise InstallerStateError(
+            f"Installer state has unsupported version {state.version}; use a compatible installer."
+        )
     if not _selection_matches(state, target, components):
-        raise _invalid_state()
+        raise InstallerStateError(
+            "Installer state belongs to another selection; use a new --data-dir."
+        )
     return state
 
 
@@ -151,7 +168,7 @@ def state_lock(data_dir: Path) -> Iterator[None]:
         try:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            raise RuntimeError(
+            raise InstallerStateError(
                 "Another installer is already running for this data directory."
             ) from None
         try:
@@ -220,16 +237,20 @@ def reverify(state: InstallationState, actions: StepActions) -> InstallationStat
             missing = actions.missing_inputs(stale.step)
             if missing:
                 outcomes = (*outcomes, StepOutcome(stale.step, "blocked", missing))
+        elif stale.status == "failed":
+            outcomes = (*outcomes, stale)
     return replace(state, outcomes=outcomes)
 
 
-def _next_action(blocked: list[dict[str, object]], pending: list[str]) -> str | None:
+def _next_action(
+    blocked: list[dict[str, object]], failed: list[str], pending: list[str]
+) -> str | None:
+    if failed:
+        return f"Retry failed step {failed[0]}."
     if blocked:
-        step = blocked[0]["step"]
         missing = blocked[0]["missing"]
-        if isinstance(missing, list) and len(missing) == 1:
-            return f"Provide {missing[0]} for {step}."
-        return f"Resolve the missing prerequisites for {step}."
+        if isinstance(missing, list):
+            return "Resolve the failed prerequisites: " + "; ".join(missing)
     if pending:
         return f"Run {pending[0]}."
     return None
@@ -250,13 +271,15 @@ def _blocked_steps(state: InstallationState) -> list[dict[str, object]]:
 def project_status(state: InstallationState, actions: StepActions) -> dict[str, object]:
     current = reverify(state, actions)
     completed = _steps_with(current, "completed")
+    failed = _steps_with(current, "failed")
     blocked = _blocked_steps(current)
     recorded = {outcome.step for outcome in current.outcomes}
     pending = [step for step in actions.step_names if step not in recorded]
     return {
         "components": list(current.components),
         "completed": completed,
+        "failed": failed,
         "blocked": blocked,
         "pending": pending,
-        "nextAction": _next_action(blocked, pending),
+        "nextAction": _next_action(blocked, failed, pending),
     }

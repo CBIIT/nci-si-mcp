@@ -212,6 +212,7 @@ class InstallerCliTest(unittest.TestCase):
             expected = {
                 "components": ["server"],
                 "completed": [],
+                "failed": [],
                 "blocked": [
                     {
                         "step": "check_prerequisites",
@@ -224,7 +225,12 @@ class InstallerCliTest(unittest.TestCase):
                     }
                 ],
                 "pending": [],
-                "nextAction": "Resolve the missing prerequisites for check_prerequisites.",
+                "nextAction": (
+                    "Resolve the failed prerequisites: Install git with release tags as "
+                    "QUICKSTART.md documents.; Install PDM as QUICKSTART.md documents.; Restore "
+                    "network access to NCI_SI_EVS_BASE_URL.; Restore network access to "
+                    "NCI_SI_CADSR_BASE_URL."
+                ),
             }
             self.assertEqual(json.loads(run[1]), expected)
             self.assertEqual(json.loads(status[1]), expected)
@@ -256,7 +262,7 @@ class InstallerCliTest(unittest.TestCase):
 
             self.assertEqual((code, stdout), (2, ""))
             self.assertIn(f"no installation recorded in {data_dir}", stderr)
-            self.assertIn("run first", stderr)
+            self.assertIn("run `run` first", stderr)
             self.assertFalse(data_dir.exists())
 
     def test_server_only_and_optional_components_have_one_ordered_plan(self):

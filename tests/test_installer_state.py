@@ -95,7 +95,7 @@ class InstallerStateTest(unittest.TestCase):
     def test_a_second_owner_cannot_acquire_the_installation_lock(self):
         with (
             API.state_lock(self.data_dir),
-            self.assertRaisesRegex(RuntimeError, "already running"),
+            self.assertRaisesRegex(API.InstallerStateError, "already running"),
             API.state_lock(self.data_dir),
         ):
             self.fail("second lock acquired")
