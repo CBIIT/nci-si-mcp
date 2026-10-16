@@ -156,9 +156,10 @@ class InstallerCliTest(unittest.TestCase):
                 self.assertRaisesRegex(type(error), "PRIVATE-CANARY"),
             ):
                 installer.main(["status", "--target", "local", "--data-dir", "unused"])
-        with patch.dict(os.environ, {"NCI_SI_EVS_BASE_URL": "not-a-url"}, clear=True):
-            code, stdout, stderr = self.run_installer("check", "--target", "local")
-        self.assertEqual((code, stdout, "NCI_SI_EVS_BASE_URL" in stderr), (2, "", True))
+        for value in ("not-a-url", ""):
+            with patch.dict(os.environ, {"NCI_SI_EVS_BASE_URL": value}, clear=True):
+                code, stdout, stderr = self.run_installer("check", "--target", "local")
+            self.assertEqual((code, stdout, "NCI_SI_EVS_BASE_URL" in stderr), (2, "", True))
 
     def test_run_records_and_status_reverifies_the_real_prerequisite_stage(self):
         with tempfile.TemporaryDirectory() as directory:

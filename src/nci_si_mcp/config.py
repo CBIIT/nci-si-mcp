@@ -78,15 +78,14 @@ class UpstreamConfigurationError(ValueError):
 
 def _upstream_base_url(name: str, mode: str) -> str:
     variable = BASE_URL_VARIABLES[name]
-    value = _env_url(variable)
+    try:
+        value = _env_url(variable)
+    except ValueError as error:
+        raise UpstreamConfigurationError(str(error)) from None
     if not value and mode == "fixture":
-        raise UpstreamConfigurationError(
-            f"{variable} must be given when NCI_SI_UPSTREAM_MODE is fixture"
-        )
+        raise UpstreamConfigurationError(f"Fixture mode requires {variable}")
     if value and not _is_base_url(value):
-        raise UpstreamConfigurationError(
-            f"{variable} must be a plain http(s) URL without credentials, query or fragment"
-        )
+        raise UpstreamConfigurationError(f"{variable} must be a plain credential-free http(s) URL")
     return value or PRODUCTION_BASE_URLS[name]
 
 
