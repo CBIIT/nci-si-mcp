@@ -70,7 +70,9 @@ def _string_list(value: object) -> tuple[str, ...]:
 
 
 def _valid_missing(status: object, missing: tuple[str, ...]) -> bool:
-    return all(missing) and ((status == "blocked") == bool(missing))
+    return all(isinstance(item, str) and item for item in missing) and (
+        (status == "blocked") == bool(missing)
+    )
 
 
 def _parse_outcome(value: object) -> StepOutcome:
@@ -262,8 +264,12 @@ def _verified_prefix(state: InstallationState, actions: StepActions) -> tuple[St
 
 def _valid_outcome(outcome: StepOutcome, index: int, last: int) -> bool:
     terminal = outcome.status in ("blocked", "failed")
-    missing_matches_status = (outcome.status == "blocked") == bool(outcome.missing)
-    return outcome.status in STATUSES and missing_matches_status and (not terminal or index == last)
+    return (
+        bool(outcome.step)
+        and outcome.status in STATUSES
+        and _valid_missing(outcome.status, outcome.missing)
+        and (not terminal or index == last)
+    )
 
 
 def validate_outcomes(state: InstallationState, step_names: tuple[str, ...]) -> None:

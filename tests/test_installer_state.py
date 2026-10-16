@@ -26,15 +26,9 @@ class InstallerStateTest(unittest.TestCase):
     def test_state_round_trips_through_the_closed_versioned_json_record(self):
         API.write_state(self.data_dir, self.state)
         self.assertEqual(API.read_state(self.data_dir, "local", ("server",)), self.state)
-        self.assertEqual(
-            json.loads(self.path.read_text(encoding="utf-8")),
-            {
-                "version": 1,
-                "target": "local",
-                "components": ["server"],
-                "outcomes": [{"step": "check_prerequisites", "status": "completed"}],
-            },
-        )
+        expected = {"version": 1, "target": "local", "components": ["server"]}
+        expected["outcomes"] = [{"step": "check_prerequisites", "status": "completed"}]
+        self.assertEqual(json.loads(self.path.read_text(encoding="utf-8")), expected)
 
     def test_failed_atomic_replace_preserves_the_previous_state(self):
         original = b'{"old":"state"}\n'
@@ -46,9 +40,15 @@ class InstallerStateTest(unittest.TestCase):
             API.write_state(self.data_dir, self.state)
         self.assertEqual(self.path.read_bytes(), original)
         self.assertEqual(list(self.data_dir.glob(".installer-state.*.tmp")), [])
-        invalid = API.InstallationState(2, "local", ("server",), ())
-        with self.assertRaisesRegex(API.InstallerStateError, "malformed"):
-            API.write_state(self.data_dir, invalid)
+        invalid = (
+            API.InstallationState(2, "local", ("server",), ()),
+            API.InstallationState(
+                1, "local", ("server",), (API.StepOutcome("check_prerequisites", "blocked", ("",)),)
+            ),
+        )
+        for state in invalid:
+            with self.assertRaisesRegex(API.InstallerStateError, "malformed"):
+                API.write_state(self.data_dir, state)
         self.assertEqual(self.path.read_bytes(), original)
 
     def test_invalid_or_mismatched_state_fails_closed_without_rewriting(self):
