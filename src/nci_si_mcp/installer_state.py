@@ -10,7 +10,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol, cast
 
 STATE_VERSION = 1
 STATE_NAME = "installer-state.json"
@@ -18,10 +18,13 @@ LOCK_NAME = "installer-state.lock"
 STATUSES = frozenset({"completed", "blocked", "failed"})
 TARGETS = frozenset({"local", "aws"})
 COMPONENTS = ("server", "index", "documentation", "companion")
+type Target = Literal["local", "aws"]
+type Component = Literal["server", "index", "documentation", "companion"]
+type StepStatus = Literal["completed", "blocked", "failed"]
 
 
 class InstallerStateError(Exception):
-    """An operator-correctable refusal to read or lock installer state."""
+    """An operator-correctable state validation, I/O or locking failure."""
 
 
 class StepActions(Protocol):
@@ -40,15 +43,15 @@ class StepActions(Protocol):
 @dataclass(frozen=True)
 class StepOutcome:
     step: str
-    status: str
+    status: StepStatus
     missing: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
 class InstallationState:
     version: int
-    target: str
-    components: tuple[str, ...]
+    target: Target
+    components: tuple[Component, ...]
     outcomes: tuple[StepOutcome, ...]
 
 
@@ -72,7 +75,7 @@ def _parse_outcome(value: object) -> StepOutcome:
     step, status = value.get("step"), value.get("status")
     if not isinstance(step, str) or status not in STATUSES:
         raise _malformed_state()
-    return StepOutcome(step, status, _string_list(value.get("missing", [])))
+    return StepOutcome(step, cast("StepStatus", status), _string_list(value.get("missing", [])))
 
 
 def _valid_identity(state: InstallationState) -> bool:
@@ -106,8 +109,8 @@ def _decode_state(content: str) -> InstallationState:
         raise _malformed_state()
     state = InstallationState(
         version=value["version"],
-        target=value["target"],
-        components=_string_list(value["components"]),
+        target=cast("Target", value["target"]),
+        components=cast("tuple[Component, ...]", _string_list(value["components"])),
         outcomes=tuple(_parse_outcome(item) for item in outcomes),
     )
     if not _valid_identity(state):
@@ -147,6 +150,11 @@ def read_state(data_dir: Path, target: str, components: tuple[str, ...]) -> Inst
 
 
 def _state_record(state: InstallationState) -> dict[str, object]:
+    if not _valid_identity(state) or not all(
+        _valid_outcome(outcome, index, len(state.outcomes) - 1)
+        for index, outcome in enumerate(state.outcomes)
+    ):
+        raise _malformed_state()
     outcomes = []
     for outcome in state.outcomes:
         record: dict[str, object] = {"step": outcome.step, "status": outcome.status}
@@ -217,7 +225,9 @@ def state_lock(data_dir: Path) -> Iterator[None]:
 
 
 def _initial_state(target: str, components: tuple[str, ...]) -> InstallationState:
-    return InstallationState(STATE_VERSION, target, components, ())
+    return InstallationState(
+        STATE_VERSION, cast("Target", target), cast("tuple[Component, ...]", components), ()
+    )
 
 
 def _load_or_create(data_dir: Path, target: str, components: tuple[str, ...]) -> InstallationState:
