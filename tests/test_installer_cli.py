@@ -251,6 +251,20 @@ class InstallerCliTest(unittest.TestCase):
                 self.assertIn("malformed", stderr)
                 self.assertEqual(path.read_bytes(), content)
 
+    def test_status_refuses_invalid_utf8_state_without_a_traceback_or_rewrite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "installer-state.json"
+            path.write_bytes(b"\xff\xfe")
+
+            code, stdout, stderr = self.run_installer(
+                "status", "--target", "local", "--data-dir", directory
+            )
+
+            self.assertEqual((code, stdout), (2, ""))
+            self.assertIn("malformed", stderr)
+            self.assertNotIn("Traceback", stderr)
+            self.assertEqual(path.read_bytes(), b"\xff\xfe")
+
     def test_status_without_recorded_state_does_not_create_the_directory(self):
         with tempfile.TemporaryDirectory() as parent:
             data_dir = Path(parent) / "absent"
