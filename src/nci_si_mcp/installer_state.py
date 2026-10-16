@@ -118,12 +118,6 @@ def _decode_state(content: str) -> InstallationState:
     return state
 
 
-def _selection_matches(state: InstallationState, target: str, components: tuple[str, ...]) -> bool:
-    return (
-        state.version == STATE_VERSION and state.target == target and state.components == components
-    )
-
-
 def _read_state_text(path: Path, data_dir: Path) -> str:
     try:
         return path.read_text(encoding="utf-8")
@@ -150,7 +144,7 @@ def read_state(data_dir: Path, target: str, components: tuple[str, ...]) -> Inst
         raise InstallerStateError(
             f"Installer state has unsupported version {state.version}; use a compatible installer."
         )
-    if not _selection_matches(state, target, components):
+    if state.target != target or state.components != components:
         raise InstallerStateError(
             "Installer state belongs to another selection; use a new --data-dir."
         )
