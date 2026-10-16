@@ -39,7 +39,7 @@ MIN_NODE_MAJOR = 24
 
 @dataclass(frozen=True)
 class InstallationPlan:
-    """The target, components and ordered stages an installation will run."""
+    """The target, components and eventual installation-stage order."""
 
     target: str
     components: tuple[str, ...]

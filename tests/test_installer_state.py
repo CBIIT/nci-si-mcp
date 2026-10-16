@@ -44,7 +44,6 @@ class InstallerStateTest(unittest.TestCase):
             self.assertRaisesRegex(API.InstallerStateError, "Cannot write state"),
         ):
             API.write_state(self.data_dir, self.state)
-
         self.assertEqual(self.path.read_bytes(), original)
         self.assertEqual(list(self.data_dir.glob(".installer-state.*.tmp")), [])
         invalid = API.InstallationState(2, "local", ("server",), ())
@@ -82,7 +81,6 @@ class InstallerStateTest(unittest.TestCase):
             self.assertRaisesRegex(API.InstallerStateError, str(self.path)) as error,
         ):
             API.read_state(self.data_dir, "local", ("server",))
-
         self.assertIn("Fix access", str(error.exception))
         self.assertNotIn("PRIVATE-CANARY", str(error.exception))
         self.path.unlink()
@@ -92,6 +90,7 @@ class InstallerStateTest(unittest.TestCase):
 
     def test_semantically_invalid_state_is_refused_without_changing_bytes(self):
         cases = (
+            b"\xff\xfe",
             b'{"version":true,"target":"local","components":["server"],"outcomes":[]}',
             b'{"version":1,"version":1,"target":"local","components":["server"],"outcomes":[]}',
             b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"unknown","status":"completed"}]}',
@@ -124,7 +123,6 @@ class InstallerStateTest(unittest.TestCase):
             patch("nci_si_mcp.installer_state.os.close", wraps=API.os.close) as closed,
         ):
             API.write_state(self.data_dir, self.state)
-
         opened.assert_any_call(self.data_dir, API.os.O_RDONLY)
         directory_descriptor = opened_descriptors[-1]
         fsync.assert_any_call(directory_descriptor)
@@ -142,7 +140,6 @@ class InstallerStateTest(unittest.TestCase):
     def test_data_directory_access_failures_are_operator_refusals(self):
         file_path = self.data_dir / "not-a-directory"
         file_path.write_text("x", encoding="utf-8")
-
         with (
             self.assertRaisesRegex(API.InstallerStateError, "fix access"),
             API.state_lock(file_path),

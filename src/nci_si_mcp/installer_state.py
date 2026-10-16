@@ -124,10 +124,11 @@ def _selection_matches(state: InstallationState, target: str, components: tuple[
     )
 
 
-def read_state(data_dir: Path, target: str, components: tuple[str, ...]) -> InstallationState:
-    path = _state_path(data_dir)
+def _read_state_text(path: Path, data_dir: Path) -> str:
     try:
-        content = path.read_text(encoding="utf-8")
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        raise _malformed_state() from None
     except FileNotFoundError:
         if path.is_symlink():
             raise InstallerStateError(f"Cannot read {path}; Fix access and retry.") from None
@@ -136,6 +137,11 @@ def read_state(data_dir: Path, target: str, components: tuple[str, ...]) -> Inst
         ) from None
     except OSError:
         raise InstallerStateError(f"Cannot read {path}; Fix access and retry.") from None
+
+
+def read_state(data_dir: Path, target: str, components: tuple[str, ...]) -> InstallationState:
+    path = _state_path(data_dir)
+    content = _read_state_text(path, data_dir)
     try:
         state = _decode_state(content)
     except json.JSONDecodeError, KeyError, TypeError, ValueError, InstallerStateError:
