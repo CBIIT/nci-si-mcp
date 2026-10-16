@@ -28,7 +28,6 @@ class AggregatePrerequisiteTest(unittest.TestCase):
         results = API.run_prerequisites(
             (check("first", False), check("second", True), check("third", False))
         )
-
         self.assertEqual(observed, ["first", "second", "third"])
         self.assertEqual(
             [API.result_record(result) for result in results],
@@ -53,7 +52,6 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             API.Prerequisite("broken", "repair the check", broken),
             API.Prerequisite("later", "fix later", later),
         )
-
         with self.assertRaisesRegex(AssertionError, "PRIVATE-CANARY"):
             API.run_prerequisites(checks)
         self.assertEqual(observed, [])
@@ -72,7 +70,6 @@ class AggregatePrerequisiteTest(unittest.TestCase):
                     ),
                 )
             )
-
         records = [API.result_record(result) for result in results]
         self.assertEqual(
             records,
@@ -113,7 +110,6 @@ class AggregatePrerequisiteTest(unittest.TestCase):
 
     def test_companion_only_needs_its_container_disk_and_port_but_not_node_or_docs_port(self):
         checks = API.local_prerequisites(("server", "companion"))
-
         self.assertEqual(
             [check.name for check in checks],
             [
@@ -158,8 +154,20 @@ class AggregatePrerequisiteTest(unittest.TestCase):
                     else:
                         run.return_value = answer
                     result = self.local_check("node").observe()
-
                 self.assertEqual(result, expected)
+
+    def test_git_requires_an_available_release_tag(self):
+        cases = (
+            (subprocess.CompletedProcess(["git"], 1, stdout=""), False),
+            (subprocess.CompletedProcess(["git"], 0, stdout=""), False),
+            (subprocess.CompletedProcess(["git"], 0, stdout="v0.20.2\n"), True),
+        )
+        for answer, expected in cases:
+            with (
+                self.subTest(answer=answer),
+                patch("nci_si_mcp.installer.subprocess.run", return_value=answer),
+            ):
+                self.assertEqual(self.local_check("git", ("server",)).observe(), expected)
 
     def test_a_hung_compose_command_is_an_expected_failed_prerequisite(self):
         with (
@@ -170,7 +178,6 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             ),
         ):
             result = self.local_check("compose", ("server", "companion")).observe()
-
         self.assertFalse(result)
 
     def test_compose_passes_when_any_available_runtime_supports_it(self):
@@ -183,5 +190,4 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             patch("nci_si_mcp.installer.subprocess.run", side_effect=answers),
         ):
             result = self.local_check("compose", ("server", "companion")).observe()
-
         self.assertTrue(result)

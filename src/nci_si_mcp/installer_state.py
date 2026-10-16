@@ -129,6 +129,8 @@ def read_state(data_dir: Path, target: str, components: tuple[str, ...]) -> Inst
     try:
         content = path.read_text(encoding="utf-8")
     except FileNotFoundError:
+        if path.is_symlink():
+            raise InstallerStateError(f"Cannot read {path}; Fix access and retry.") from None
         raise InstallerStateError(
             f"There is no installation recorded in {data_dir}; run `run` first."
         ) from None
@@ -235,7 +237,7 @@ def _initial_state(target: str, components: tuple[str, ...]) -> InstallationStat
 
 
 def _load_or_create(data_dir: Path, target: str, components: tuple[str, ...]) -> InstallationState:
-    if _state_path(data_dir).exists():
+    if os.path.lexists(_state_path(data_dir)):
         return read_state(data_dir, target, components)
     state = _initial_state(target, components)
     write_state(data_dir, state)
@@ -309,6 +311,8 @@ def reverify(state: InstallationState, actions: StepActions) -> InstallationStat
         missing = actions.missing_inputs(stale.step)
         if missing:
             outcomes = (*outcomes, StepOutcome(stale.step, "blocked", missing))
+        elif actions.verify(stale.step):
+            outcomes = (*outcomes, StepOutcome(stale.step, "completed"))
         else:
             outcomes = (*outcomes, StepOutcome(stale.step, "failed"))
     return replace(state, outcomes=outcomes)

@@ -85,6 +85,10 @@ class InstallerStateTest(unittest.TestCase):
 
         self.assertIn("Fix access", str(error.exception))
         self.assertNotIn("PRIVATE-CANARY", str(error.exception))
+        self.path.unlink()
+        self.path.symlink_to(self.data_dir / "missing-target")
+        with self.assertRaisesRegex(API.InstallerStateError, "Cannot read"):
+            API.read_state(self.data_dir, "local", ("server",))
 
     def test_semantically_invalid_state_is_refused_without_changing_bytes(self):
         cases = (

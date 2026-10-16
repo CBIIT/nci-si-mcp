@@ -171,6 +171,25 @@ def executable_prerequisite(name: str, fix: str) -> Prerequisite:
     return Prerequisite(name, fix, lambda: shutil.which(name) is not None)
 
 
+def git_prerequisite() -> Prerequisite:
+    def tagged_checkout() -> bool:
+        try:
+            result = subprocess.run(
+                ["git", "describe", "--tags", "--match", "v*", "--abbrev=0"],  # noqa: S607
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+        except FileNotFoundError, subprocess.TimeoutExpired:
+            return False
+        return result.returncode == 0 and bool(result.stdout.strip())
+
+    return Prerequisite(
+        "git", "Install git and fetch release tags as QUICKSTART.md documents.", tagged_checkout
+    )
+
+
 def reachability_prerequisite(name: str, url: str, fix: str) -> Prerequisite:
     def reachable() -> bool:
         try:
@@ -242,7 +261,7 @@ def _port_available(port: int) -> bool:
 def local_prerequisites(components: Sequence[str]) -> tuple[Prerequisite, ...]:
     checks = [
         Prerequisite("supported_os", "Run the local installer on macOS or Linux.", _supported_os),
-        executable_prerequisite("git", "Install git with release tags as QUICKSTART.md documents."),
+        git_prerequisite(),
         executable_prerequisite("pdm", "Install PDM as QUICKSTART.md documents."),
     ]
     companions = "documentation" in components or "companion" in components

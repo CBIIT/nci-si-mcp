@@ -126,6 +126,9 @@ class InstallerStepsTest(unittest.TestCase):
         status = API.current_status(current, self.actions)
         self.assertEqual(status["blocked"], [{"step": "first", "missing": ["Restore access."]}])
         self.assertEqual(status["pending"], ["second", "third"])
+        self.actions.missing.clear()
+        self.actions.present.add("first")
+        self.assertEqual(API.reverify(current, self.actions).outcomes[0].status, "completed")
 
     def test_restart_resets_progress_for_the_same_selection_without_uninstall(self):
         self.reconcile()
