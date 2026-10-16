@@ -52,7 +52,9 @@ class InstallerStepsTest(unittest.TestCase):
         self.reconcile()
         self.actions.calls.clear()
         self.actions.present.remove("second")
+
         state = self.reconcile()
+
         self.assertEqual(
             self.actions.calls,
             [
@@ -70,6 +72,7 @@ class InstallerStepsTest(unittest.TestCase):
         first = self.reconcile()
         calls_after_first = tuple(self.actions.calls)
         second = self.reconcile()
+
         self.assertEqual(first, second)
         self.assertEqual(self.actions.present, {"first", "second", "third"})
         self.assertEqual(
@@ -81,6 +84,7 @@ class InstallerStepsTest(unittest.TestCase):
         self.actions.missing["second"] = ("Install git.", "Restore EVS access.")
         state = self.reconcile()
         status = API.project_status(state, self.actions)
+
         self.assertEqual(
             status,
             {
@@ -136,6 +140,7 @@ class InstallerStepsTest(unittest.TestCase):
 
     def test_an_action_bug_propagates_without_recording_clean_completion(self):
         self.actions.bug = "second"
+
         with self.assertRaisesRegex(AssertionError, "PRIVATE-CANARY"):
             self.reconcile()
         state = API.read_state(self.data_dir, "local", ("server",))

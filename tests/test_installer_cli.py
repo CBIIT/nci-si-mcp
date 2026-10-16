@@ -24,6 +24,20 @@ options:
   --with-companion      include the validation companion
 """
 
+PLAN_HELP = (
+    """usage: nci-si-install plan [-h] --target {local,aws,cloud-one} [--with-index]
+                           [--with-documentation] [--with-companion]
+"""
+    + SELECTION_OPTIONS
+)
+
+CHECK_HELP = (
+    """usage: nci-si-install check [-h] --target {local,aws,cloud-one} [--with-index]
+                            [--with-documentation] [--with-companion]
+"""
+    + SELECTION_OPTIONS
+)
+
 RUN_HELP = (
     """usage: nci-si-install run [-h] --target {local,aws,cloud-one} [--with-index]
                           [--with-documentation] [--with-companion]
@@ -95,6 +109,7 @@ class InstallerCliTest(unittest.TestCase):
             timeout=30,
             check=False,
         )
+
         self.assertEqual((process.returncode, process.stderr), (1, ""))
         report = json.loads(process.stdout)
         self.assertEqual(report["status"], "failed")
@@ -131,6 +146,7 @@ class InstallerCliTest(unittest.TestCase):
 
     def test_unselected_components_contribute_no_component_prerequisites(self):
         code, stdout, stderr = self.run_installer("check", "--target", "local")
+
         self.assertIn(code, (0, 1))
         self.assertEqual(stderr, "")
         self.assertEqual(
@@ -145,6 +161,7 @@ class InstallerCliTest(unittest.TestCase):
                 arguments.extend(("--data-dir", "unused"))
             with self.subTest(command=command):
                 code, stdout, stderr = self.run_installer(*arguments)
+
                 observed = code, stdout, "#324" in stderr, "BLOCKED" in stderr
                 self.assertEqual(observed, (2, "", True, True))
 
@@ -171,6 +188,7 @@ class InstallerCliTest(unittest.TestCase):
             with patch.dict(os.environ, environment, clear=False):
                 run = self.run_installer("run", "--target", "local", "--data-dir", directory)
                 status = self.run_installer("status", "--target", "local", "--data-dir", directory)
+
             self.assertEqual((run[0], run[2]), (1, ""))
             self.assertEqual((status[0], status[2]), (1, ""))
             expected = {
@@ -202,6 +220,7 @@ class InstallerCliTest(unittest.TestCase):
     def test_restart_cannot_adopt_another_component_selection(self):
         with tempfile.TemporaryDirectory() as directory:
             self.run_installer("run", "--target", "local", "--data-dir", directory)
+
             code, stdout, stderr = self.run_installer(
                 "run",
                 "--target",
@@ -211,6 +230,7 @@ class InstallerCliTest(unittest.TestCase):
                 directory,
                 "--restart",
             )
+
             self.assertEqual((code, stdout), (2, ""))
             self.assertIn("new --data-dir", stderr)
 
@@ -234,9 +254,11 @@ class InstallerCliTest(unittest.TestCase):
     def test_status_without_recorded_state_does_not_create_the_directory(self):
         with tempfile.TemporaryDirectory() as parent:
             data_dir = Path(parent) / "absent"
+
             code, stdout, stderr = self.run_installer(
                 "status", "--target", "local", "--data-dir", str(data_dir)
             )
+
             self.assertEqual((code, stdout), (2, ""))
             self.assertIn(f"no installation recorded in {data_dir}", stderr)
             self.assertIn("run `run` first", stderr)
@@ -258,6 +280,7 @@ class InstallerCliTest(unittest.TestCase):
         for flags, components in cases:
             with self.subTest(flags=flags):
                 code, stdout, stderr = self.run_installer("plan", "--target", "local", *flags)
+
                 self.assertEqual((code, stderr), (0, ""))
                 self.assertEqual(
                     json.loads(stdout),
@@ -272,6 +295,7 @@ class InstallerCliTest(unittest.TestCase):
         code, stdout, stderr = self.run_installer(
             "plan", "--target", "aws", "--with-index", "--with-documentation"
         )
+
         self.assertEqual((code, stderr), (0, ""))
         self.assertEqual(
             json.loads(stdout),
@@ -289,6 +313,7 @@ class InstallerCliTest(unittest.TestCase):
         ):
             with self.subTest(arguments=arguments):
                 code, stdout, stderr = self.run_installer(*arguments)
+
                 self.assertEqual((code, stdout), (2, ""))
                 self.assertIn(issue, stderr)
                 self.assertIn("BLOCKED", stderr)
@@ -297,6 +322,7 @@ class InstallerCliTest(unittest.TestCase):
         for target in ("azure", "gcp", "other"):
             with self.subTest(target=target):
                 code, stdout, stderr = self.run_installer("plan", "--target", target)
+
                 self.assertEqual((code, stdout), (2, ""))
                 self.assertIn("invalid choice", stderr)
 
@@ -318,6 +344,7 @@ class InstallerCliTest(unittest.TestCase):
                     timeout=30,
                     check=False,
                 )
+
             self.assertEqual(
                 (process.returncode, process.stdout, process.stderr), (0, STEP_HELP, "")
             )
@@ -331,11 +358,14 @@ class InstallerCliTest(unittest.TestCase):
     def test_help_is_exact_and_ignores_forced_colour(self):
         for arguments, expected in (
             (("--help",), ROOT_HELP),
+            (("plan", "--help"), PLAN_HELP),
+            (("check", "--help"), CHECK_HELP),
             (("run", "--help"), RUN_HELP),
             (("status", "--help"), STATUS_HELP),
         ):
             with self.subTest(arguments=arguments):
                 code, stdout, stderr = self.run_installer(*arguments, force_color="1")
+
                 self.assertEqual((code, stdout, stderr), (0, expected, ""))
 
     def test_the_installed_distribution_exposes_the_installer_command(self):
