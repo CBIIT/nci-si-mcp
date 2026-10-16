@@ -150,9 +150,13 @@ def read_state(data_dir: Path, target: str, components: tuple[str, ...]) -> Inst
 
 
 def _state_record(state: InstallationState) -> dict[str, object]:
-    if not _valid_identity(state) or not all(
-        _valid_outcome(outcome, index, len(state.outcomes) - 1)
-        for index, outcome in enumerate(state.outcomes)
+    if (
+        state.version != STATE_VERSION
+        or not _valid_identity(state)
+        or not all(
+            _valid_outcome(outcome, index, len(state.outcomes) - 1)
+            for index, outcome in enumerate(state.outcomes)
+        )
     ):
         raise _malformed_state()
     outcomes = []
@@ -250,7 +254,7 @@ def _verified_prefix(state: InstallationState, actions: StepActions) -> tuple[St
 def _valid_outcome(outcome: StepOutcome, index: int, last: int) -> bool:
     terminal = outcome.status in ("blocked", "failed")
     missing_matches_status = (outcome.status == "blocked") == bool(outcome.missing)
-    return missing_matches_status and (not terminal or index == last)
+    return outcome.status in STATUSES and missing_matches_status and (not terminal or index == last)
 
 
 def validate_outcomes(state: InstallationState, step_names: tuple[str, ...]) -> None:

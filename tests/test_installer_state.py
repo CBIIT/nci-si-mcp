@@ -40,7 +40,6 @@ class InstallerStateTest(unittest.TestCase):
     def test_failed_atomic_replace_preserves_the_previous_state(self):
         original = b'{"old":"state"}\n'
         self.path.write_bytes(original)
-
         with (
             patch("nci_si_mcp.installer_state.os.replace", side_effect=OSError("PRIVATE-CANARY")),
             self.assertRaisesRegex(API.InstallerStateError, "Cannot write state"),
@@ -49,18 +48,17 @@ class InstallerStateTest(unittest.TestCase):
 
         self.assertEqual(self.path.read_bytes(), original)
         self.assertEqual(list(self.data_dir.glob(".installer-state.*.tmp")), [])
+        invalid = API.InstallationState(2, "local", ("server",), ())
+        with self.assertRaisesRegex(API.InstallerStateError, "malformed"):
+            API.write_state(self.data_dir, invalid)
+        self.assertEqual(self.path.read_bytes(), original)
 
     def test_invalid_or_mismatched_state_fails_closed_without_rewriting(self):
+        prefix = b'{"target":"local","components":["server"],"outcomes":[],'
         cases = (
             (b"{", "malformed"),
-            (
-                b'{"version":2,"target":"local","components":["server"],"outcomes":[]}',
-                "unsupported version",
-            ),
-            (
-                b'{"version":1,"target":"local","components":["server"],"outcomes":[],"extra":1}',
-                "malformed",
-            ),
+            (prefix + b'"version":2}', "unsupported version"),
+            (prefix + b'"version":1,"extra":1}', "malformed"),
             (
                 b'{"version":1,"target":"aws","components":["server"],"outcomes":[]}',
                 "another selection",
