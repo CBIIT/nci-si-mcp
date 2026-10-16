@@ -25,7 +25,6 @@ class InstallerStateTest(unittest.TestCase):
 
     def test_state_round_trips_through_the_closed_versioned_json_record(self):
         API.write_state(self.data_dir, self.state)
-
         self.assertEqual(API.read_state(self.data_dir, "local", ("server",)), self.state)
         self.assertEqual(
             json.loads(self.path.read_text(encoding="utf-8")),
@@ -71,16 +70,13 @@ class InstallerStateTest(unittest.TestCase):
         for content, message in cases:
             with self.subTest(content=content):
                 self.path.write_bytes(content)
-
                 with self.assertRaisesRegex(API.InstallerStateError, message) as error:
                     API.read_state(self.data_dir, "local", ("server",))
-
                 self.assertEqual(self.path.read_bytes(), content)
                 self.assertNotIn(content.decode(errors="ignore"), str(error.exception))
 
     def test_unreadable_state_names_the_file_and_access_next_step(self):
         self.path.write_text("{}", encoding="utf-8")
-
         with (
             patch.object(Path, "read_text", side_effect=PermissionError("PRIVATE-CANARY")),
             self.assertRaisesRegex(API.InstallerStateError, str(self.path)) as error,
