@@ -309,8 +309,8 @@ def reverify(state: InstallationState, actions: StepActions) -> InstallationStat
         missing = actions.missing_inputs(stale.step)
         if missing:
             outcomes = (*outcomes, StepOutcome(stale.step, "blocked", missing))
-        elif stale.status == "failed":
-            outcomes = (*outcomes, stale)
+        else:
+            outcomes = (*outcomes, StepOutcome(stale.step, "failed"))
     return replace(state, outcomes=outcomes)
 
 

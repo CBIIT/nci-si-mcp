@@ -108,32 +108,29 @@ class InstallerStepsTest(unittest.TestCase):
             ),
         )
         self.actions.present.add("first")
-
         status = API.project_status(state, self.actions)
-
         self.assertEqual(status["completed"], ["first"])
         self.assertEqual(status["failed"], ["second"])
         self.assertEqual(status["pending"], ["third"])
         self.assertEqual(status["nextAction"], "Retry failed step second.")
+        stale = API.InstallationState(1, "local", ("server",), state.outcomes[:1])
+        self.actions.present.remove("first")
+        self.assertEqual(API.reverify(stale, self.actions).outcomes[0].status, "failed")
 
     def test_stale_completed_step_reports_current_missing_inputs_as_blocked(self):
         state = API.InstallationState(
             1, "local", ("server",), (API.StepOutcome("first", "completed"),)
         )
         self.actions.missing["first"] = ("Restore access.",)
-
         current = API.reverify(state, self.actions)
         status = API.current_status(current, self.actions)
-
         self.assertEqual(status["blocked"], [{"step": "first", "missing": ["Restore access."]}])
         self.assertEqual(status["pending"], ["second", "third"])
 
     def test_restart_resets_progress_for_the_same_selection_without_uninstall(self):
         self.reconcile()
         self.actions.calls.clear()
-
         state = self.reconcile(restart=True)
-
         self.assertEqual([call[0] for call in self.actions.calls], ["apply", "verify"] * 3)
         self.assertEqual([outcome.status for outcome in state.outcomes], ["completed"] * 3)
         self.assertFalse(any(call[0] == "uninstall" for call in self.actions.calls))
