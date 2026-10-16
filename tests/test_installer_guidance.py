@@ -69,9 +69,8 @@ class InstallerGuidanceTest(unittest.TestCase):
                 self.assertEqual((code, stream.reads, prompt), (1, 0, ""))
                 self.assertEqual(len(result["blocked"]), 1)
 
-    def test_failed_post_apply_verification_exits_nonzero(self):
-        code, result, _, state = self.run_main(Input("", tty=False), (True, True, False))
-
+    def test_missing_input_after_apply_is_blocked_with_its_fix(self):
+        code, result, _, state = self.run_main(Input("", tty=False), (True, True, False, False))
         self.assertEqual(code, 1)
-        self.assertEqual(result["failed"], ["check_prerequisites"])
-        self.assertEqual(state.outcomes[0].status, "failed")
+        self.assertEqual(result["blocked"][0]["missing"], ["Repair the required input."])
+        self.assertEqual(state.outcomes[0].status, "blocked")

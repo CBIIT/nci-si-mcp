@@ -291,7 +291,10 @@ def reconcile(
                 return state
             actions.apply(step)
             if not actions.verify(step):
-                state = replace(state, outcomes=(*state.outcomes, StepOutcome(step, "failed")))
+                missing = actions.missing_inputs(step)
+                status: StepStatus = "blocked" if missing else "failed"
+                outcome = StepOutcome(step, status, missing)
+                state = replace(state, outcomes=(*state.outcomes, outcome))
                 write_state(data_dir, state)
                 return state
             state = replace(state, outcomes=(*state.outcomes, StepOutcome(step, "completed")))
