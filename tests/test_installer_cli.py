@@ -145,9 +145,8 @@ class InstallerCliTest(unittest.TestCase):
                 arguments.extend(("--data-dir", "unused"))
             with self.subTest(command=command):
                 code, stdout, stderr = self.run_installer(*arguments)
-                self.assertEqual((code, stdout), (2, ""))
-                self.assertIn("#324", stderr)
-                self.assertIn("BLOCKED", stderr)
+                observed = code, stdout, "#324" in stderr, "BLOCKED" in stderr
+                self.assertEqual(observed, (2, "", True, True))
 
     def test_unexpected_value_and_runtime_bugs_propagate_from_main(self):
         for error in (ValueError("PRIVATE-CANARY"), RuntimeError("PRIVATE-CANARY")):
@@ -159,8 +158,7 @@ class InstallerCliTest(unittest.TestCase):
                 installer.main(["status", "--target", "local", "--data-dir", "unused"])
         with patch.dict(os.environ, {"NCI_SI_EVS_BASE_URL": "not-a-url"}, clear=True):
             code, stdout, stderr = self.run_installer("check", "--target", "local")
-        self.assertEqual((code, stdout), (2, ""))
-        self.assertIn("NCI_SI_EVS_BASE_URL", stderr)
+        self.assertEqual((code, stdout, "NCI_SI_EVS_BASE_URL" in stderr), (2, "", True))
 
     def test_run_records_and_status_reverifies_the_real_prerequisite_stage(self):
         with tempfile.TemporaryDirectory() as directory:
