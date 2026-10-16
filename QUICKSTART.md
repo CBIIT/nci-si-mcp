@@ -20,7 +20,7 @@ Supported platforms: macOS (primary) and Linux, with a POSIX shell. Windows is n
 
 | Need | For | How to get it |
 |---|---|---|
-| Python 3.14 or newer and [PDM](https://pdm-project.org) | everything | macOS: `brew install python@3.14 pdm`. Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh`, then, in a new shell, `uv python install 3.14` and `uv tool install pdm` |
+| Python 3.14 or newer and [PDM](https://pdm-project.org) | everything | macOS: `brew install python@3.14 pdm && pdm use -f "$(brew --prefix python@3.14)/bin/python3.14"`. Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh`, then, in a new shell, `uv python install 3.14` and `uv tool install pdm` |
 | git, with tags | everything: the version comes from the nearest tag | a plain `git clone` has them; a shallow clone or a source archive does not |
 | Network access to EVS | live calls, `release-info`, `index-sample`; `download.pytorch.org` for the container image | |
 | Free ports 8000, 8080, 8081 | 8000 the HTTP server and the site preview, 8080 the documentation container, 8081 the validation dashboard | |

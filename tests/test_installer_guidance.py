@@ -49,9 +49,7 @@ class InstallerGuidanceTest(unittest.TestCase):
 
     def test_tty_confirmation_only_rechecks_and_advances_after_verification(self):
         stream = Input("\n\n", tty=True)
-
         code, result, prompt, state = self.run_main(stream, (False, False, True, True, True))
-
         self.assertEqual((code, stream.reads), (0, 2))
         self.assertEqual(prompt.count("Repair the required input."), 2)
         self.assertNotIn("PRIVATE-CANARY", prompt + json.dumps(result))
@@ -59,7 +57,6 @@ class InstallerGuidanceTest(unittest.TestCase):
 
     def test_tty_eof_keeps_the_step_blocked(self):
         code, result, _, state = self.run_main(Input("", tty=True), (False,))
-
         self.assertEqual(code, 1)
         self.assertEqual(result["blocked"][0]["missing"], ["Repair the required input."])
         self.assertEqual(state.outcomes[0].status, "blocked")
@@ -68,9 +65,7 @@ class InstallerGuidanceTest(unittest.TestCase):
         for tty, extra in ((False, ()), (True, ("--non-interactive",))):
             with self.subTest(tty=tty, extra=extra):
                 stream = Input("\n", tty=tty)
-
                 code, result, prompt, _ = self.run_main(stream, (False,), *extra)
-
                 self.assertEqual((code, stream.reads, prompt), (1, 0, ""))
                 self.assertEqual(len(result["blocked"]), 1)
 

@@ -98,7 +98,9 @@ class AggregatePrerequisiteTest(unittest.TestCase):
     def test_occupied_selected_port_fails_with_its_static_fix(self):
         check = self.local_check("port_8080")
         with patch("nci_si_mcp.installer.socket.socket") as socket:
-            socket.return_value.__enter__.return_value.bind.side_effect = OSError(48, "in use")
+            socket.return_value.__enter__.return_value.bind.side_effect = OSError(
+                API.errno.EADDRINUSE, "in use"
+            )
             result = API.run_prerequisites((check,))[0]
         self.assertEqual(
             API.result_record(result),

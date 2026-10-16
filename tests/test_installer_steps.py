@@ -82,7 +82,6 @@ class InstallerStepsTest(unittest.TestCase):
 
     def test_blocked_is_not_pending_and_names_the_missing_input(self):
         self.actions.missing["second"] = ("Install git.", "Restore EVS access.")
-
         state = self.reconcile()
         status = API.project_status(state, self.actions)
 
