@@ -43,7 +43,7 @@ class InstallerStateTest(unittest.TestCase):
 
         with (
             patch("nci_si_mcp.installer_state.os.replace", side_effect=OSError("PRIVATE-CANARY")),
-            self.assertRaisesRegex(OSError, "PRIVATE-CANARY"),
+            self.assertRaisesRegex(API.InstallerStateError, "Cannot write state"),
         ):
             API.write_state(self.data_dir, self.state)
 
@@ -95,6 +95,7 @@ class InstallerStateTest(unittest.TestCase):
     def test_semantically_invalid_state_is_refused_without_changing_bytes(self):
         cases = (
             b'{"version":true,"target":"local","components":["server"],"outcomes":[]}',
+            b'{"version":1,"version":1,"target":"local","components":["server"],"outcomes":[]}',
             b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"unknown","status":"completed"}]}',
             b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"completed"},{"step":"check_prerequisites","status":"completed"}]}',
             b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"blocked"}]}',

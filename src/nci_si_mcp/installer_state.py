@@ -7,7 +7,7 @@ import json
 import os
 import tempfile
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Protocol
@@ -87,7 +87,13 @@ def _valid_identity(state: InstallationState) -> bool:
 
 
 def _decode_state(content: str) -> InstallationState:
-    value = json.loads(content)
+    def unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        value = dict(pairs)
+        if len(value) != len(pairs):
+            raise _malformed_state()
+        return value
+
+    value = json.loads(content, object_pairs_hook=unique)
     if not isinstance(value, dict) or set(value) != {
         "version",
         "target",
@@ -167,19 +173,25 @@ def write_state(data_dir: Path, state: InstallationState) -> None:
         ) from None
     temporary_path = Path(temporary)
     try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-            json.dump(_state_record(state), handle, separators=(",", ":"))
-            handle.write("\n")
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary_path, _state_path(data_dir))
-        directory = os.open(data_dir, os.O_RDONLY)
         try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                json.dump(_state_record(state), handle, separators=(",", ":"))
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary_path, _state_path(data_dir))
+            directory = os.open(data_dir, os.O_RDONLY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
+        except OSError:
+            raise InstallerStateError(
+                f"Cannot write state in {data_dir}; fix access and retry."
+            ) from None
     finally:
-        temporary_path.unlink(missing_ok=True)
+        with suppress(OSError):
+            temporary_path.unlink(missing_ok=True)
 
 
 @contextmanager

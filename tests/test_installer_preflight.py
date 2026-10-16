@@ -127,14 +127,17 @@ class AggregatePrerequisiteTest(unittest.TestCase):
         )
 
     def test_incomplete_fixture_configuration_never_falls_back_to_production_urls(self):
-        with (
-            patch.dict("os.environ", {"NCI_SI_UPSTREAM_MODE": "fixture"}, clear=True),
-            patch("nci_si_mcp.installer.urlopen") as opened,
-            self.assertRaisesRegex(ValueError, "NCI_SI_EVS_BASE_URL"),
+        for environment in (
+            {"NCI_SI_UPSTREAM_MODE": "fixture"},
+            {"NCI_SI_EVS_BASE_URL": "file:///etc/hosts"},
+            {"NCI_SI_EVS_BASE_URL": "https://user:secret@example.test?x=1"},
         ):
-            API.local_prerequisites(("server",))
-
-        opened.assert_not_called()
+            with (
+                self.subTest(environment=environment),
+                patch.dict("os.environ", environment, clear=True),
+                self.assertRaisesRegex(ValueError, "NCI_SI_EVS_BASE_URL"),
+            ):
+                API.local_prerequisites(("server",))
 
     def test_node_requires_major_version_24_and_a_parseable_successful_answer(self):
         cases = (

@@ -159,6 +159,10 @@ def upstream_base_urls(*fields: str) -> tuple[str, ...]:
         value = _env_url(variable)
         if not value and mode == "fixture":
             raise ValueError(f"{variable} must be given when NCI_SI_UPSTREAM_MODE is fixture")
+        if value and not _is_base_url(value):
+            raise ValueError(
+                f"{variable} must be a plain http(s) URL without credentials, query or fragment"
+            )
         resolved.append(value or PRODUCTION_BASE_URLS[name])
     return tuple(resolved)
 

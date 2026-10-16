@@ -64,22 +64,15 @@ class CheckResult:
     fix: str
 
 
-@dataclass(frozen=True)
-class StepHelp:
-    purpose: str
-    why: str
-    action: str
-    verification: str
-    failures: str
-
-
 STEP_HELP = {
-    "check_prerequisites": StepHelp(
-        purpose="Check every selected requirement before installation changes anything.",
-        why="A partial installation must not be created when required inputs are missing.",
-        action="Apply every fix reported by `check` or a BLOCKED `run`.",
-        verification="Rerun every selected prerequisite; confirmation alone is never accepted.",
-        failures="missing tools, occupied ports, or unreachable EVS and caDSR endpoints.",
+    "check_prerequisites": (
+        "Step: check_prerequisites\n"
+        "Purpose: Check every selected requirement before installation changes anything.\n"
+        "Why: A partial installation must not be created when required inputs are missing.\n"
+        "Action: Apply every fix reported by `check` or a BLOCKED `run`.\n"
+        "Verification: Rerun every selected prerequisite; confirmation alone is never accepted.\n"
+        "Common failures: missing tools, occupied ports, or unreachable EVS and caDSR endpoints.\n"
+        "Guide: docs/installer-targets.md\n"
     )
 }
 
@@ -321,11 +314,9 @@ class PrerequisiteActions:
 
     def __init__(self, components: tuple[str, ...]) -> None:
         self.components = components
-        self.results: tuple[CheckResult, ...] = ()
 
     def _check(self) -> tuple[CheckResult, ...]:
-        self.results = run_prerequisites(local_prerequisites(self.components))
-        return self.results
+        return run_prerequisites(local_prerequisites(self.components))
 
     def missing_inputs(self, step: str) -> tuple[str, ...]:
         return tuple(result.fix for result in self._check() if not result.passed)
@@ -338,18 +329,7 @@ class PrerequisiteActions:
 
 
 def _step_help(step: str) -> str | None:
-    guidance = STEP_HELP.get(step)
-    if guidance is None:
-        return None
-    return (
-        f"Step: {step}\n"
-        f"Purpose: {guidance.purpose}\n"
-        f"Why: {guidance.why}\n"
-        f"Action: {guidance.action}\n"
-        f"Verification: {guidance.verification}\n"
-        f"Common failures: {guidance.failures}\n"
-        "Guide: docs/installer-targets.md\n"
-    )
+    return STEP_HELP.get(step)
 
 
 def _state_command(
@@ -439,7 +419,3 @@ def main(argv: Sequence[str] | None = None) -> int:
     }
     sys.stdout.write(json.dumps(record, indent=2) + "\n")
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
