@@ -69,13 +69,20 @@ def _string_list(value: object) -> tuple[str, ...]:
     return tuple(value)
 
 
+def _valid_missing(status: object, missing: tuple[str, ...]) -> bool:
+    return all(missing) and ((status == "blocked") == bool(missing))
+
+
 def _parse_outcome(value: object) -> StepOutcome:
     if not isinstance(value, dict) or set(value) - {"step", "status", "missing"}:
         raise _malformed_state()
     step, status = value.get("step"), value.get("status")
     if not isinstance(step, str) or status not in STATUSES:
         raise _malformed_state()
-    return StepOutcome(step, cast("StepStatus", status), _string_list(value.get("missing", [])))
+    missing = _string_list(value.get("missing", []))
+    if not _valid_missing(status, missing):
+        raise _malformed_state()
+    return StepOutcome(step, cast("StepStatus", status), missing)
 
 
 def _valid_identity(state: InstallationState) -> bool:

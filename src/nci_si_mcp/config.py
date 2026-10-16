@@ -70,6 +70,26 @@ PRODUCTION_BASE_URLS = {
     "cadsr_ftp_url": "https://cadsr.nci.nih.gov/ftp/caDSR_Downloads",
     "ssis_sparql_url": "https://shared.semantics.cancer.gov",
 }
+
+
+class UpstreamConfigurationError(ValueError):
+    """Invalid installer-facing upstream selection."""
+
+
+def _upstream_base_url(name: str, mode: str) -> str:
+    variable = BASE_URL_VARIABLES[name]
+    value = _env_url(variable)
+    if not value and mode == "fixture":
+        raise UpstreamConfigurationError(
+            f"{variable} must be given when NCI_SI_UPSTREAM_MODE is fixture"
+        )
+    if value and not _is_base_url(value):
+        raise UpstreamConfigurationError(
+            f"{variable} must be a plain http(s) URL without credentials, query or fragment"
+        )
+    return value or PRODUCTION_BASE_URLS[name]
+
+
 # Each base URL field with the variable that sets it.
 BASE_URL_VARIABLES = {
     "evs_base_url": "NCI_SI_EVS_BASE_URL",
@@ -152,19 +172,11 @@ def upstream_base_urls(*fields: str) -> tuple[str, ...]:
     """Validate and return selected upstream URLs without reading unrelated settings."""
 
     mode = os.getenv("NCI_SI_UPSTREAM_MODE", "live")
-    _require_choice("NCI_SI_UPSTREAM_MODE", mode, UPSTREAM_MODES)
-    resolved = []
-    for name in fields:
-        variable = BASE_URL_VARIABLES[name]
-        value = _env_url(variable)
-        if not value and mode == "fixture":
-            raise ValueError(f"{variable} must be given when NCI_SI_UPSTREAM_MODE is fixture")
-        if value and not _is_base_url(value):
-            raise ValueError(
-                f"{variable} must be a plain http(s) URL without credentials, query or fragment"
-            )
-        resolved.append(value or PRODUCTION_BASE_URLS[name])
-    return tuple(resolved)
+    try:
+        _require_choice("NCI_SI_UPSTREAM_MODE", mode, UPSTREAM_MODES)
+    except ValueError as error:
+        raise UpstreamConfigurationError(str(error)) from None
+    return tuple(_upstream_base_url(name, mode) for name in fields)
 
 
 def _env_number[Number: (int, float)](

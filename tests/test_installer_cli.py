@@ -11,23 +11,7 @@ from nci_si_mcp import installer
 
 ROOT = Path(__file__).parent.parent
 INSTALLER = Path(sys.executable).with_name("nci-si-install")
-
-ROOT_HELP = """usage: nci-si-install [-h] {plan,check,run,status,help} ...
-
-Plan installation of the NCI Semantic Infrastructure MCP server and optional
-components.
-
-positional arguments:
-  {plan,check,run,status,help}
-    plan                Print the ordered installation plan
-    check               Check every prerequisite before installation
-    run                 Run and record verified installation steps
-    status              Reverify and show installation status
-    help                Explain an executable installation step
-
-options:
-  -h, --help            show this help message and exit
-"""
+ROOT_HELP = "usage: nci-si-install [-h] {plan,check,run,status,help} ...\n\nPlan installation of the NCI Semantic Infrastructure MCP server and optional\ncomponents.\n\npositional arguments:\n  {plan,check,run,status,help}\n    plan                Print the ordered installation plan\n    check               Check every prerequisite before installation\n    run                 Run and record verified installation steps\n    status              Reverify and show installation status\n    help                Explain an executable installation step\n\noptions:\n  -h, --help            show this help message and exit\n"  # noqa: E501
 
 SELECTION_OPTIONS = """
 options:
@@ -53,14 +37,7 @@ RUN_HELP = (
 """
 )
 
-STEP_HELP = """Step: check_prerequisites
-Purpose: Check every selected requirement before installation changes anything.
-Why: A partial installation must not be created when required inputs are missing.
-Action: Apply every fix reported by `check` or a BLOCKED `run`.
-Verification: Rerun every selected prerequisite; confirmation alone is never accepted.
-Common failures: missing tools, occupied ports, or unreachable EVS and caDSR endpoints.
-Guide: docs/installer-targets.md
-"""
+STEP_HELP = "Step: check_prerequisites\nPurpose: Check every selected requirement before installation changes anything.\nWhy: A partial installation must not be created when required inputs are missing.\nAction: Apply every fix reported by `check` or a BLOCKED `run`.\nVerification: Rerun every selected prerequisite; confirmation alone is never accepted.\nCommon failures: missing tools, occupied ports, or unreachable EVS and caDSR endpoints.\nGuide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"  # noqa: E501
 
 STATUS_HELP = (
     """usage: nci-si-install status [-h] --target {local,aws,cloud-one}
@@ -180,6 +157,10 @@ class InstallerCliTest(unittest.TestCase):
                 self.assertRaisesRegex(type(error), "PRIVATE-CANARY"),
             ):
                 installer.main(["status", "--target", "local", "--data-dir", "unused"])
+        with patch.dict(os.environ, {"NCI_SI_EVS_BASE_URL": "not-a-url"}, clear=True):
+            code, stdout, stderr = self.run_installer("check", "--target", "local")
+        self.assertEqual((code, stdout), (2, ""))
+        self.assertIn("NCI_SI_EVS_BASE_URL", stderr)
 
     def test_run_records_and_status_reverifies_the_real_prerequisite_stage(self):
         with tempfile.TemporaryDirectory() as directory:

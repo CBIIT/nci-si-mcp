@@ -18,7 +18,7 @@ from typing import Any, cast
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
-from .config import upstream_base_urls
+from .config import UpstreamConfigurationError, upstream_base_urls
 from .installer_state import (
     InstallerStateError,
     current_status,
@@ -72,7 +72,7 @@ STEP_HELP = {
         "Action: Apply every fix reported by `check` or a BLOCKED `run`.\n"
         "Verification: Rerun every selected prerequisite; confirmation alone is never accepted.\n"
         "Common failures: missing tools, occupied ports, or unreachable EVS and caDSR endpoints.\n"
-        "Guide: docs/installer-targets.md\n"
+        "Guide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"
     )
 }
 
@@ -409,7 +409,7 @@ def _state_main(args: argparse.Namespace, plan: InstallationPlan) -> int:
         code, record = (
             _guided_run(args, plan) if args.command == "run" else _state_command(args, plan)
         )
-    except InstallerStateError as error:
+    except (InstallerStateError, UpstreamConfigurationError) as error:
         sys.stderr.write(str(error) + "\n")
         return 2
     sys.stdout.write(json.dumps(record, indent=2) + "\n")
@@ -424,7 +424,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     plan = InstallationPlan(args.target, _components(args))
     if args.command == "check":
-        code, record = _check_record(plan)
+        try:
+            code, record = _check_record(plan)
+        except UpstreamConfigurationError as error:
+            sys.stderr.write(str(error) + "\n")
+            return 2
         sys.stdout.write(json.dumps(record, indent=2) + "\n")
         return code
     if args.command == "help":

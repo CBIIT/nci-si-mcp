@@ -96,6 +96,7 @@ class InstallerStateTest(unittest.TestCase):
             b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"unknown","status":"completed"}]}',
             b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"completed"},{"step":"check_prerequisites","status":"completed"}]}',
             b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"blocked"}]}',
+            b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"blocked","missing":[""]}]}',
             b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"completed","missing":["x"]}]}',
             b'{"version":1,"target":"local","components":["server","server"],"outcomes":[]}',
             b'{"version":1,"target":"local","components":["alien"],"outcomes":[]}',
