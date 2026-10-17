@@ -37,6 +37,10 @@ class InstallerStepsTest(unittest.TestCase):
         self.data_dir = Path(directory.name)
         self.actions = Actions()
 
+    @staticmethod
+    def state(*outcomes):
+        return API.InstallationState(1, "local", ("server",), outcomes)
+
     def reconcile(self, restart=False):
         self.assertEqual(self.actions.step_names, ("first", "second", "third"))
         self.assertEqual(self.actions.missing_inputs("first"), ())
@@ -83,7 +87,7 @@ class InstallerStepsTest(unittest.TestCase):
     def test_blocked_is_not_pending_and_names_the_missing_input(self):
         self.actions.missing["second"] = ("Install git.", "Restore EVS access.")
         state = self.reconcile()
-        status = API.project_status(state, self.actions)
+        status = API.current_status(state, self.actions)
 
         self.assertEqual(
             status,
@@ -96,37 +100,29 @@ class InstallerStepsTest(unittest.TestCase):
                 "nextAction": "Resolve the failed prerequisites: Install git.; Restore EVS access.",
             },
         )
-        empty = API.InstallationState(1, "local", ("server",), ())
+        empty = self.state()
         self.assertEqual(API.current_status(empty, self.actions)["nextAction"], "Run first.")
 
     def test_failed_step_stays_failed_in_status_instead_of_becoming_pending(self):
-        state = API.InstallationState(
-            version=1,
-            target="local",
-            components=("server",),
-            outcomes=(
-                API.StepOutcome("first", "completed"),
-                API.StepOutcome("second", "failed"),
-            ),
+        state = self.state(
+            API.StepOutcome("first", "completed"), API.StepOutcome("second", "failed")
         )
         self.actions.present.add("first")
-        status = API.project_status(state, self.actions)
+        status = API.current_status(state, self.actions)
         self.assertEqual(status["completed"], ["first"])
         self.assertEqual(status["failed"], ["second"])
         self.assertEqual(status["pending"], ["third"])
         self.assertEqual(status["nextAction"], "Retry failed step second.")
-        stale = API.InstallationState(1, "local", ("server",), state.outcomes[:1])
+        stale = self.state(*state.outcomes[:1])
         self.actions.present.remove("first")
         self.assertEqual(API.reverify(stale, self.actions).outcomes[0].status, "failed")
-        previously_failed = API.InstallationState(1, "local", ("server",), state.outcomes)
+        previously_failed = self.state(*state.outcomes)
         self.assertEqual(
             API.reverify(previously_failed, self.actions).outcomes[-1].status, "failed"
         )
 
     def test_stale_completed_step_reports_current_missing_inputs_as_blocked(self):
-        state = API.InstallationState(
-            1, "local", ("server",), (API.StepOutcome("first", "completed"),)
-        )
+        state = self.state(API.StepOutcome("first", "completed"))
         self.actions.missing["first"] = ("Restore access.",)
         current = API.reverify(state, self.actions)
         status = API.current_status(current, self.actions)
@@ -172,11 +168,6 @@ class InstallerStepsTest(unittest.TestCase):
                 self.subTest(outcomes=outcomes),
                 self.assertRaisesRegex(API.InstallerStateError, "malformed"),
             ):
-                API.validate_outcomes(
-                    API.InstallationState(1, "local", ("server",), outcomes),
-                    self.actions.step_names,
-                )
+                API.validate_outcomes(self.state(*outcomes), self.actions.step_names)
         with self.assertRaisesRegex(API.InstallerStateError, "malformed"):
-            API.validate_outcomes(
-                API.InstallationState(1, "local", ("server",), ()), ("first", "first")
-            )
+            API.validate_outcomes(self.state(), ("first", "first"))

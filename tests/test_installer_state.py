@@ -2,12 +2,11 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any
 from unittest.mock import patch
 
 from nci_si_mcp import installer_state
 
-API: Any = installer_state
+API = installer_state
 
 
 class InstallerStateTest(unittest.TestCase):
@@ -22,6 +21,12 @@ class InstallerStateTest(unittest.TestCase):
             components=("server",),
             outcomes=(API.StepOutcome("check_prerequisites", "completed"),),
         )
+
+    @staticmethod
+    def encoded(**changes):
+        value = {"version": 1, "target": "local", "components": ["server"], "outcomes": []}
+        value.update(changes)
+        return json.dumps(value, separators=(",", ":")).encode()
 
     def test_state_round_trips_through_the_closed_versioned_json_record(self):
         API.write_state(self.data_dir, self.state)
@@ -52,19 +57,12 @@ class InstallerStateTest(unittest.TestCase):
         self.assertEqual(self.path.read_bytes(), original)
 
     def test_invalid_or_mismatched_state_fails_closed_without_rewriting(self):
-        prefix = b'{"target":"local","components":["server"],"outcomes":[],'
         cases = (
             (b"{", "malformed"),
-            (prefix + b'"version":2}', "unsupported version"),
-            (prefix + b'"version":1,"extra":1}', "malformed"),
-            (
-                b'{"version":1,"target":"aws","components":["server"],"outcomes":[]}',
-                "another selection",
-            ),
-            (
-                b'{"version":1,"target":"local","components":["server","index"],"outcomes":[]}',
-                "another selection",
-            ),
+            (self.encoded(version=2), "unsupported version"),
+            (self.encoded(extra=1), "malformed"),
+            (self.encoded(target="aws"), "another selection"),
+            (self.encoded(components=["server", "index"]), "another selection"),
         )
         for content, message in cases:
             with self.subTest(content=content):
@@ -89,18 +87,21 @@ class InstallerStateTest(unittest.TestCase):
             API.read_state(self.data_dir, "local", ("server",))
 
     def test_semantically_invalid_state_is_refused_without_changing_bytes(self):
+        completed = {"step": "check_prerequisites", "status": "completed"}
         cases = (
             b"\xff\xfe",
-            b'{"version":true,"target":"local","components":["server"],"outcomes":[]}',
+            self.encoded(version=True),
             b'{"version":1,"version":1,"target":"local","components":["server"],"outcomes":[]}',
-            b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"unknown","status":"completed"}]}',
-            b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"completed","extra":1}]}',
-            b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"completed"},{"step":"check_prerequisites","status":"completed"}]}',
-            b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"blocked"}]}',
-            b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"blocked","missing":[""]}]}',
-            b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"completed","missing":["x"]}]}',
-            b'{"version":1,"target":"local","components":["server","server"],"outcomes":[]}',
-            b'{"version":1,"target":"local","components":["alien"],"outcomes":[]}',
+            self.encoded(outcomes=[{"step": "unknown", "status": "completed"}]),
+            self.encoded(outcomes=[completed | {"extra": 1}]),
+            self.encoded(outcomes=[completed, completed]),
+            self.encoded(outcomes=[{"step": "check_prerequisites", "status": "blocked"}]),
+            self.encoded(
+                outcomes=[{"step": "check_prerequisites", "status": "blocked", "missing": [""]}]
+            ),
+            self.encoded(outcomes=[completed | {"missing": ["x"]}]),
+            self.encoded(components=["server", "server"]),
+            self.encoded(components=["alien"]),
         )
         for content in cases:
             with self.subTest(content=content):

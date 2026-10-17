@@ -78,10 +78,7 @@ class UpstreamConfigurationError(ValueError):
 
 def _upstream_base_url(name: str, mode: str) -> str:
     variable = BASE_URL_VARIABLES[name]
-    try:
-        value = _env_url(variable)
-    except ValueError as error:
-        raise UpstreamConfigurationError(str(error)) from None
+    value = _env_url(variable)
     if not value and mode == "fixture":
         raise UpstreamConfigurationError(f"Fixture mode requires {variable}")
     if value and not _is_base_url(value):
@@ -208,7 +205,10 @@ def _env_optional(name: str) -> str | None:
 def _env_url(variable: str) -> str:
     """The base URL a variable gives without a trailing slash, or "" where it is unset."""
 
-    value = _env_optional(variable)
+    try:
+        value = _env_optional(variable)
+    except ValueError as error:
+        raise UpstreamConfigurationError(str(error)) from None
     return "" if value is None else value.rstrip("/") or value
 
 

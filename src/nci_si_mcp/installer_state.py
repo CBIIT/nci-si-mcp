@@ -24,12 +24,10 @@ type StepStatus = Literal["completed", "blocked", "failed"]
 
 
 class InstallerStateError(Exception):
-    """An operator-correctable state validation, I/O or locking failure."""
+    pass
 
 
 class StepActions(Protocol):
-    """The four operations reconciliation needs from an installation target."""
-
     @property
     def step_names(self) -> tuple[str, ...]: ...
 
@@ -371,8 +369,3 @@ def current_status(state: InstallationState, actions: StepActions) -> dict[str, 
         "pending": pending,
         "nextAction": _next_action(blocked, failed, pending),
     }
-
-
-def project_status(state: InstallationState, actions: StepActions) -> dict[str, object]:
-    validate_outcomes(state, actions.step_names)
-    return current_status(state, actions)

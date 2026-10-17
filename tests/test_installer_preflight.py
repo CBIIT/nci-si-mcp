@@ -3,13 +3,12 @@ import tempfile
 import unittest
 from email.message import Message
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 
 from nci_si_mcp import installer
 
-API: Any = installer
+API = installer
 
 
 class AggregatePrerequisiteTest(unittest.TestCase):

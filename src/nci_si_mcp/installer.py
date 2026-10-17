@@ -38,8 +38,6 @@ MIN_NODE_MAJOR = 24
 
 @dataclass(frozen=True)
 class InstallationPlan:
-    """The target, components and eventual installation-stage order."""
-
     target: str
     components: tuple[str, ...]
     stages: tuple[str, ...] = INSTALL_STAGES
@@ -47,8 +45,6 @@ class InstallationPlan:
 
 @dataclass(frozen=True)
 class Prerequisite:
-    """One read-only observation and the static action that repairs its failure."""
-
     name: str
     fix: str
     observe: Callable[[], bool]
@@ -56,8 +52,6 @@ class Prerequisite:
 
 @dataclass(frozen=True)
 class CheckResult:
-    """The safe result of one prerequisite observation."""
-
     name: str
     passed: bool
     fix: str
@@ -154,8 +148,6 @@ def _blocked(args: argparse.Namespace) -> str | None:
 
 
 def run_prerequisites(checks: Sequence[Prerequisite]) -> tuple[CheckResult, ...]:
-    """Run every check in order; observers own classification of expected failures."""
-
     return tuple(CheckResult(check.name, check.observe(), check.fix) for check in checks)
 
 

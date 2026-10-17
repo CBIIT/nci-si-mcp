@@ -67,8 +67,8 @@ STATUS_HELP = (
 
 
 class InstallerCliTest(unittest.TestCase):
-    def run_installer(self, *arguments, force_color=None):
-        environment = os.environ.copy()
+    def run_installer(self, *arguments, force_color=None, environment=None):
+        environment = os.environ.copy() if environment is None else environment.copy()
         environment["COLUMNS"] = "80"
         if force_color is not None:
             environment["FORCE_COLOR"] = force_color
@@ -83,6 +83,18 @@ class InstallerCliTest(unittest.TestCase):
         )
         return process.returncode, process.stdout, process.stderr
 
+    def state_command(self, command, result, *, restart=False):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        with patch.object(installer, "reconcile", return_value=result) as reconcile:
+            output = installer._state_command(  # pyright: ignore[reportPrivateUsage]
+                installer.argparse.Namespace(
+                    command=command, data_dir=Path(directory.name), restart=restart
+                ),
+                installer.InstallationPlan("local", ("server",)),
+            )
+        return output, reconcile
+
     def test_local_check_reports_every_failure_without_leaking_observations(self):
         environment = os.environ.copy()
         environment.update(
@@ -94,25 +106,17 @@ class InstallerCliTest(unittest.TestCase):
                 "NCI_SI_DATA_DIR": str(ROOT / "missing-installer-state"),
             }
         )
-        process = subprocess.run(  # noqa: S603 - installed project entry point
-            [
-                INSTALLER,
-                "check",
-                "--target",
-                "local",
-                "--with-documentation",
-                "--with-companion",
-            ],
-            cwd=ROOT,
-            env=environment,
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
+        code, stdout, stderr = self.run_installer(
+            "check",
+            "--target",
+            "local",
+            "--with-documentation",
+            "--with-companion",
+            environment=environment,
         )
 
-        self.assertEqual((process.returncode, process.stderr), (1, ""))
-        report = json.loads(process.stdout)
+        self.assertEqual((code, stderr), (1, ""))
+        report = json.loads(stdout)
         self.assertEqual(report["status"], "failed")
         self.assertEqual(
             [result["name"] for result in report["results"]],
@@ -142,7 +146,7 @@ class InstallerCliTest(unittest.TestCase):
             },
             failed,
         )
-        self.assertNotIn("PRIVATE-CANARY", process.stdout + process.stderr)
+        self.assertNotIn("PRIVATE-CANARY", stdout + stderr)
         self.assertFalse((ROOT / "missing-installer-state").exists())
 
     def test_unselected_components_contribute_no_component_prerequisites(self):
@@ -240,13 +244,7 @@ class InstallerCliTest(unittest.TestCase):
 
     def test_run_forwards_restart_to_reconciliation(self):
         state = installer_state.InstallationState(1, "local", ("server",), ())
-        with (
-            tempfile.TemporaryDirectory() as directory,
-            patch.object(installer, "reconcile", return_value=state) as reconcile,
-        ):
-            code = installer.main(
-                ["run", "--target", "local", "--data-dir", directory, "--restart"]
-            )
+        (code, _), reconcile = self.state_command("run", state, restart=True)
         self.assertEqual(code, 1)
         self.assertTrue(reconcile.call_args.kwargs["restart"])
 
@@ -281,17 +279,8 @@ class InstallerCliTest(unittest.TestCase):
             installer_state.InstallationState(1, "local", ("server",), ()),
         )
         for state in states:
-            with (
-                self.subTest(state=state),
-                tempfile.TemporaryDirectory() as directory,
-                patch.object(installer, "reconcile", return_value=state),
-            ):
-                code, _ = installer._state_command(  # pyright: ignore[reportPrivateUsage]
-                    installer.argparse.Namespace(
-                        command="run", data_dir=Path(directory), restart=False
-                    ),
-                    installer.InstallationPlan("local", ("server",)),
-                )
+            with self.subTest(state=state):
+                (code, _), _ = self.state_command("run", state)
             self.assertEqual(code, 1)
 
     def test_run_and_status_refuse_semantically_invalid_state_without_rewriting(self):
@@ -407,20 +396,11 @@ class InstallerCliTest(unittest.TestCase):
                 "NCI_SI_EVS_BASE_URL": "http://127.0.0.1:1",
                 "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:2",
             }
-            with patch.dict(os.environ, environment, clear=True):
-                process = subprocess.run(  # noqa: S603 - installed project entry point
-                    [INSTALLER, "help", "check_prerequisites", "--target", "local"],
-                    cwd=ROOT,
-                    env=environment,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    check=False,
-                )
-
-            self.assertEqual(
-                (process.returncode, process.stdout, process.stderr), (0, STEP_HELP, "")
+            code, stdout, stderr = self.run_installer(
+                "help", "check_prerequisites", "--target", "local", environment=environment
             )
+
+            self.assertEqual((code, stdout, stderr), (0, STEP_HELP, ""))
         for step in ("install", "configure", "verify", "unknown"):
             with self.subTest(step=step):
                 code, stdout, stderr = self.run_installer("help", step, "--target", "local")
