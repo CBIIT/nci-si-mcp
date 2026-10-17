@@ -22,7 +22,6 @@ from .config import UpstreamConfigurationError, upstream_base_urls
 from .installer_state import (
     InstallerStateError,
     current_status,
-    project_status,
     read_state,
     reconcile,
     reverify,
@@ -372,9 +371,7 @@ def _state_command(
             if current != state:
                 write_state(args.data_dir, current)
             state = current
-    record = (
-        current_status(state, actions) if args.command == "run" else project_status(state, actions)
-    )
+    record = current_status(state, actions)
     unresolved = record["blocked"] or record["failed"] or record["pending"]
     return (1 if unresolved else 0), record
 
