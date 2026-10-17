@@ -219,6 +219,13 @@ class AggregatePrerequisiteTest(unittest.TestCase):
         self.assertTrue(by_name["git"].passed)
         self.assertNotIn("pdm", by_name)
 
+    def test_python_prerequisite_requires_3_14(self):
+        check = self.local_check("python", ("server",))
+        with patch.object(API.sys, "version_info", (3, 13)):
+            self.assertFalse(check.observe())
+        with patch.object(API.sys, "version_info", (3, 14)):
+            self.assertTrue(check.observe())
+
     def test_a_hung_compose_command_is_an_expected_failed_prerequisite(self):
         with (
             patch("nci_si_mcp.installer._container_runtimes", return_value=("docker",)),

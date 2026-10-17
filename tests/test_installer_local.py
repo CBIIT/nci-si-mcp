@@ -49,6 +49,22 @@ class LocalInstallerTest(unittest.TestCase):
         executable.parent.mkdir(parents=True, exist_ok=True)
         executable.touch()
 
+    def write_completed_state(self, *, transport="stdio", profile="unified"):
+        installer_state.write_state(
+            self.data_dir,
+            installer_state.InstallationState(
+                2,
+                "local",
+                ("server",),
+                tuple(
+                    installer_state.StepOutcome(step, "completed")
+                    for step in ("check_prerequisites", "install", "configure", "verify")
+                ),
+                transport=transport,
+                profile=profile,
+            ),
+        )
+
     def test_install_and_verify_use_only_the_installers_exact_release_tag(self):
         calls = []
 
@@ -153,12 +169,8 @@ class LocalInstallerTest(unittest.TestCase):
             )
 
     def test_stdio_start_emits_the_configured_client_command(self):
-        installer_state.write_state(
-            self.data_dir,
-            installer_state.InstallationState(
-                2, "local", ("server",), (), transport="stdio", profile="cadsr"
-            ),
-        )
+        self.write_distribution()
+        self.write_completed_state(profile="cadsr")
         actions = installer.LocalActions(
             self.data_dir, ("server",), transport="stdio", profile="cadsr"
         )
@@ -189,6 +201,63 @@ class LocalInstallerTest(unittest.TestCase):
                 },
             },
         )
+
+    def test_start_refuses_an_incomplete_installation(self):
+        installer_state.write_state(
+            self.data_dir, installer_state.InstallationState(2, "local", ("server",), ())
+        )
+        code, output, error = self.run_main(
+            "start", "--target", "local", "--data-dir", str(self.data_dir)
+        )
+        self.assertEqual((code, output), (1, ""))
+        self.assertIn("complete `run`", error)
+
+    def test_wrong_installed_revision_fails_reverification(self):
+        self.write_distribution(revision="v0.20.0")
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="stdio", profile="unified"
+        )
+        self.assertFalse(actions.verify("install"))
+
+    def test_unverifiable_process_ownership_blocks_stop_and_uninstall(self):
+        self.write_completed_state(transport="http")
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        (runtime / "server-process.json").write_text(
+            '{"pid":4321,"token":"owned"}\n', encoding="utf-8"
+        )
+        observed = subprocess.CompletedProcess(["ps"], 0, stdout="other process")
+        with patch.object(installer.subprocess, "run", return_value=observed):
+            stopped = self.run_main(
+                "stop", "--target", "local", "--transport", "http", "--data-dir", str(self.data_dir)
+            )
+            removed = self.run_main(
+                "uninstall",
+                "--target",
+                "local",
+                "--transport",
+                "http",
+                "--data-dir",
+                str(self.data_dir),
+            )
+        self.assertEqual(stopped[0], 2)
+        self.assertEqual(removed[0], 2)
+        self.assertIn("ownership", stopped[2])
+        self.assertTrue((self.data_dir / "installer-state.json").is_file())
+
+    def test_uninstall_refuses_owned_child_symlinks(self):
+        self.write_completed_state()
+        outside = self.data_dir.parent / f"{self.data_dir.name}-outside"
+        outside.mkdir()
+        self.addCleanup(outside.rmdir)
+        (self.data_dir / "venv").symlink_to(outside, target_is_directory=True)
+        code, output, error = self.run_main(
+            "uninstall", "--target", "local", "--data-dir", str(self.data_dir)
+        )
+        self.assertEqual((code, output), (2, ""))
+        self.assertIn("Refusing unowned path", error)
+        self.assertTrue(outside.is_dir())
+        self.assertTrue((self.data_dir / "installer-state.json").is_file())
 
     def test_http_verification_cleans_up_a_transient_process_and_blocks_an_unowned_port(self):
         self.write_distribution()

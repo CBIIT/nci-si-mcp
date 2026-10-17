@@ -114,6 +114,9 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
         self.assertIn("acceptance/expected/fixture.json", run)
         self.assertIn(STDIO_CAPTURE, run)
         self.assertNotIn('NCI_SI_ACCEPTANCE_SERVER="$STDIO_ROOT/venv/bin/nci-si-mcp serve"', run)
+        self.assertIn("REQUIRED_TESTS=", run)
+        self.assertIn("assert set(actual) == required", run)
+        self.assertIn("trap cleanup EXIT", run)
 
     def test_uninstall_check_distinguishes_owned_and_unowned_paths(self):
         run = next(
@@ -138,3 +141,23 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
             '--data-dir "$STDIO_ROOT"',
             documented,
         )
+
+    def test_lifecycle_script_keeps_the_exact_ordered_commands(self):
+        run = next(
+            step["run"]
+            for step in named_steps()
+            if step["name"] == "Verify stdio and HTTP installer lifecycles"
+        )
+        expected = [
+            "run --target local --transport stdio",
+            "status --target local --transport stdio",
+            "start --target local --transport stdio",
+            "uninstall --target local --transport stdio",
+            "run --target local --transport http",
+            "status --target local --transport http",
+            "start --target local --transport http",
+            "stop --target local --transport http",
+            "uninstall --target local --transport http",
+        ]
+        positions = [run.index(command) for command in expected]
+        self.assertEqual(positions, sorted(positions))

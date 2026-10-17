@@ -89,6 +89,14 @@ class InstallerStateTest(unittest.TestCase):
                 self.assertEqual(self.path.read_bytes(), content)
                 self.assertNotIn(content.decode(errors="ignore"), str(error.exception))
 
+    def test_profile_alone_is_part_of_the_installation_identity(self):
+        state = API.InstallationState(2, "local", ("server",), (), profile="evs")
+        API.write_state(self.data_dir, state)
+        before = self.path.read_bytes()
+        with self.assertRaisesRegex(API.InstallerStateError, "another selection"):
+            API.read_state(self.data_dir, "local", ("server",), profile="cadsr")
+        self.assertEqual(self.path.read_bytes(), before)
+
     def test_unreadable_state_names_the_file_and_access_next_step(self):
         self.path.write_text("{}", encoding="utf-8")
         with (
