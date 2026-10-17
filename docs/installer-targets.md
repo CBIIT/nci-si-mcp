@@ -6,3 +6,24 @@ Local server checks cover macOS/Linux, the running Python 3.14 or newer, the Git
 Non-restart runs reverify from the beginning; the first stale step and later records are discarded. Missing prerequisites are BLOCKED with static corrections; verifier failures with no missing input are FAILED. `--restart` clears recorded progress for the same selection but deletes no installed assets. Another selection requires a new `--data-dir`. Invalid, truncated or unsupported state remains unchanged. On a terminal, BLOCKED `run` prints fixes to stderr; Enter rechecks and EOF returns BLOCKED JSON. Non-TTY stdin and `--non-interactive` never read input. `help <step> --target local` explains every executable stage.
 
 stdio configuration prints an owned executable suitable for a client and opens no listener. HTTP binds `127.0.0.1`, uses trusted-local access and explicitly sets `NCI_SI_HTTP_REQUIRE_INDEX=0` until index assets are selected in #321. HTTP verification reuses only a token-matched owned process; otherwise it starts a transient process, checks `/ready` and stops it. An unowned listener on port 8000 is BLOCKED. `start` and `stop` operate the recorded HTTP process. `uninstall` refuses a running owned process, removes only the three owned children, then removes installer state so later status reports no installation.
+
+## Verify a released local installation
+
+Set `RELEASE_TAG` to a released `vX.Y.Z`, and choose fresh absolute paths for the variables below.
+Run from a directory outside a source checkout. The HTTP commands inherit any configured upstream
+URLs; trusted-local HTTP remains on loopback.
+
+```bash
+python3.14 -m venv "$INSTALLER_VENV"
+"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+"$INSTALLER_VENV/bin/nci-si-install" check --target local
+"$INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$STDIO_ROOT" --non-interactive
+"$INSTALLER_VENV/bin/nci-si-install" status --target local --transport stdio --data-dir "$STDIO_ROOT"
+"$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport stdio --data-dir "$STDIO_ROOT"
+"$INSTALLER_VENV/bin/nci-si-install" check --target local
+"$INSTALLER_VENV/bin/nci-si-install" run --target local --transport http --data-dir "$HTTP_ROOT" --non-interactive
+"$INSTALLER_VENV/bin/nci-si-install" status --target local --transport http --data-dir "$HTTP_ROOT"
+"$INSTALLER_VENV/bin/nci-si-install" start --target local --transport http --data-dir "$HTTP_ROOT"
+"$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT"
+"$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT"
+```
