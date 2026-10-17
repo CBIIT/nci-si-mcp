@@ -28,7 +28,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.14"
       - name: Select images from the event change set
@@ -56,7 +56,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: $/.github/actions/setup
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: documentation-preview-${{ github.sha }}
           path: tmp/docs-site
@@ -77,7 +77,7 @@ jobs:
           done
           pdm run python scripts/image_scan.py tmp/companion-security/docs-scan.json
           pdm run python scripts/image_scan.py tmp/companion-security/admin-scan.json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         if: ${{ always() }}
         with:
           name: companion-security-evidence
@@ -95,7 +95,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: $/.github/actions/setup
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: "24"
           package-manager-cache: false
@@ -116,7 +116,7 @@ jobs:
       - run: npm run test:browser --prefix docs/site-assets
       # Documentation only: never upload an evidence database, operational report or tmp/ tree.
       # PR artifacts are previews; this job has no deployment permissions or promotion step.
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: documentation-preview-${{ github.sha }}
           path: tmp/docs-site/
@@ -179,7 +179,7 @@ jobs:
           fi
       - name: Export measured server coverage
         run: pdm run coverage json -o tmp/coverage/server.json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: badge-coverage-server
           path: tmp/coverage/server.json
@@ -239,7 +239,7 @@ jobs:
         run: |
           pdm run python -m nci_si_acceptance.report acceptance/fixture.json > acceptance/report.md
           { echo "### Per-tool report (fixture mode)"; echo; cat acceptance/report.md; } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         if: ${{ always() && hashFiles('acceptance/fixture.json') != '' }}
         with:
           name: acceptance-fixture
@@ -262,7 +262,7 @@ jobs:
       - uses: $/.github/actions/setup
       - name: Run every applicable remote fixture case and report required skips
         run: pdm run acceptance-http
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         if: ${{ always() && hashFiles('acceptance/http-fixture.json') != '' }}
         with:
           name: acceptance-http-fixture
@@ -291,7 +291,7 @@ jobs:
       - run: pdm run acceptance-selftest --cov-fail-under=0
         env:
           SELFTEST_SHARD: ${{ matrix.shard }}
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: selftest-coverage-${{ strategy.job-index }}
           path: acceptance/.coverage
@@ -312,7 +312,7 @@ jobs:
           fetch-depth: 0  # the package version is derived from the nearest tag
           persist-credentials: false
       - uses: $/.github/actions/setup
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           pattern: selftest-coverage-*
           path: selftest-coverage
@@ -327,7 +327,7 @@ jobs:
           fi
       - name: Export measured harness coverage
         run: pdm run coverage json --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest -o tmp/coverage/harness.json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: badge-coverage-harness
           path: tmp/coverage/harness.json
@@ -347,14 +347,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: $/.github/actions/setup
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           pattern: badge-coverage-*
           merge-multiple: true
           path: tmp/coverage
       - name: Render badges and source measurements
         run: pdm run python scripts/coverage_badges.py tmp/coverage tmp/coverage-badges
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: badge-data-${{ github.sha }}
           path: |
@@ -376,7 +376,7 @@ jobs:
       group: coverage-badges-main
       cancel-in-progress: false
     steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: badge-data-${{ github.sha }}
           path: tmp/coverage-badges
