@@ -13,7 +13,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Literal, Protocol, cast
 
-STATE_VERSION = 1
+STATE_VERSION = 2
 STATE_NAME = "installer-state.json"
 LOCK_NAME = "installer-state.lock"
 STATUSES = frozenset({"completed", "blocked", "failed"})
@@ -60,6 +60,8 @@ class InstallationState:
     target: Target
     components: tuple[Component, ...]
     outcomes: tuple[StepOutcome, ...]
+    transport: str = "stdio"
+    profile: str = "unified"
 
 
 def _state_path(data_dir: Path) -> Path:
@@ -94,15 +96,25 @@ def _parse_outcome(value: object) -> StepOutcome:
     return StepOutcome(step, cast("StepStatus", status), missing)
 
 
-def _valid_identity(state: InstallationState) -> bool:
+def _valid_components(state: InstallationState) -> bool:
     canonical = tuple(item for item in COMPONENTS if item in state.components)
     return (
-        type(state.version) is int
-        and state.target in TARGETS
+        state.target in TARGETS
         and state.components == canonical
-        and bool(state.components)
-        and state.components[0] == "server"
+        and state.components[:1] == ("server",)
     )
+
+
+def _valid_local_selection(state: InstallationState) -> bool:
+    return state.transport in ("stdio", "http") and state.profile in (
+        "evs",
+        "cadsr",
+        "unified",
+    )
+
+
+def _valid_identity(state: InstallationState) -> bool:
+    return type(state.version) is int and _valid_components(state) and _valid_local_selection(state)
 
 
 def _decode_state(content: str) -> InstallationState:
@@ -113,12 +125,13 @@ def _decode_state(content: str) -> InstallationState:
         return value
 
     value = json.loads(content, object_pairs_hook=unique)
-    if not isinstance(value, dict) or set(value) != {
-        "version",
-        "target",
-        "components",
-        "outcomes",
-    }:
+    if not isinstance(value, dict):
+        raise _malformed_state()
+    version = value.get("version")
+    expected = {"version", "target", "components", "outcomes"}
+    if version != 1:
+        expected |= {"transport", "profile"}
+    if set(value) != expected:
         raise _malformed_state()
     outcomes = value["outcomes"]
     if not isinstance(outcomes, list):
@@ -128,6 +141,8 @@ def _decode_state(content: str) -> InstallationState:
         target=cast("Target", value["target"]),
         components=cast("tuple[Component, ...]", _string_list(value["components"])),
         outcomes=tuple(_parse_outcome(item) for item in outcomes),
+        transport=cast("str", value.get("transport", "stdio")),
+        profile=cast("str", value.get("profile", "unified")),
     )
     if not _valid_identity(state):
         raise _malformed_state()
@@ -149,7 +164,14 @@ def _read_state_text(path: Path, data_dir: Path) -> str:
         raise InstallerStateError(f"Cannot read {path}; Fix access and retry.") from None
 
 
-def read_state(data_dir: Path, target: str, components: tuple[str, ...]) -> InstallationState:
+def read_state(
+    data_dir: Path,
+    target: str,
+    components: tuple[str, ...],
+    *,
+    transport: str = "stdio",
+    profile: str = "unified",
+) -> InstallationState:
     path = _state_path(data_dir)
     content = _read_state_text(path, data_dir)
     try:
@@ -160,7 +182,12 @@ def read_state(data_dir: Path, target: str, components: tuple[str, ...]) -> Inst
         raise InstallerStateError(
             f"Installer state has unsupported version {state.version}; use a compatible installer."
         )
-    if state.target != target or state.components != components:
+    if (
+        state.target != target
+        or state.components != components
+        or state.transport != transport
+        or state.profile != profile
+    ):
         raise InstallerStateError(
             "Installer state belongs to another selection; use a new --data-dir."
         )
@@ -187,6 +214,8 @@ def _state_record(state: InstallationState) -> dict[str, object]:
         "version": state.version,
         "target": state.target,
         "components": list(state.components),
+        "transport": state.transport,
+        "profile": state.profile,
         "outcomes": outcomes,
     }
 
@@ -246,16 +275,25 @@ def state_lock(data_dir: Path) -> Iterator[None]:
             fcntl.flock(handle, fcntl.LOCK_UN)
 
 
-def _initial_state(target: str, components: tuple[str, ...]) -> InstallationState:
+def _initial_state(
+    target: str, components: tuple[str, ...], transport: str, profile: str
+) -> InstallationState:
     return InstallationState(
-        STATE_VERSION, cast("Target", target), cast("tuple[Component, ...]", components), ()
+        STATE_VERSION,
+        cast("Target", target),
+        cast("tuple[Component, ...]", components),
+        (),
+        transport,
+        profile,
     )
 
 
-def _load_or_create(data_dir: Path, target: str, components: tuple[str, ...]) -> InstallationState:
+def _load_or_create(
+    data_dir: Path, target: str, components: tuple[str, ...], transport: str, profile: str
+) -> InstallationState:
     if os.path.lexists(_state_path(data_dir)):
-        return read_state(data_dir, target, components)
-    state = _initial_state(target, components)
+        return read_state(data_dir, target, components, transport=transport, profile=profile)
+    state = _initial_state(target, components, transport, profile)
     write_state(data_dir, state)
     return state
 
@@ -296,9 +334,11 @@ def reconcile(
     actions: StepActions,
     *,
     restart: bool = False,
+    transport: str = "stdio",
+    profile: str = "unified",
 ) -> InstallationState:
     with state_lock(data_dir):
-        state = _load_or_create(data_dir, target, components)
+        state = _load_or_create(data_dir, target, components, transport, profile)
         validate_outcomes(state, actions.step_names)
         outcomes = () if restart else _verified_prefix(state, actions)
         state = replace(state, outcomes=outcomes)
