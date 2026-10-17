@@ -152,6 +152,44 @@ class LocalInstallerTest(unittest.TestCase):
                 self.data_dir, "local", ("server",), transport="stdio", profile="evs"
             )
 
+    def test_stdio_start_emits_the_configured_client_command(self):
+        installer_state.write_state(
+            self.data_dir,
+            installer_state.InstallationState(
+                2, "local", ("server",), (), transport="stdio", profile="cadsr"
+            ),
+        )
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="stdio", profile="cadsr"
+        )
+        actions.apply("configure")
+
+        code, output, error = self.run_main(
+            "start",
+            "--target",
+            "local",
+            "--transport",
+            "stdio",
+            "--profile",
+            "cadsr",
+            "--data-dir",
+            str(self.data_dir),
+        )
+
+        self.assertEqual((code, error), (0, ""))
+        self.assertEqual(
+            json.loads(output),
+            {
+                "command": str(self.data_dir / "venv" / "bin" / "nci-si-mcp"),
+                "args": ["serve"],
+                "env": {
+                    "NCI_SI_DATA_DIR": str(self.data_dir / "server-data"),
+                    "NCI_SI_PROFILE": "cadsr",
+                    "NCI_SI_TRANSPORT": "stdio",
+                },
+            },
+        )
+
     def test_http_verification_cleans_up_a_transient_process_and_blocks_an_unowned_port(self):
         self.write_distribution()
         actions = installer.LocalActions(

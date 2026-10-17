@@ -56,6 +56,24 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
             },
         )
 
+    def test_python_is_the_sha_pinned_setup_action_on_both_platforms(self):
+        setup = job()["steps"][1]
+        self.assertEqual(
+            setup,
+            {
+                "name": "Install Python",
+                "id": "python",
+                "uses": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+                "with": {"python-version": "3.14", "package-manager-cache": False},
+            },
+        )
+        steps = {step["name"]: step for step in named_steps()}
+        self.assertEqual(
+            steps["Install the released installer"]["env"]["PYTHON"],
+            "${{ steps.python.outputs.python-path }}",
+        )
+        self.assertNotIn("curl", WORKFLOW.read_text(encoding="utf-8"))
+
     def test_installer_commands_run_outside_checkout_with_the_release_executable(self):
         steps = {step["name"]: step for step in named_steps()}
         install = steps["Install the released installer"]
@@ -82,6 +100,12 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
         self.assertIn("NCI_SI_ACCEPTANCE_SERVER", run)
         self.assertIn("NCI_SI_ACCEPTANCE_URL", run)
         self.assertIn("acceptance/expected/fixture.json", run)
+        self.assertIn(
+            'STDIO_CLIENT="$("$INSTALLER_VENV/bin/nci-si-install" start '
+            '--target local --transport stdio --data-dir "$STDIO_ROOT")"',
+            run,
+        )
+        self.assertNotIn('NCI_SI_ACCEPTANCE_SERVER="$STDIO_ROOT/venv/bin/nci-si-mcp serve"', run)
 
     def test_uninstall_check_distinguishes_owned_and_unowned_paths(self):
         run = next(
