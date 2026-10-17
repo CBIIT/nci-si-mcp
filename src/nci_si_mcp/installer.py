@@ -571,7 +571,7 @@ def _owned_process(runtime: Path) -> int | None:
         )
     except OSError, subprocess.TimeoutExpired, json.JSONDecodeError, KeyError, TypeError:
         return None
-    marker = f"NCI_SI_INSTALL_TOKEN={token}"
+    marker = f"INSTALLER_PROCESS_TOKEN={token}"
     return (
         pid
         if isinstance(pid, int) and observed.returncode == 0 and marker in observed.stdout
@@ -583,7 +583,7 @@ def _verify_http(python: Path, runtime: Path, environment: dict[str, str]) -> bo
     if _owned_process(runtime):
         return _ready()
     token = uuid.uuid4().hex
-    process_environment = os.environ | environment | {"NCI_SI_INSTALL_TOKEN": token}
+    process_environment = os.environ | environment | {"INSTALLER_PROCESS_TOKEN": token}
     process = subprocess.Popen(  # noqa: S603 - executable is inside the owned venv
         [str(python.with_name("nci-si-mcp")), "serve", "--transport", "streamable-http"],
         env=process_environment,
@@ -790,7 +790,7 @@ def _start_http(actions: LocalActions) -> dict[str, object]:
     token = uuid.uuid4().hex
     process = subprocess.Popen(  # noqa: S603 - executable is inside the owned venv
         [str(actions.python.with_name("nci-si-mcp")), "serve", "--transport", "streamable-http"],
-        env=os.environ | actions.environment() | {"NCI_SI_INSTALL_TOKEN": token},
+        env=os.environ | actions.environment() | {"INSTALLER_PROCESS_TOKEN": token},
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
