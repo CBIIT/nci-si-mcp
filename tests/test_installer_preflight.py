@@ -2,7 +2,7 @@ import subprocess
 import unittest
 from email.message import Message
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 
 from nci_si_mcp import installer
@@ -102,6 +102,9 @@ class AggregatePrerequisiteTest(unittest.TestCase):
                 API.errno.EADDRINUSE, "in use"
             )
             result = API.run_prerequisites((check,))[0]
+            socket.return_value.__enter__.return_value.bind.assert_called_once_with(
+                ("127.0.0.1", 8080)
+            )
         self.assertEqual(
             API.result_record(result),
             {
@@ -110,6 +113,17 @@ class AggregatePrerequisiteTest(unittest.TestCase):
                 "fix": "Free loopback port 8080 for documentation.",
             },
         )
+
+    def test_unexpected_port_errors_propagate(self):
+        check = self.local_check("port_8080")
+        with (
+            patch("nci_si_mcp.installer.socket.socket") as socket,
+            self.assertRaisesRegex(OSError, "PRIVATE-CANARY"),
+        ):
+            socket.return_value.__enter__.return_value.bind.side_effect = OSError(
+                API.errno.EACCES, "PRIVATE-CANARY"
+            )
+            check.observe()
 
     def test_companion_only_needs_its_container_disk_and_port_but_not_node_or_docs_port(self):
         checks = API.local_prerequisites(("server", "companion"))
@@ -123,6 +137,22 @@ class AggregatePrerequisiteTest(unittest.TestCase):
                 "container_runtime",
                 "compose",
                 "port_8081",
+                "evs_reachable",
+                "cadsr_reachable",
+            ],
+        )
+
+        docs = API.local_prerequisites(("server", "documentation"))
+        self.assertEqual(
+            [check.name for check in docs],
+            [
+                "supported_os",
+                "git",
+                "pdm",
+                "container_runtime",
+                "compose",
+                "node",
+                "port_8080",
                 "evs_reachable",
                 "cadsr_reachable",
             ],
@@ -144,6 +174,7 @@ class AggregatePrerequisiteTest(unittest.TestCase):
     def test_node_requires_major_version_24_and_a_parseable_successful_answer(self):
         cases = (
             (None, False),
+            (subprocess.TimeoutExpired(["node"], 10), False),
             (subprocess.CompletedProcess(["node", "--version"], 1, stdout="v24.0.0"), False),
             (subprocess.CompletedProcess(["node", "--version"], 0, stdout="not-a-version"), False),
             (subprocess.CompletedProcess(["node", "--version"], 0, stdout="v23.9.0"), False),
@@ -153,8 +184,8 @@ class AggregatePrerequisiteTest(unittest.TestCase):
         for answer, expected in cases:
             with self.subTest(answer=answer):
                 with patch("nci_si_mcp.installer.subprocess.run") as run:
-                    if answer is None:
-                        run.side_effect = FileNotFoundError
+                    if answer is None or isinstance(answer, Exception):
+                        run.side_effect = FileNotFoundError if answer is None else answer
                     else:
                         run.return_value = answer
                     result = self.local_check("node").observe()
@@ -186,6 +217,16 @@ class AggregatePrerequisiteTest(unittest.TestCase):
 
         self.assertFalse(result)
 
+        failed = (
+            subprocess.CompletedProcess(["docker"], 1),
+            subprocess.CompletedProcess(["podman"], 1),
+        )
+        with (
+            patch("nci_si_mcp.installer._container_runtimes", return_value=("docker", "podman")),
+            patch("nci_si_mcp.installer.subprocess.run", side_effect=failed),
+        ):
+            self.assertFalse(self.local_check("compose", ("server", "companion")).observe())
+
     def test_compose_passes_when_any_available_runtime_supports_it(self):
         answers = (
             subprocess.CompletedProcess(["docker", "compose", "version"], 1),
@@ -198,3 +239,13 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             result = self.local_check("compose", ("server", "companion")).observe()
 
         self.assertTrue(result)
+
+        with patch("nci_si_mcp.installer.shutil.which", side_effect=lambda name: f"/{name}"):
+            self.assertEqual(API._container_runtimes(), ("docker", "podman"))
+
+    def test_reachability_uses_the_documented_five_second_timeout(self):
+        response = MagicMock()
+        response.__enter__.return_value = response
+        with patch("nci_si_mcp.installer.urlopen", return_value=response) as opened:
+            self.assertTrue(API.reachability_prerequisite("x", "https://example", "fix").observe())
+        opened.assert_called_once_with("https://example", timeout=5)
