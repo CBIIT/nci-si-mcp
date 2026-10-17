@@ -94,6 +94,7 @@ class InstallerStateTest(unittest.TestCase):
             b'{"version":true,"target":"local","components":["server"],"outcomes":[]}',
             b'{"version":1,"version":1,"target":"local","components":["server"],"outcomes":[]}',
             b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"unknown","status":"completed"}]}',
+            b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"completed","extra":1}]}',
             b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"completed"},{"step":"check_prerequisites","status":"completed"}]}',
             b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"blocked"}]}',
             b'{"version":1,"target":"local","components":["server"],"outcomes":[{"step":"check_prerequisites","status":"blocked","missing":[""]}]}',
@@ -110,7 +111,7 @@ class InstallerStateTest(unittest.TestCase):
                 self.assertEqual(self.path.read_bytes(), content)
 
     def test_atomic_state_write_fsyncs_and_closes_the_parent_directory(self):
-        opened_descriptors = []
+        events, opened_descriptors = [], []
         real_open = API.os.open
 
         def open_directory(*args):
@@ -120,15 +121,22 @@ class InstallerStateTest(unittest.TestCase):
 
         with (
             patch("nci_si_mcp.installer_state.os.open", side_effect=open_directory) as opened,
-            patch("nci_si_mcp.installer_state.os.fsync", wraps=API.os.fsync) as fsync,
+            patch(
+                "nci_si_mcp.installer_state.os.fsync",
+                side_effect=lambda fd: events.append(("fsync", fd)),
+            ),
+            patch(
+                "nci_si_mcp.installer_state.os.replace",
+                side_effect=lambda *_: events.append(("replace",)),
+            ),
             patch("nci_si_mcp.installer_state.os.close", wraps=API.os.close) as closed,
         ):
             API.write_state(self.data_dir, self.state)
         opened.assert_any_call(self.data_dir, API.os.O_RDONLY)
         directory_descriptor = opened_descriptors[-1]
-        fsync.assert_any_call(directory_descriptor)
+        self.assertEqual([event[0] for event in events], ["fsync", "replace", "fsync"])
+        self.assertEqual(events[-1], ("fsync", directory_descriptor))
         closed.assert_called_once_with(directory_descriptor)
-        self.assertEqual(API.read_state(self.data_dir, "local", ("server",)), self.state)
 
     def test_a_second_owner_cannot_acquire_the_installation_lock(self):
         with (

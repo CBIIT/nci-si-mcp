@@ -116,6 +116,10 @@ class InstallerStepsTest(unittest.TestCase):
         stale = API.InstallationState(1, "local", ("server",), state.outcomes[:1])
         self.actions.present.remove("first")
         self.assertEqual(API.reverify(stale, self.actions).outcomes[0].status, "failed")
+        previously_failed = API.InstallationState(1, "local", ("server",), state.outcomes)
+        self.assertEqual(
+            API.reverify(previously_failed, self.actions).outcomes[-1].status, "failed"
+        )
 
     def test_stale_completed_step_reports_current_missing_inputs_as_blocked(self):
         state = API.InstallationState(
@@ -154,3 +158,23 @@ class InstallerStepsTest(unittest.TestCase):
         self.assertEqual(state.outcomes[-1], API.StepOutcome("second", "failed"))
         self.assertNotIn(("apply", "third"), self.actions.calls)
         self.assertEqual(status["nextAction"], "Retry failed step second.")
+
+    def test_terminal_outcomes_must_be_last_and_steps_must_not_repeat(self):
+        invalid = (
+            (API.StepOutcome("first", "blocked", ("fix",)), API.StepOutcome("second", "completed")),
+            (API.StepOutcome("first", "failed"), API.StepOutcome("second", "completed")),
+            (API.StepOutcome("first", "completed"), API.StepOutcome("first", "completed")),
+        )
+        for outcomes in invalid:
+            with (
+                self.subTest(outcomes=outcomes),
+                self.assertRaisesRegex(API.InstallerStateError, "malformed"),
+            ):
+                API.validate_outcomes(
+                    API.InstallationState(1, "local", ("server",), outcomes),
+                    self.actions.step_names,
+                )
+        with self.assertRaisesRegex(API.InstallerStateError, "malformed"):
+            API.validate_outcomes(
+                API.InstallationState(1, "local", ("server",), ()), ("first", "first")
+            )

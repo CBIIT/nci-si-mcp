@@ -5,9 +5,10 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 
-from nci_si_mcp import installer
+from nci_si_mcp import installer, installer_state
 
 ROOT = Path(__file__).parent.parent
 INSTALLER = Path(sys.executable).with_name("nci-si-install")
@@ -158,7 +159,9 @@ class InstallerCliTest(unittest.TestCase):
         for command in ("check", "run", "status"):
             arguments = [command, "--target", "aws"]
             if command in ("run", "status"):
-                arguments.extend(("--data-dir", "unused"))
+                directory = tempfile.TemporaryDirectory()
+                self.addCleanup(directory.cleanup)
+                arguments.extend(("--data-dir", directory.name))
             with self.subTest(command=command):
                 code, stdout, stderr = self.run_installer(*arguments)
 
@@ -168,11 +171,12 @@ class InstallerCliTest(unittest.TestCase):
     def test_unexpected_value_and_runtime_bugs_propagate_from_main(self):
         for error in (ValueError("PRIVATE-CANARY"), RuntimeError("PRIVATE-CANARY")):
             with (
+                tempfile.TemporaryDirectory() as directory,
                 self.subTest(error=type(error).__name__),
                 patch.object(installer, "_state_command", side_effect=error),
                 self.assertRaisesRegex(type(error), "PRIVATE-CANARY"),
             ):
-                installer.main(["status", "--target", "local", "--data-dir", "unused"])
+                installer.main(["status", "--target", "local", "--data-dir", directory])
         for value in ("not-a-url", ""):
             with patch.dict(os.environ, {"NCI_SI_EVS_BASE_URL": value}, clear=True):
                 code, stdout, stderr = self.run_installer("check", "--target", "local")
@@ -233,6 +237,62 @@ class InstallerCliTest(unittest.TestCase):
 
             self.assertEqual((code, stdout), (2, ""))
             self.assertIn("new --data-dir", stderr)
+
+    def test_run_forwards_restart_to_reconciliation(self):
+        state = installer_state.InstallationState(1, "local", ("server",), ())
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.object(installer, "reconcile", return_value=state) as reconcile,
+        ):
+            code = installer.main(
+                ["run", "--target", "local", "--data-dir", directory, "--restart"]
+            )
+        self.assertEqual(code, 1)
+        self.assertTrue(reconcile.call_args.kwargs["restart"])
+
+    def test_status_persists_and_projects_its_reverified_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = installer_state.InstallationState(
+                1,
+                "local",
+                ("server",),
+                (installer_state.StepOutcome("check_prerequisites", "completed"),),
+            )
+            installer_state.write_state(Path(directory), state)
+            failed = installer.Prerequisite("required", "Repair it.", lambda: False)
+            with patch.object(installer, "local_prerequisites", return_value=(failed,)):
+                code, record = installer._state_command(  # pyright: ignore[reportPrivateUsage]
+                    installer.argparse.Namespace(command="status", data_dir=Path(directory)),
+                    installer.InstallationPlan("local", ("server",)),
+                )
+            persisted = installer_state.read_state(Path(directory), "local", ("server",))
+        blocked = cast("list[dict[str, Any]]", record["blocked"])[0]
+        self.assertEqual((code, blocked["missing"]), (1, ["Repair it."]))
+        self.assertEqual(persisted.outcomes[0].status, "blocked")
+
+    def test_failed_and_pending_state_commands_exit_nonzero(self):
+        states = (
+            installer_state.InstallationState(
+                1,
+                "local",
+                ("server",),
+                (installer_state.StepOutcome("check_prerequisites", "failed"),),
+            ),
+            installer_state.InstallationState(1, "local", ("server",), ()),
+        )
+        for state in states:
+            with (
+                self.subTest(state=state),
+                tempfile.TemporaryDirectory() as directory,
+                patch.object(installer, "reconcile", return_value=state),
+            ):
+                code, _ = installer._state_command(  # pyright: ignore[reportPrivateUsage]
+                    installer.argparse.Namespace(
+                        command="run", data_dir=Path(directory), restart=False
+                    ),
+                    installer.InstallationPlan("local", ("server",)),
+                )
+            self.assertEqual(code, 1)
 
     def test_run_and_status_refuse_semantically_invalid_state_without_rewriting(self):
         content = (
