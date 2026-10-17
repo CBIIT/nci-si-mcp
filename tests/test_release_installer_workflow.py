@@ -61,6 +61,8 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
         install = steps["Install the released installer"]
         self.assertEqual(install["working-directory"], "${{ runner.temp }}")
         self.assertIn("@${RELEASE_TAG}", install["run"])
+        self.assertIn('"$PYTHON" -m venv "$INSTALLER_VENV"', documented_commands())
+        self.assertIn('"$PYTHON" -m venv "$INSTALLER_VENV"', install["run"])
         lifecycle = steps["Verify stdio and HTTP installer lifecycles"]
         self.assertEqual(lifecycle["working-directory"], "${{ runner.temp }}")
         lines = lifecycle["run"].splitlines()

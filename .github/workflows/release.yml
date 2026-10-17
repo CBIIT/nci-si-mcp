@@ -189,7 +189,8 @@ jobs:
           INSTALLER_VENV: ${{ runner.temp }}/installer-venv
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          python3.14 -m venv "$INSTALLER_VENV"
+          PYTHON="$(command -v python3.14)"
+          "$PYTHON" -m venv "$INSTALLER_VENV"
           "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
       - name: Install the release acceptance suite (CI only)
         run: |

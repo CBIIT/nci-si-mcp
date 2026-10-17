@@ -9,12 +9,13 @@ stdio configuration prints an owned executable suitable for a client and opens n
 
 ## Verify a released local installation
 
-Set `RELEASE_TAG` to a released `vX.Y.Z`, and choose fresh absolute paths for the variables below.
-Run from a directory outside a source checkout. The HTTP commands inherit any configured upstream
-URLs; trusted-local HTTP remains on loopback.
+Set `PYTHON` to an absolute Python 3.14-or-newer executable, `RELEASE_TAG` to a released `vX.Y.Z`,
+and choose fresh absolute paths for the other variables below. Run from a directory outside a
+source checkout. The HTTP commands inherit any configured upstream URLs; trusted-local HTTP remains
+on loopback.
 
 ```bash
-python3.14 -m venv "$INSTALLER_VENV"
+"$PYTHON" -m venv "$INSTALLER_VENV"
 "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
 "$INSTALLER_VENV/bin/nci-si-install" check --target local
 "$INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$STDIO_ROOT" --non-interactive
