@@ -74,3 +74,22 @@ class InstallerGuidanceTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(result["blocked"][0]["missing"], ["Repair the required input."])
         self.assertEqual(state.outcomes[0].status, "blocked")
+
+    def test_tty_failed_or_pending_status_does_not_enter_blocked_prompt(self):
+        records = (
+            {"blocked": [], "failed": ["step"], "pending": [], "nextAction": "Retry."},
+            {"blocked": [], "failed": [], "pending": ["step"], "nextAction": "Run."},
+        )
+        for record in records:
+            stream = Input("\n", tty=True)
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with (
+                tempfile.TemporaryDirectory() as directory,
+                patch.object(installer.sys, "stdin", stream),
+                patch.object(installer, "_state_command", return_value=(1, record)),
+                redirect_stdout(stdout),
+                redirect_stderr(stderr),
+            ):
+                code = installer.main(["run", "--target", "local", "--data-dir", directory])
+            self.assertEqual((code, json.loads(stdout.getvalue()), stream.reads), (1, record, 0))
+            self.assertEqual(stderr.getvalue(), "")

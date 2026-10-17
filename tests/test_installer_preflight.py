@@ -1,6 +1,8 @@
 import subprocess
+import tempfile
 import unittest
 from email.message import Message
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
@@ -125,7 +127,7 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             )
             check.observe()
 
-    def test_companion_only_needs_its_container_disk_and_port_but_not_node_or_docs_port(self):
+    def test_companion_only_needs_its_container_and_port_but_not_node_or_docs_port(self):
         checks = API.local_prerequisites(("server", "companion"))
 
         self.assertEqual(
@@ -204,6 +206,28 @@ class AggregatePrerequisiteTest(unittest.TestCase):
                 patch("nci_si_mcp.installer.subprocess.run", return_value=answer),
             ):
                 self.assertEqual(self.local_check("git", ("server",)).observe(), expected)
+
+    def test_git_ignores_non_release_tags_in_the_selected_checkout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            commands = (
+                ("init", "-q"),
+                ("config", "user.email", "test@example.invalid"),
+                ("config", "user.name", "Test"),
+                ("commit", "--allow-empty", "-m", "initial", "-q"),
+                ("tag", "candidate"),
+            )
+            for arguments in commands:
+                subprocess.run(  # noqa: S603 - fixed local Git setup
+                    ["git", *arguments],  # noqa: S607
+                    cwd=root,
+                    check=True,
+                    capture_output=True,
+                )
+            with patch("nci_si_mcp.installer.Path.cwd", return_value=root):
+                self.assertFalse(self.local_check("git", ("server",)).observe())
+                subprocess.run(["git", "tag", "v1.2.3"], cwd=root, check=True)  # noqa: S607
+                self.assertTrue(self.local_check("git", ("server",)).observe())
 
     def test_a_hung_compose_command_is_an_expected_failed_prerequisite(self):
         with (

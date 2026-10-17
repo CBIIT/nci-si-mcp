@@ -401,8 +401,7 @@ class InstallerCliTest(unittest.TestCase):
                 self.assertIn("invalid choice", stderr)
 
     def test_step_help_is_side_effect_free_and_unimplemented_steps_name_phase_33(self):
-        with tempfile.TemporaryDirectory() as parent:
-            data_dir = Path(parent) / "empty"
+        with tempfile.TemporaryDirectory():
             environment = os.environ | {
                 "PATH": "",
                 "NCI_SI_EVS_BASE_URL": "http://127.0.0.1:1",
@@ -422,7 +421,6 @@ class InstallerCliTest(unittest.TestCase):
             self.assertEqual(
                 (process.returncode, process.stdout, process.stderr), (0, STEP_HELP, "")
             )
-            self.assertFalse(data_dir.exists())
         for step in ("install", "configure", "verify", "unknown"):
             with self.subTest(step=step):
                 code, stdout, stderr = self.run_installer("help", step, "--target", "local")

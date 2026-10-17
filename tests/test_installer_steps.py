@@ -96,6 +96,8 @@ class InstallerStepsTest(unittest.TestCase):
                 "nextAction": "Resolve the failed prerequisites: Install git.; Restore EVS access.",
             },
         )
+        empty = API.InstallationState(1, "local", ("server",), ())
+        self.assertEqual(API.current_status(empty, self.actions)["nextAction"], "Run first.")
 
     def test_failed_step_stays_failed_in_status_instead_of_becoming_pending(self):
         state = API.InstallationState(
