@@ -42,10 +42,16 @@ CHECK_HELP = (
 RUN_HELP = (
     """usage: nci-si-install run [-h] --target {local,aws,cloud-one} [--with-index]
                           [--with-documentation] [--with-companion]
+                          [--transport {stdio,http}]
+                          [--profile {cadsr,evs,unified}]
                           --data-dir DATA_DIR [--restart] [--non-interactive]
 """
     + SELECTION_OPTIONS.rstrip()
     + """
+  --transport {stdio,http}
+                        local server transport (default: stdio)
+  --profile {cadsr,evs,unified}
+                        EVS/caDSR tool profile (default: unified)
   --data-dir DATA_DIR   installation state directory
   --restart             reset progress for the same selection
   --non-interactive     report unresolved actions without prompting
