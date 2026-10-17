@@ -49,6 +49,10 @@ class CiCostTest(unittest.TestCase):
                 },
                 "local-run.yml": {"local-run": "${{ matrix.os }}"},
                 "pr-title.yml": {"conventional": "ubuntu-24.04"},
-                "release.yml": {"release": "ubuntu-24.04", "image": "ubuntu-24.04"},
+                "release.yml": {
+                    "release": "ubuntu-24.04",
+                    "image": "ubuntu-24.04",
+                    "local-installer": "${{ matrix.os }}",
+                },
             },
         )

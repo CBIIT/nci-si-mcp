@@ -144,7 +144,7 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             [
                 "supported_os",
                 "git",
-                "pdm",
+                "python",
                 "container_runtime",
                 "compose",
                 "port_8081",
@@ -159,7 +159,7 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             [
                 "supported_os",
                 "git",
-                "pdm",
+                "python",
                 "container_runtime",
                 "compose",
                 "node",
@@ -203,40 +203,21 @@ class AggregatePrerequisiteTest(unittest.TestCase):
 
                 self.assertEqual(result, expected)
 
-    def test_git_requires_an_available_release_tag(self):
-        cases = (
-            (subprocess.CompletedProcess(["git"], 1, stdout=""), False),
-            (subprocess.CompletedProcess(["git"], 0, stdout=""), False),
-            (subprocess.CompletedProcess(["git"], 0, stdout="v0.20.2\n"), True),
-        )
-        for answer, expected in cases:
-            with (
-                self.subTest(answer=answer),
-                patch("nci_si_mcp.installer.subprocess.run", return_value=answer),
-            ):
-                self.assertEqual(self.local_check("git", ("server",)).observe(), expected)
+    def test_server_only_needs_git_executable_not_a_checkout_or_pdm(self):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("nci_si_mcp.installer.Path.cwd", return_value=Path(directory)),
+            patch(
+                "nci_si_mcp.installer.shutil.which",
+                side_effect=lambda name: "/usr/bin/git" if name == "git" else None,
+            ),
+            patch("nci_si_mcp.installer.urlopen"),
+        ):
+            results = API.run_prerequisites(API.local_prerequisites(("server",)))
 
-    def test_git_ignores_non_release_tags_in_the_selected_checkout(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            commands = (
-                ("init", "-q"),
-                ("config", "user.email", "test@example.invalid"),
-                ("config", "user.name", "Test"),
-                ("commit", "--allow-empty", "-m", "initial", "-q"),
-                ("tag", "candidate"),
-            )
-            for arguments in commands:
-                subprocess.run(  # noqa: S603 - fixed local Git setup
-                    ["git", *arguments],  # noqa: S607
-                    cwd=root,
-                    check=True,
-                    capture_output=True,
-                )
-            with patch("nci_si_mcp.installer.Path.cwd", return_value=root):
-                self.assertFalse(self.local_check("git", ("server",)).observe())
-                subprocess.run(["git", "tag", "v1.2.3"], cwd=root, check=True)  # noqa: S607
-                self.assertTrue(self.local_check("git", ("server",)).observe())
+        by_name = {result.name: result for result in results}
+        self.assertTrue(by_name["git"].passed)
+        self.assertNotIn("pdm", by_name)
 
     def test_a_hung_compose_command_is_an_expected_failed_prerequisite(self):
         with (

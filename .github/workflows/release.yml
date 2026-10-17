@@ -155,3 +155,91 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.release.outputs.image_tag }}
         run: pdm run python -m scripts.image_publish "$RELEASE_TAG"
+
+  local-installer:
+    name: local installer (macOS/Linux) (${{ matrix.os }})
+    needs: release
+    if: needs.release.outputs.image_tag != ''
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ needs.release.outputs.image_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Python (macOS)
+        if: runner.os == 'macOS'
+        run: brew install python@3.14
+      - name: Install Python (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          "$HOME/.local/bin/uv" python install 3.14
+      - name: Install the released installer
+        working-directory: ${{ runner.temp }}
+        env:
+          RELEASE_TAG: ${{ needs.release.outputs.image_tag }}
+          INSTALLER_VENV: ${{ runner.temp }}/installer-venv
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          PYTHON="$(command -v python3.14)"
+          "$PYTHON" -m venv "$INSTALLER_VENV"
+          "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+      - name: Install the release acceptance suite (CI only)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          python3.14 -m venv "$RUNNER_TEMP/acceptance-venv"
+          "$RUNNER_TEMP/acceptance-venv/bin/python" -m pip install ./acceptance
+      - name: Verify stdio and HTTP installer lifecycles
+        working-directory: ${{ runner.temp }}
+        env:
+          ACCEPTANCE_VENV: ${{ runner.temp }}/acceptance-venv
+          INSTALLER_VENV: ${{ runner.temp }}/installer-venv
+          STDIO_ROOT: ${{ runner.temp }}/stdio-install
+          HTTP_ROOT: ${{ runner.temp }}/http-install
+        run: |
+          set -euo pipefail
+          mkdir -p "$STDIO_ROOT"
+          touch "$STDIO_ROOT/unowned"
+          "$INSTALLER_VENV/bin/nci-si-install" check --target local
+          "$INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$STDIO_ROOT" --non-interactive
+          "$INSTALLER_VENV/bin/nci-si-install" status --target local --transport stdio --data-dir "$STDIO_ROOT"
+          NCI_SI_ACCEPTANCE_SERVER="$STDIO_ROOT/venv/bin/nci-si-mcp serve" "$ACCEPTANCE_VENV/bin/pytest" "$GITHUB_WORKSPACE/acceptance/tests/test_evs.py::test_a_resolved_release_is_never_cached" "$GITHUB_WORKSPACE/acceptance/tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable" --report="$RUNNER_TEMP/stdio.json"
+          "$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport stdio --data-dir "$STDIO_ROOT"
+          test -f "$STDIO_ROOT/unowned"
+          test ! -e "$STDIO_ROOT/venv"
+          test ! -e "$STDIO_ROOT/installer-state.json"
+          mkdir -p "$HTTP_ROOT"
+          touch "$HTTP_ROOT/unowned"
+          "$INSTALLER_VENV/bin/nci-si-install" check --target local
+          "$INSTALLER_VENV/bin/nci-si-install" run --target local --transport http --data-dir "$HTTP_ROOT" --non-interactive
+          "$INSTALLER_VENV/bin/nci-si-install" status --target local --transport http --data-dir "$HTTP_ROOT"
+          export NCI_SI_UPSTREAM_MODE=fixture
+          export NCI_SI_EVS_BASE_URL=http://127.0.0.1:8766
+          export NCI_SI_EVS_FHIR_BASE_URL=http://127.0.0.1:8766
+          export NCI_SI_CADSR_BASE_URL=http://127.0.0.1:8766
+          export NCI_SI_CADSR_FTP_URL=http://127.0.0.1:8766
+          export NCI_SI_SSIS_SPARQL_URL=http://127.0.0.1:8766
+          "$INSTALLER_VENV/bin/nci-si-install" start --target local --transport http --data-dir "$HTTP_ROOT"
+          NCI_SI_ACCEPTANCE_URL=http://127.0.0.1:8000/mcp NCI_SI_ACCEPTANCE_FIXTURE_BIND=127.0.0.1:8766 NCI_SI_ACCEPTANCE_FIXTURE_URL=http://127.0.0.1:8766 "$ACCEPTANCE_VENV/bin/pytest" "$GITHUB_WORKSPACE/acceptance/tests/test_evs.py::test_a_resolved_release_is_never_cached" "$GITHUB_WORKSPACE/acceptance/tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable" --report="$RUNNER_TEMP/http.json"
+          "$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT"
+          "$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT"
+          test -f "$HTTP_ROOT/unowned"
+          test ! -e "$HTTP_ROOT/venv"
+          test ! -e "$HTTP_ROOT/installer-state.json"
+          "$ACCEPTANCE_VENV/bin/python" - <<'PY'
+          import json, os
+          from pathlib import Path
+          expected = json.loads(Path(os.environ["GITHUB_WORKSPACE"] + "/acceptance/expected/fixture.json").read_text())
+          for name in ("stdio", "http"):
+              report = json.loads(Path(os.environ["RUNNER_TEMP"] + f"/{name}.json").read_text())
+              actual = {key: value["outcome"] for key, value in report["tests"].items()}
+              assert actual == {key: expected[key] for key in actual}, (name, actual)
+          PY
