@@ -72,7 +72,10 @@ class InstallerStateTest(unittest.TestCase):
     def test_invalid_or_mismatched_state_fails_closed_without_rewriting(self):
         cases = (
             (b"{", "malformed"),
-            (self.encoded(version=1), "unsupported version"),
+            (
+                b'{"version":1,"target":"local","components":["server"],"outcomes":[]}',
+                "unsupported version",
+            ),
             (self.encoded(version=3), "unsupported version"),
             (self.encoded(extra=1), "malformed"),
             (self.encoded(target="aws"), "another selection"),

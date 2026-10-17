@@ -6,7 +6,7 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any, cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from nci_si_mcp import installer, installer_state
 
@@ -46,7 +46,7 @@ class LocalInstallerTest(unittest.TestCase):
             encoding="utf-8",
         )
         executable = self.data_dir / "venv" / "bin" / "python"
-        executable.parent.mkdir(parents=True)
+        executable.parent.mkdir(parents=True, exist_ok=True)
         executable.touch()
 
     def test_install_and_verify_use_only_the_installers_exact_release_tag(self):
@@ -86,6 +86,10 @@ class LocalInstallerTest(unittest.TestCase):
             ),
             calls,
         )
+        self.assertTrue(
+            any(argv[:2] == [str(venv_python), "-c"] for argv, _ in calls),
+            "stdio verification must initialize the installed MCP server",
+        )
 
     def test_development_installer_is_blocked_without_running_an_install_command(self):
         with (
@@ -121,7 +125,7 @@ class LocalInstallerTest(unittest.TestCase):
         for transport, expected in cases.items():
             with self.subTest(transport=transport):
                 self.write_distribution()
-                actions = cast("Any", installer.LocalActions)(
+                actions = installer.LocalActions(
                     self.data_dir, ("server",), transport=transport, profile="cadsr"
                 )
                 actions.apply("configure")
@@ -146,6 +150,30 @@ class LocalInstallerTest(unittest.TestCase):
             cast("Any", installer_state.read_state)(
                 self.data_dir, "local", ("server",), transport="stdio", profile="evs"
             )
+
+    def test_http_verification_cleans_up_a_transient_process_and_blocks_an_unowned_port(self):
+        self.write_distribution()
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="http", profile="unified"
+        )
+        actions.apply("configure")
+        process = MagicMock(pid=4321)
+        process.poll.return_value = None
+        response = MagicMock(status=200)
+        response.__enter__.return_value = response
+        with (
+            patch.object(installer, "_port_available", return_value=True),
+            patch.object(installer.subprocess, "Popen", return_value=process),
+            patch.object(installer, "urlopen", return_value=response),
+        ):
+            self.assertTrue(actions.verify("verify"))
+        process.terminate.assert_called_once_with()
+        process.wait.assert_called_once_with(timeout=30)
+        self.assertFalse((self.data_dir / "runtime" / "server-process.json").exists())
+
+        with patch.object(installer, "_port_available", return_value=False):
+            missing = actions.missing_inputs("verify")
+        self.assertEqual(missing, ("Free loopback port 8000; an unowned process holds it.",))
 
     def test_uninstall_removes_only_owned_children_and_then_the_state(self):
         outside = self.data_dir / "unowned"
@@ -174,3 +202,30 @@ class LocalInstallerTest(unittest.TestCase):
         )
         self.assertEqual((code, output), (2, ""))
         self.assertIn("no installation recorded", error)
+
+    def test_uninstall_refuses_a_running_owned_server_and_preserves_state(self):
+        installer_state.write_state(
+            self.data_dir,
+            installer_state.InstallationState(2, "local", ("server",), (), transport="http"),
+        )
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        (runtime / "server-process.json").write_text(
+            '{"pid":4321,"token":"owned-token"}\n', encoding="utf-8"
+        )
+
+        with patch.object(installer, "_owned_process", return_value=4321):
+            code, output, error = self.run_main(
+                "uninstall",
+                "--target",
+                "local",
+                "--transport",
+                "http",
+                "--data-dir",
+                str(self.data_dir),
+            )
+
+        self.assertEqual((code, output), (1, ""))
+        self.assertIn("BLOCKED", error)
+        self.assertIn("stop", error)
+        self.assertTrue((self.data_dir / "installer-state.json").is_file())

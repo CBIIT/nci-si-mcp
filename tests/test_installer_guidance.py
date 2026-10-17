@@ -37,6 +37,11 @@ class InstallerGuidanceTest(unittest.TestCase):
         with (
             patch.object(installer.sys, "stdin", stream),
             patch.object(installer, "local_prerequisites", return_value=(check,)),
+            patch.object(
+                installer,
+                "LocalActions",
+                side_effect=lambda *args, **kwargs: installer.PrerequisiteActions(("server",)),
+            ),
             patch.dict(os.environ, {"PRIVATE_VALUE": "PRIVATE-CANARY"}),
             redirect_stdout(stdout),
             redirect_stderr(stderr),
