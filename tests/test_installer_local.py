@@ -118,6 +118,7 @@ class LocalInstallerTest(unittest.TestCase):
                 "NCI_SI_PROFILE": "cadsr",
                 "NCI_SI_TRANSPORT": "streamable-http",
                 "NCI_SI_HTTP_HOST": "127.0.0.1",
+                "NCI_SI_HTTP_PORT": "8000",
                 "NCI_SI_HTTP_AUTH_MODE": "trusted-local",
                 "NCI_SI_HTTP_REQUIRE_INDEX": "0",
             },
@@ -174,6 +175,51 @@ class LocalInstallerTest(unittest.TestCase):
         with patch.object(installer, "_port_available", return_value=False):
             missing = actions.missing_inputs("verify")
         self.assertEqual(missing, ("Free loopback port 8000; an unowned process holds it.",))
+
+    def test_http_verification_pins_port_8000_despite_the_callers_environment(self):
+        self.write_distribution()
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="http", profile="unified"
+        )
+        actions.apply("configure")
+        process = MagicMock(pid=4321)
+        process.poll.return_value = None
+        response = MagicMock(status=200)
+        response.__enter__.return_value = response
+        with (
+            patch.dict(installer.os.environ, {"NCI_SI_HTTP_PORT": "9000"}),
+            patch.object(installer, "_port_available", return_value=True) as available,
+            patch.object(installer.subprocess, "Popen", return_value=process) as start,
+            patch.object(installer, "urlopen", return_value=response) as opened,
+        ):
+            self.assertTrue(actions.verify("verify"))
+
+        available.assert_called_with(8000)
+        self.assertEqual(start.call_args.kwargs["env"]["NCI_SI_HTTP_PORT"], "8000")
+        opened.assert_called_with("http://127.0.0.1:8000/ready", timeout=5)
+
+    def test_http_verification_kills_a_transient_process_that_ignores_sigterm(self):
+        self.write_distribution()
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="http", profile="unified"
+        )
+        actions.apply("configure")
+        process = MagicMock(pid=4321)
+        process.poll.return_value = None
+        process.wait.side_effect = [subprocess.TimeoutExpired(["server"], 30), 0]
+        response = MagicMock(status=200)
+        response.__enter__.return_value = response
+        with (
+            patch.object(installer, "_port_available", return_value=True),
+            patch.object(installer.subprocess, "Popen", return_value=process),
+            patch.object(installer, "urlopen", return_value=response),
+        ):
+            self.assertTrue(actions.verify("verify"))
+
+        process.terminate.assert_called_once_with()
+        process.kill.assert_called_once_with()
+        self.assertEqual(process.wait.call_count, 2)
+        self.assertFalse((self.data_dir / "runtime" / "server-process.json").exists())
 
     def test_uninstall_removes_only_owned_children_and_then_the_state(self):
         outside = self.data_dir / "unowned"
