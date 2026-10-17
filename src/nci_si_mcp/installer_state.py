@@ -6,6 +6,7 @@ import fcntl
 import json
 import os
 import tempfile
+from abc import abstractmethod
 from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, replace
@@ -29,13 +30,21 @@ class InstallerStateError(Exception):
 
 class StepActions(Protocol):
     @property
-    def step_names(self) -> tuple[str, ...]: ...
+    @abstractmethod
+    def step_names(self) -> tuple[str, ...]:
+        """Return the executable steps in order."""
 
-    def missing_inputs(self, step: str) -> tuple[str, ...]: ...
+    @abstractmethod
+    def missing_inputs(self, step: str) -> tuple[str, ...]:
+        """Return the missing inputs for one step."""
 
-    def apply(self, step: str) -> None: ...
+    @abstractmethod
+    def apply(self, step: str) -> None:
+        """Apply one executable step."""
 
-    def verify(self, step: str) -> bool: ...
+    @abstractmethod
+    def verify(self, step: str) -> bool:
+        """Return whether one step is complete."""
 
 
 @dataclass(frozen=True)
@@ -145,7 +154,7 @@ def read_state(data_dir: Path, target: str, components: tuple[str, ...]) -> Inst
     content = _read_state_text(path, data_dir)
     try:
         state = _decode_state(content)
-    except json.JSONDecodeError, ValueError, InstallerStateError:
+    except ValueError:  # JSONDecodeError subclasses it; _malformed_state passes through unchanged.
         raise _malformed_state() from None
     if state.version != STATE_VERSION:
         raise InstallerStateError(
