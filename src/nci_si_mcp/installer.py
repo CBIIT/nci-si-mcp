@@ -175,6 +175,7 @@ def git_prerequisite() -> Prerequisite:
         try:
             result = subprocess.run(
                 ["git", "describe", "--tags", "--match", "v*", "--abbrev=0"],  # noqa: S607
+                cwd=Path.cwd(),
                 capture_output=True,
                 text=True,
                 timeout=10,
