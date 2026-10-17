@@ -72,7 +72,7 @@ jobs:
       # Not actions/setup-python or setup-pdm, which are the tuned path.
       - name: Install Python and PDM (macOS)
         if: runner.os == 'macOS'
-        run: brew install python@3.14 pdm
+        run: brew install python@3.14 pdm && pdm use -f "$(command -v python3.14)"
       - name: Install uv (Linux)
         if: runner.os == 'Linux'
         run: curl -LsSf https://astral.sh/uv/install.sh | sh

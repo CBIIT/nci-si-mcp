@@ -70,6 +70,22 @@ PRODUCTION_BASE_URLS = {
     "cadsr_ftp_url": "https://cadsr.nci.nih.gov/ftp/caDSR_Downloads",
     "ssis_sparql_url": "https://shared.semantics.cancer.gov",
 }
+
+
+class UpstreamConfigurationError(ValueError):
+    """Invalid installer-facing upstream selection."""
+
+
+def _upstream_base_url(name: str, mode: str) -> str:
+    variable = BASE_URL_VARIABLES[name]
+    value = _env_url(variable)
+    if not value and mode == "fixture":
+        raise UpstreamConfigurationError(f"Fixture mode requires {variable}")
+    if value and not _is_base_url(value):
+        raise UpstreamConfigurationError(f"{variable} must be a plain credential-free http(s) URL")
+    return value or PRODUCTION_BASE_URLS[name]
+
+
 # Each base URL field with the variable that sets it.
 BASE_URL_VARIABLES = {
     "evs_base_url": "NCI_SI_EVS_BASE_URL",
@@ -148,6 +164,17 @@ def _resolve_base_urls(settings: Settings) -> None:
         object.__setattr__(settings, name, value)
 
 
+def upstream_base_urls(*fields: str) -> tuple[str, ...]:
+    """Validate and return selected upstream URLs without reading unrelated settings."""
+
+    mode = os.getenv("NCI_SI_UPSTREAM_MODE", "live")
+    try:
+        _require_choice("NCI_SI_UPSTREAM_MODE", mode, UPSTREAM_MODES)
+    except ValueError as error:
+        raise UpstreamConfigurationError(str(error)) from None
+    return tuple(_upstream_base_url(name, mode) for name in fields)
+
+
 def _env_number[Number: (int, float)](
     name: str, default: str, cast: Callable[[str], Number]
 ) -> Number:
@@ -178,7 +205,10 @@ def _env_optional(name: str) -> str | None:
 def _env_url(variable: str) -> str:
     """The base URL a variable gives without a trailing slash, or "" where it is unset."""
 
-    value = _env_optional(variable)
+    try:
+        value = _env_optional(variable)
+    except ValueError as error:
+        raise UpstreamConfigurationError(str(error)) from None
     return "" if value is None else value.rstrip("/") or value
 
 

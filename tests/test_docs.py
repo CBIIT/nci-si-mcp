@@ -342,6 +342,17 @@ class DocumentationTest(unittest.TestCase):
             [],
         )
 
+    def test_quickstart_links_to_the_installer_target_interface(self):
+        quickstart = (ROOT / "QUICKSTART.md").read_text(encoding="utf-8")
+        target_interface = ROOT / "docs" / "installer-targets.md"
+
+        self.assertIn("[installer target interface](docs/installer-targets.md)", quickstart)
+        self.assertTrue(target_interface.is_file())
+        self.assertIn(
+            "check prerequisites → install → configure → verify",
+            target_interface.read_text(encoding="utf-8"),
+        )
+
     def test_every_repository_url_in_the_documents_names_this_repository(self):
         # The documents must send readers to CBIIT/nci-si-mcp, never to a fork of it.
         tracked = subprocess.run(

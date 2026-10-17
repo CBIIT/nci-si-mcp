@@ -2,6 +2,7 @@
 
 How to install and run the server, what it serves, and how it fails. What this repository
 is, and the status of each tool group, is in [README.md](README.md).
+The [installer target interface](docs/installer-targets.md) describes the planned local and AWS installation flow and optional components.
 
 See also: the same instructions and diagrams as a searchable website
 ([local documentation preview](docs/documentation-site.md#build-and-preview)); the documentation
@@ -19,9 +20,9 @@ Supported platforms: macOS (primary) and Linux, with a POSIX shell. Windows is n
 
 | Need | For | How to get it |
 |---|---|---|
-| Python 3.14 or newer and [PDM](https://pdm-project.org) | everything | macOS: `brew install python@3.14 pdm`. Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh`, then, in a new shell, `uv python install 3.14` and `uv tool install pdm` |
+| Python 3.14 or newer and [PDM](https://pdm-project.org) | everything | macOS: `brew install python@3.14 pdm && pdm use -f "$(command -v python3.14)"`. Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh`, then, in a new shell, `uv python install 3.14` and `uv tool install pdm` |
 | git, with tags | everything: the version comes from the nearest tag | a plain `git clone` has them; a shallow clone or a source archive does not |
-| Network access to EVS | live calls, `release-info`, `index-sample`; `download.pytorch.org` for the container image | |
+| Network access to EVS, caDSR and Shared SI | live calls; installer checks EVS and caDSR; `download.pytorch.org` supplies the container image | |
 | Free ports 8000, 8080, 8081 | 8000 the HTTP server and the site preview, 8080 the documentation container, 8081 the validation dashboard | |
 | Node.js 24 or newer | the documentation site only | macOS: `brew install node`; Linux: `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh \| bash`, then, in a new shell, `nvm install 24` |
 | A container runtime with Compose | containers only; on Apple Silicon it needs amd64 emulation | Docker or Podman |

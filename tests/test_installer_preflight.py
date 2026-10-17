@@ -1,0 +1,284 @@
+import subprocess
+import tempfile
+import unittest
+from email.message import Message
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+from urllib.error import HTTPError
+
+from nci_si_mcp import installer
+
+API = installer
+
+
+class AggregatePrerequisiteTest(unittest.TestCase):
+    @staticmethod
+    def local_check(name, components=("server", "documentation")):
+        return next(check for check in API.local_prerequisites(components) if check.name == name)
+
+    def test_every_check_runs_and_failures_keep_static_fixes(self):
+        observed = []
+
+        def check(name, passes):
+            def observe():
+                observed.append(name)
+                return passes
+
+            return API.Prerequisite(name, f"fix {name}", observe)
+
+        results = API.run_prerequisites(
+            (check("first", False), check("second", True), check("third", False))
+        )
+
+        self.assertEqual(observed, ["first", "second", "third"])
+        self.assertEqual(
+            [API.result_record(result) for result in results],
+            [
+                {"name": "first", "status": "failed", "fix": "fix first"},
+                {"name": "second", "status": "passed"},
+                {"name": "third", "status": "failed", "fix": "fix third"},
+            ],
+        )
+
+    def test_an_observer_bug_propagates_and_stops_later_checks(self):
+        observed = []
+
+        def broken():
+            raise AssertionError("PRIVATE-CANARY")
+
+        def later():
+            observed.append("later")
+            return True
+
+        checks = (
+            API.Prerequisite("broken", "repair the check", broken),
+            API.Prerequisite("later", "fix later", later),
+        )
+
+        with self.assertRaisesRegex(AssertionError, "PRIVATE-CANARY"):
+            API.run_prerequisites(checks)
+        self.assertEqual(observed, [])
+
+    def test_expected_observer_failures_return_false_without_leaking_details(self):
+        canary = "PRIVATE-CANARY"
+        with (
+            patch("nci_si_mcp.installer.shutil.which", return_value=None),
+            patch("nci_si_mcp.installer.urlopen", side_effect=OSError(canary)),
+        ):
+            results = API.run_prerequisites(
+                (
+                    API.executable_prerequisite("pdm", "Install PDM."),
+                    API.reachability_prerequisite(
+                        "evs_reachable", f"https://example.invalid/{canary}", "Reach EVS."
+                    ),
+                )
+            )
+
+        records = [API.result_record(result) for result in results]
+        self.assertEqual(
+            records,
+            [
+                {"name": "pdm", "status": "failed", "fix": "Install PDM."},
+                {"name": "evs_reachable", "status": "failed", "fix": "Reach EVS."},
+            ],
+        )
+        self.assertNotIn(canary, repr(records))
+
+    def test_supported_platforms_and_http_reachability_are_observed(self):
+        os_check = self.local_check("supported_os", ("server",))
+        for system, expected in (("Darwin", True), ("Linux", True), ("Windows", False)):
+            with (
+                self.subTest(system=system),
+                patch("nci_si_mcp.installer.platform.system", return_value=system),
+            ):
+                self.assertEqual(os_check.observe(), expected)
+        http_error = HTTPError("http://example", 401, "denied", Message(), None)
+        with patch("nci_si_mcp.installer.urlopen", side_effect=http_error):
+            self.assertTrue(API.reachability_prerequisite("x", "http://example", "fix").observe())
+
+    def test_occupied_selected_port_fails_with_its_static_fix(self):
+        cases = (
+            (
+                "port_8080",
+                8080,
+                ("server", "documentation"),
+                "Free loopback port 8080 for documentation.",
+            ),
+            (
+                "port_8081",
+                8081,
+                ("server", "companion"),
+                "Free loopback port 8081 for the companion.",
+            ),
+        )
+        for name, port, components, fix in cases:
+            with self.subTest(name=name), patch("nci_si_mcp.installer.socket.socket") as socket:
+                socket.return_value.__enter__.return_value.bind.side_effect = OSError(
+                    API.errno.EADDRINUSE, "in use"
+                )
+                result = API.run_prerequisites((self.local_check(name, components),))[0]
+                socket.return_value.__enter__.return_value.bind.assert_called_once_with(
+                    ("127.0.0.1", port)
+                )
+            self.assertEqual(
+                API.result_record(result),
+                {"name": name, "status": "failed", "fix": fix},
+            )
+
+    def test_unexpected_port_errors_propagate(self):
+        check = self.local_check("port_8080")
+        with (
+            patch("nci_si_mcp.installer.socket.socket") as socket,
+            self.assertRaisesRegex(OSError, "PRIVATE-CANARY"),
+        ):
+            socket.return_value.__enter__.return_value.bind.side_effect = OSError(
+                API.errno.EACCES, "PRIVATE-CANARY"
+            )
+            check.observe()
+
+    def test_companion_only_needs_its_container_and_port_but_not_node_or_docs_port(self):
+        checks = API.local_prerequisites(("server", "companion"))
+
+        self.assertEqual(
+            [check.name for check in checks],
+            [
+                "supported_os",
+                "git",
+                "pdm",
+                "container_runtime",
+                "compose",
+                "port_8081",
+                "evs_reachable",
+                "cadsr_reachable",
+            ],
+        )
+
+        docs = API.local_prerequisites(("server", "documentation"))
+        self.assertEqual(
+            [check.name for check in docs],
+            [
+                "supported_os",
+                "git",
+                "pdm",
+                "container_runtime",
+                "compose",
+                "node",
+                "port_8080",
+                "evs_reachable",
+                "cadsr_reachable",
+            ],
+        )
+
+    def test_incomplete_fixture_configuration_never_falls_back_to_production_urls(self):
+        for environment in (
+            {"NCI_SI_UPSTREAM_MODE": "fixture"},
+            {"NCI_SI_EVS_BASE_URL": "file:///etc/hosts"},
+            {"NCI_SI_EVS_BASE_URL": "https://user:secret@example.test?x=1"},
+        ):
+            with (
+                self.subTest(environment=environment),
+                patch.dict("os.environ", environment, clear=True),
+                self.assertRaisesRegex(ValueError, "NCI_SI_EVS_BASE_URL"),
+            ):
+                API.local_prerequisites(("server",))
+
+    def test_node_requires_major_version_24_and_a_parseable_successful_answer(self):
+        cases = (
+            (None, False),
+            (subprocess.TimeoutExpired(["node"], 10), False),
+            (subprocess.CompletedProcess(["node", "--version"], 1, stdout="v24.0.0"), False),
+            (subprocess.CompletedProcess(["node", "--version"], 0, stdout="not-a-version"), False),
+            (subprocess.CompletedProcess(["node", "--version"], 0, stdout="v23.9.0"), False),
+            (subprocess.CompletedProcess(["node", "--version"], 0, stdout="v24.0.0"), True),
+            (subprocess.CompletedProcess(["node", "--version"], 0, stdout="v25.1.2"), True),
+        )
+        for answer, expected in cases:
+            with self.subTest(answer=answer):
+                with patch("nci_si_mcp.installer.subprocess.run") as run:
+                    if answer is None or isinstance(answer, Exception):
+                        run.side_effect = FileNotFoundError if answer is None else answer
+                    else:
+                        run.return_value = answer
+                    result = self.local_check("node").observe()
+
+                self.assertEqual(result, expected)
+
+    def test_git_requires_an_available_release_tag(self):
+        cases = (
+            (subprocess.CompletedProcess(["git"], 1, stdout=""), False),
+            (subprocess.CompletedProcess(["git"], 0, stdout=""), False),
+            (subprocess.CompletedProcess(["git"], 0, stdout="v0.20.2\n"), True),
+        )
+        for answer, expected in cases:
+            with (
+                self.subTest(answer=answer),
+                patch("nci_si_mcp.installer.subprocess.run", return_value=answer),
+            ):
+                self.assertEqual(self.local_check("git", ("server",)).observe(), expected)
+
+    def test_git_ignores_non_release_tags_in_the_selected_checkout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            commands = (
+                ("init", "-q"),
+                ("config", "user.email", "test@example.invalid"),
+                ("config", "user.name", "Test"),
+                ("commit", "--allow-empty", "-m", "initial", "-q"),
+                ("tag", "candidate"),
+            )
+            for arguments in commands:
+                subprocess.run(  # noqa: S603 - fixed local Git setup
+                    ["git", *arguments],  # noqa: S607
+                    cwd=root,
+                    check=True,
+                    capture_output=True,
+                )
+            with patch("nci_si_mcp.installer.Path.cwd", return_value=root):
+                self.assertFalse(self.local_check("git", ("server",)).observe())
+                subprocess.run(["git", "tag", "v1.2.3"], cwd=root, check=True)  # noqa: S607
+                self.assertTrue(self.local_check("git", ("server",)).observe())
+
+    def test_a_hung_compose_command_is_an_expected_failed_prerequisite(self):
+        with (
+            patch("nci_si_mcp.installer._container_runtimes", return_value=("docker",)),
+            patch(
+                "nci_si_mcp.installer.subprocess.run",
+                side_effect=subprocess.TimeoutExpired(["docker", "compose", "version"], 10),
+            ),
+        ):
+            result = self.local_check("compose", ("server", "companion")).observe()
+
+        self.assertFalse(result)
+
+        failed = (
+            subprocess.CompletedProcess(["docker"], 1),
+            subprocess.CompletedProcess(["podman"], 1),
+        )
+        with (
+            patch("nci_si_mcp.installer._container_runtimes", return_value=("docker", "podman")),
+            patch("nci_si_mcp.installer.subprocess.run", side_effect=failed),
+        ):
+            self.assertFalse(self.local_check("compose", ("server", "companion")).observe())
+
+    def test_compose_passes_when_any_available_runtime_supports_it(self):
+        answers = (
+            subprocess.CompletedProcess(["docker", "compose", "version"], 1),
+            subprocess.CompletedProcess(["podman", "compose", "version"], 0),
+        )
+        with (
+            patch("nci_si_mcp.installer._container_runtimes", return_value=("docker", "podman")),
+            patch("nci_si_mcp.installer.subprocess.run", side_effect=answers),
+        ):
+            result = self.local_check("compose", ("server", "companion")).observe()
+
+        self.assertTrue(result)
+
+        with patch("nci_si_mcp.installer.shutil.which", side_effect=lambda name: f"/{name}"):
+            self.assertEqual(API._container_runtimes(), ("docker", "podman"))
+
+    def test_reachability_uses_the_documented_five_second_timeout(self):
+        response = MagicMock()
+        response.__enter__.return_value = response
+        with patch("nci_si_mcp.installer.urlopen", return_value=response) as opened:
+            self.assertTrue(API.reachability_prerequisite("x", "https://example", "fix").observe())
+        opened.assert_called_once_with("https://example", timeout=5)
