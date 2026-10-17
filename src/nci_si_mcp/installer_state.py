@@ -147,7 +147,7 @@ def read_state(data_dir: Path, target: str, components: tuple[str, ...]) -> Inst
     content = _read_state_text(path, data_dir)
     try:
         state = _decode_state(content)
-    except json.JSONDecodeError, KeyError, TypeError, ValueError, InstallerStateError:
+    except json.JSONDecodeError, ValueError, InstallerStateError:
         raise _malformed_state() from None
     if state.version != STATE_VERSION:
         raise InstallerStateError(
