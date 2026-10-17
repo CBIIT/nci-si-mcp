@@ -216,6 +216,22 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             ):
                 self.assertEqual(self.local_check("git", ("server",)).observe(), expected)
 
+    def test_server_only_needs_git_executable_not_a_checkout_or_pdm(self):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("nci_si_mcp.installer.Path.cwd", return_value=Path(directory)),
+            patch(
+                "nci_si_mcp.installer.shutil.which",
+                side_effect=lambda name: "/usr/bin/git" if name == "git" else None,
+            ),
+            patch("nci_si_mcp.installer.urlopen"),
+        ):
+            results = API.run_prerequisites(API.local_prerequisites(("server",)))
+
+        by_name = {result.name: result for result in results}
+        self.assertTrue(by_name["git"].passed)
+        self.assertNotIn("pdm", by_name)
+
     def test_git_ignores_non_release_tags_in_the_selected_checkout(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
