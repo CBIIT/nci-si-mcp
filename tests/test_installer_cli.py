@@ -139,7 +139,7 @@ class InstallerCliTest(unittest.TestCase):
             [
                 "supported_os",
                 "git",
-                "pdm",
+                "python",
                 "container_runtime",
                 "compose",
                 "node",
@@ -153,7 +153,6 @@ class InstallerCliTest(unittest.TestCase):
         self.assertLessEqual(
             {
                 "git",
-                "pdm",
                 "container_runtime",
                 "compose",
                 "node",
@@ -172,7 +171,7 @@ class InstallerCliTest(unittest.TestCase):
         self.assertEqual(stderr, "")
         self.assertEqual(
             [result["name"] for result in json.loads(stdout)["results"]],
-            ["supported_os", "git", "pdm", "evs_reachable", "cadsr_reachable"],
+            ["supported_os", "git", "python", "evs_reachable", "cadsr_reachable"],
         )
 
     def test_aws_checks_are_blocked_until_their_own_issue(self):
@@ -242,8 +241,7 @@ class InstallerCliTest(unittest.TestCase):
                     {
                         "step": "check_prerequisites",
                         "missing": [
-                            "Install git and fetch release tags as QUICKSTART.md documents.",
-                            "Install PDM as QUICKSTART.md documents.",
+                            "Install Git so pip can install the released source tag.",
                             "Restore network access to NCI_SI_EVS_BASE_URL.",
                             "Restore network access to NCI_SI_CADSR_BASE_URL.",
                         ],
@@ -251,8 +249,8 @@ class InstallerCliTest(unittest.TestCase):
                 ],
                 "pending": ["install", "configure", "verify"],
                 "nextAction": (
-                    "Resolve the failed prerequisites: Install git and fetch release tags as "
-                    "QUICKSTART.md documents.; Install PDM as QUICKSTART.md documents.; Restore "
+                    "Resolve the failed prerequisites: Install Git so pip can install the released "
+                    "source tag.; Restore "
                     "network access to NCI_SI_EVS_BASE_URL.; Restore network access to "
                     "NCI_SI_CADSR_BASE_URL."
                 ),
