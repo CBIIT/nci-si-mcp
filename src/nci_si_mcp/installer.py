@@ -745,7 +745,11 @@ def _lifecycle(args: argparse.Namespace, plan: InstallationPlan) -> int:
         )
         if args.command == "start":
             if state.transport == "stdio":
-                record = {"command": str(actions.python.with_name("nci-si-mcp")), "args": ["serve"]}
+                record = {
+                    "command": str(actions.python.with_name("nci-si-mcp")),
+                    "args": ["serve"],
+                    "env": actions.environment(),
+                }
             else:
                 record = _start_http(actions)
         else:

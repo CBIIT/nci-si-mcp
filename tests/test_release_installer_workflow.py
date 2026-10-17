@@ -8,6 +8,13 @@ ROOT = Path(__file__).parent.parent
 WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 DOCUMENT = ROOT / "docs" / "installer-targets.md"
 JOB_NAME = "local installer (macOS/Linux)"
+STDIO_CAPTURE = (
+    'STDIO_CLIENT="$("$INSTALLER_VENV/bin/nci-si-install" start '
+    '--target local --transport stdio --data-dir "$STDIO_ROOT")"'
+)
+CI_ONLY = {
+    STDIO_CAPTURE: "captures the documented client record for the acceptance harness",
+}
 
 
 def workflow():
@@ -26,6 +33,11 @@ def documented_commands():
     text = DOCUMENT.read_text(encoding="utf-8")
     blocks = re.findall(r"^```(?:bash|sh|shell)\n(.*?)^```", text, re.DOTALL | re.MULTILINE)
     return {line.strip() for block in blocks for line in block.splitlines() if line.strip()}
+
+
+def undocumented_operator_lines(run, documented):
+    lines = [line.strip() for line in run.splitlines() if "nci-si-install" in line]
+    return [line for line in lines if line not in documented and line not in CI_ONLY]
 
 
 class ReleaseInstallerWorkflowTest(unittest.TestCase):
@@ -64,7 +76,7 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
                 "name": "Install Python",
                 "id": "python",
                 "uses": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
-                "with": {"python-version": "3.14", "package-manager-cache": False},
+                "with": {"python-version": "3.14"},
             },
         )
         steps = {step["name"]: step for step in named_steps()}
@@ -100,11 +112,7 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
         self.assertIn("NCI_SI_ACCEPTANCE_SERVER", run)
         self.assertIn("NCI_SI_ACCEPTANCE_URL", run)
         self.assertIn("acceptance/expected/fixture.json", run)
-        self.assertIn(
-            'STDIO_CLIENT="$("$INSTALLER_VENV/bin/nci-si-install" start '
-            '--target local --transport stdio --data-dir "$STDIO_ROOT")"',
-            run,
-        )
+        self.assertIn(STDIO_CAPTURE, run)
         self.assertNotIn('NCI_SI_ACCEPTANCE_SERVER="$STDIO_ROOT/venv/bin/nci-si-mcp serve"', run)
 
     def test_uninstall_check_distinguishes_owned_and_unowned_paths(self):
@@ -124,5 +132,9 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
             for step in named_steps()
             if step["name"] == "Verify stdio and HTTP installer lifecycles"
         )
-        operator_lines = [line.strip() for line in run.splitlines() if "nci-si-install" in line]
-        self.assertEqual([line for line in operator_lines if line not in documented], [])
+        self.assertEqual(undocumented_operator_lines(run, documented), [])
+        self.assertIn(
+            '"$INSTALLER_VENV/bin/nci-si-install" start --target local --transport stdio '
+            '--data-dir "$STDIO_ROOT"',
+            documented,
+        )
