@@ -165,7 +165,13 @@ class InstallerCliTest(unittest.TestCase):
         self.assertFalse((ROOT / "missing-installer-state").exists())
 
     def test_unselected_components_contribute_no_component_prerequisites(self):
-        code, stdout, stderr = self.run_installer("check", "--target", "local")
+        environment = os.environ | {
+            "NCI_SI_EVS_BASE_URL": "http://127.0.0.1:1",
+            "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:2",
+        }
+        code, stdout, stderr = self.run_installer(
+            "check", "--target", "local", environment=environment
+        )
 
         self.assertIn(code, (0, 1))
         self.assertEqual(stderr, "")
@@ -260,7 +266,13 @@ class InstallerCliTest(unittest.TestCase):
 
     def test_restart_cannot_adopt_another_component_selection(self):
         with tempfile.TemporaryDirectory() as directory:
-            self.run_installer("run", "--target", "local", "--data-dir", directory)
+            environment = os.environ | {
+                "NCI_SI_EVS_BASE_URL": "http://127.0.0.1:1",
+                "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:2",
+            }
+            self.run_installer(
+                "run", "--target", "local", "--data-dir", directory, environment=environment
+            )
 
             code, stdout, stderr = self.run_installer(
                 "run",
@@ -270,6 +282,7 @@ class InstallerCliTest(unittest.TestCase):
                 "--data-dir",
                 directory,
                 "--restart",
+                environment=environment,
             )
 
             self.assertEqual((code, stdout), (2, ""))
