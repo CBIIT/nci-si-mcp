@@ -92,7 +92,7 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
         self.assertEqual(len(writer["steps"]), 2, "Only download and fixed publication belong here")
         actions = [step["uses"] for step in writer["steps"] if "uses" in step]
         self.assertEqual(
-            actions, ["actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"]
+            actions, ["actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333"]
         )
         self.assertEqual(writer["permissions"], {"contents": "write"})
         download = next(step for step in writer["steps"] if "uses" in step)
