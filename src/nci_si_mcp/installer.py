@@ -9,6 +9,7 @@ import os
 import platform
 import re
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -41,6 +42,7 @@ INSTALL_STAGES = ("check_prerequisites", "install", "configure", "verify")
 NODE_VERSION = re.compile(r"v([0-9]+)(?:\.[0-9]+){2}\Z")
 MIN_NODE_MAJOR = 24
 HTTP_OK = 200
+HTTP_PORT = 8000
 RELEASE_VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+\Z")
 OWNED_CHILDREN = ("venv", "server-data", "runtime")
 
@@ -96,7 +98,7 @@ STEP_HELP = {
     "verify": (
         "Step: verify\nPurpose: Verify the installed local server boundary.\n"
         "Why: Installed files alone do not prove that the server can start.\n"
-        "Action: Free loopback port 8000 when HTTP is selected.\n"
+        f"Action: Free loopback port {HTTP_PORT} when HTTP is selected.\n"
         "Verification: stdio metadata/configuration or HTTP /ready succeeds.\n"
         "Common failures: an unowned port listener or an invalid installed release.\n"
         "Guide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"
@@ -380,27 +382,6 @@ def _check_record(plan: InstallationPlan) -> tuple[int, dict[str, object]]:
     }
 
 
-class PrerequisiteActions:
-    """The prerequisite stage as the first production reconciliation action."""
-
-    step_names: tuple[str, ...] = ("check_prerequisites",)
-
-    def __init__(self, components: tuple[str, ...]) -> None:
-        self.components = components
-
-    def _check(self) -> tuple[CheckResult, ...]:
-        return run_prerequisites(local_prerequisites(self.components))
-
-    def missing_inputs(self, step: str) -> tuple[str, ...]:
-        return tuple(result.fix for result in self._check() if not result.passed)
-
-    def apply(self, step: str) -> None:
-        self._check()
-
-    def verify(self, step: str) -> bool:
-        return all(result.passed for result in self._check())
-
-
 class LocalActions:
     """Reconcile one owned local server installation."""
 
@@ -453,7 +434,7 @@ class LocalActions:
 
     def _missing_http_port(self) -> tuple[str, ...]:
         if self._unowned_http_port():
-            return ("Free loopback port 8000; an unowned process holds it.",)
+            return (f"Free loopback port {HTTP_PORT}; an unowned process holds it.",)
         return ()
 
     @staticmethod
@@ -461,7 +442,7 @@ class LocalActions:
         return ()
 
     def _unowned_http_port(self) -> bool:
-        if self.transport != "http" or _port_available(8000):
+        if self.transport != "http" or _port_available(HTTP_PORT):
             return False
         return not _owned_process(self.runtime)
 
@@ -503,6 +484,7 @@ class LocalActions:
         if self.transport == "http":
             environment |= {
                 "NCI_SI_HTTP_HOST": "127.0.0.1",
+                "NCI_SI_HTTP_PORT": str(HTTP_PORT),
                 "NCI_SI_HTTP_AUTH_MODE": "trusted-local",
                 "NCI_SI_HTTP_REQUIRE_INDEX": "0",
             }
@@ -597,9 +579,17 @@ def _verify_http(python: Path, runtime: Path, environment: dict[str, str]) -> bo
     try:
         return _poll_ready(process)
     finally:
-        process.terminate()
-        process.wait(timeout=30)
+        _terminate(process)
         _process_path(runtime).unlink(missing_ok=True)
+
+
+def _terminate(process: subprocess.Popen[bytes]) -> None:
+    process.terminate()
+    try:
+        process.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=30)
 
 
 def _verify_stdio(python: Path) -> bool:
@@ -625,7 +615,7 @@ def _verify_stdio(python: Path) -> bool:
 
 def _ready() -> bool:
     try:
-        with urlopen("http://127.0.0.1:8000/ready", timeout=5) as response:
+        with urlopen(f"http://127.0.0.1:{HTTP_PORT}/ready", timeout=5) as response:
             return response.status == HTTP_OK
     except OSError:
         return False
@@ -709,7 +699,7 @@ def _guided_run(args: argparse.Namespace, plan: InstallationPlan) -> tuple[int, 
 def _help_command(step: str) -> int:
     text = _step_help(step)
     if text is None:
-        sys.stderr.write(f"Step {step!r} is not executable yet; #320 brings later steps.\n")
+        sys.stderr.write(f"Step {step!r} is not executable.\n")
         return 2
     sys.stdout.write(text)
     return 0
@@ -744,7 +734,8 @@ def _uninstall(args: argparse.Namespace, plan: InstallationPlan) -> int:
                 path = args.data_dir / child
                 if path.is_symlink():
                     raise InstallerStateError(f"Refusing unowned path {path}.")
-                shutil.rmtree(path, ignore_errors=False) if path.exists() else None
+                if path.exists():
+                    shutil.rmtree(path, ignore_errors=False)
             (args.data_dir / "installer-state.json").unlink()
     except (InstallerStateError, OSError) as error:
         sys.stderr.write(str(error) + "\n")
@@ -785,8 +776,8 @@ def _lifecycle(args: argparse.Namespace, plan: InstallationPlan) -> int:
 def _start_http(actions: LocalActions) -> dict[str, object]:
     if _owned_process(actions.runtime):
         return {"status": "running"}
-    if not _port_available(8000):
-        raise InstallerStateError("Loopback port 8000 is held by an unowned process.")
+    if not _port_available(HTTP_PORT):
+        raise InstallerStateError(f"Loopback port {HTTP_PORT} is held by an unowned process.")
     token = uuid.uuid4().hex
     process = subprocess.Popen(  # noqa: S603 - executable is inside the owned venv
         [str(actions.python.with_name("nci-si-mcp")), "serve", "--transport", "streamable-http"],
@@ -806,7 +797,7 @@ def _stop_http(actions: LocalActions) -> dict[str, object]:
     pid = _owned_process(actions.runtime)
     if pid is None:
         return {"status": "stopped"}
-    os.kill(pid, 15)
+    os.kill(pid, signal.SIGTERM)
     _process_path(actions.runtime).unlink(missing_ok=True)
     return {"status": "stopped"}
 
