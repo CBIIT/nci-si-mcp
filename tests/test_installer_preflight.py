@@ -97,23 +97,33 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             self.assertTrue(API.reachability_prerequisite("x", "http://example", "fix").observe())
 
     def test_occupied_selected_port_fails_with_its_static_fix(self):
-        check = self.local_check("port_8080")
-        with patch("nci_si_mcp.installer.socket.socket") as socket:
-            socket.return_value.__enter__.return_value.bind.side_effect = OSError(
-                API.errno.EADDRINUSE, "in use"
-            )
-            result = API.run_prerequisites((check,))[0]
-            socket.return_value.__enter__.return_value.bind.assert_called_once_with(
-                ("127.0.0.1", 8080)
-            )
-        self.assertEqual(
-            API.result_record(result),
-            {
-                "name": "port_8080",
-                "status": "failed",
-                "fix": "Free loopback port 8080 for documentation.",
-            },
+        cases = (
+            (
+                "port_8080",
+                8080,
+                ("server", "documentation"),
+                "Free loopback port 8080 for documentation.",
+            ),
+            (
+                "port_8081",
+                8081,
+                ("server", "companion"),
+                "Free loopback port 8081 for the companion.",
+            ),
         )
+        for name, port, components, fix in cases:
+            with self.subTest(name=name), patch("nci_si_mcp.installer.socket.socket") as socket:
+                socket.return_value.__enter__.return_value.bind.side_effect = OSError(
+                    API.errno.EADDRINUSE, "in use"
+                )
+                result = API.run_prerequisites((self.local_check(name, components),))[0]
+                socket.return_value.__enter__.return_value.bind.assert_called_once_with(
+                    ("127.0.0.1", port)
+                )
+            self.assertEqual(
+                API.result_record(result),
+                {"name": name, "status": "failed", "fix": fix},
+            )
 
     def test_unexpected_port_errors_propagate(self):
         check = self.local_check("port_8080")

@@ -90,6 +90,9 @@ class InstallerStateTest(unittest.TestCase):
         completed = {"step": "check_prerequisites", "status": "completed"}
         cases = (
             b"\xff\xfe",
+            b'{"version":'
+            + (b"1" * 4301)
+            + b',"target":"local","components":["server"],"outcomes":[]}',
             self.encoded(version=True),
             b'{"version":1,"version":1,"target":"local","components":["server"],"outcomes":[]}',
             self.encoded(outcomes=[{"step": "unknown", "status": "completed"}]),

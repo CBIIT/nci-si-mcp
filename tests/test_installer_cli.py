@@ -182,9 +182,28 @@ class InstallerCliTest(unittest.TestCase):
             ):
                 installer.main(["status", "--target", "local", "--data-dir", directory])
         for value in ("not-a-url", ""):
-            with patch.dict(os.environ, {"NCI_SI_EVS_BASE_URL": value}, clear=True):
-                code, stdout, stderr = self.run_installer("check", "--target", "local")
-            self.assertEqual((code, stdout, "NCI_SI_EVS_BASE_URL" in stderr), (2, "", True))
+            for command in ("check", "run", "status"):
+                with (
+                    self.subTest(value=value, command=command),
+                    tempfile.TemporaryDirectory() as directory,
+                ):
+                    arguments = [command, "--target", "local"]
+                    if command in ("run", "status"):
+                        arguments.extend(("--data-dir", directory))
+                    if command == "status":
+                        installer_state.write_state(
+                            Path(directory),
+                            installer_state.InstallationState(
+                                1,
+                                "local",
+                                ("server",),
+                                (installer_state.StepOutcome("check_prerequisites", "completed"),),
+                            ),
+                        )
+                    environment = os.environ.copy()
+                    environment["NCI_SI_EVS_BASE_URL"] = value
+                    code, stdout, stderr = self.run_installer(*arguments, environment=environment)
+                self.assertEqual((code, stdout, "NCI_SI_EVS_BASE_URL" in stderr), (2, "", True))
 
     def test_run_records_and_status_reverifies_the_real_prerequisite_stage(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -299,6 +318,33 @@ class InstallerCliTest(unittest.TestCase):
                 self.assertEqual((code, stdout), (2, ""))
                 self.assertIn("malformed", stderr)
                 self.assertEqual(path.read_bytes(), content)
+
+    def test_run_refuses_a_dangling_state_symlink_without_replacing_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "installer-state.json"
+            target = Path(directory) / "missing-target"
+            path.symlink_to(target)
+
+            code, stdout, stderr = self.run_installer(
+                "run", "--target", "local", "--data-dir", directory, "--non-interactive"
+            )
+
+            self.assertEqual((code, stdout), (2, ""))
+            self.assertIn(f"Cannot read {path}", stderr)
+            self.assertTrue(path.is_symlink())
+            self.assertFalse(target.exists())
+
+    def test_status_refuses_a_state_path_that_is_a_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "installer-state.json"
+            path.mkdir()
+
+            code, stdout, stderr = self.run_installer(
+                "status", "--target", "local", "--data-dir", directory
+            )
+
+            self.assertEqual((code, stdout), (2, ""))
+            self.assertIn(f"Cannot read {path}", stderr)
 
     def test_status_refuses_invalid_utf8_state_without_a_traceback_or_rewrite(self):
         with tempfile.TemporaryDirectory() as directory:
