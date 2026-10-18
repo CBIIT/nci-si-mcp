@@ -48,6 +48,7 @@ HTTP_OK = 200
 HTTP_PORT = 8000
 RELEASE_VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+\Z")
 OWNED_CHILDREN = ("venv", "server-data", "runtime")
+OWNED_MARKER = ".installer-owned"
 
 
 @dataclass(frozen=True)
@@ -460,6 +461,7 @@ class LocalActions:
         return False
 
     def _install(self) -> None:
+        _claim_child(self.venv)
         if not self.python.is_file():
             subprocess.run(  # noqa: S603 - fixed running interpreter and owned destination
                 [sys.executable, "-m", "venv", str(self.venv)], check=True
@@ -485,8 +487,8 @@ class LocalActions:
         return environment
 
     def _configure(self) -> None:
-        (self.data_dir / "server-data").mkdir(parents=True, exist_ok=True)
-        self.runtime.mkdir(parents=True, exist_ok=True)
+        _claim_child(self.data_dir / "server-data")
+        _claim_child(self.runtime)
         (self.runtime / "server.json").write_text(
             json.dumps(self.environment(), sort_keys=True) + "\n", encoding="utf-8"
         )
@@ -515,6 +517,13 @@ def _configuration(data_dir: Path) -> dict[str, str] | None:
     return None
 
 
+def _claim_child(path: Path) -> None:
+    if os.path.lexists(path) and (path.is_symlink() or not (path / OWNED_MARKER).is_file()):
+        raise InstallerStateError(f"Refusing unowned path {path}.")
+    path.mkdir(parents=True, exist_ok=True)
+    (path / OWNED_MARKER).touch(exist_ok=True)
+
+
 def _installed_release(venv: Path) -> tuple[str, str] | None:
     records = tuple(venv.glob("lib/python*/site-packages/nci_si_mcp-*.dist-info"))
     if len(records) != 1:
@@ -540,8 +549,16 @@ def _owned_process(runtime: Path) -> int | None:
     pid, token = _process_record(path)
     observed = _inspect_process(pid)
     if observed.returncode != 0:
-        path.unlink(missing_ok=True)
-        return None
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            path.unlink(missing_ok=True)
+            return None
+        except PermissionError:
+            pass
+        raise InstallerStateError(
+            "Cannot verify server process ownership; inspect the runtime record."
+        )
     marker = f"INSTALLER_PROCESS_TOKEN={token}"
     if marker not in observed.stdout.split():
         raise InstallerStateError(
@@ -632,6 +649,11 @@ def _write_process_record(runtime: Path, pid: int, token: str) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary_path, _process_path(runtime))
+        directory = os.open(runtime, os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
     finally:
         temporary_path.unlink(missing_ok=True)
 
@@ -656,6 +678,10 @@ def _verify_stdio(python: Path, environment: dict[str, str]) -> bool:
         check=False,
     )
     return result.returncode == 0
+
+
+def _http_log(runtime: Path) -> Path:
+    return runtime / "server.log"
 
 
 def _ready() -> bool:
@@ -773,21 +799,31 @@ def _uninstall(args: argparse.Namespace, plan: InstallationPlan) -> int:
                 profile=args.profile,
             )
             validate_outcomes(state, LocalActions.step_names)
+            paths = _owned_paths(args.data_dir)
             if _owned_process(args.data_dir / "runtime"):
                 sys.stderr.write("BLOCKED: run `nci-si-install stop` before uninstall.\n")
                 return 1
-            for child in OWNED_CHILDREN:
-                path = args.data_dir / child
-                if path.is_symlink():
-                    raise InstallerStateError(f"Refusing unowned path {path}.")
-                if path.exists():
-                    shutil.rmtree(path, ignore_errors=False)
+            _remove_owned_paths(paths)
             (args.data_dir / "installer-state.json").unlink()
     except (InstallerStateError, OSError) as error:
         sys.stderr.write(str(error) + "\n")
         return 2
     sys.stdout.write('{"status": "uninstalled"}\n')
     return 0
+
+
+def _owned_paths(data_dir: Path) -> tuple[Path, ...]:
+    paths = tuple(data_dir / child for child in OWNED_CHILDREN)
+    for path in paths:
+        if path.is_symlink() or (path.exists() and not (path / OWNED_MARKER).is_file()):
+            raise InstallerStateError(f"Refusing unowned path {path}.")
+    return paths
+
+
+def _remove_owned_paths(paths: tuple[Path, ...]) -> None:
+    for path in paths:
+        if path.exists():
+            shutil.rmtree(path, ignore_errors=False)
 
 
 def _lifecycle(args: argparse.Namespace, plan: InstallationPlan) -> int:
@@ -858,14 +894,21 @@ def _start_http(actions: LocalActions) -> dict[str, object]:
     if not _port_available(HTTP_PORT):
         raise InstallerStateError(f"Loopback port {HTTP_PORT} is held by an unowned process.")
     token = uuid.uuid4().hex
-    process = subprocess.Popen(  # noqa: S603 - executable is inside the owned venv
-        [str(actions.python.with_name("nci-si-mcp")), "serve", "--transport", "streamable-http"],
-        env=os.environ | actions.environment() | {"INSTALLER_PROCESS_TOKEN": token},
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-    )
+    log_path = _http_log(actions.runtime)
+    with log_path.open("ab") as log:
+        process = subprocess.Popen(  # noqa: S603 - executable is inside the owned venv
+            [
+                str(actions.python.with_name("nci-si-mcp")),
+                "serve",
+                "--transport",
+                "streamable-http",
+            ],
+            env=os.environ | actions.environment() | {"INSTALLER_PROCESS_TOKEN": token},
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=log,
+            start_new_session=True,
+        )
     try:
         _write_process_record(actions.runtime, process.pid, token)
     except OSError:
@@ -874,9 +917,7 @@ def _start_http(actions: LocalActions) -> dict[str, object]:
     if not _poll_ready(process):
         _terminate(process)
         _process_path(actions.runtime).unlink(missing_ok=True)
-        raise InstallerStateError(
-            "The HTTP server did not become ready; inspect its configuration."
-        )
+        raise InstallerStateError(f"The HTTP server did not become ready; inspect {log_path}.")
     return {"status": "started", "pid": process.pid}
 
 

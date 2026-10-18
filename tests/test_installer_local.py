@@ -501,6 +501,7 @@ class LocalInstallerTest(unittest.TestCase):
         for child in ("venv", "server-data", "runtime"):
             path = self.data_dir / child
             path.mkdir()
+            (path / ".installer-owned").touch()
             (path / "owned").write_text("x", encoding="utf-8")
         installer_state.write_state(
             self.data_dir, installer_state.InstallationState(2, "local", ("server",), ())
@@ -530,6 +531,7 @@ class LocalInstallerTest(unittest.TestCase):
         )
         runtime = self.data_dir / "runtime"
         runtime.mkdir()
+        (runtime / ".installer-owned").touch()
         (runtime / "server-process.json").write_text(
             '{"pid":4321,"token":"owned-token"}\n', encoding="utf-8"
         )
