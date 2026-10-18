@@ -448,6 +448,15 @@ class InstallerCliTest(unittest.TestCase):
             },
         )
 
+    def test_unimplemented_local_components_cannot_run(self):
+        for flag in ("--with-index", "--with-documentation", "--with-companion"):
+            with self.subTest(flag=flag), tempfile.TemporaryDirectory() as directory:
+                code, stdout, stderr = self.run_installer(
+                    "run", "--target", "local", flag, "--data-dir", directory, "--non-interactive"
+                )
+            self.assertEqual((code, stdout), (2, ""))
+            self.assertIn("BLOCKED", stderr)
+
     def test_blocked_targets_and_components_name_the_missing_decision(self):
         for arguments, issue in (
             (("plan", "--target", "cloud-one"), "#292"),

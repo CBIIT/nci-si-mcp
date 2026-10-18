@@ -121,6 +121,10 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
         self.assertIn("REQUIRED_TESTS=", run)
         self.assertIn("assert set(actual) == required", run)
         self.assertIn("trap cleanup EXIT", run)
+        self.assertIn('if [ "$status" -eq 0 ]; then status=$cleanup_status; fi', run)
+        self.assertIn(
+            "required = {key for key in expected if any(name in key for name in names)}", run
+        )
 
     def test_uninstall_check_distinguishes_owned_and_unowned_paths(self):
         run = next(

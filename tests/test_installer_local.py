@@ -106,6 +106,8 @@ class LocalInstallerTest(unittest.TestCase):
             any(argv[:2] == [str(venv_python), "-c"] for argv, _ in calls),
             "stdio verification must initialize the installed MCP server",
         )
+        verify = next(kwargs for argv, kwargs in calls if argv[:2] == [str(venv_python), "-c"])
+        self.assertEqual(verify["env"]["NCI_SI_DATA_DIR"], str(self.data_dir / "server-data"))
 
     def test_development_installer_is_blocked_without_running_an_install_command(self):
         with (
@@ -248,6 +250,49 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(removed[0], 2)
         self.assertIn("ownership", stopped[2])
         self.assertTrue((self.data_dir / "installer-state.json").is_file())
+
+    def test_dead_record_is_removed_but_weak_ownership_records_fail_closed(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        record = runtime / "server-process.json"
+        token = "a" * 32
+        record.write_text(json.dumps({"pid": 4321, "token": token}) + "\n")
+        dead = subprocess.CompletedProcess(["ps"], 1, stdout="")
+        with patch.object(installer.subprocess, "run", return_value=dead):
+            self.assertIsNone(installer._owned_process(runtime))  # pyright: ignore[reportPrivateUsage]
+        self.assertFalse(record.exists())
+        for value in ({"pid": True, "token": token}, {"pid": 2, "token": "short"}):
+            record.write_text(json.dumps(value))
+            with self.assertRaisesRegex(installer.InstallerStateError, "ownership"):
+                installer._owned_process(runtime)  # pyright: ignore[reportPrivateUsage]
+
+    def test_http_start_failure_reaps_child_and_removes_record(self):
+        self.write_distribution()
+        self.write_completed_state(transport="http")
+        installer.LocalActions(
+            self.data_dir, ("server",), transport="http", profile="unified"
+        ).apply("configure")
+        process = MagicMock(pid=4321)
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "_owned_process", return_value=None),
+            patch.object(installer, "_port_available", return_value=True),
+            patch.object(installer.subprocess, "Popen", return_value=process),
+            patch.object(installer, "_poll_ready", return_value=False),
+        ):
+            code, output, error = self.run_main(
+                "start",
+                "--target",
+                "local",
+                "--transport",
+                "http",
+                "--data-dir",
+                str(self.data_dir),
+            )
+        self.assertEqual((code, output), (2, ""))
+        self.assertIn("did not become ready", error)
+        process.terminate.assert_called_once_with()
+        self.assertFalse((self.data_dir / "runtime" / "server-process.json").exists())
 
     def test_http_start_and_stop_manage_only_the_recorded_process(self):
         self.write_distribution()
