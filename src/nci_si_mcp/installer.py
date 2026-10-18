@@ -11,12 +11,10 @@ import re
 import shutil
 import signal
 import socket
-import string
 import subprocess
 import sys
 import tempfile
 import time
-import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from email.parser import Parser
@@ -546,7 +544,7 @@ def _owned_process(runtime: Path) -> int | None:
     path = _process_path(runtime)
     if not os.path.lexists(path):
         return None
-    pid, token = _process_record(path)
+    pid, identity = _process_record(path)
     observed = _inspect_process(pid)
     if observed.returncode != 0:
         try:
@@ -559,8 +557,7 @@ def _owned_process(runtime: Path) -> int | None:
         raise InstallerStateError(
             "Cannot verify server process ownership; inspect the runtime record."
         )
-    marker = f"INSTALLER_PROCESS_TOKEN={token}"
-    if marker not in observed.stdout.split():
+    if identity != _normalized_identity(observed.stdout):
         raise InstallerStateError(
             "Cannot verify server process ownership; inspect the runtime record."
         )
@@ -570,24 +567,16 @@ def _owned_process(runtime: Path) -> int | None:
 def _process_record(path: Path) -> tuple[int, str]:
     try:
         record = json.loads(path.read_text(encoding="utf-8"))
-        if set(record) != {"pid", "token"}:
+        if set(record) != {"pid", "identity"}:
             raise ValueError
-        pid, token = record["pid"], record["token"]
-        if type(pid) is not int or pid < 1 or not _valid_process_token(token):
+        pid, identity = record["pid"], record["identity"]
+        if type(pid) is not int or pid < 1 or not isinstance(identity, str) or not identity:
             raise ValueError
     except OSError, json.JSONDecodeError, KeyError, TypeError, ValueError:
         raise InstallerStateError(
             "Cannot verify server process ownership; inspect the runtime record."
         ) from None
-    return pid, token
-
-
-def _valid_process_token(token: object) -> bool:
-    return (
-        isinstance(token, str)
-        and len(token) == 32  # noqa: PLR2004 - uuid4 hex representation
-        and set(token) <= set(string.hexdigits.lower())
-    )
+    return pid, identity
 
 
 def _inspect_process(pid: int) -> subprocess.CompletedProcess[str]:
@@ -598,7 +587,7 @@ def _inspect_process(pid: int) -> subprocess.CompletedProcess[str]:
         )
     try:
         return subprocess.run(  # noqa: S603 - resolved system process inspector
-            [executable, "eww", "-p", str(pid), "-o", "command="],
+            [executable, "-p", str(pid), "-o", "lstart="],
             capture_output=True,
             text=True,
             timeout=5,
@@ -613,21 +602,19 @@ def _inspect_process(pid: int) -> subprocess.CompletedProcess[str]:
 def _verify_http(python: Path, runtime: Path, environment: dict[str, str]) -> bool:
     if _owned_process(runtime):
         return _ready()
-    token = uuid.uuid4().hex
-    process_environment = os.environ | environment | {"INSTALLER_PROCESS_TOKEN": token}
-    process = subprocess.Popen(  # noqa: S603 - executable is inside the owned venv
-        [str(python.with_name("nci-si-mcp")), "serve", "--transport", "streamable-http"],
-        env=process_environment,
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    command = str(python.with_name("nci-si-mcp"))
+    with _http_log(runtime).open("ab") as log:
+        process = subprocess.Popen(  # noqa: S603 - executable is inside the owned venv
+            [command, "serve", "--transport", "streamable-http"],
+            env=os.environ | environment,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=log,
+        )
     try:
-        _write_process_record(runtime, process.pid, token)
         return _poll_ready(process)
     finally:
         _terminate(process)
-        _process_path(runtime).unlink(missing_ok=True)
 
 
 def _terminate(process: subprocess.Popen[bytes]) -> None:
@@ -639,12 +626,12 @@ def _terminate(process: subprocess.Popen[bytes]) -> None:
         process.wait(timeout=30)
 
 
-def _write_process_record(runtime: Path, pid: int, token: str) -> None:
+def _write_process_record(runtime: Path, pid: int, command: str) -> None:
     descriptor, temporary = tempfile.mkstemp(prefix=".server-process.", dir=runtime)
     temporary_path = Path(temporary)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-            json.dump({"pid": pid, "token": token}, handle, separators=(",", ":"))
+            json.dump({"pid": pid, "identity": command}, handle, separators=(",", ":"))
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
@@ -682,6 +669,20 @@ def _verify_stdio(python: Path, environment: dict[str, str]) -> bool:
 
 def _http_log(runtime: Path) -> Path:
     return runtime / "server.log"
+
+
+def _process_identity(pid: int) -> str:
+    for _ in range(30):
+        observed = _inspect_process(pid)
+        identity = _normalized_identity(observed.stdout)
+        if not observed.returncode and identity:
+            return identity
+        time.sleep(0.1)
+    raise InstallerStateError("Cannot record server process ownership; retry `start`.")
+
+
+def _normalized_identity(value: str) -> str:
+    return " ".join(value.split())
 
 
 def _ready() -> bool:
@@ -893,25 +894,25 @@ def _start_http(actions: LocalActions) -> dict[str, object]:
         return {"status": "running"}
     if not _port_available(HTTP_PORT):
         raise InstallerStateError(f"Loopback port {HTTP_PORT} is held by an unowned process.")
-    token = uuid.uuid4().hex
+    command = str(actions.python.with_name("nci-si-mcp"))
     log_path = _http_log(actions.runtime)
     with log_path.open("ab") as log:
         process = subprocess.Popen(  # noqa: S603 - executable is inside the owned venv
             [
-                str(actions.python.with_name("nci-si-mcp")),
+                command,
                 "serve",
                 "--transport",
                 "streamable-http",
             ],
-            env=os.environ | actions.environment() | {"INSTALLER_PROCESS_TOKEN": token},
+            env=os.environ | actions.environment(),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=log,
             start_new_session=True,
         )
     try:
-        _write_process_record(actions.runtime, process.pid, token)
-    except OSError:
+        _write_process_record(actions.runtime, process.pid, _process_identity(process.pid))
+    except OSError, InstallerStateError:
         _terminate(process)
         raise
     if not _poll_ready(process):

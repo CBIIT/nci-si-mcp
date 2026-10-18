@@ -2,6 +2,7 @@ import io
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -257,16 +258,28 @@ class LocalInstallerTest(unittest.TestCase):
         runtime = self.data_dir / "runtime"
         runtime.mkdir()
         record = runtime / "server-process.json"
-        token = "a" * 32
-        record.write_text(json.dumps({"pid": 4321, "token": token}) + "\n")
+        identity = "Sun Oct 18 19:59:57 2026 /owned/server"
+        record.write_text(json.dumps({"pid": 4321, "identity": identity}) + "\n")
         dead = subprocess.CompletedProcess(["ps"], 1, stdout="")
         with patch.object(installer.subprocess, "run", return_value=dead):
             self.assertIsNone(installer._owned_process(runtime))  # pyright: ignore[reportPrivateUsage]
         self.assertFalse(record.exists())
-        for value in ({"pid": True, "token": token}, {"pid": 2, "token": "short"}):
+        for value in ({"pid": True, "identity": identity}, {"pid": 2, "identity": ""}):
             record.write_text(json.dumps(value))
             with self.assertRaisesRegex(installer.InstallerStateError, "ownership"):
                 installer._owned_process(runtime)  # pyright: ignore[reportPrivateUsage]
+
+    def test_supported_platform_observes_a_real_owned_process(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        process = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+        try:
+            identity = installer._process_identity(process.pid)  # pyright: ignore[reportPrivateUsage]
+            installer._write_process_record(runtime, process.pid, identity)  # pyright: ignore[reportPrivateUsage]
+            self.assertEqual(installer._owned_process(runtime), process.pid)  # pyright: ignore[reportPrivateUsage]
+        finally:
+            process.terminate()
+            process.wait(timeout=30)
 
     def test_http_start_failure_reaps_child_and_removes_record(self):
         self.write_distribution()
@@ -279,6 +292,7 @@ class LocalInstallerTest(unittest.TestCase):
             patch.object(installer, "__version__", "0.21.0"),
             patch.object(installer, "_owned_process", return_value=None),
             patch.object(installer, "_port_available", return_value=True),
+            patch.object(installer, "_process_identity", return_value="identity"),
             patch.object(installer.subprocess, "Popen", return_value=process),
             patch.object(installer, "_poll_ready", return_value=False),
         ):
@@ -311,6 +325,7 @@ class LocalInstallerTest(unittest.TestCase):
             patch.object(installer, "__version__", "0.21.0"),
             patch.object(installer, "_owned_process", side_effect=[None, 4321]),
             patch.object(installer, "_port_available", return_value=True),
+            patch.object(installer, "_process_identity", return_value="identity"),
             patch.object(installer.subprocess, "Popen", return_value=process) as popen,
             patch.object(installer, "urlopen", return_value=response),
             patch.object(installer.os, "kill", side_effect=[None, ProcessLookupError]) as kill,
@@ -331,6 +346,9 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(json.loads(started[1]), {"status": "started", "pid": 4321})
         self.assertTrue(popen.call_args.kwargs["start_new_session"])
         self.assertEqual(popen.call_args.kwargs["env"]["NCI_SI_HTTP_PORT"], "8000")
+        self.assertEqual(
+            Path(popen.call_args.kwargs["stderr"].name), self.data_dir / "runtime/server.log"
+        )
         kill.assert_any_call(4321, installer.signal.SIGTERM)
         self.assertEqual(json.loads(stopped[1]), {"status": "stopped"})
         self.assertFalse((self.data_dir / "runtime" / "server-process.json").exists())
@@ -347,6 +365,7 @@ class LocalInstallerTest(unittest.TestCase):
             patch.object(installer, "__version__", "0.21.0"),
             patch.object(installer, "_owned_process", return_value=None),
             patch.object(installer, "_port_available", return_value=True),
+            patch.object(installer, "_process_identity", return_value="identity"),
             patch.object(installer.subprocess, "Popen", return_value=process),
             patch.object(installer, "_write_process_record", side_effect=OSError("full")),
         ):
@@ -420,7 +439,7 @@ class LocalInstallerTest(unittest.TestCase):
             patch.object(installer.os, "fsync") as fsync,
             patch.object(installer.os, "close", wraps=installer.os.close) as close,
         ):
-            installer._write_process_record(runtime, 42, "a" * 32)  # pyright: ignore[reportPrivateUsage]
+            installer._write_process_record(runtime, 42, "identity")  # pyright: ignore[reportPrivateUsage]
         self.assertIn(call(runtime, installer.os.O_RDONLY), opened.mock_calls)
         fsync.assert_any_call(descriptors[-1])
         close.assert_called_once_with(descriptors[-1])
