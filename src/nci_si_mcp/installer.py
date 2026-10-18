@@ -11,8 +11,10 @@ import re
 import shutil
 import signal
 import socket
+import string
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 from collections.abc import Callable, Sequence
@@ -209,7 +211,14 @@ def _blocked(args: argparse.Namespace) -> str | None:
         return "BLOCKED: AWS validation administration awaits approved platform protection in #197."
     if args.command in ("check", "run", "status") and args.target == "aws":
         return "BLOCKED: standard-AWS prerequisite checks arrive with #324."
+    if _unimplemented_local_selection(args):
+        return "BLOCKED: optional local components arrive in Phases 33b and 33c."
     return None
+
+
+def _unimplemented_local_selection(args: argparse.Namespace) -> bool:
+    plannable = args.command in ("plan", "check", "help")
+    return args.target == "local" and not plannable and _components(args) != ("server",)
 
 
 def run_prerequisites(checks: Sequence[Prerequisite]) -> tuple[CheckResult, ...]:
@@ -485,7 +494,9 @@ class LocalActions:
     def _verify_server(self) -> bool:
         if self.transport == "stdio":
             return (
-                self.verify("install") and self.verify("configure") and _verify_stdio(self.python)
+                self.verify("install")
+                and self.verify("configure")
+                and _verify_stdio(self.python, self.environment())
             )
         if not self.missing_inputs("verify"):
             return _verify_http(self.python, self.runtime, self.environment())
@@ -528,8 +539,11 @@ def _owned_process(runtime: Path) -> int | None:
         return None
     pid, token = _process_record(path)
     observed = _inspect_process(pid)
+    if observed.returncode != 0:
+        path.unlink(missing_ok=True)
+        return None
     marker = f"INSTALLER_PROCESS_TOKEN={token}"
-    if observed.returncode != 0 or marker not in observed.stdout:
+    if marker not in observed.stdout.split():
         raise InstallerStateError(
             "Cannot verify server process ownership; inspect the runtime record."
         )
@@ -542,13 +556,21 @@ def _process_record(path: Path) -> tuple[int, str]:
         if set(record) != {"pid", "token"}:
             raise ValueError
         pid, token = record["pid"], record["token"]
-        if not isinstance(pid, int) or pid < 1 or not isinstance(token, str) or not token:
+        if type(pid) is not int or pid < 1 or not _valid_process_token(token):
             raise ValueError
     except OSError, json.JSONDecodeError, KeyError, TypeError, ValueError:
         raise InstallerStateError(
             "Cannot verify server process ownership; inspect the runtime record."
         ) from None
     return pid, token
+
+
+def _valid_process_token(token: object) -> bool:
+    return (
+        isinstance(token, str)
+        and len(token) == 32  # noqa: PLR2004 - uuid4 hex representation
+        and set(token) <= set(string.hexdigits.lower())
+    )
 
 
 def _inspect_process(pid: int) -> subprocess.CompletedProcess[str]:
@@ -601,12 +623,20 @@ def _terminate(process: subprocess.Popen[bytes]) -> None:
 
 
 def _write_process_record(runtime: Path, pid: int, token: str) -> None:
-    _process_path(runtime).write_text(
-        json.dumps({"pid": pid, "token": token}) + "\n", encoding="utf-8"
-    )
+    descriptor, temporary = tempfile.mkstemp(prefix=".server-process.", dir=runtime)
+    temporary_path = Path(temporary)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            json.dump({"pid": pid, "token": token}, handle, separators=(",", ":"))
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, _process_path(runtime))
+    finally:
+        temporary_path.unlink(missing_ok=True)
 
 
-def _verify_stdio(python: Path) -> bool:
+def _verify_stdio(python: Path, environment: dict[str, str]) -> bool:
     program = (
         "import asyncio\n"
         "import sys\n"
@@ -618,6 +648,7 @@ def _verify_stdio(python: Path) -> bool:
     )
     result = subprocess.run(  # noqa: S603 - executable is the owned venv Python
         [str(python), "-c", program, str(python.with_name("nci-si-mcp"))],
+        env=os.environ | environment,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -734,13 +765,14 @@ def _state_main(args: argparse.Namespace, plan: InstallationPlan) -> int:
 def _uninstall(args: argparse.Namespace, plan: InstallationPlan) -> int:
     try:
         with state_lock(args.data_dir):
-            read_state(
+            state = read_state(
                 args.data_dir,
                 plan.target,
                 plan.components,
                 transport=args.transport,
                 profile=args.profile,
             )
+            validate_outcomes(state, LocalActions.step_names)
             if _owned_process(args.data_dir / "runtime"):
                 sys.stderr.write("BLOCKED: run `nci-si-install stop` before uninstall.\n")
                 return 1
@@ -771,6 +803,7 @@ def _lifecycle(args: argparse.Namespace, plan: InstallationPlan) -> int:
             actions = LocalActions(
                 args.data_dir, plan.components, transport=state.transport, profile=state.profile
             )
+            validate_outcomes(state, actions.step_names)
             record = _lifecycle_record(args.command, state, actions)
     except (InstallerStateError, OSError) as error:
         sys.stderr.write(str(error) + "\n")

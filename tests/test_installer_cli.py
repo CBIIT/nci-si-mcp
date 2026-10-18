@@ -273,6 +273,8 @@ class InstallerCliTest(unittest.TestCase):
             self.run_installer(
                 "run", "--target", "local", "--data-dir", directory, environment=environment
             )
+            state_path = Path(directory) / "installer-state.json"
+            before = state_path.read_bytes()
 
             code, stdout, stderr = self.run_installer(
                 "run",
@@ -286,7 +288,8 @@ class InstallerCliTest(unittest.TestCase):
             )
 
             self.assertEqual((code, stdout), (2, ""))
-            self.assertIn("new --data-dir", stderr)
+            self.assertIn("BLOCKED", stderr)
+            self.assertEqual(state_path.read_bytes(), before)
 
     def test_run_forwards_restart_to_reconciliation(self):
         state = installer_state.InstallationState(2, "local", ("server",), ())
