@@ -1,12 +1,13 @@
 import io
 import json
+import shutil
 import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from nci_si_mcp import installer, installer_state
 
@@ -48,6 +49,7 @@ class LocalInstallerTest(unittest.TestCase):
         executable = self.data_dir / "venv" / "bin" / "python"
         executable.parent.mkdir(parents=True, exist_ok=True)
         executable.touch()
+        (self.data_dir / "venv" / ".installer-owned").touch()
 
     def write_completed_state(self, *, transport="stdio", profile="unified"):
         installer_state.write_state(
@@ -366,7 +368,7 @@ class LocalInstallerTest(unittest.TestCase):
         self.write_completed_state()
         outside = self.data_dir.parent / f"{self.data_dir.name}-outside"
         outside.mkdir()
-        self.addCleanup(outside.rmdir)
+        self.addCleanup(shutil.rmtree, outside, ignore_errors=True)
         (self.data_dir / "venv").symlink_to(outside, target_is_directory=True)
         code, output, error = self.run_main(
             "uninstall", "--target", "local", "--data-dir", str(self.data_dir)
@@ -375,6 +377,54 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertIn("Refusing unowned path", error)
         self.assertTrue(outside.is_dir())
         self.assertTrue((self.data_dir / "installer-state.json").is_file())
+
+    def test_reserved_children_are_not_adopted_or_partially_deleted(self):
+        outside = self.data_dir.parent / f"{self.data_dir.name}-outside"
+        outside.mkdir()
+        self.addCleanup(outside.rmdir)
+        (self.data_dir / "runtime").symlink_to(outside, target_is_directory=True)
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="stdio", profile="unified"
+        )
+        with self.assertRaisesRegex(installer.InstallerStateError, "unowned"):
+            actions.apply("configure")
+        self.assertEqual(list(outside.iterdir()), [])
+
+        (self.data_dir / "runtime").unlink()
+        self.write_completed_state()
+        for child in ("venv", "server-data"):
+            path = self.data_dir / child
+            path.mkdir(exist_ok=True)
+            (path / ".installer-owned").touch()
+            (path / "keep").touch()
+        (self.data_dir / "runtime").symlink_to(outside, target_is_directory=True)
+        code, _, _ = self.run_main(
+            "uninstall", "--target", "local", "--data-dir", str(self.data_dir)
+        )
+        self.assertEqual(code, 2)
+        self.assertTrue((self.data_dir / "venv" / "keep").exists())
+
+    def test_process_record_fsyncs_its_directory_and_http_keeps_diagnostics(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        descriptors = []
+        real_open = installer.os.open
+
+        def open_path(*args):
+            descriptor = real_open(*args)
+            descriptors.append(descriptor)
+            return descriptor
+
+        with (
+            patch.object(installer.os, "open", side_effect=open_path) as opened,
+            patch.object(installer.os, "fsync") as fsync,
+            patch.object(installer.os, "close", wraps=installer.os.close) as close,
+        ):
+            installer._write_process_record(runtime, 42, "a" * 32)  # pyright: ignore[reportPrivateUsage]
+        self.assertIn(call(runtime, installer.os.O_RDONLY), opened.mock_calls)
+        fsync.assert_any_call(descriptors[-1])
+        close.assert_called_once_with(descriptors[-1])
+        self.assertEqual(installer._http_log(runtime), runtime / "server.log")
 
     def test_http_verification_cleans_up_a_transient_process_and_blocks_an_unowned_port(self):
         self.write_distribution()
