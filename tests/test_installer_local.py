@@ -176,17 +176,21 @@ class LocalInstallerTest(unittest.TestCase):
         )
         actions.apply("configure")
 
-        code, output, error = self.run_main(
-            "start",
-            "--target",
-            "local",
-            "--transport",
-            "stdio",
-            "--profile",
-            "cadsr",
-            "--data-dir",
-            str(self.data_dir),
-        )
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "_verify_stdio", return_value=True),
+        ):
+            code, output, error = self.run_main(
+                "start",
+                "--target",
+                "local",
+                "--transport",
+                "stdio",
+                "--profile",
+                "cadsr",
+                "--data-dir",
+                str(self.data_dir),
+            )
 
         self.assertEqual((code, error), (0, ""))
         self.assertEqual(
@@ -209,7 +213,7 @@ class LocalInstallerTest(unittest.TestCase):
         code, output, error = self.run_main(
             "start", "--target", "local", "--data-dir", str(self.data_dir)
         )
-        self.assertEqual((code, output), (1, ""))
+        self.assertEqual((code, output), (2, ""))
         self.assertIn("complete `run`", error)
 
     def test_wrong_installed_revision_fails_reverification(self):
@@ -244,6 +248,74 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(removed[0], 2)
         self.assertIn("ownership", stopped[2])
         self.assertTrue((self.data_dir / "installer-state.json").is_file())
+
+    def test_http_start_and_stop_manage_only_the_recorded_process(self):
+        self.write_distribution()
+        self.write_completed_state(transport="http")
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="http", profile="unified"
+        )
+        actions.apply("configure")
+        process = MagicMock(pid=4321)
+        process.poll.return_value = None
+        response = MagicMock(status=200)
+        response.__enter__.return_value = response
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "_owned_process", side_effect=[None, 4321]),
+            patch.object(installer, "_port_available", return_value=True),
+            patch.object(installer.subprocess, "Popen", return_value=process) as popen,
+            patch.object(installer, "urlopen", return_value=response),
+            patch.object(installer.os, "kill", side_effect=[None, ProcessLookupError]) as kill,
+        ):
+            started = self.run_main(
+                "start",
+                "--target",
+                "local",
+                "--transport",
+                "http",
+                "--data-dir",
+                str(self.data_dir),
+            )
+            stopped = self.run_main(
+                "stop", "--target", "local", "--transport", "http", "--data-dir", str(self.data_dir)
+            )
+
+        self.assertEqual(json.loads(started[1]), {"status": "started", "pid": 4321})
+        self.assertTrue(popen.call_args.kwargs["start_new_session"])
+        self.assertEqual(popen.call_args.kwargs["env"]["NCI_SI_HTTP_PORT"], "8000")
+        kill.assert_any_call(4321, installer.signal.SIGTERM)
+        self.assertEqual(json.loads(stopped[1]), {"status": "stopped"})
+        self.assertFalse((self.data_dir / "runtime" / "server-process.json").exists())
+
+    def test_http_start_reaps_child_when_the_ownership_record_cannot_be_written(self):
+        self.write_distribution()
+        self.write_completed_state(transport="http")
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="http", profile="unified"
+        )
+        actions.apply("configure")
+        process = MagicMock(pid=4321)
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "_owned_process", return_value=None),
+            patch.object(installer, "_port_available", return_value=True),
+            patch.object(installer.subprocess, "Popen", return_value=process),
+            patch.object(installer, "_write_process_record", side_effect=OSError("full")),
+        ):
+            code, output, error = self.run_main(
+                "start",
+                "--target",
+                "local",
+                "--transport",
+                "http",
+                "--data-dir",
+                str(self.data_dir),
+            )
+        self.assertEqual((code, output), (2, ""))
+        self.assertIn("full", error)
+        process.terminate.assert_called_once_with()
+        process.wait.assert_called_once_with(timeout=30)
 
     def test_uninstall_refuses_owned_child_symlinks(self):
         self.write_completed_state()

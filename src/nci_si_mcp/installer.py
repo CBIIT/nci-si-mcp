@@ -26,6 +26,7 @@ from urllib.request import urlopen
 from . import __version__
 from .config import UpstreamConfigurationError, upstream_base_urls
 from .installer_state import (
+    InstallationState,
     InstallerStateError,
     current_status,
     read_state,
@@ -99,7 +100,7 @@ STEP_HELP = {
         "Step: verify\nPurpose: Verify the installed local server boundary.\n"
         "Why: Installed files alone do not prove that the server can start.\n"
         f"Action: Free loopback port {HTTP_PORT} when HTTP is selected.\n"
-        "Verification: stdio metadata/configuration or HTTP /ready succeeds.\n"
+        "Verification: installed stdio initializes and lists tools, or HTTP /ready succeeds.\n"
         "Common failures: an unowned port listener or an invalid installed release.\n"
         "Guide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"
     ),
@@ -139,7 +140,7 @@ def build_parser() -> argparse.ArgumentParser:
     _local_arguments(status)
     status.add_argument("--data-dir", type=Path, required=True, help="installation state directory")
     for name, help_text in (
-        ("start", "Start the installed local HTTP server"),
+        ("start", "Start HTTP or print the installed stdio client configuration"),
         ("stop", "Stop the installed local HTTP server"),
         ("uninstall", "Remove the recorded local installation"),
     ):
@@ -522,27 +523,52 @@ def _process_path(runtime: Path) -> Path:
 
 
 def _owned_process(runtime: Path) -> int | None:
+    path = _process_path(runtime)
+    if not os.path.lexists(path):
+        return None
+    pid, token = _process_record(path)
+    observed = _inspect_process(pid)
+    marker = f"INSTALLER_PROCESS_TOKEN={token}"
+    if observed.returncode != 0 or marker not in observed.stdout:
+        raise InstallerStateError(
+            "Cannot verify server process ownership; inspect the runtime record."
+        )
+    return pid
+
+
+def _process_record(path: Path) -> tuple[int, str]:
     try:
-        record = json.loads(_process_path(runtime).read_text(encoding="utf-8"))
+        record = json.loads(path.read_text(encoding="utf-8"))
+        if set(record) != {"pid", "token"}:
+            raise ValueError
         pid, token = record["pid"], record["token"]
-        executable = shutil.which("ps")
-        if executable is None:
-            return None
-        observed = subprocess.run(  # noqa: S603 - resolved system process inspector
+        if not isinstance(pid, int) or pid < 1 or not isinstance(token, str) or not token:
+            raise ValueError
+    except OSError, json.JSONDecodeError, KeyError, TypeError, ValueError:
+        raise InstallerStateError(
+            "Cannot verify server process ownership; inspect the runtime record."
+        ) from None
+    return pid, token
+
+
+def _inspect_process(pid: int) -> subprocess.CompletedProcess[str]:
+    executable = shutil.which("ps")
+    if executable is None:
+        raise InstallerStateError(
+            "Cannot verify server process ownership; inspect the runtime record."
+        )
+    try:
+        return subprocess.run(  # noqa: S603 - resolved system process inspector
             [executable, "eww", "-p", str(pid), "-o", "command="],
             capture_output=True,
             text=True,
             timeout=5,
             check=False,
         )
-    except OSError, subprocess.TimeoutExpired, json.JSONDecodeError, KeyError, TypeError:
-        return None
-    marker = f"INSTALLER_PROCESS_TOKEN={token}"
-    return (
-        pid
-        if isinstance(pid, int) and observed.returncode == 0 and marker in observed.stdout
-        else None
-    )
+    except OSError, subprocess.TimeoutExpired:
+        raise InstallerStateError(
+            "Cannot verify server process ownership; inspect the runtime record."
+        ) from None
 
 
 def _verify_http(python: Path, runtime: Path, environment: dict[str, str]) -> bool:
@@ -557,10 +583,8 @@ def _verify_http(python: Path, runtime: Path, environment: dict[str, str]) -> bo
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    _process_path(runtime).write_text(
-        json.dumps({"pid": process.pid, "token": token}) + "\n", encoding="utf-8"
-    )
     try:
+        _write_process_record(runtime, process.pid, token)
         return _poll_ready(process)
     finally:
         _terminate(process)
@@ -574,6 +598,12 @@ def _terminate(process: subprocess.Popen[bytes]) -> None:
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait(timeout=30)
+
+
+def _write_process_record(runtime: Path, pid: int, token: str) -> None:
+    _process_path(runtime).write_text(
+        json.dumps({"pid": pid, "token": token}) + "\n", encoding="utf-8"
+    )
 
 
 def _verify_stdio(python: Path) -> bool:
@@ -730,30 +760,18 @@ def _uninstall(args: argparse.Namespace, plan: InstallationPlan) -> int:
 
 def _lifecycle(args: argparse.Namespace, plan: InstallationPlan) -> int:
     try:
-        state = read_state(
-            args.data_dir,
-            plan.target,
-            plan.components,
-            transport=args.transport,
-            profile=args.profile,
-        )
-        actions = LocalActions(
-            args.data_dir,
-            plan.components,
-            transport=state.transport,
-            profile=state.profile,
-        )
-        if args.command == "start":
-            if state.transport == "stdio":
-                record = {
-                    "command": str(actions.python.with_name("nci-si-mcp")),
-                    "args": ["serve"],
-                    "env": actions.environment(),
-                }
-            else:
-                record = _start_http(actions)
-        else:
-            record = _stop_http(actions)
+        with state_lock(args.data_dir):
+            state = read_state(
+                args.data_dir,
+                plan.target,
+                plan.components,
+                transport=args.transport,
+                profile=args.profile,
+            )
+            actions = LocalActions(
+                args.data_dir, plan.components, transport=state.transport, profile=state.profile
+            )
+            record = _lifecycle_record(args.command, state, actions)
     except (InstallerStateError, OSError) as error:
         sys.stderr.write(str(error) + "\n")
         return 2
@@ -761,8 +779,48 @@ def _lifecycle(args: argparse.Namespace, plan: InstallationPlan) -> int:
     return 0
 
 
+def _lifecycle_record(
+    command: str, state: InstallationState, actions: LocalActions
+) -> dict[str, object]:
+    if command == "stop":
+        if state.transport != "http":
+            raise InstallerStateError("The stdio transport has no process to stop.")
+        return _stop_http(actions)
+    return _start_record(state, actions)
+
+
+def _start_record(state: InstallationState, actions: LocalActions) -> dict[str, object]:
+    _require_startable(state, actions)
+    if state.transport == "stdio":
+        return {
+            "command": str(actions.python.with_name("nci-si-mcp")),
+            "args": ["serve"],
+            "env": actions.environment(),
+        }
+    return _start_http(actions)
+
+
+def _require_startable(state: InstallationState, actions: LocalActions) -> None:
+    if not _completed_installation(state, actions):
+        raise InstallerStateError("Installation is incomplete; complete `run` before `start`.")
+    if not _current_installation(state, actions):
+        raise InstallerStateError("Installation is stale; complete `run` before `start`.")
+
+
+def _completed_installation(state: InstallationState, actions: LocalActions) -> bool:
+    completed = tuple(outcome.step for outcome in state.outcomes if outcome.status == "completed")
+    return completed == actions.step_names
+
+
+def _current_installation(state: InstallationState, actions: LocalActions) -> bool:
+    common = actions.verify("install") and actions.verify("configure")
+    return common and (state.transport != "stdio" or actions.verify("verify"))
+
+
 def _start_http(actions: LocalActions) -> dict[str, object]:
     if _owned_process(actions.runtime):
+        if not _ready():
+            raise InstallerStateError("The owned HTTP server is not ready; run `stop` and retry.")
         return {"status": "running"}
     if not _port_available(HTTP_PORT):
         raise InstallerStateError(f"Loopback port {HTTP_PORT} is held by an unowned process.")
@@ -775,9 +833,17 @@ def _start_http(actions: LocalActions) -> dict[str, object]:
         stderr=subprocess.DEVNULL,
         start_new_session=True,
     )
-    _process_path(actions.runtime).write_text(
-        json.dumps({"pid": process.pid, "token": token}) + "\n", encoding="utf-8"
-    )
+    try:
+        _write_process_record(actions.runtime, process.pid, token)
+    except OSError:
+        _terminate(process)
+        raise
+    if not _poll_ready(process):
+        _terminate(process)
+        _process_path(actions.runtime).unlink(missing_ok=True)
+        raise InstallerStateError(
+            "The HTTP server did not become ready; inspect its configuration."
+        )
     return {"status": "started", "pid": process.pid}
 
 
@@ -786,8 +852,26 @@ def _stop_http(actions: LocalActions) -> dict[str, object]:
     if pid is None:
         return {"status": "stopped"}
     os.kill(pid, signal.SIGTERM)
+    _wait_for_pid(pid)
     _process_path(actions.runtime).unlink(missing_ok=True)
     return {"status": "stopped"}
+
+
+def _wait_for_pid(pid: int) -> None:
+    for _ in range(30):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return
+        time.sleep(1)
+    os.kill(pid, signal.SIGKILL)
+    for _ in range(30):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return
+        time.sleep(1)
+    raise InstallerStateError("Cannot stop the owned HTTP server; inspect the recorded process.")
 
 
 def _check_main(plan: InstallationPlan) -> int:

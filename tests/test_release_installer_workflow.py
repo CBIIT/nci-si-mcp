@@ -14,6 +14,10 @@ STDIO_CAPTURE = (
 )
 CI_ONLY = {
     STDIO_CAPTURE: "captures the documented client record for the acceptance harness",
+    '"$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http '
+    '--data-dir "$HTTP_ROOT" || cleanup_status=$?': "cleans up HTTP after a failed check",
+    '"$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport http '
+    '--data-dir "$HTTP_ROOT" || cleanup_status=$?': "cleans up HTTP after a failed check",
 }
 
 
@@ -159,5 +163,6 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
             "stop --target local --transport http",
             "uninstall --target local --transport http",
         ]
-        positions = [run.index(command) for command in expected]
+        success = run.partition('mkdir -p "$STDIO_ROOT"')[2]
+        positions = [success.index(command) for command in expected]
         self.assertEqual(positions, sorted(positions))
