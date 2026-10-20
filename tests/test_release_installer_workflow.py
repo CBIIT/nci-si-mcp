@@ -16,7 +16,7 @@ STDIO_CAPTURE = (
     '--target local --transport stdio --data-dir "$STDIO_ROOT")"'
 )
 CI_ONLY = {
-    'git tag "$INSTALL_TAG" "$INSTALL_REF"': "gives the PR head an SCM release identity without changing its version",
+    'git tag "$INSTALL_TAG" "$INSTALL_REF"': "gives the PR head a synthetic v0.0.0 release identity for release-only checks",
     'git config --global url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp': "redirects the installer Git URL to the checked-out PR source",
     STDIO_CAPTURE: "captures the documented client record for the acceptance harness",
     '"$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http '

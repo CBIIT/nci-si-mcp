@@ -388,6 +388,44 @@ class LocalInstallerTest(unittest.TestCase):
             cast("Any", installer._verify_stdio)(Path(sys.executable), runtime, environment)
         self.assertIn("NCI_SI_PROFILE", (runtime / "server.log").read_text())
 
+    def test_stdio_execution_failures_report_the_owned_log_without_a_traceback(self):
+        self.write_distribution()
+        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
+        actions.apply("configure")
+        failures = (OSError("cannot launch"), subprocess.TimeoutExpired(["verify"], 30))
+        for failure in failures:
+            installer_state.write_state(
+                self.data_dir,
+                installer_state.InstallationState(
+                    2,
+                    "local",
+                    ("server",),
+                    tuple(
+                        installer_state.StepOutcome(step, "completed")
+                        for step in ("check_prerequisites", "install", "configure")
+                    ),
+                ),
+            )
+            with (
+                self.subTest(failure=type(failure).__name__),
+                patch.object(installer, "__version__", "0.21.0"),
+                patch.object(
+                    installer, "local_prerequisites", side_effect=self.passed_prerequisite
+                ),
+                patch.object(installer.subprocess, "run", side_effect=failure),
+            ):
+                code, output, error = self.run_main(
+                    "run",
+                    "--target",
+                    "local",
+                    "--data-dir",
+                    str(self.data_dir),
+                    "--non-interactive",
+                )
+            self.assertEqual((code, output), (2, ""))
+            self.assertIn(str(self.data_dir / "runtime/server.log"), error)
+            self.assertNotIn("Traceback", error)
+
     def test_stdio_verify_requires_install_and_configuration(self):
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         for failed in ("install", "configure"):
