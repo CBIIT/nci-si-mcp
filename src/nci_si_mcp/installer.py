@@ -527,11 +527,13 @@ def _write_process_record(runtime: Path, pid: int, command: str) -> None:
 def _verify_stdio(python: Path, environment: dict[str, str]) -> bool:
     program = (
         "import asyncio\n"
+        "import os\n"
         "import sys\n"
         "from mcp.client import Client\n"
         "from mcp.client.stdio import StdioServerParameters, stdio_client\n"
         "async def check():\n"
-        "    server = StdioServerParameters(command=sys.argv[1], args=['serve'])\n"
+        "    env = {k: v for k, v in os.environ.items() if k.startswith('NCI_SI_')}\n"
+        "    server = StdioServerParameters(command=sys.argv[1], args=['serve'], env=env)\n"
         "    transport = stdio_client(server)\n"
         "    async with Client(transport) as client:\n"
         "        await client.list_tools()\n"
