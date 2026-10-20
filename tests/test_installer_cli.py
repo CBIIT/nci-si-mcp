@@ -12,40 +12,30 @@ from nci_si_mcp import installer, installer_state
 
 ROOT = Path(__file__).parent.parent
 INSTALLER = Path(sys.executable).with_name("nci-si-install")
-ROOT_HELP = "usage: nci-si-install [-h] {plan,check,run,status,help} ...\n\nPlan installation of the NCI Semantic Infrastructure MCP server and optional\ncomponents.\n\npositional arguments:\n  {plan,check,run,status,help}\n    plan                Print the ordered installation plan\n    check               Check every prerequisite before installation\n    run                 Run and record verified installation steps\n    status              Reverify and show installation status\n    help                Explain an executable installation step\n\noptions:\n  -h, --help            show this help message and exit\n"  # noqa: E501
+ROOT_HELP = "usage: nci-si-install [-h]\n                      {plan,check,run,status,start,stop,uninstall,help} ...\n\nInstall and operate the local NCI Semantic Infrastructure MCP server.\n\npositional arguments:\n  {plan,check,run,status,start,stop,uninstall,help}\n    plan                Print the ordered installation plan\n    check               Check every prerequisite before installation\n    run                 Run and record verified installation steps\n    status              Reverify and show installation status\n    start               Start HTTP or print the installed stdio client\n                        configuration\n    stop                Stop the installed local HTTP server\n    uninstall           Remove the recorded local installation\n    help                Explain an executable installation step\n\noptions:\n  -h, --help            show this help message and exit\n"  # noqa: E501
 
-SELECTION_OPTIONS = """
-options:
-  -h, --help            show this help message and exit
-  --target {local,aws,cloud-one}
-                        installation target
-  --with-index          include an existing NCIt index and its embedding
-                        runtime
-  --with-documentation  include the static documentation site
-  --with-companion      include the validation companion
+SELECTION_OPTIONS = """options:
+  -h, --help        show this help message and exit
+  --target {local}  installation target
 """
 
-PLAN_HELP = (
-    """usage: nci-si-install plan [-h] --target {local,aws,cloud-one} [--with-index]
-                           [--with-documentation] [--with-companion]
-"""
-    + SELECTION_OPTIONS
-)
+PLAN_HELP = "usage: nci-si-install plan [-h] --target {local}\n\n" + SELECTION_OPTIONS
 
-CHECK_HELP = (
-    """usage: nci-si-install check [-h] --target {local,aws,cloud-one} [--with-index]
-                            [--with-documentation] [--with-companion]
-"""
-    + SELECTION_OPTIONS
-)
+CHECK_HELP = "usage: nci-si-install check [-h] --target {local}\n\n" + SELECTION_OPTIONS
 
 RUN_HELP = (
-    """usage: nci-si-install run [-h] --target {local,aws,cloud-one} [--with-index]
-                          [--with-documentation] [--with-companion]
-                          --data-dir DATA_DIR [--restart] [--non-interactive]
+    """usage: nci-si-install run [-h] --target {local} [--transport {stdio,http}]
+                          [--profile {cadsr,evs,unified}] --data-dir DATA_DIR
+                          [--restart] [--non-interactive]
 """
-    + SELECTION_OPTIONS.rstrip()
     + """
+options:
+  -h, --help            show this help message and exit
+  --target {local}      installation target
+  --transport {stdio,http}
+                        local server transport (default: stdio)
+  --profile {cadsr,evs,unified}
+                        EVS/caDSR tool profile (default: unified)
   --data-dir DATA_DIR   installation state directory
   --restart             reset progress for the same selection
   --non-interactive     report unresolved actions without prompting
@@ -55,12 +45,18 @@ RUN_HELP = (
 STEP_HELP = "Step: check_prerequisites\nPurpose: Check every selected requirement before installation changes anything.\nWhy: A partial installation must not be created when required inputs are missing.\nAction: Apply every fix reported by `check` or a BLOCKED `run`.\nVerification: Rerun every selected prerequisite; confirmation alone is never accepted.\nCommon failures: missing tools, occupied ports, or unreachable EVS and caDSR endpoints.\nGuide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"  # noqa: E501
 
 STATUS_HELP = (
-    """usage: nci-si-install status [-h] --target {local,aws,cloud-one}
-                             [--with-index] [--with-documentation]
-                             [--with-companion] --data-dir DATA_DIR
+    """usage: nci-si-install status [-h] --target {local} [--transport {stdio,http}]
+                             [--profile {cadsr,evs,unified}]
+                             --data-dir DATA_DIR
 """
-    + SELECTION_OPTIONS.rstrip()
     + """
+options:
+  -h, --help            show this help message and exit
+  --target {local}      installation target
+  --transport {stdio,http}
+                        local server transport (default: stdio)
+  --profile {cadsr,evs,unified}
+                        EVS/caDSR tool profile (default: unified)
   --data-dir DATA_DIR   installation state directory
 """
 )
@@ -89,7 +85,11 @@ class InstallerCliTest(unittest.TestCase):
         with patch.object(installer, "reconcile", return_value=result) as reconcile:
             output = installer._state_command(  # pyright: ignore[reportPrivateUsage]
                 installer.argparse.Namespace(
-                    command=command, data_dir=Path(directory.name), restart=restart
+                    command=command,
+                    data_dir=Path(directory.name),
+                    restart=restart,
+                    transport="stdio",
+                    profile="unified",
                 ),
                 installer.InstallationPlan("local", ("server",)),
             )
@@ -110,8 +110,6 @@ class InstallerCliTest(unittest.TestCase):
             "check",
             "--target",
             "local",
-            "--with-documentation",
-            "--with-companion",
             environment=environment,
         )
 
@@ -123,12 +121,7 @@ class InstallerCliTest(unittest.TestCase):
             [
                 "supported_os",
                 "git",
-                "pdm",
-                "container_runtime",
-                "compose",
-                "node",
-                "port_8080",
-                "port_8081",
+                "python",
                 "evs_reachable",
                 "cadsr_reachable",
             ],
@@ -137,10 +130,6 @@ class InstallerCliTest(unittest.TestCase):
         self.assertLessEqual(
             {
                 "git",
-                "pdm",
-                "container_runtime",
-                "compose",
-                "node",
                 "evs_reachable",
                 "cadsr_reachable",
             },
@@ -150,27 +139,20 @@ class InstallerCliTest(unittest.TestCase):
         self.assertFalse((ROOT / "missing-installer-state").exists())
 
     def test_unselected_components_contribute_no_component_prerequisites(self):
-        code, stdout, stderr = self.run_installer("check", "--target", "local")
+        environment = os.environ | {
+            "NCI_SI_EVS_BASE_URL": "http://127.0.0.1:1",
+            "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:2",
+        }
+        code, stdout, stderr = self.run_installer(
+            "check", "--target", "local", environment=environment
+        )
 
         self.assertIn(code, (0, 1))
         self.assertEqual(stderr, "")
         self.assertEqual(
             [result["name"] for result in json.loads(stdout)["results"]],
-            ["supported_os", "git", "pdm", "evs_reachable", "cadsr_reachable"],
+            ["supported_os", "git", "python", "evs_reachable", "cadsr_reachable"],
         )
-
-    def test_aws_checks_are_blocked_until_their_own_issue(self):
-        for command in ("check", "run", "status"):
-            arguments = [command, "--target", "aws"]
-            if command in ("run", "status"):
-                directory = tempfile.TemporaryDirectory()
-                self.addCleanup(directory.cleanup)
-                arguments.extend(("--data-dir", directory.name))
-            with self.subTest(command=command):
-                code, stdout, stderr = self.run_installer(*arguments)
-
-                observed = code, stdout, "#324" in stderr, "BLOCKED" in stderr
-                self.assertEqual(observed, (2, "", True, True))
 
     def test_unexpected_value_and_runtime_bugs_propagate_from_main(self):
         for error in (ValueError("PRIVATE-CANARY"), RuntimeError("PRIVATE-CANARY")):
@@ -194,7 +176,7 @@ class InstallerCliTest(unittest.TestCase):
                         installer_state.write_state(
                             Path(directory),
                             installer_state.InstallationState(
-                                1,
+                                2,
                                 "local",
                                 ("server",),
                                 (installer_state.StepOutcome("check_prerequisites", "completed"),),
@@ -226,17 +208,16 @@ class InstallerCliTest(unittest.TestCase):
                     {
                         "step": "check_prerequisites",
                         "missing": [
-                            "Install git and fetch release tags as QUICKSTART.md documents.",
-                            "Install PDM as QUICKSTART.md documents.",
+                            "Install Git so pip can install the released source tag.",
                             "Restore network access to NCI_SI_EVS_BASE_URL.",
                             "Restore network access to NCI_SI_CADSR_BASE_URL.",
                         ],
                     }
                 ],
-                "pending": [],
+                "pending": ["install", "configure", "verify"],
                 "nextAction": (
-                    "Resolve the failed prerequisites: Install git and fetch release tags as "
-                    "QUICKSTART.md documents.; Install PDM as QUICKSTART.md documents.; Restore "
+                    "Resolve the failed prerequisites: Install Git so pip can install the released "
+                    "source tag.; Restore "
                     "network access to NCI_SI_EVS_BASE_URL.; Restore network access to "
                     "NCI_SI_CADSR_BASE_URL."
                 ),
@@ -244,9 +225,17 @@ class InstallerCliTest(unittest.TestCase):
             self.assertEqual(json.loads(run[1]), expected)
             self.assertEqual(json.loads(status[1]), expected)
 
-    def test_restart_cannot_adopt_another_component_selection(self):
+    def test_restart_rejects_removed_component_flags_without_changing_state(self):
         with tempfile.TemporaryDirectory() as directory:
-            self.run_installer("run", "--target", "local", "--data-dir", directory)
+            environment = os.environ | {
+                "NCI_SI_EVS_BASE_URL": "http://127.0.0.1:1",
+                "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:2",
+            }
+            self.run_installer(
+                "run", "--target", "local", "--data-dir", directory, environment=environment
+            )
+            state_path = Path(directory) / "installer-state.json"
+            before = state_path.read_bytes()
 
             code, stdout, stderr = self.run_installer(
                 "run",
@@ -256,13 +245,15 @@ class InstallerCliTest(unittest.TestCase):
                 "--data-dir",
                 directory,
                 "--restart",
+                environment=environment,
             )
 
             self.assertEqual((code, stdout), (2, ""))
-            self.assertIn("new --data-dir", stderr)
+            self.assertIn("unrecognized arguments", stderr)
+            self.assertEqual(state_path.read_bytes(), before)
 
     def test_run_forwards_restart_to_reconciliation(self):
-        state = installer_state.InstallationState(1, "local", ("server",), ())
+        state = installer_state.InstallationState(2, "local", ("server",), ())
         (code, _), reconcile = self.state_command("run", state, restart=True)
         self.assertEqual(code, 1)
         self.assertTrue(reconcile.call_args.kwargs["restart"])
@@ -270,7 +261,7 @@ class InstallerCliTest(unittest.TestCase):
     def test_status_persists_and_projects_its_reverified_state(self):
         with tempfile.TemporaryDirectory() as directory:
             state = installer_state.InstallationState(
-                1,
+                2,
                 "local",
                 ("server",),
                 (installer_state.StepOutcome("check_prerequisites", "completed"),),
@@ -279,7 +270,12 @@ class InstallerCliTest(unittest.TestCase):
             failed = installer.Prerequisite("required", "Repair it.", lambda: False)
             with patch.object(installer, "local_prerequisites", return_value=(failed,)):
                 code, record = installer._state_command(  # pyright: ignore[reportPrivateUsage]
-                    installer.argparse.Namespace(command="status", data_dir=Path(directory)),
+                    installer.argparse.Namespace(
+                        command="status",
+                        data_dir=Path(directory),
+                        transport="stdio",
+                        profile="unified",
+                    ),
                     installer.InstallationPlan("local", ("server",)),
                 )
             persisted = installer_state.read_state(Path(directory), "local", ("server",))
@@ -290,12 +286,12 @@ class InstallerCliTest(unittest.TestCase):
     def test_failed_and_pending_state_commands_exit_nonzero(self):
         states = (
             installer_state.InstallationState(
-                1,
+                2,
                 "local",
                 ("server",),
                 (installer_state.StepOutcome("check_prerequisites", "failed"),),
             ),
-            installer_state.InstallationState(1, "local", ("server",), ()),
+            installer_state.InstallationState(2, "local", ("server",), ()),
         )
         for state in states:
             with self.subTest(state=state):
@@ -304,7 +300,8 @@ class InstallerCliTest(unittest.TestCase):
 
     def test_run_and_status_refuse_semantically_invalid_state_without_rewriting(self):
         content = (
-            b'{"version":1,"target":"local","components":["server"],'
+            b'{"version":2,"target":"local","components":["server"],'
+            b'"transport":"stdio","profile":"unified",'
             b'"outcomes":[{"step":"unknown","status":"completed"}]}'
         )
         for command in ("run", "status"):
@@ -373,69 +370,32 @@ class InstallerCliTest(unittest.TestCase):
             self.assertIn("run `run` first", stderr)
             self.assertFalse(data_dir.exists())
 
-    def test_server_only_and_optional_components_have_one_ordered_plan(self):
-        cases = (
-            ((), ["server"]),
-            (("--with-index",), ["server", "index"]),
-            (
-                ("--with-companion", "--with-documentation", "--with-index"),
-                ["server", "index", "documentation", "companion"],
-            ),
-            (
-                ("--with-index", "--with-companion", "--with-documentation"),
-                ["server", "index", "documentation", "companion"],
-            ),
-        )
-        for flags, components in cases:
-            with self.subTest(flags=flags):
-                code, stdout, stderr = self.run_installer("plan", "--target", "local", *flags)
-
-                self.assertEqual((code, stderr), (0, ""))
-                self.assertEqual(
-                    json.loads(stdout),
-                    {
-                        "target": "local",
-                        "components": components,
-                        "stages": ["check_prerequisites", "install", "configure", "verify"],
-                    },
-                )
-
-    def test_supported_aws_plan_excludes_the_unapproved_companion(self):
-        code, stdout, stderr = self.run_installer(
-            "plan", "--target", "aws", "--with-index", "--with-documentation"
-        )
-
+    def test_server_only_has_one_ordered_plan(self):
+        code, stdout, stderr = self.run_installer("plan", "--target", "local")
         self.assertEqual((code, stderr), (0, ""))
         self.assertEqual(
             json.loads(stdout),
             {
-                "target": "aws",
-                "components": ["server", "index", "documentation"],
+                "target": "local",
+                "components": ["server"],
                 "stages": ["check_prerequisites", "install", "configure", "verify"],
             },
         )
 
-    def test_blocked_targets_and_components_name_the_missing_decision(self):
-        for arguments, issue in (
-            (("plan", "--target", "cloud-one"), "#292"),
-            (("plan", "--target", "aws", "--with-companion"), "#197"),
-        ):
+    def test_removed_targets_and_component_flags_are_not_cli_values(self):
+        cases = [
+            ("plan", "--target", target) for target in ("aws", "cloud-one", "azure", "gcp", "other")
+        ] + [
+            ("plan", "--target", "local", flag)
+            for flag in ("--with-index", "--with-documentation", "--with-companion")
+        ]
+        for arguments in cases:
             with self.subTest(arguments=arguments):
                 code, stdout, stderr = self.run_installer(*arguments)
-
                 self.assertEqual((code, stdout), (2, ""))
-                self.assertIn(issue, stderr)
-                self.assertIn("BLOCKED", stderr)
+                self.assertTrue("invalid choice" in stderr or "unrecognized arguments" in stderr)
 
-    def test_future_and_unknown_targets_are_not_cli_values(self):
-        for target in ("azure", "gcp", "other"):
-            with self.subTest(target=target):
-                code, stdout, stderr = self.run_installer("plan", "--target", target)
-
-                self.assertEqual((code, stdout), (2, ""))
-                self.assertIn("invalid choice", stderr)
-
-    def test_step_help_is_side_effect_free_and_unimplemented_steps_name_phase_33(self):
+    def test_step_help_is_side_effect_free_and_every_local_stage_is_executable(self):
         with tempfile.TemporaryDirectory():
             environment = os.environ | {
                 "PATH": "",
@@ -447,11 +407,16 @@ class InstallerCliTest(unittest.TestCase):
             )
 
             self.assertEqual((code, stdout, stderr), (0, STEP_HELP, ""))
-        for step in ("install", "configure", "verify", "unknown"):
+        for step in ("install", "configure", "verify"):
             with self.subTest(step=step):
                 code, stdout, stderr = self.run_installer("help", step, "--target", "local")
-                self.assertEqual((code, stdout), (2, ""))
-                self.assertIn("#320", stderr)
+                self.assertEqual((code, stderr), (0, ""))
+                self.assertTrue(stdout.startswith(f"Step: {step}\n"))
+                self.assertIn("Purpose:", stdout)
+                self.assertIn("Verification:", stdout)
+        code, stdout, stderr = self.run_installer("help", "unknown", "--target", "local")
+        self.assertEqual((code, stdout), (2, ""))
+        self.assertIn("not executable", stderr)
 
     def test_help_is_exact_and_ignores_forced_colour(self):
         for arguments, expected in (

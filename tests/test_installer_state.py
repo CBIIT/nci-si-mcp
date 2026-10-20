@@ -16,7 +16,7 @@ class InstallerStateTest(unittest.TestCase):
         self.data_dir = Path(directory.name)
         self.path = self.data_dir / "installer-state.json"
         self.state = API.InstallationState(
-            version=1,
+            version=2,
             target="local",
             components=("server",),
             outcomes=(API.StepOutcome("check_prerequisites", "completed"),),
@@ -24,14 +24,27 @@ class InstallerStateTest(unittest.TestCase):
 
     @staticmethod
     def encoded(**changes):
-        value = {"version": 1, "target": "local", "components": ["server"], "outcomes": []}
+        value = {
+            "version": 2,
+            "target": "local",
+            "components": ["server"],
+            "transport": "stdio",
+            "profile": "unified",
+            "outcomes": [],
+        }
         value.update(changes)
         return json.dumps(value, separators=(",", ":")).encode()
 
     def test_state_round_trips_through_the_closed_versioned_json_record(self):
         API.write_state(self.data_dir, self.state)
         self.assertEqual(API.read_state(self.data_dir, "local", ("server",)), self.state)
-        expected = {"version": 1, "target": "local", "components": ["server"]}
+        expected = {
+            "version": 2,
+            "target": "local",
+            "components": ["server"],
+            "transport": "stdio",
+            "profile": "unified",
+        }
         expected["outcomes"] = [{"step": "check_prerequisites", "status": "completed"}]
         self.assertEqual(json.loads(self.path.read_text(encoding="utf-8")), expected)
 
@@ -46,9 +59,9 @@ class InstallerStateTest(unittest.TestCase):
         self.assertEqual(self.path.read_bytes(), original)
         self.assertEqual(list(self.data_dir.glob(".installer-state.*.tmp")), [])
         invalid = (
-            API.InstallationState(2, "local", ("server",), ()),
+            API.InstallationState(3, "local", ("server",), ()),
             API.InstallationState(
-                1, "local", ("server",), (API.StepOutcome("check_prerequisites", "blocked", ("",)),)
+                2, "local", ("server",), (API.StepOutcome("check_prerequisites", "blocked", ("",)),)
             ),
         )
         for state in invalid:
@@ -59,10 +72,14 @@ class InstallerStateTest(unittest.TestCase):
     def test_invalid_or_mismatched_state_fails_closed_without_rewriting(self):
         cases = (
             (b"{", "malformed"),
-            (self.encoded(version=2), "unsupported version"),
+            (
+                b'{"version":1,"target":"local","components":["server"],"outcomes":[]}',
+                "unsupported version",
+            ),
+            (self.encoded(version=3), "unsupported version"),
             (self.encoded(extra=1), "malformed"),
-            (self.encoded(target="aws"), "another selection"),
-            (self.encoded(components=["server", "index"]), "another selection"),
+            (self.encoded(target="aws"), "malformed"),
+            (self.encoded(components=["server", "index"]), "malformed"),
         )
         for content, message in cases:
             with self.subTest(content=content):
@@ -71,6 +88,24 @@ class InstallerStateTest(unittest.TestCase):
                     API.read_state(self.data_dir, "local", ("server",))
                 self.assertEqual(self.path.read_bytes(), content)
                 self.assertNotIn(content.decode(errors="ignore"), str(error.exception))
+
+    def test_profile_alone_is_part_of_the_installation_identity(self):
+        state = API.InstallationState(2, "local", ("server",), (), profile="evs")
+        API.write_state(self.data_dir, state)
+        before = self.path.read_bytes()
+        with self.assertRaisesRegex(API.InstallerStateError, "another selection"):
+            API.read_state(self.data_dir, "local", ("server",), profile="cadsr")
+        self.assertEqual(self.path.read_bytes(), before)
+
+    def test_components_are_decoded_only_from_a_json_list(self):
+        content = self.encoded(components="index")
+        self.path.write_bytes(content)
+        with (
+            patch.object(API, "_valid_identity", return_value=True),
+            self.assertRaisesRegex(API.InstallerStateError, "malformed"),
+        ):
+            API.read_state(self.data_dir, "local", ("server",))
+        self.assertEqual(self.path.read_bytes(), content)
 
     def test_unreadable_state_names_the_file_and_access_next_step(self):
         self.path.write_text("{}", encoding="utf-8")
@@ -94,7 +129,7 @@ class InstallerStateTest(unittest.TestCase):
             + (b"1" * 4301)
             + b',"target":"local","components":["server"],"outcomes":[]}',
             self.encoded(version=True),
-            b'{"version":1,"version":1,"target":"local","components":["server"],"outcomes":[]}',
+            b'{"version":2,"version":2,"target":"local","components":["server"],"transport":"stdio","profile":"unified","outcomes":[]}',
             self.encoded(outcomes=[{"step": "unknown", "status": "completed"}]),
             self.encoded(outcomes=[completed | {"extra": 1}]),
             self.encoded(outcomes=[completed, completed]),
@@ -105,6 +140,11 @@ class InstallerStateTest(unittest.TestCase):
             self.encoded(outcomes=[completed | {"missing": ["x"]}]),
             self.encoded(components=["server", "server"]),
             self.encoded(components=["alien"]),
+            self.encoded(components="server"),
+            self.encoded(components="index"),
+            self.encoded(components=[]),
+            self.encoded(transport="tcp"),
+            self.encoded(profile="other"),
         )
         for content in cases:
             with self.subTest(content=content):
