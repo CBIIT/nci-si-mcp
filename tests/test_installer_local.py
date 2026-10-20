@@ -351,6 +351,14 @@ class LocalInstallerTest(unittest.TestCase):
             with patch.object(installer, "urlopen", return_value=response):
                 self.assertEqual(installer._ready(), expected)
 
+    def test_stdio_verifier_initializes_real_server_through_real_sdk(self):
+        environment = {
+            "NCI_SI_DATA_DIR": str(self.data_dir / "server-data"),
+            "NCI_SI_PROFILE": "unified",
+            "NCI_SI_TRANSPORT": "stdio",
+        }
+        self.assertTrue(installer._verify_stdio(Path(sys.executable), environment))
+
     def test_stdio_verify_requires_install_and_configuration(self):
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         for failed in ("install", "configure"):
