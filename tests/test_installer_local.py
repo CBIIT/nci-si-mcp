@@ -341,9 +341,7 @@ class LocalInstallerTest(unittest.TestCase):
                     with self.assertRaisesRegex(installer.InstallerStateError, "server.log"):
                         installer._verify_stdio(Path("/venv/python"), self.data_dir, environment)
                 else:
-                    self.assertIsNone(
-                        installer._verify_stdio(Path("/venv/python"), self.data_dir, environment)
-                    )
+                    installer._verify_stdio(Path("/venv/python"), self.data_dir, environment)
                 self.assertEqual(
                     run.call_args.kwargs["env"],
                     {"PATH": "/bin", "HOME": "/home/test", **environment},
@@ -370,7 +368,8 @@ class LocalInstallerTest(unittest.TestCase):
         }
         runtime = self.data_dir / "runtime"
         runtime.mkdir()
-        self.assertIsNone(installer._verify_stdio(Path(sys.executable), runtime, environment))
+        installer._verify_stdio(Path(sys.executable), runtime, environment)
+        self.assertEqual((runtime / "server.log").read_text(encoding="utf-8"), "")
 
     def test_stdio_verifier_passes_configured_environment_to_real_server(self):
         environment = {
