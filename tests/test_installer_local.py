@@ -109,6 +109,8 @@ class LocalInstallerTest(unittest.TestCase):
             any(argv[:2] == [str(venv_python), "-c"] for argv, _ in calls),
             "stdio verification must initialize the installed MCP server",
         )
+        for child in ("venv", "server-data", "runtime"):
+            self.assertTrue((self.data_dir / child / ".installer-owned").is_file())
         verify = next(kwargs for argv, kwargs in calls if argv[:2] == [str(venv_python), "-c"])
         self.assertEqual(verify["env"]["NCI_SI_DATA_DIR"], str(self.data_dir / "server-data"))
 
@@ -221,12 +223,150 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual((code, output), (2, ""))
         self.assertIn("complete `run`", error)
 
+    def test_start_refuses_partial_and_stale_completed_installations(self):
+        cases = (
+            (("check_prerequisites", "install"), "incomplete"),
+            (("check_prerequisites", "install", "configure", "verify"), "stale"),
+        )
+        for steps, message in cases:
+            with self.subTest(steps=steps), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                installer_state.write_state(
+                    root,
+                    installer_state.InstallationState(
+                        2,
+                        "local",
+                        ("server",),
+                        tuple(installer_state.StepOutcome(step, "completed") for step in steps),
+                    ),
+                )
+                code, output, error = self.run_main(
+                    "start", "--target", "local", "--data-dir", str(root)
+                )
+            self.assertEqual((code, output), (2, ""))
+            self.assertIn(message, error.lower())
+
     def test_wrong_installed_revision_fails_reverification(self):
         self.write_distribution(revision="v0.20.0")
         actions = installer.LocalActions(
             self.data_dir, ("server",), transport="stdio", profile="unified"
         )
         self.assertFalse(actions.verify("install"))
+
+    def test_release_and_configuration_verifiers_fail_closed(self):
+        self.assertTrue(installer.RELEASE_VERSION.pattern.endswith(r"\Z"))
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="stdio", profile="unified"
+        )
+        cases = (
+            ("0.21.0.dev1", "v0.21.0", False),
+            ("0.21.0", "v0.20.0", False),
+            ("0.21.0", None, False),
+        )
+        for version, revision, expected in cases:
+            with self.subTest(version=version, revision=revision):
+                self.write_distribution(version, revision or "v0.21.0")
+                direct = next(
+                    (self.data_dir / "venv").glob("lib/python*/site-packages/*/direct_url.json")
+                )
+                if revision is None:
+                    direct.write_text('{"vcs_info":{}}')
+                with patch.object(installer, "__version__", "0.21.0"):
+                    self.assertEqual(actions.verify("install"), expected)
+                shutil.rmtree(self.data_dir / "venv")
+        self.write_distribution()
+        duplicate = (
+            self.data_dir / "venv/lib/python3.14/site-packages/nci_si_mcp-duplicate.dist-info"
+        )
+        duplicate.mkdir()
+        self.assertFalse(actions.verify("install"))
+        actions.apply("configure")
+        (self.data_dir / "runtime/server.json").write_text("{}")
+        self.assertFalse(actions.verify("configure"))
+        (self.data_dir / "runtime/server.json").write_text('{"valid":"x","invalid":1}')
+        self.assertIsNone(installer._configuration(self.data_dir))
+
+    def test_stdio_and_http_verification_honor_results_and_environment(self):
+        environment = {"NCI_SI_PROFILE": "cadsr"}
+        for status, expected in ((0, True), (1, False)):
+            with (
+                self.subTest(status=status),
+                patch.dict(
+                    installer.os.environ, {"PATH": "/bin", "HOME": "/home/test"}, clear=True
+                ),
+                patch.object(
+                    installer.subprocess,
+                    "run",
+                    return_value=subprocess.CompletedProcess([], status),
+                ) as run,
+            ):
+                self.assertEqual(
+                    installer._verify_stdio(Path("/venv/python"), environment), expected
+                )
+                self.assertEqual(
+                    run.call_args.kwargs["env"],
+                    {"PATH": "/bin", "HOME": "/home/test", **environment},
+                )
+        response = MagicMock()
+        response.__enter__.return_value = response
+        for status, expected in ((200, True), (201, False)):
+            response.status = status
+            with patch.object(installer, "urlopen", return_value=response):
+                self.assertEqual(installer._ready(), expected)
+
+    def test_http_start_and_stop_refusals_are_exact(self):
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="http", profile="unified"
+        )
+        actions.apply("configure")
+        with (
+            patch.object(installer, "_owned_process", return_value=None),
+            patch.object(installer, "_port_available", return_value=False),
+            self.assertRaisesRegex(installer.InstallerStateError, "held by an unowned"),
+        ):
+            installer._start_http(actions)
+        with (
+            patch.object(installer, "_owned_process", return_value=42),
+            patch.object(installer, "_ready", return_value=False),
+            self.assertRaisesRegex(installer.InstallerStateError, "not ready"),
+        ):
+            installer._start_http(actions)
+        with patch.object(installer, "_owned_process", return_value=None):
+            self.assertEqual(installer._stop_http(actions), {"status": "stopped"})
+
+    def test_stop_escalates_and_never_reports_a_live_process_stopped(self):
+        with (
+            patch.object(
+                installer.os, "kill", side_effect=[None] * 30 + [None] + [None] * 30
+            ) as kill,
+            self.assertRaisesRegex(installer.InstallerStateError, "Cannot stop"),
+        ):
+            installer._wait_for_pid(42)
+        self.assertIn(call(42, installer.signal.SIGKILL), kill.mock_calls)
+        self.assertNotEqual(kill.mock_calls[-1], call(42, installer.signal.SIGTERM))
+
+    def test_process_identity_comparison_and_absence_checks_are_safe(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        record = runtime / "server-process.json"
+        record.write_text(json.dumps({"pid": 42, "identity": "Mon Jan 1 00:00:00 2026"}))
+        seen = subprocess.CompletedProcess([], 0, stdout="Tue Jan 2 00:00:00 2026")
+        with (
+            patch.object(installer.subprocess, "run", return_value=seen),
+            self.assertRaisesRegex(installer.InstallerStateError, "ownership"),
+        ):
+            installer._owned_process(runtime)
+        record.write_text(json.dumps({"pid": 42, "identity": "same identity"}))
+        missing = subprocess.CompletedProcess([], 1, stdout="")
+        with (
+            patch.object(installer.subprocess, "run", return_value=missing),
+            patch.object(installer.os, "kill", side_effect=PermissionError) as kill,
+            self.assertRaisesRegex(installer.InstallerStateError, "ownership"),
+        ):
+            installer._owned_process(runtime)
+        kill.assert_called_once_with(42, 0)
+        self.assertTrue(record.exists())
+        self.assertEqual(installer._normalized_identity(" Mon  Jan  1 "), "Mon Jan 1")
 
     def test_unverifiable_process_ownership_blocks_stop_and_uninstall(self):
         self.write_completed_state(transport="http")
@@ -397,6 +537,33 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertTrue(outside.is_dir())
         self.assertTrue((self.data_dir / "installer-state.json").is_file())
 
+    def test_uninstall_failure_modes_preserve_state_or_report_the_os_error(self):
+        self.write_completed_state()
+        for child in ("venv", "server-data", "runtime"):
+            path = self.data_dir / child
+            path.mkdir()
+            (path / ".installer-owned").touch()
+        state_path = self.data_dir / "installer-state.json"
+        state_path.write_text(
+            '{"version":2,"target":"local","components":["server"],'
+            '"transport":"stdio","profile":"unified",'
+            '"outcomes":[{"step":"unknown","status":"completed"}]}\n'
+        )
+        code, _, error = self.run_main(
+            "uninstall", "--target", "local", "--data-dir", str(self.data_dir)
+        )
+        self.assertEqual(code, 2)
+        self.assertIn("malformed", error)
+        self.assertTrue(state_path.exists())
+        self.write_completed_state()
+        with patch.object(installer.shutil, "rmtree", side_effect=OSError("cannot remove")):
+            code, _, error = self.run_main(
+                "uninstall", "--target", "local", "--data-dir", str(self.data_dir)
+            )
+        self.assertEqual(code, 2)
+        self.assertIn("cannot remove", error)
+        self.assertTrue(state_path.exists())
+
     def test_reserved_children_are_not_adopted_or_partially_deleted(self):
         outside = self.data_dir.parent / f"{self.data_dir.name}-outside"
         outside.mkdir()
@@ -423,7 +590,7 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertTrue((self.data_dir / "venv" / "keep").exists())
 
-    def test_process_record_fsyncs_its_directory_and_http_keeps_diagnostics(self):
+    def test_process_record_is_atomic_and_http_keeps_diagnostics(self):
         runtime = self.data_dir / "runtime"
         runtime.mkdir()
         descriptors = []
@@ -468,6 +635,28 @@ class LocalInstallerTest(unittest.TestCase):
         with patch.object(installer, "_port_available", return_value=False):
             missing = actions.missing_inputs("verify")
         self.assertEqual(missing, ("Free loopback port 8000; an unowned process holds it.",))
+
+    def test_verify_http_appends_diagnostics_and_preserves_inherited_environment(self):
+        self.write_distribution()
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="http", profile="unified"
+        )
+        actions.apply("configure")
+        log = self.data_dir / "runtime/server.log"
+        log.write_text("before\n")
+        process = MagicMock(pid=42)
+        process.poll.return_value = None
+        with (
+            patch.dict(installer.os.environ, {"PATH": "/bin", "HOME": "/home/test"}, clear=True),
+            patch.object(installer, "_owned_process", return_value=None),
+            patch.object(installer.subprocess, "Popen", return_value=process) as popen,
+            patch.object(installer, "_poll_ready", return_value=True),
+        ):
+            self.assertTrue(actions.verify("verify"))
+        self.assertEqual(log.read_text(), "before\n")
+        self.assertEqual(Path(popen.call_args.kwargs["stderr"].name), log)
+        self.assertEqual(popen.call_args.kwargs["env"]["PATH"], "/bin")
+        self.assertEqual(popen.call_args.kwargs["env"]["NCI_SI_HTTP_PORT"], "8000")
 
     def test_http_verification_pins_port_8000_despite_the_callers_environment(self):
         self.write_distribution()

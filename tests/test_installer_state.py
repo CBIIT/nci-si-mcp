@@ -130,6 +130,9 @@ class InstallerStateTest(unittest.TestCase):
             self.encoded(outcomes=[completed | {"missing": ["x"]}]),
             self.encoded(components=["server", "server"]),
             self.encoded(components=["alien"]),
+            self.encoded(components="server"),
+            self.encoded(transport="tcp"),
+            self.encoded(profile="other"),
         )
         for content in cases:
             with self.subTest(content=content):

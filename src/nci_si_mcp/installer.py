@@ -211,7 +211,7 @@ def _blocked(args: argparse.Namespace) -> str | None:
     if args.command in ("check", "run", "status") and args.target == "aws":
         return "BLOCKED: standard-AWS prerequisite checks arrive with #324."
     if _unimplemented_local_selection(args):
-        return "BLOCKED: optional local components arrive in Phases 33b and 33c."
+        return "BLOCKED: install optional components with the documented local-guide commands."
     return None
 
 
@@ -553,6 +553,7 @@ def _owned_process(runtime: Path) -> int | None:
             path.unlink(missing_ok=True)
             return None
         except PermissionError:
+            # Existence without inspection is not absence; preserve the record and fail closed.
             pass
         raise InstallerStateError(
             "Cannot verify server process ownership; inspect the runtime record."
