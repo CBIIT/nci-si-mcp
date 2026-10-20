@@ -371,11 +371,10 @@ class LocalActions:
 
     def _verify_server(self) -> bool:
         if self.transport == "stdio":
-            return (
-                self.verify("install")
-                and self.verify("configure")
-                and _verify_stdio(self.python, self.runtime, self.environment()) is None
-            )
+            if not self.verify("install") or not self.verify("configure"):
+                return False
+            _verify_stdio(self.python, self.runtime, self.environment())
+            return True
         if not self.missing_inputs("verify"):
             return _verify_http(self.python, self.runtime, self.environment())
         return False

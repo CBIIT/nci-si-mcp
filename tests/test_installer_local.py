@@ -348,6 +348,13 @@ class LocalInstallerTest(unittest.TestCase):
                     run.call_args.kwargs["env"],
                     {"PATH": "/bin", "HOME": "/home/test", **environment},
                 )
+                self.assertEqual(run.call_args.kwargs["timeout"], 30)
+                self.assertFalse(run.call_args.kwargs["check"])
+                self.assertEqual(run.call_args.kwargs["stdin"], subprocess.DEVNULL)
+                self.assertEqual(run.call_args.kwargs["stdout"], subprocess.DEVNULL)
+                self.assertEqual(
+                    Path(run.call_args.kwargs["stderr"].name), self.data_dir / "server.log"
+                )
         response = MagicMock()
         response.__enter__.return_value = response
         for status, expected in ((200, True), (201, False)):
@@ -385,50 +392,73 @@ class LocalInstallerTest(unittest.TestCase):
             "NCI_SI_TRANSPORT": "stdio",
         }
         with self.assertRaisesRegex(installer.InstallerStateError, "server.log"):
-            cast("Any", installer._verify_stdio)(Path(sys.executable), runtime, environment)
-        self.assertIn("NCI_SI_PROFILE", (runtime / "server.log").read_text())
+            installer._verify_stdio(Path(sys.executable), runtime, environment)
+        log = (runtime / "server.log").read_text()
+        self.assertIn("NCI_SI_PROFILE", log)
+
+    def test_stdio_verifier_appends_real_child_error_to_owned_log(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        log = runtime / "server.log"
+        log.write_text("earlier HTTP diagnostic\n", encoding="utf-8")
+        environment = {
+            "NCI_SI_DATA_DIR": str(self.data_dir / "server-data"),
+            "NCI_SI_PROFILE": "invalid-profile",
+            "NCI_SI_TRANSPORT": "stdio",
+        }
+        with self.assertRaisesRegex(installer.InstallerStateError, "server.log"):
+            installer._verify_stdio(Path(sys.executable), runtime, environment)
+        contents = log.read_text(encoding="utf-8")
+        self.assertTrue(contents.startswith("earlier HTTP diagnostic\n"))
+        self.assertIn("NCI_SI_PROFILE", contents)
 
     def test_stdio_execution_failures_report_the_owned_log_without_a_traceback(self):
         self.write_distribution()
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         actions.apply("configure")
-        failures = (
-            (OSError("cannot launch"), "could not launch: cannot launch", False),
-            (subprocess.TimeoutExpired(["verify"], 30), "timed out", True),
+        installer_state.write_state(
+            self.data_dir,
+            installer_state.InstallationState(
+                2,
+                "local",
+                ("server",),
+                tuple(
+                    installer_state.StepOutcome(step, "completed")
+                    for step in ("check_prerequisites", "install", "configure")
+                ),
+            ),
         )
-        for failure, message, names_log in failures:
-            installer_state.write_state(
-                self.data_dir,
-                installer_state.InstallationState(
-                    2,
-                    "local",
-                    ("server",),
-                    tuple(
-                        installer_state.StepOutcome(step, "completed")
-                        for step in ("check_prerequisites", "install", "configure")
-                    ),
-                ),
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(
+                installer.subprocess,
+                "run",
+                side_effect=subprocess.TimeoutExpired(["verify"], 30),
+            ),
+        ):
+            code, output, error = self.run_main(
+                "run",
+                "--target",
+                "local",
+                "--data-dir",
+                str(self.data_dir),
+                "--non-interactive",
             )
-            with (
-                self.subTest(failure=type(failure).__name__),
-                patch.object(installer, "__version__", "0.21.0"),
-                patch.object(
-                    installer, "local_prerequisites", side_effect=self.passed_prerequisite
-                ),
-                patch.object(installer.subprocess, "run", side_effect=failure),
-            ):
-                code, output, error = self.run_main(
-                    "run",
-                    "--target",
-                    "local",
-                    "--data-dir",
-                    str(self.data_dir),
-                    "--non-interactive",
-                )
-            self.assertEqual((code, output), (2, ""))
-            self.assertIn(message, error)
-            self.assertEqual(str(self.data_dir / "runtime/server.log") in error, names_log)
-            self.assertNotIn("Traceback", error)
+        self.assertEqual((code, output), (2, ""))
+        self.assertIn("timed out", error)
+        self.assertIn(str(self.data_dir / "runtime/server.log"), error)
+        self.assertNotIn("Traceback", error)
+
+    def test_stdio_missing_interpreter_reports_the_launch_cause(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        missing = self.data_dir / "missing-python"
+        with self.assertRaisesRegex(
+            installer.InstallerStateError,
+            r"could not launch: \[Errno 2\] No such file or directory",
+        ):
+            installer._verify_stdio(missing, runtime, {})
 
     def test_stdio_log_open_failure_names_the_unavailable_log_and_cause(self):
         runtime = self.data_dir / "runtime"
