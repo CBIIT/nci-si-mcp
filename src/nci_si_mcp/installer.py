@@ -529,8 +529,11 @@ def _verify_stdio(python: Path, environment: dict[str, str]) -> bool:
         "import asyncio\n"
         "import sys\n"
         "from mcp.client import Client\n"
+        "from mcp.client.stdio import StdioServerParameters, stdio_client\n"
         "async def check():\n"
-        "    async with Client([sys.argv[1], 'serve']) as client:\n"
+        "    server = StdioServerParameters(command=sys.argv[1], args=['serve'])\n"
+        "    transport = stdio_client(server)\n"
+        "    async with Client(transport) as client:\n"
         "        await client.list_tools()\n"
         "asyncio.run(check())"
     )
