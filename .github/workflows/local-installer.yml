@@ -53,8 +53,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$INPUT_REF" ]; then
-            ref="$INPUT_REF"
             tag="$INPUT_TAG"
+            if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then exit 1; fi
+            ref="$(git rev-parse "$INPUT_REF^{commit}")"
+            test "$(git rev-parse "$tag^{commit}")" = "$ref"
           elif [ "$EVENT_NAME" = "pull_request" ]; then
             ref="$PR_REF"
             tag="v0.0.0"
@@ -95,7 +97,7 @@ jobs:
         run: |
           git tag "$INSTALL_TAG" "$INSTALL_REF"
           git config --global url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
-      - name: Install the released installer
+      - name: Install the selected installer source
         working-directory: ${{ runner.temp }}
         env:
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
@@ -104,7 +106,7 @@ jobs:
         run: |
           "$PYTHON" -m venv "$INSTALLER_VENV"
           "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
-      - name: Install the release acceptance suite (CI only)
+      - name: Install the acceptance suite (CI only)
         env:
           PYTHON: ${{ steps.python.outputs.python-path }}
         run: |

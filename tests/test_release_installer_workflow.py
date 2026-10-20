@@ -48,7 +48,7 @@ steps:
     run: |
       git tag "$INSTALL_TAG" "$INSTALL_REF"
       git config --global url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
-  - name: Install the released installer
+  - name: Install the selected installer source
     working-directory: ${{ runner.temp }}
     env:
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
@@ -57,7 +57,7 @@ steps:
     run: |
       "$PYTHON" -m venv "$INSTALLER_VENV"
       "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
-  - name: Install the release acceptance suite (CI only)
+  - name: Install the acceptance suite (CI only)
     env: {PYTHON: '${{ steps.python.outputs.python-path }}'}
     run: |
       "$PYTHON" -m venv "$RUNNER_TEMP/acceptance-venv"
@@ -166,8 +166,10 @@ steps:
     run: |
       set -euo pipefail
       if [ -n "$INPUT_REF" ]; then
-        ref="$INPUT_REF"
         tag="$INPUT_TAG"
+        if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then exit 1; fi
+        ref="$(git rev-parse "$INPUT_REF^{commit}")"
+        test "$(git rev-parse "$tag^{commit}")" = "$ref"
       elif [ "$EVENT_NAME" = "pull_request" ]; then
         ref="$PR_REF"
         tag="v0.0.0"
@@ -251,7 +253,7 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(value["timeout-minutes"], 20)
 
-    def test_checkout_is_the_exact_release_without_credentials(self):
+    def test_checkout_is_the_exact_selected_source_without_credentials(self):
         checkout = job()["steps"][0]
         self.assertEqual(
             checkout,
@@ -278,14 +280,14 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
         )
         steps = {step["name"]: step for step in named_steps()}
         self.assertEqual(
-            steps["Install the released installer"]["env"]["PYTHON"],
+            steps["Install the selected installer source"]["env"]["PYTHON"],
             "${{ steps.python.outputs.python-path }}",
         )
         self.assertNotIn("curl", WORKFLOW.read_text(encoding="utf-8"))
 
     def test_installer_commands_run_outside_checkout_with_the_release_executable(self):
         steps = {step["name"]: step for step in named_steps()}
-        install = steps["Install the released installer"]
+        install = steps["Install the selected installer source"]
         self.assertEqual(install["working-directory"], "${{ runner.temp }}")
         self.assertIn("@${RELEASE_TAG}", install["run"])
         self.assertIn('"$PYTHON" -m venv "$INSTALLER_VENV"', documented_commands())

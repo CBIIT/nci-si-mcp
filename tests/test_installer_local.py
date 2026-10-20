@@ -392,8 +392,11 @@ class LocalInstallerTest(unittest.TestCase):
         self.write_distribution()
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         actions.apply("configure")
-        failures = (OSError("cannot launch"), subprocess.TimeoutExpired(["verify"], 30))
-        for failure in failures:
+        failures = (
+            (OSError("cannot launch"), "could not launch"),
+            (subprocess.TimeoutExpired(["verify"], 30), "timed out"),
+        )
+        for failure, message in failures:
             installer_state.write_state(
                 self.data_dir,
                 installer_state.InstallationState(
@@ -423,8 +426,21 @@ class LocalInstallerTest(unittest.TestCase):
                     "--non-interactive",
                 )
             self.assertEqual((code, output), (2, ""))
+            self.assertIn(message, error)
             self.assertIn(str(self.data_dir / "runtime/server.log"), error)
             self.assertNotIn("Traceback", error)
+
+    def test_stdio_log_open_failure_names_the_unavailable_log_and_cause(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        with (
+            patch.object(Path, "open", side_effect=PermissionError("read only")),
+            self.assertRaisesRegex(
+                installer.InstallerStateError,
+                r"Cannot open stdio verification log .*server\.log: read only",
+            ),
+        ):
+            installer._verify_stdio(Path(sys.executable), runtime, {})
 
     def test_stdio_verify_requires_install_and_configuration(self):
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")

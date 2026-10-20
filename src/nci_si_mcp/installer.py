@@ -541,7 +541,13 @@ def _verify_stdio(python: Path, runtime: Path, environment: dict[str, str]) -> N
     )
     log_path = _server_log(runtime)
     try:
-        with log_path.open("ab") as log:
+        log = log_path.open("ab")
+    except OSError as error:
+        raise InstallerStateError(
+            f"Cannot open stdio verification log {log_path}: {error}."
+        ) from error
+    try:
+        with log:
             result = subprocess.run(  # noqa: S603 - executable is the owned venv Python
                 [str(python), "-c", program, str(python.with_name("nci-si-mcp"))],
                 env=os.environ | environment,
@@ -551,9 +557,13 @@ def _verify_stdio(python: Path, runtime: Path, environment: dict[str, str]) -> N
                 timeout=30,
                 check=False,
             )
-    except OSError, subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired:
         raise InstallerStateError(
-            f"Installed stdio server verification could not complete; inspect {log_path}."
+            f"Installed stdio server verification timed out; inspect {log_path}."
+        ) from None
+    except OSError:
+        raise InstallerStateError(
+            f"Installed stdio server verification could not launch; inspect {log_path}."
         ) from None
     if result.returncode:
         raise InstallerStateError(
