@@ -288,6 +288,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
                 "branch-cleanup.yml",
                 "ci.yml",
                 "local-run.yml",
+                "local-installer.yml",
                 "pr-title.yml",
                 "release.yml",
             ],

@@ -48,11 +48,15 @@ class CiCostTest(unittest.TestCase):
                     "coverage-badges": "ubuntu-24.04",
                 },
                 "local-run.yml": {"local-run": "${{ matrix.os }}"},
+                "local-installer.yml": {
+                    "prepare": "ubuntu-24.04",
+                    "local-installer": "${{ matrix.os }}",
+                },
                 "pr-title.yml": {"conventional": "ubuntu-24.04"},
                 "release.yml": {
                     "release": "ubuntu-24.04",
                     "image": "ubuntu-24.04",
-                    "local-installer": "${{ matrix.os }}",
+                    "local-installer": None,
                 },
             },
         )
