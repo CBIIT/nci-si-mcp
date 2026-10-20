@@ -367,6 +367,18 @@ class LocalInstallerTest(unittest.TestCase):
         }
         self.assertFalse(installer._verify_stdio(Path(sys.executable), environment))
 
+    def test_stdio_verifier_reports_real_child_error_in_owned_log(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        environment = {
+            "NCI_SI_DATA_DIR": str(self.data_dir / "server-data"),
+            "NCI_SI_PROFILE": "invalid-profile",
+            "NCI_SI_TRANSPORT": "stdio",
+        }
+        with self.assertRaisesRegex(installer.InstallerStateError, "server.log"):
+            cast("Any", installer._verify_stdio)(Path(sys.executable), runtime, environment)
+        self.assertIn("NCI_SI_PROFILE", (runtime / "server.log").read_text())
+
     def test_stdio_verify_requires_install_and_configuration(self):
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         for failed in ("install", "configure"):
