@@ -82,7 +82,9 @@ steps:
         exit "$status"
       }
       trap cleanup EXIT
-      export REQUIRED_TESTS="test_a_resolved_release_is_never_cached test_an_index_mode_without_an_index_is_unavailable"
+      command -v lsof
+      export STDIO_REQUIRED_TESTS="test_a_resolved_release_is_never_cached test_an_index_mode_without_an_index_is_unavailable"
+      export HTTP_REQUIRED_TESTS="test_a_resolved_release_is_never_cached test_a_discovered_release_identifies_the_concept_and_its_provenance"
       mkdir -p "$STDIO_ROOT"
       touch "$STDIO_ROOT/unowned"
       "$INSTALLER_VENV/bin/nci-si-install" check --target local
@@ -90,9 +92,9 @@ steps:
       "$INSTALLER_VENV/bin/nci-si-install" status --target local --transport stdio --data-dir "$STDIO_ROOT"
       STDIO_CLIENT="$("$INSTALLER_VENV/bin/nci-si-install" start --target local --transport stdio --data-dir "$STDIO_ROOT")"
       STDIO_SERVER="$(printf '%s' "$STDIO_CLIENT" | "$ACCEPTANCE_VENV/bin/python" -c 'import json,shlex,sys; r=json.load(sys.stdin); print(shlex.join(["env", *(f"{k}={v}" for k,v in r["env"].items()), r["command"], *r["args"]]))')"
-      ! lsof -nP -iTCP:8000 -sTCP:LISTEN
+      if sudo lsof -nP -iTCP:8000 -sTCP:LISTEN; then echo "port 8000 held before stdio acceptance"; exit 1; fi
       NCI_SI_ACCEPTANCE_MODE=fixture NCI_SI_ACCEPTANCE_SERVER="$STDIO_SERVER" "$ACCEPTANCE_VENV/bin/pytest" "$GITHUB_WORKSPACE/acceptance/tests/test_evs.py::test_a_resolved_release_is_never_cached" "$GITHUB_WORKSPACE/acceptance/tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable" --report="$RUNNER_TEMP/stdio.json"
-      ! lsof -nP -iTCP:8000 -sTCP:LISTEN
+      if sudo lsof -nP -iTCP:8000 -sTCP:LISTEN; then echo "port 8000 held after stdio acceptance"; exit 1; fi
       "$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport stdio --data-dir "$STDIO_ROOT"
       test -f "$STDIO_ROOT/unowned"
       test ! -e "$STDIO_ROOT/venv"
@@ -109,7 +111,7 @@ steps:
       export NCI_SI_CADSR_FTP_URL=http://127.0.0.1:8766/cadsr-ftp
       export NCI_SI_SSIS_SPARQL_URL=http://127.0.0.1:8766/ssis-sparql
       "$INSTALLER_VENV/bin/nci-si-install" start --target local --transport http --data-dir "$HTTP_ROOT"
-      NCI_SI_ACCEPTANCE_URL=http://127.0.0.1:8000/mcp NCI_SI_ACCEPTANCE_FIXTURE_BIND=127.0.0.1:8766 NCI_SI_ACCEPTANCE_FIXTURE_URL=http://127.0.0.1:8766 "$ACCEPTANCE_VENV/bin/pytest" "$GITHUB_WORKSPACE/acceptance/tests/test_evs.py::test_a_resolved_release_is_never_cached" "$GITHUB_WORKSPACE/acceptance/tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable" --report="$RUNNER_TEMP/http.json"
+      NCI_SI_ACCEPTANCE_URL=http://127.0.0.1:8000/mcp NCI_SI_ACCEPTANCE_FIXTURE_BIND=127.0.0.1:8766 NCI_SI_ACCEPTANCE_FIXTURE_URL=http://127.0.0.1:8766 "$ACCEPTANCE_VENV/bin/pytest" "$GITHUB_WORKSPACE/acceptance/tests/test_evs.py::test_a_resolved_release_is_never_cached" "$GITHUB_WORKSPACE/acceptance/tests/test_evs.py::test_a_discovered_release_identifies_the_concept_and_its_provenance" --report="$RUNNER_TEMP/http.json"
       "$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT"
       "$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT"
       test -f "$HTTP_ROOT/unowned"
@@ -119,12 +121,13 @@ steps:
       import json, os
       from pathlib import Path
       expected = json.loads(Path(os.environ["GITHUB_WORKSPACE"] + "/acceptance/expected/fixture.json").read_text())
-      names = os.environ["REQUIRED_TESTS"].split()
-      required = {key for key in expected if any(name in key for name in names)}
       for name in ("stdio", "http"):
+          names = os.environ[f"{name.upper()}_REQUIRED_TESTS"].split()
+          required = {key for key in expected if any(test in key for test in names)}
           report = json.loads(Path(os.environ["RUNNER_TEMP"] + f"/{name}.json").read_text())
           actual = {key: value["outcome"] for key, value in report["tests"].items()}
           assert set(actual) == required, (name, set(actual), required)
+          assert set(actual.values()) == {"passed"}, (name, actual)
           assert actual == {key: expected[key] for key in actual}, (name, actual)
       PY
 """)
@@ -303,7 +306,7 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
             self.assertTrue(any(line.startswith(f"{installer} {command} ") for line in lines))
         self.assertNotIn("pdm run nci-si-install", lifecycle["run"])
 
-    def test_acceptance_targets_only_release_resolution_and_no_index_search(self):
+    def test_acceptance_targets_fixture_calls_that_execute_on_each_transport(self):
         run = next(
             step["run"]
             for step in named_steps()
@@ -311,6 +314,7 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
         )
         self.assertIn("test_a_resolved_release_is_never_cached", run)
         self.assertIn("test_an_index_mode_without_an_index_is_unavailable", run)
+        self.assertIn("test_a_discovered_release_identifies_the_concept_and_its_provenance", run)
         self.assertIn("NCI_SI_ACCEPTANCE_SERVER", run)
         self.assertIn("NCI_SI_ACCEPTANCE_URL", run)
         self.assertIn("acceptance/expected/fixture.json", run)
@@ -320,9 +324,11 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
         self.assertIn("assert set(actual) == required", run)
         self.assertIn("trap cleanup EXIT", run)
         self.assertIn('if [ "$status" -eq 0 ]; then status=$cleanup_status; fi', run)
+        self.assertIn('names = os.environ[f"{name.upper()}_REQUIRED_TESTS"].split()', run)
         self.assertIn(
-            "required = {key for key in expected if any(name in key for name in names)}", run
+            "required = {key for key in expected if any(test in key for test in names)}", run
         )
+        self.assertIn('assert set(actual.values()) == {"passed"}', run)
 
     def test_uninstall_check_distinguishes_owned_and_unowned_paths(self):
         run = next(
