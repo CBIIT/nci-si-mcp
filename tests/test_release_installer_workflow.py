@@ -74,6 +74,10 @@ steps:
       cleanup() {
         status=$?
         cleanup_status=0
+        if [ "$status" -ne 0 ] && [ "$RUNNER_OS" = "macOS" ]; then
+          sudo lsof -nP -i :8000 || true
+          netstat -anv -p tcp | grep '\.8000 ' || true
+        fi
         if [ -f "$HTTP_ROOT/installer-state.json" ]; then
           "$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT" || cleanup_status=$?
           "$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT" || cleanup_status=$?
