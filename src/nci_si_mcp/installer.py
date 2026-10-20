@@ -208,6 +208,7 @@ def _supported_os() -> bool:
 def _port_available(port: int) -> bool:
     try:
         with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             listener.bind(("127.0.0.1", port))
     except OSError as error:
         if error.errno == errno.EADDRINUSE:

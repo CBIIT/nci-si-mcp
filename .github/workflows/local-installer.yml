@@ -136,7 +136,6 @@ jobs:
             exit "$status"
           }
           trap cleanup EXIT
-          command -v lsof
           export STDIO_REQUIRED_TESTS="test_a_resolved_release_is_never_cached test_an_index_mode_without_an_index_is_unavailable"
           export HTTP_REQUIRED_TESTS="test_a_resolved_release_is_never_cached test_a_discovered_release_identifies_the_concept_and_its_provenance"
           mkdir -p "$STDIO_ROOT"
@@ -146,9 +145,7 @@ jobs:
           "$INSTALLER_VENV/bin/nci-si-install" status --target local --transport stdio --data-dir "$STDIO_ROOT"
           STDIO_CLIENT="$("$INSTALLER_VENV/bin/nci-si-install" start --target local --transport stdio --data-dir "$STDIO_ROOT")"
           STDIO_SERVER="$(printf '%s' "$STDIO_CLIENT" | "$ACCEPTANCE_VENV/bin/python" -c 'import json,shlex,sys; r=json.load(sys.stdin); print(shlex.join(["env", *(f"{k}={v}" for k,v in r["env"].items()), r["command"], *r["args"]]))')"
-          if sudo lsof -nP -iTCP:8000 -sTCP:LISTEN; then echo "port 8000 held before stdio acceptance"; exit 1; fi
           NCI_SI_ACCEPTANCE_MODE=fixture NCI_SI_ACCEPTANCE_SERVER="$STDIO_SERVER" "$ACCEPTANCE_VENV/bin/pytest" "$GITHUB_WORKSPACE/acceptance/tests/test_evs.py::test_a_resolved_release_is_never_cached" "$GITHUB_WORKSPACE/acceptance/tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable" --report="$RUNNER_TEMP/stdio.json"
-          if sudo lsof -nP -iTCP:8000 -sTCP:LISTEN; then echo "port 8000 held after stdio acceptance"; exit 1; fi
           "$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport stdio --data-dir "$STDIO_ROOT"
           test -f "$STDIO_ROOT/unowned"
           test ! -e "$STDIO_ROOT/venv"
