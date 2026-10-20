@@ -393,10 +393,10 @@ class LocalInstallerTest(unittest.TestCase):
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         actions.apply("configure")
         failures = (
-            (OSError("cannot launch"), "could not launch"),
-            (subprocess.TimeoutExpired(["verify"], 30), "timed out"),
+            (OSError("cannot launch"), "could not launch: cannot launch", False),
+            (subprocess.TimeoutExpired(["verify"], 30), "timed out", True),
         )
-        for failure, message in failures:
+        for failure, message, names_log in failures:
             installer_state.write_state(
                 self.data_dir,
                 installer_state.InstallationState(
@@ -427,7 +427,7 @@ class LocalInstallerTest(unittest.TestCase):
                 )
             self.assertEqual((code, output), (2, ""))
             self.assertIn(message, error)
-            self.assertIn(str(self.data_dir / "runtime/server.log"), error)
+            self.assertEqual(str(self.data_dir / "runtime/server.log") in error, names_log)
             self.assertNotIn("Traceback", error)
 
     def test_stdio_log_open_failure_names_the_unavailable_log_and_cause(self):

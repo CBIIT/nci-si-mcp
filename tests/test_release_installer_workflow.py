@@ -233,6 +233,7 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
                 "name": "local installer (macOS/Linux)",
                 "needs": "release",
                 "if": "needs.release.outputs.image_tag != ''",
+                "permissions": {"contents": "read"},
                 "uses": "$/.github/workflows/local-installer.yml",
                 "with": {
                     "ref": "${{ needs.release.outputs.image_sha }}",
