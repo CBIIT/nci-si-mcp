@@ -61,7 +61,7 @@ steps:
     env: {PYTHON: '${{ steps.python.outputs.python-path }}'}
     run: |
       "$PYTHON" -m venv "$RUNNER_TEMP/acceptance-venv"
-      "$RUNNER_TEMP/acceptance-venv/bin/python" -m pip install ./acceptance
+      "$RUNNER_TEMP/acceptance-venv/bin/python" -m pip install --editable ./acceptance
   - name: Verify stdio and HTTP installer lifecycles
     working-directory: ${{ runner.temp }}
     env:
