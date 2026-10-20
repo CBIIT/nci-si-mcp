@@ -7,7 +7,8 @@ import yaml
 # ruff: noqa: E501 - exact workflow command snapshot intentionally preserves literal lines
 
 ROOT = Path(__file__).parent.parent
-WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
+WORKFLOW = ROOT / ".github" / "workflows" / "local-installer.yml"
+RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 DOCUMENT = ROOT / "docs" / "installer-targets.md"
 JOB_NAME = "local installer (macOS/Linux)"
 STDIO_CAPTURE = (
@@ -15,6 +16,8 @@ STDIO_CAPTURE = (
     '--target local --transport stdio --data-dir "$STDIO_ROOT")"'
 )
 CI_ONLY = {
+    'git tag "$INSTALL_TAG" "$INSTALL_REF"': "gives the PR head an SCM release identity without changing its version",
+    'git config --global url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp': "redirects the installer Git URL to the checked-out PR source",
     STDIO_CAPTURE: "captures the documented client record for the acceptance harness",
     '"$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http '
     '--data-dir "$HTTP_ROOT" || cleanup_status=$?': "cleans up HTTP after a failed check",
@@ -23,8 +26,7 @@ CI_ONLY = {
 }
 EXPECTED_JOB = yaml.safe_load(r"""
 name: local installer (macOS/Linux) (${{ matrix.os }})
-needs: release
-if: needs.release.outputs.image_tag != ''
+needs: prepare
 runs-on: ${{ matrix.os }}
 timeout-minutes: 20
 permissions: {contents: read}
@@ -33,15 +35,23 @@ strategy:
   matrix: {os: [macos-latest, ubuntu-24.04]}
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-    with: {ref: '${{ needs.release.outputs.image_sha }}', fetch-depth: 0, persist-credentials: false}
+    with: {ref: '${{ needs.prepare.outputs.ref }}', fetch-depth: 0, persist-credentials: false}
   - name: Install Python
     id: python
     uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
     with: {python-version: '3.14'}
+  - name: Prepare pull request source (CI only)
+    if: github.event_name == 'pull_request'
+    env:
+      INSTALL_REF: ${{ needs.prepare.outputs.ref }}
+      INSTALL_TAG: ${{ needs.prepare.outputs.tag }}
+    run: |
+      git tag "$INSTALL_TAG" "$INSTALL_REF"
+      git config --global url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
   - name: Install the released installer
     working-directory: ${{ runner.temp }}
     env:
-      RELEASE_TAG: ${{ needs.release.outputs.image_tag }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
       INSTALLER_VENV: ${{ runner.temp }}/installer-venv
       PYTHON: ${{ steps.python.outputs.python-path }}
     run: |
@@ -117,6 +127,58 @@ steps:
       PY
 """)
 
+EXPECTED_TRIGGERS = yaml.safe_load(r"""
+workflow_call:
+  inputs:
+    ref: {required: true, type: string}
+    tag: {required: true, type: string}
+pull_request:
+  paths:
+    - src/nci_si_mcp/**
+    - tests/test_installer*.py
+    - tests/test_release_installer_workflow.py
+    - acceptance/**
+    - pyproject.toml
+    - pdm.lock
+    - .github/workflows/local-installer.yml
+    - .github/workflows/release.yml
+schedule:
+  - cron: '23 7 * * 1'
+""")
+EXPECTED_PREPARE = yaml.safe_load(r"""
+name: select source
+runs-on: ubuntu-24.04
+timeout-minutes: 5
+outputs:
+  ref: ${{ steps.source.outputs.ref }}
+  tag: ${{ steps.source.outputs.tag }}
+steps:
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    with: {fetch-depth: 0, persist-credentials: false}
+  - name: Select exact source
+    id: source
+    env:
+      EVENT_NAME: ${{ github.event_name }}
+      INPUT_REF: ${{ inputs.ref }}
+      INPUT_TAG: ${{ inputs.tag }}
+      PR_REF: ${{ github.event.pull_request.head.sha }}
+      GH_TOKEN: ${{ github.token }}
+    run: |
+      set -euo pipefail
+      if [ -n "$INPUT_REF" ]; then
+        ref="$INPUT_REF"
+        tag="$INPUT_TAG"
+      elif [ "$EVENT_NAME" = "pull_request" ]; then
+        ref="$PR_REF"
+        tag="v0.0.0"
+      else
+        tag="$(gh release view --json tagName --jq .tagName)"
+        ref="$(git rev-list -n 1 "$tag")"
+      fi
+      echo "ref=$ref" >> "$GITHUB_OUTPUT"
+      echo "tag=$tag" >> "$GITHUB_OUTPUT"
+""")
+
 
 def workflow():
     return yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
@@ -145,11 +207,42 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
     def test_the_whole_release_installer_job_is_exact(self):
         self.assertEqual(job(), EXPECTED_JOB)
 
-    def test_job_runs_only_for_the_exact_release_with_read_only_permissions(self):
+    def test_source_selection_is_exact_for_call_pr_and_schedule(self):
+        self.assertEqual(workflow()["jobs"]["prepare"], EXPECTED_PREPARE)
+
+    def test_workflow_has_exact_entry_paths_concurrency_and_permissions(self):
+        value = workflow()
+        self.assertEqual(value[True], EXPECTED_TRIGGERS)
+        self.assertEqual(value["permissions"], {"contents": "read"})
+        self.assertEqual(
+            value["concurrency"],
+            {
+                "group": "local-installer-${{ inputs.ref || github.event.pull_request.head.sha || github.ref }}",
+                "cancel-in-progress": True,
+            },
+        )
+
+    def test_release_workflow_calls_the_reusable_workflow_without_a_pr_trigger(self):
+        release = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
+        self.assertNotIn("pull_request", release[True])
+        self.assertEqual(
+            release["jobs"]["local-installer"],
+            {
+                "name": "local installer (macOS/Linux)",
+                "needs": "release",
+                "if": "needs.release.outputs.image_tag != ''",
+                "uses": "$/.github/workflows/local-installer.yml",
+                "with": {
+                    "ref": "${{ needs.release.outputs.image_sha }}",
+                    "tag": "${{ needs.release.outputs.image_tag }}",
+                },
+            },
+        )
+
+    def test_job_uses_prepared_source_with_read_only_permissions(self):
         value = job()
         self.assertEqual(value["name"], JOB_NAME + " (${{ matrix.os }})")
-        self.assertEqual(value["needs"], "release")
-        self.assertEqual(value["if"], "needs.release.outputs.image_tag != ''")
+        self.assertEqual(value["needs"], "prepare")
         self.assertEqual(value["permissions"], {"contents": "read"})
         self.assertEqual(value["runs-on"], "${{ matrix.os }}")
         self.assertEqual(
@@ -165,7 +258,7 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
             {
                 "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
                 "with": {
-                    "ref": "${{ needs.release.outputs.image_sha }}",
+                    "ref": "${{ needs.prepare.outputs.ref }}",
                     "fetch-depth": 0,
                     "persist-credentials": False,
                 },
