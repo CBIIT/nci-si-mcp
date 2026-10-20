@@ -450,6 +450,25 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertIn(str(self.data_dir / "runtime/server.log"), error)
         self.assertNotIn("Traceback", error)
 
+    def test_stdio_timeout_has_exact_guidance_without_an_exception_cause(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        with (
+            patch.object(
+                installer.subprocess,
+                "run",
+                side_effect=subprocess.TimeoutExpired(["verify"], 30),
+            ),
+            self.assertRaises(installer.InstallerStateError) as caught,
+        ):
+            installer._verify_stdio(Path(sys.executable), runtime, {})
+        self.assertEqual(
+            str(caught.exception),
+            f"Installed stdio server verification timed out; inspect {runtime / 'server.log'}.",
+        )
+        self.assertIsNone(caught.exception.__cause__)
+        self.assertTrue(caught.exception.__suppress_context__)
+
     def test_stdio_missing_interpreter_reports_the_launch_cause(self):
         runtime = self.data_dir / "runtime"
         runtime.mkdir()
