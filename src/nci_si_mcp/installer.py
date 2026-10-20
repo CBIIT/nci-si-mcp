@@ -374,7 +374,7 @@ class LocalActions:
             return (
                 self.verify("install")
                 and self.verify("configure")
-                and _verify_stdio(self.python, self.environment())
+                and _verify_stdio(self.python, self.runtime, self.environment()) is None
             )
         if not self.missing_inputs("verify"):
             return _verify_http(self.python, self.runtime, self.environment())
@@ -482,7 +482,7 @@ def _verify_http(python: Path, runtime: Path, environment: dict[str, str]) -> bo
     if _owned_process(runtime):
         return _ready()
     command = str(python.with_name("nci-si-mcp"))
-    with _http_log(runtime).open("ab") as log:
+    with _server_log(runtime).open("ab") as log:
         process = subprocess.Popen(  # noqa: S603 - executable is inside the owned venv
             [command, "serve", "--transport", "streamable-http"],
             env=os.environ | environment,
@@ -524,7 +524,7 @@ def _write_process_record(runtime: Path, pid: int, command: str) -> None:
         temporary_path.unlink(missing_ok=True)
 
 
-def _verify_stdio(python: Path, environment: dict[str, str]) -> bool:
+def _verify_stdio(python: Path, runtime: Path, environment: dict[str, str]) -> None:
     program = (
         "import asyncio\n"
         "import os\n"
@@ -539,19 +539,29 @@ def _verify_stdio(python: Path, environment: dict[str, str]) -> bool:
         "        await client.list_tools()\n"
         "asyncio.run(check())"
     )
-    result = subprocess.run(  # noqa: S603 - executable is the owned venv Python
-        [str(python), "-c", program, str(python.with_name("nci-si-mcp"))],
-        env=os.environ | environment,
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        timeout=30,
-        check=False,
-    )
-    return result.returncode == 0
+    log_path = _server_log(runtime)
+    try:
+        with log_path.open("ab") as log:
+            result = subprocess.run(  # noqa: S603 - executable is the owned venv Python
+                [str(python), "-c", program, str(python.with_name("nci-si-mcp"))],
+                env=os.environ | environment,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=log,
+                timeout=30,
+                check=False,
+            )
+    except OSError, subprocess.TimeoutExpired:
+        raise InstallerStateError(
+            f"Installed stdio server verification could not complete; inspect {log_path}."
+        ) from None
+    if result.returncode:
+        raise InstallerStateError(
+            f"Installed stdio server verification failed; inspect {log_path}."
+        )
 
 
-def _http_log(runtime: Path) -> Path:
+def _server_log(runtime: Path) -> Path:
     return runtime / "server.log"
 
 
@@ -776,7 +786,7 @@ def _start_http(actions: LocalActions) -> dict[str, object]:
     if not _port_available(HTTP_PORT):
         raise InstallerStateError(f"Loopback port {HTTP_PORT} is held by an unowned process.")
     command = str(actions.python.with_name("nci-si-mcp"))
-    log_path = _http_log(actions.runtime)
+    log_path = _server_log(actions.runtime)
     with log_path.open("ab") as log:
         process = subprocess.Popen(  # noqa: S603 - executable is inside the owned venv
             [
