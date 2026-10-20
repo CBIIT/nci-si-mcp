@@ -1,6 +1,7 @@
 import io
 import json
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -963,6 +964,19 @@ class LocalInstallerTest(unittest.TestCase):
         available.assert_called_with(8000)
         self.assertEqual(start.call_args.kwargs["env"]["NCI_SI_HTTP_PORT"], "8000")
         opened.assert_called_with("http://127.0.0.1:8000/ready", timeout=5)
+
+    def test_port_probe_matches_a_reusable_listener_after_server_side_close(self):
+        with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind(("127.0.0.1", 0))
+            port = listener.getsockname()[1]
+            listener.listen()
+            with socket.create_connection(("127.0.0.1", port)) as client:
+                accepted, _ = listener.accept()
+                accepted.close()
+                self.assertEqual(client.recv(1), b"")
+            self.assertFalse(installer._port_available(port))
+        self.assertTrue(installer._port_available(port))
 
     def test_http_verification_kills_a_transient_process_that_ignores_sigterm(self):
         self.write_distribution()
