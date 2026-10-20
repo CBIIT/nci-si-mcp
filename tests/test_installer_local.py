@@ -150,7 +150,7 @@ class LocalInstallerTest(unittest.TestCase):
             with self.subTest(transport=transport):
                 self.write_distribution()
                 actions = installer.LocalActions(
-                    self.data_dir, ("server",), transport=transport, profile="cadsr"
+                    self.data_dir, transport=transport, profile="cadsr"
                 )
                 actions.apply("configure")
                 configuration = json.loads(
@@ -178,9 +178,7 @@ class LocalInstallerTest(unittest.TestCase):
     def test_stdio_start_emits_the_configured_client_command(self):
         self.write_distribution()
         self.write_completed_state(profile="cadsr")
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="stdio", profile="cadsr"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="cadsr")
         actions.apply("configure")
 
         with (
@@ -249,9 +247,7 @@ class LocalInstallerTest(unittest.TestCase):
     def test_start_refuses_each_independent_failed_precondition(self):
         self.write_distribution()
         self.write_completed_state()
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="stdio", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         actions.apply("configure")
         for failed in ("install", "configure", "verify"):
             with (
@@ -289,16 +285,12 @@ class LocalInstallerTest(unittest.TestCase):
 
     def test_wrong_installed_revision_fails_reverification(self):
         self.write_distribution(revision="v0.20.0")
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="stdio", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         self.assertFalse(actions.verify("install"))
 
     def test_release_and_configuration_verifiers_fail_closed(self):
         self.assertTrue(installer.RELEASE_VERSION.pattern.endswith(r"\Z"))
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="stdio", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         cases = (
             ("0.21.0.dev1", "v0.21.0", False),
             ("0.21.0", "v0.20.0", False),
@@ -360,9 +352,7 @@ class LocalInstallerTest(unittest.TestCase):
                 self.assertEqual(installer._ready(), expected)
 
     def test_stdio_verify_requires_install_and_configuration(self):
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="stdio", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         for failed in ("install", "configure"):
             with (
                 self.subTest(failed=failed),
@@ -377,9 +367,7 @@ class LocalInstallerTest(unittest.TestCase):
                 self.assertFalse(actions._verify_server())
 
     def test_http_start_and_stop_refusals_are_exact(self):
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="http", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="http", profile="unified")
         actions.apply("configure")
         with (
             patch.object(installer, "_owned_process", return_value=None),
@@ -515,9 +503,9 @@ class LocalInstallerTest(unittest.TestCase):
     def test_http_start_failure_reaps_child_and_removes_record(self):
         self.write_distribution()
         self.write_completed_state(transport="http")
-        installer.LocalActions(
-            self.data_dir, ("server",), transport="http", profile="unified"
-        ).apply("configure")
+        installer.LocalActions(self.data_dir, transport="http", profile="unified").apply(
+            "configure"
+        )
         process = MagicMock(pid=4321)
         with (
             patch.object(installer, "__version__", "0.21.0"),
@@ -544,9 +532,7 @@ class LocalInstallerTest(unittest.TestCase):
     def test_http_start_and_stop_manage_only_the_recorded_process(self):
         self.write_distribution()
         self.write_completed_state(transport="http")
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="http", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="http", profile="unified")
         actions.apply("configure")
         process = MagicMock(pid=4321)
         process.poll.return_value = None
@@ -591,9 +577,7 @@ class LocalInstallerTest(unittest.TestCase):
     def test_second_http_start_appends_to_the_existing_log(self):
         self.write_distribution()
         self.write_completed_state(transport="http")
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="http", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="http", profile="unified")
         actions.apply("configure")
         log = self.data_dir / "runtime/server.log"
         log.write_text("first\n")
@@ -614,9 +598,7 @@ class LocalInstallerTest(unittest.TestCase):
     def test_http_start_reaps_child_when_the_ownership_record_cannot_be_written(self):
         self.write_distribution()
         self.write_completed_state(transport="http")
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="http", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="http", profile="unified")
         actions.apply("configure")
         process = MagicMock(pid=4321)
         with (
@@ -687,9 +669,7 @@ class LocalInstallerTest(unittest.TestCase):
                     else:
                         (outside / ".installer-owned").touch()
                         path.symlink_to(outside, target_is_directory=True)
-                    actions = installer.LocalActions(
-                        root, ("server",), transport="stdio", profile="unified"
-                    )
+                    actions = installer.LocalActions(root, transport="stdio", profile="unified")
                     with self.assertRaisesRegex(installer.InstallerStateError, "unowned"):
                         actions.apply(step)
 
@@ -728,9 +708,7 @@ class LocalInstallerTest(unittest.TestCase):
         outside.mkdir()
         self.addCleanup(outside.rmdir)
         (self.data_dir / "runtime").symlink_to(outside, target_is_directory=True)
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="stdio", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         with self.assertRaisesRegex(installer.InstallerStateError, "unowned"):
             actions.apply("configure")
         self.assertEqual(list(outside.iterdir()), [])
@@ -773,9 +751,7 @@ class LocalInstallerTest(unittest.TestCase):
 
     def test_http_verification_cleans_up_a_transient_process_and_blocks_an_unowned_port(self):
         self.write_distribution()
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="http", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="http", profile="unified")
         actions.apply("configure")
         process = MagicMock(pid=4321)
         process.poll.return_value = None
@@ -797,9 +773,7 @@ class LocalInstallerTest(unittest.TestCase):
 
     def test_verify_http_appends_diagnostics_and_preserves_inherited_environment(self):
         self.write_distribution()
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="http", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="http", profile="unified")
         actions.apply("configure")
         log = self.data_dir / "runtime/server.log"
         log.write_text("before\n")
@@ -819,9 +793,7 @@ class LocalInstallerTest(unittest.TestCase):
 
     def test_http_verification_pins_port_8000_despite_the_callers_environment(self):
         self.write_distribution()
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="http", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="http", profile="unified")
         actions.apply("configure")
         process = MagicMock(pid=4321)
         process.poll.return_value = None
@@ -841,9 +813,7 @@ class LocalInstallerTest(unittest.TestCase):
 
     def test_http_verification_kills_a_transient_process_that_ignores_sigterm(self):
         self.write_distribution()
-        actions = installer.LocalActions(
-            self.data_dir, ("server",), transport="http", profile="unified"
-        )
+        actions = installer.LocalActions(self.data_dir, transport="http", profile="unified")
         actions.apply("configure")
         process = MagicMock(pid=4321)
         process.poll.return_value = None

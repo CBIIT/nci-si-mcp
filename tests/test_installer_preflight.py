@@ -12,8 +12,8 @@ API = installer
 
 class AggregatePrerequisiteTest(unittest.TestCase):
     @staticmethod
-    def local_check(name, components=("server", "documentation")):
-        return next(check for check in API.local_prerequisites(components) if check.name == name)
+    def local_check(name):
+        return next(check for check in API.local_prerequisites() if check.name == name)
 
     def test_every_check_runs_and_failures_keep_static_fixes(self):
         observed = []
@@ -84,7 +84,7 @@ class AggregatePrerequisiteTest(unittest.TestCase):
         self.assertNotIn(canary, repr(records))
 
     def test_supported_platforms_and_http_reachability_are_observed(self):
-        os_check = self.local_check("supported_os", ("server",))
+        os_check = self.local_check("supported_os")
         for system, expected in (("Darwin", True), ("Linux", True), ("Windows", False)):
             with (
                 self.subTest(system=system),
@@ -106,7 +106,7 @@ class AggregatePrerequisiteTest(unittest.TestCase):
                 patch.dict("os.environ", environment, clear=True),
                 self.assertRaisesRegex(ValueError, "NCI_SI_EVS_BASE_URL"),
             ):
-                API.local_prerequisites(("server",))
+                API.local_prerequisites()
 
     def test_server_only_needs_git_executable_not_a_checkout_or_pdm(self):
         with (
@@ -118,14 +118,14 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             ),
             patch("nci_si_mcp.installer.urlopen"),
         ):
-            results = API.run_prerequisites(API.local_prerequisites(("server",)))
+            results = API.run_prerequisites(API.local_prerequisites())
 
         by_name = {result.name: result for result in results}
         self.assertTrue(by_name["git"].passed)
         self.assertNotIn("pdm", by_name)
 
     def test_python_prerequisite_requires_3_14(self):
-        check = self.local_check("python", ("server",))
+        check = self.local_check("python")
         with patch.object(API.sys, "version_info", (3, 13)):
             self.assertFalse(check.observe())
         with patch.object(API.sys, "version_info", (3, 14)):

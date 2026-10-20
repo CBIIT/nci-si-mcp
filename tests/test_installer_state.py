@@ -142,6 +142,7 @@ class InstallerStateTest(unittest.TestCase):
             self.encoded(components=["alien"]),
             self.encoded(components="server"),
             self.encoded(components="index"),
+            self.encoded(components=[]),
             self.encoded(transport="tcp"),
             self.encoded(profile="other"),
         )

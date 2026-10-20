@@ -2,7 +2,7 @@
 
 How to install and run the server, what it serves, and how it fails. What this repository
 is, and the status of each tool group, is in [README.md](README.md).
-The [installer target interface](docs/installer-targets.md) describes the planned local and AWS installation flow and optional components.
+The [installer target interface](docs/installer-targets.md) installs and operates the local server only. The same guide links the independent local commands for optional components.
 
 See also: the same instructions and diagrams as a searchable website
 ([local documentation preview](docs/documentation-site.md#build-and-preview)); the documentation

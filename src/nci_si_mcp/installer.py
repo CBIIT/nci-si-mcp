@@ -173,14 +173,6 @@ def _local_arguments(command: argparse.ArgumentParser) -> None:
     )
 
 
-def _components(args: argparse.Namespace) -> tuple[str, ...]:
-    return COMPONENTS
-
-
-def _blocked(args: argparse.Namespace) -> str | None:
-    return None
-
-
 def run_prerequisites(checks: Sequence[Prerequisite]) -> tuple[CheckResult, ...]:
     return tuple(CheckResult(check.name, check.observe(), check.fix) for check in checks)
 
@@ -224,7 +216,7 @@ def _port_available(port: int) -> bool:
     return True
 
 
-def local_prerequisites(components: Sequence[str]) -> tuple[Prerequisite, ...]:
+def local_prerequisites() -> tuple[Prerequisite, ...]:
     checks = [
         Prerequisite("supported_os", "Run the local installer on macOS or Linux.", _supported_os),
         executable_prerequisite("git", "Install Git so pip can install the released source tag."),
@@ -253,7 +245,7 @@ def local_prerequisites(components: Sequence[str]) -> tuple[Prerequisite, ...]:
 
 
 def _check_record(plan: InstallationPlan) -> tuple[int, dict[str, object]]:
-    results = run_prerequisites(local_prerequisites(plan.components))
+    results = run_prerequisites(local_prerequisites())
     passed = all(result.passed for result in results)
     return (0 if passed else 1), {
         "target": plan.target,
@@ -271,13 +263,11 @@ class LocalActions:
     def __init__(
         self,
         data_dir: Path,
-        components: tuple[str, ...],
         *,
         transport: str,
         profile: str,
     ) -> None:
         self.data_dir = data_dir
-        self.components = components
         self.transport = transport
         self.profile = profile
 
@@ -294,7 +284,7 @@ class LocalActions:
         return self.data_dir / "runtime"
 
     def _checks(self) -> tuple[CheckResult, ...]:
-        return run_prerequisites(local_prerequisites(self.components))
+        return run_prerequisites(local_prerequisites())
 
     def missing_inputs(self, step: str) -> tuple[str, ...]:
         handlers = {
@@ -601,7 +591,6 @@ def _state_command(
 ) -> tuple[int, dict[str, object]]:
     actions = LocalActions(
         args.data_dir,
-        plan.components,
         transport=args.transport,
         profile=args.profile,
     )
@@ -726,9 +715,7 @@ def _lifecycle(args: argparse.Namespace, plan: InstallationPlan) -> int:
                 transport=args.transport,
                 profile=args.profile,
             )
-            actions = LocalActions(
-                args.data_dir, plan.components, transport=state.transport, profile=state.profile
-            )
+            actions = LocalActions(args.data_dir, transport=state.transport, profile=state.profile)
             validate_outcomes(state, actions.step_names)
             record = _lifecycle_record(args.command, state, actions)
     except (InstallerStateError, OSError) as error:
@@ -870,8 +857,4 @@ def _dispatch(args: argparse.Namespace, plan: InstallationPlan) -> int:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    blocked = _blocked(args)
-    if blocked:
-        sys.stderr.write(blocked + "\n")
-        return 2
-    return _dispatch(args, InstallationPlan(args.target, _components(args)))
+    return _dispatch(args, InstallationPlan(args.target, COMPONENTS))
