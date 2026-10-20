@@ -545,32 +545,25 @@ def _verify_stdio(python: Path, runtime: Path, environment: dict[str, str]) -> N
         raise InstallerStateError(
             f"Cannot open stdio verification log {log_path}: {error}."
         ) from error
-    try:
-        with log:
-            try:
-                result = subprocess.run(  # noqa: S603 - executable is the owned venv Python
-                    [str(python), "-c", program, str(python.with_name("nci-si-mcp"))],
-                    env=os.environ | environment,
-                    stdin=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL,
-                    stderr=log,
-                    timeout=30,
-                    check=False,
-                )
-            except subprocess.TimeoutExpired:
-                raise InstallerStateError(
-                    f"Installed stdio server verification timed out; inspect {log_path}."
-                ) from None
-            except OSError as error:
-                raise InstallerStateError(
-                    f"Installed stdio server verification could not launch: {error}."
-                ) from error
-    except InstallerStateError:
-        raise
-    except OSError as error:
-        raise InstallerStateError(
-            f"Cannot write stdio verification log {log_path}: {error}."
-        ) from error
+    with log:
+        try:
+            result = subprocess.run(  # noqa: S603 - executable is the owned venv Python
+                [str(python), "-c", program, str(python.with_name("nci-si-mcp"))],
+                env=os.environ | environment,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=log,
+                timeout=30,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            raise InstallerStateError(
+                f"Installed stdio server verification timed out; inspect {log_path}."
+            ) from None
+        except OSError as error:
+            raise InstallerStateError(
+                f"Installed stdio server verification could not launch: {error}."
+            ) from error
     if result.returncode:
         raise InstallerStateError(
             f"Installed stdio server verification failed; inspect {log_path}."

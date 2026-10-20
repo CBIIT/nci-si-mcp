@@ -383,6 +383,20 @@ class LocalInstallerTest(unittest.TestCase):
         with self.assertRaisesRegex(installer.InstallerStateError, "server.log"):
             installer._verify_stdio(Path(sys.executable), runtime, environment)
 
+    def test_stdio_verifier_passes_configured_data_directory_to_real_server(self):
+        data_path = self.data_dir / "not-a-directory"
+        data_path.write_text("occupied", encoding="utf-8")
+        environment = {
+            "NCI_SI_DATA_DIR": str(data_path),
+            "NCI_SI_PROFILE": "unified",
+            "NCI_SI_TRANSPORT": "stdio",
+        }
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        with self.assertRaisesRegex(installer.InstallerStateError, "server.log"):
+            installer._verify_stdio(Path(sys.executable), runtime, environment)
+        self.assertIn(str(data_path), (runtime / "server.log").read_text(encoding="utf-8"))
+
     def test_stdio_verifier_reports_real_child_error_in_owned_log(self):
         runtime = self.data_dir / "runtime"
         runtime.mkdir()
