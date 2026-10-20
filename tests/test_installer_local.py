@@ -359,6 +359,14 @@ class LocalInstallerTest(unittest.TestCase):
         }
         self.assertTrue(installer._verify_stdio(Path(sys.executable), environment))
 
+    def test_stdio_verifier_passes_configured_environment_to_real_server(self):
+        environment = {
+            "NCI_SI_DATA_DIR": str(self.data_dir / "server-data"),
+            "NCI_SI_PROFILE": "invalid-profile",
+            "NCI_SI_TRANSPORT": "stdio",
+        }
+        self.assertFalse(installer._verify_stdio(Path(sys.executable), environment))
+
     def test_stdio_verify_requires_install_and_configuration(self):
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         for failed in ("install", "configure"):
