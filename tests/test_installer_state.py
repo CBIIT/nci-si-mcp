@@ -78,8 +78,8 @@ class InstallerStateTest(unittest.TestCase):
             ),
             (self.encoded(version=3), "unsupported version"),
             (self.encoded(extra=1), "malformed"),
-            (self.encoded(target="aws"), "another selection"),
-            (self.encoded(components=["server", "index"]), "another selection"),
+            (self.encoded(target="aws"), "malformed"),
+            (self.encoded(components=["server", "index"]), "malformed"),
         )
         for content, message in cases:
             with self.subTest(content=content):
@@ -96,6 +96,16 @@ class InstallerStateTest(unittest.TestCase):
         with self.assertRaisesRegex(API.InstallerStateError, "another selection"):
             API.read_state(self.data_dir, "local", ("server",), profile="cadsr")
         self.assertEqual(self.path.read_bytes(), before)
+
+    def test_components_are_decoded_only_from_a_json_list(self):
+        content = self.encoded(components="index")
+        self.path.write_bytes(content)
+        with (
+            patch.object(API, "_valid_identity", return_value=True),
+            self.assertRaisesRegex(API.InstallerStateError, "malformed"),
+        ):
+            API.read_state(self.data_dir, "local", ("server",))
+        self.assertEqual(self.path.read_bytes(), content)
 
     def test_unreadable_state_names_the_file_and_access_next_step(self):
         self.path.write_text("{}", encoding="utf-8")
@@ -131,6 +141,7 @@ class InstallerStateTest(unittest.TestCase):
             self.encoded(components=["server", "server"]),
             self.encoded(components=["alien"]),
             self.encoded(components="server"),
+            self.encoded(components="index"),
             self.encoded(transport="tcp"),
             self.encoded(profile="other"),
         )

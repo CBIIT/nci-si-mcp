@@ -1,4 +1,4 @@
-"""Plan installation targets and optional components."""
+"""Install and operate the local NCI SI MCP server."""
 
 from __future__ import annotations
 
@@ -38,10 +38,8 @@ from .installer_state import (
 )
 from .validation import PROFILES
 
-COMPONENTS = ("server", "index", "documentation", "companion")
+COMPONENTS = ("server",)
 INSTALL_STAGES = ("check_prerequisites", "install", "configure", "verify")
-NODE_VERSION = re.compile(r"v([0-9]+)(?:\.[0-9]+){2}\Z")
-MIN_NODE_MAJOR = 24
 HTTP_OK = 200
 HTTP_PORT = 8000
 RELEASE_VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+\Z")
@@ -111,10 +109,7 @@ STEP_HELP = {
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="nci-si-install",
-        description=(
-            "Plan installation of the NCI Semantic Infrastructure MCP server and optional "
-            "components."
-        ),
+        description=("Install and operate the local NCI Semantic Infrastructure MCP server."),
         color=False,
     )
     commands = parser.add_subparsers(dest="command", required=True)
@@ -160,20 +155,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _selection_arguments(command: argparse.ArgumentParser) -> None:
-    command.add_argument(
-        "--target", choices=("local", "aws", "cloud-one"), required=True, help="installation target"
-    )
-    command.add_argument(
-        "--with-index",
-        action="store_true",
-        help="include an existing NCIt index and its embedding runtime",
-    )
-    command.add_argument(
-        "--with-documentation", action="store_true", help="include the static documentation site"
-    )
-    command.add_argument(
-        "--with-companion", action="store_true", help="include the validation companion"
-    )
+    command.add_argument("--target", choices=("local",), required=True, help="installation target")
 
 
 def _local_arguments(command: argparse.ArgumentParser) -> None:
@@ -192,32 +174,11 @@ def _local_arguments(command: argparse.ArgumentParser) -> None:
 
 
 def _components(args: argparse.Namespace) -> tuple[str, ...]:
-    selected = [COMPONENTS[0]]
-    for enabled, component in (
-        (args.with_index, COMPONENTS[1]),
-        (args.with_documentation, COMPONENTS[2]),
-        (args.with_companion, COMPONENTS[3]),
-    ):
-        if enabled:
-            selected.append(component)
-    return tuple(selected)
+    return COMPONENTS
 
 
 def _blocked(args: argparse.Namespace) -> str | None:
-    if args.target == "cloud-one":
-        return "BLOCKED: the Cloud One target awaits the consultation decisions in #292."
-    if args.target == "aws" and args.with_companion:
-        return "BLOCKED: AWS validation administration awaits approved platform protection in #197."
-    if args.command in ("check", "run", "status") and args.target == "aws":
-        return "BLOCKED: standard-AWS prerequisite checks arrive with #324."
-    if _unimplemented_local_selection(args):
-        return "BLOCKED: install optional components with the documented local-guide commands."
     return None
-
-
-def _unimplemented_local_selection(args: argparse.Namespace) -> bool:
-    plannable = args.command in ("plan", "check", "help")
-    return args.target == "local" and not plannable and _components(args) != ("server",)
 
 
 def run_prerequisites(checks: Sequence[Prerequisite]) -> tuple[CheckResult, ...]:
@@ -252,46 +213,6 @@ def _supported_os() -> bool:
     return platform.system() in ("Darwin", "Linux")
 
 
-def _container_runtimes() -> tuple[str, ...]:
-    return tuple(name for name in ("docker", "podman") if shutil.which(name))
-
-
-def _compose_available() -> bool:
-    for runtime in _container_runtimes():
-        try:
-            result = subprocess.run(  # noqa: S603 - fixed executable selected from PATH
-                [runtime, "compose", "version"],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=10,
-                check=False,
-            )
-        except FileNotFoundError, subprocess.TimeoutExpired:
-            continue
-        if result.returncode == 0:
-            return True
-    return False
-
-
-def _node_available() -> bool:
-    try:
-        result = subprocess.run(
-            ["node", "--version"],  # noqa: S607
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-    except FileNotFoundError, subprocess.TimeoutExpired:
-        return False
-    matched = NODE_VERSION.fullmatch(result.stdout.strip())
-    return (
-        result.returncode == 0 and matched is not None and int(matched.group(1)) >= MIN_NODE_MAJOR
-    )
-
-
 def _port_available(port: int) -> bool:
     try:
         with socket.socket() as listener:
@@ -313,39 +234,6 @@ def local_prerequisites(components: Sequence[str]) -> tuple[Prerequisite, ...]:
             lambda: sys.version_info >= (3, 14),
         ),
     ]
-    companions = "documentation" in components or "companion" in components
-    if companions:
-        checks.extend(
-            (
-                Prerequisite(
-                    "container_runtime",
-                    "Install Docker or Podman as QUICKSTART.md documents.",
-                    lambda: bool(_container_runtimes()),
-                ),
-                Prerequisite(
-                    "compose",
-                    "Install Compose for the selected container runtime.",
-                    _compose_available,
-                ),
-            )
-        )
-        if "documentation" in components:
-            checks.append(Prerequisite("node", "Install Node.js 24 or newer.", _node_available))
-            checks.append(
-                Prerequisite(
-                    "port_8080",
-                    "Free loopback port 8080 for documentation.",
-                    lambda: _port_available(8080),
-                )
-            )
-        if "companion" in components:
-            checks.append(
-                Prerequisite(
-                    "port_8081",
-                    "Free loopback port 8081 for the companion.",
-                    lambda: _port_available(8081),
-                )
-            )
     evs_url, cadsr_url = upstream_base_urls("evs_base_url", "cadsr_base_url")
     checks.extend(
         (

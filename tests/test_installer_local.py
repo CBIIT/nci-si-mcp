@@ -246,6 +246,47 @@ class LocalInstallerTest(unittest.TestCase):
             self.assertEqual((code, output), (2, ""))
             self.assertIn(message, error.lower())
 
+    def test_start_refuses_each_independent_failed_precondition(self):
+        self.write_distribution()
+        self.write_completed_state()
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="stdio", profile="unified"
+        )
+        actions.apply("configure")
+        for failed in ("install", "configure", "verify"):
+            with (
+                self.subTest(failed=failed),
+                patch.object(
+                    installer.LocalActions,
+                    "verify",
+                    autospec=True,
+                    side_effect=lambda _self, step, failed=failed: step != failed,
+                ),
+            ):
+                code, output, error = self.run_main(
+                    "start", "--target", "local", "--data-dir", str(self.data_dir)
+                )
+            self.assertEqual((code, output), (2, ""))
+            self.assertIn("stale", error)
+        for status in ("failed", "blocked"):
+            outcomes = tuple(
+                installer_state.StepOutcome(
+                    step,
+                    status if step == "verify" else "completed",
+                    ("fix",) if status == "blocked" and step == "verify" else (),
+                )
+                for step in ("check_prerequisites", "install", "configure", "verify")
+            )
+            installer_state.write_state(
+                self.data_dir,
+                installer_state.InstallationState(2, "local", ("server",), outcomes),
+            )
+            code, output, error = self.run_main(
+                "start", "--target", "local", "--data-dir", str(self.data_dir)
+            )
+            self.assertEqual((code, output), (2, ""))
+            self.assertIn("incomplete", error)
+
     def test_wrong_installed_revision_fails_reverification(self):
         self.write_distribution(revision="v0.20.0")
         actions = installer.LocalActions(
@@ -275,11 +316,15 @@ class LocalInstallerTest(unittest.TestCase):
                     self.assertEqual(actions.verify("install"), expected)
                 shutil.rmtree(self.data_dir / "venv")
         self.write_distribution()
+        original = self.data_dir / "venv/lib/python3.14/site-packages/nci_si_mcp-0.21.0.dist-info"
         duplicate = (
             self.data_dir / "venv/lib/python3.14/site-packages/nci_si_mcp-duplicate.dist-info"
         )
         duplicate.mkdir()
-        self.assertFalse(actions.verify("install"))
+        for name in ("METADATA", "direct_url.json"):
+            shutil.copy2(original / name, duplicate / name)
+        with patch.object(installer, "__version__", "0.21.0"):
+            self.assertFalse(actions.verify("install"))
         actions.apply("configure")
         (self.data_dir / "runtime/server.json").write_text("{}")
         self.assertFalse(actions.verify("configure"))
@@ -314,6 +359,23 @@ class LocalInstallerTest(unittest.TestCase):
             with patch.object(installer, "urlopen", return_value=response):
                 self.assertEqual(installer._ready(), expected)
 
+    def test_stdio_verify_requires_install_and_configuration(self):
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="stdio", profile="unified"
+        )
+        for failed in ("install", "configure"):
+            with (
+                self.subTest(failed=failed),
+                patch.object(
+                    installer.LocalActions,
+                    "verify",
+                    autospec=True,
+                    side_effect=lambda _self, step, failed=failed: step != failed,
+                ),
+                patch.object(installer, "_verify_stdio", return_value=True),
+            ):
+                self.assertFalse(actions._verify_server())
+
     def test_http_start_and_stop_refusals_are_exact(self):
         actions = installer.LocalActions(
             self.data_dir, ("server",), transport="http", profile="unified"
@@ -333,6 +395,35 @@ class LocalInstallerTest(unittest.TestCase):
             installer._start_http(actions)
         with patch.object(installer, "_owned_process", return_value=None):
             self.assertEqual(installer._stop_http(actions), {"status": "stopped"})
+        with (
+            patch.object(installer, "_owned_process", return_value=42),
+            patch.object(installer, "_ready", return_value=False),
+        ):
+            self.assertFalse(
+                installer._verify_http(actions.python, actions.runtime, actions.environment())
+            )
+
+    def test_stdio_stop_is_refused_by_the_cli(self):
+        self.write_completed_state()
+        code, output, error = self.run_main(
+            "stop", "--target", "local", "--data-dir", str(self.data_dir)
+        )
+        self.assertEqual((code, output), (2, ""))
+        self.assertIn("no process to stop", error)
+
+    def test_lifecycle_refuses_semantically_invalid_outcomes(self):
+        path = self.data_dir / "installer-state.json"
+        self.data_dir.mkdir(exist_ok=True)
+        path.write_text(
+            '{"version":2,"target":"local","components":["server"],'
+            '"transport":"stdio","profile":"unified",'
+            '"outcomes":[{"step":"unknown","status":"completed"}]}\n'
+        )
+        code, output, error = self.run_main(
+            "start", "--target", "local", "--data-dir", str(self.data_dir)
+        )
+        self.assertEqual((code, output), (2, ""))
+        self.assertIn("malformed", error)
 
     def test_stop_escalates_and_never_reports_a_live_process_stopped(self):
         with (
@@ -461,6 +552,7 @@ class LocalInstallerTest(unittest.TestCase):
         process.poll.return_value = None
         response = MagicMock(status=200)
         response.__enter__.return_value = response
+        (self.data_dir / "runtime/server.log").write_text("before\n")
         with (
             patch.object(installer, "__version__", "0.21.0"),
             patch.object(installer, "_owned_process", side_effect=[None, 4321]),
@@ -469,6 +561,7 @@ class LocalInstallerTest(unittest.TestCase):
             patch.object(installer.subprocess, "Popen", return_value=process) as popen,
             patch.object(installer, "urlopen", return_value=response),
             patch.object(installer.os, "kill", side_effect=[None, ProcessLookupError]) as kill,
+            patch.dict(installer.os.environ, {"PATH": "/bin", "HOME": "/home/test"}, clear=True),
         ):
             started = self.run_main(
                 "start",
@@ -486,12 +579,37 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(json.loads(started[1]), {"status": "started", "pid": 4321})
         self.assertTrue(popen.call_args.kwargs["start_new_session"])
         self.assertEqual(popen.call_args.kwargs["env"]["NCI_SI_HTTP_PORT"], "8000")
+        self.assertEqual(popen.call_args.kwargs["env"]["PATH"], "/bin")
         self.assertEqual(
             Path(popen.call_args.kwargs["stderr"].name), self.data_dir / "runtime/server.log"
         )
         kill.assert_any_call(4321, installer.signal.SIGTERM)
         self.assertEqual(json.loads(stopped[1]), {"status": "stopped"})
         self.assertFalse((self.data_dir / "runtime" / "server-process.json").exists())
+        self.assertEqual((self.data_dir / "runtime/server.log").read_text(), "before\n")
+
+    def test_second_http_start_appends_to_the_existing_log(self):
+        self.write_distribution()
+        self.write_completed_state(transport="http")
+        actions = installer.LocalActions(
+            self.data_dir, ("server",), transport="http", profile="unified"
+        )
+        actions.apply("configure")
+        log = self.data_dir / "runtime/server.log"
+        log.write_text("first\n")
+        process = MagicMock(pid=42)
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "_owned_process", return_value=None),
+            patch.object(installer, "_port_available", return_value=True),
+            patch.object(installer, "_process_identity", return_value="identity"),
+            patch.object(installer, "_write_process_record"),
+            patch.object(installer, "_poll_ready", return_value=True),
+            patch.object(installer.subprocess, "Popen", return_value=process) as popen,
+        ):
+            installer._start_http(actions)
+        self.assertEqual(log.read_text(), "first\n")
+        self.assertEqual(popen.call_args.kwargs["stderr"].mode, "ab")
 
     def test_http_start_reaps_child_when_the_ownership_record_cannot_be_written(self):
         self.write_distribution()
@@ -524,18 +642,56 @@ class LocalInstallerTest(unittest.TestCase):
         process.wait.assert_called_once_with(timeout=30)
 
     def test_uninstall_refuses_owned_child_symlinks(self):
-        self.write_completed_state()
-        outside = self.data_dir.parent / f"{self.data_dir.name}-outside"
-        outside.mkdir()
-        self.addCleanup(shutil.rmtree, outside, ignore_errors=True)
-        (self.data_dir / "venv").symlink_to(outside, target_is_directory=True)
-        code, output, error = self.run_main(
-            "uninstall", "--target", "local", "--data-dir", str(self.data_dir)
-        )
-        self.assertEqual((code, output), (2, ""))
-        self.assertIn("Refusing unowned path", error)
-        self.assertTrue(outside.is_dir())
-        self.assertTrue((self.data_dir / "installer-state.json").is_file())
+        for child in ("venv", "server-data", "runtime"):
+            for kind in ("directory", "symlink"):
+                with (
+                    self.subTest(child=child, kind=kind),
+                    tempfile.TemporaryDirectory() as directory,
+                ):
+                    root = Path(directory)
+                    installer_state.write_state(
+                        root, installer_state.InstallationState(2, "local", ("server",), ())
+                    )
+                    outside = root / "outside"
+                    outside.mkdir()
+                    path = root / child
+                    if kind == "directory":
+                        path.mkdir()
+                    else:
+                        (outside / ".installer-owned").touch()
+                        path.symlink_to(outside, target_is_directory=True)
+                    code, output, error = self.run_main(
+                        "uninstall", "--target", "local", "--data-dir", str(root)
+                    )
+                    self.assertEqual((code, output), (2, ""))
+                    self.assertIn("Refusing unowned path", error)
+                    self.assertTrue(path.exists())
+
+    def test_claim_refuses_each_existing_unowned_child(self):
+        for child, step in (
+            ("venv", "install"),
+            ("server-data", "configure"),
+            ("runtime", "configure"),
+        ):
+            for kind in ("directory", "symlink"):
+                with (
+                    self.subTest(child=child, kind=kind),
+                    tempfile.TemporaryDirectory() as directory,
+                ):
+                    root = Path(directory)
+                    outside = root / "outside"
+                    outside.mkdir()
+                    path = root / child
+                    if kind == "directory":
+                        path.mkdir()
+                    else:
+                        (outside / ".installer-owned").touch()
+                        path.symlink_to(outside, target_is_directory=True)
+                    actions = installer.LocalActions(
+                        root, ("server",), transport="stdio", profile="unified"
+                    )
+                    with self.assertRaisesRegex(installer.InstallerStateError, "unowned"):
+                        actions.apply(step)
 
     def test_uninstall_failure_modes_preserve_state_or_report_the_os_error(self):
         self.write_completed_state()
@@ -556,13 +712,16 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertIn("malformed", error)
         self.assertTrue(state_path.exists())
         self.write_completed_state()
-        with patch.object(installer.shutil, "rmtree", side_effect=OSError("cannot remove")):
+        with patch.object(
+            installer.shutil, "rmtree", side_effect=OSError("cannot remove")
+        ) as remove:
             code, _, error = self.run_main(
                 "uninstall", "--target", "local", "--data-dir", str(self.data_dir)
             )
         self.assertEqual(code, 2)
         self.assertIn("cannot remove", error)
         self.assertTrue(state_path.exists())
+        self.assertFalse(remove.call_args.kwargs["ignore_errors"])
 
     def test_reserved_children_are_not_adopted_or_partially_deleted(self):
         outside = self.data_dir.parent / f"{self.data_dir.name}-outside"

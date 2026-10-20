@@ -17,10 +17,10 @@ STATE_VERSION = 2
 STATE_NAME = "installer-state.json"
 LOCK_NAME = "installer-state.lock"
 STATUSES = frozenset({"completed", "blocked", "failed"})
-TARGETS = frozenset({"local", "aws"})
-COMPONENTS = ("server", "index", "documentation", "companion")
-type Target = Literal["local", "aws"]
-type Component = Literal["server", "index", "documentation", "companion"]
+TARGETS = frozenset({"local"})
+COMPONENTS = ("server",)
+type Target = Literal["local"]
+type Component = Literal["server"]
 type StepStatus = Literal["completed", "blocked", "failed"]
 
 
