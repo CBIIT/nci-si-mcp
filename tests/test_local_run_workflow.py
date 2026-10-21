@@ -17,6 +17,11 @@ PDM_ROWS = "matrix.server || matrix.host_docs"
 
 # Every step in order: its name and its condition.
 STEPS = [
+    (
+        "Require container contexts for Compose rows (CI only)",
+        "(matrix.compose_docs || matrix.compose_companion) && "
+        "needs.prepare-containers.result != 'success'",
+    ),
     ("Remove the runner's python.org Python (macOS)", f"({PDM_ROWS}) && {MACOS}"),
     ("Remove preinstalled Python and PDM (macOS)", f"({PDM_ROWS}) && {MACOS}"),
     ("Install Python and PDM (macOS)", f"({PDM_ROWS}) && {MACOS}"),
@@ -123,6 +128,8 @@ CI_ONLY = {
     "waits for real health endpoints and removes only selected services",
     "Verify every selected component together (CI only)": "starts the exact process and port set "
     "of each everything row, probes every socket and removes only owned processes and services",
+    "Require container contexts for Compose rows (CI only)": "fails only rows that selected "
+    "Compose when their shared artifact producer failed; unrelated rows still run",
     "Check that the documented Node.js is in use": "fails the job when a Node.js that the "
     "runner image ships takes over from the documented install",
     "Serve the validation dashboard until ready (CI only)": "the documented portal serve "
@@ -573,6 +580,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
     def test_it_runs_on_exactly_the_two_platforms_with_a_bound(self):
         self.assertEqual(job()["name"], "local run (${{ matrix.os }}, ${{ matrix.combination }})")
         self.assertEqual(job()["needs"], "prepare-containers")
+        self.assertEqual(job()["if"], "${{ !cancelled() }}")
         self.assertEqual(job()["runs-on"], "${{ matrix.os }}")
         self.assertEqual(
             job()["strategy"],
@@ -747,7 +755,8 @@ class LocalRunWorkflowTest(unittest.TestCase):
         workflow = load(LOCAL_RUN)
         self.assertEqual(set(workflow), {"name", True, "permissions", "concurrency", "jobs"})
         self.assertEqual(
-            set(job()), {"name", "needs", "runs-on", "strategy", "timeout-minutes", "steps"}
+            set(job()),
+            {"name", "needs", "if", "runs-on", "strategy", "timeout-minutes", "steps"},
         )
         allowed = {"name", "if", "uses", "with", "shell", "timeout-minutes", "run"}
         extra = {

@@ -8,7 +8,6 @@ import re
 import subprocess
 import sys
 import uuid
-from contextlib import ExitStack
 from http import HTTPStatus
 from http.client import HTTPConnection
 from typing import Any
@@ -29,6 +28,16 @@ def docker(*args: str, check: bool = True) -> str:
         timeout=60,
     )
     return result.stdout.strip()
+
+
+def docker_result(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(  # noqa: S603 - fixed executable and owned diagnostic resources
+        ["docker", *args],  # noqa: S607 - local container engine executable
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+    )
 
 
 def require(condition: bool, message: str) -> None:
@@ -188,31 +197,44 @@ def _remove_owned(kind: str, name: str) -> None:
         docker(kind, "rm", *force, name)
 
 
-def cleanup(compose: tuple[str, ...], serving: str, network: str) -> None:
-    # Every owned cleanup is attempted even if an earlier engine operation fails.
-    with ExitStack() as pending:
-        pending.callback(_remove_owned, "network", network)
-        pending.callback(_remove_owned, "container", serving)
-        pending.callback(docker, *compose, "down", "--volumes")
+def cleanup(compose: tuple[str, ...], serving: str, network: str) -> list[Exception]:
+    errors: list[Exception] = []
+    operations = (
+        (docker, (*compose, "down", "--volumes")),
+        (_remove_owned, ("container", serving)),
+        (_remove_owned, ("network", network)),
+    )
+    for operation, arguments in operations:
+        try:
+            operation(*arguments)
+        except (OSError, subprocess.SubprocessError) as error:
+            errors.append(error)
+    return errors
 
 
 def _diagnostics(compose: tuple[str, ...]) -> list[Exception]:
     errors: list[Exception] = []
     for arguments in (("ps", "--all"), ("logs", "--no-color", "--tail", "30")):
         try:
-            print(docker(*compose, *arguments, check=False))
+            result = docker_result(*compose, *arguments)
         except (OSError, subprocess.SubprocessError) as error:
             errors.append(error)
+            continue
+        print(result.stdout.strip())
+        if result.returncode:
+            errors.append(
+                RuntimeError(
+                    f"docker {' '.join(arguments)} failed with status {result.returncode}: "
+                    f"{result.stderr.strip()}"
+                )
+            )
     return errors
 
 
 def _finish(compose: tuple[str, ...], serving: str, network: str) -> None:
     primary = sys.exception()
     errors = _diagnostics(compose) if primary is not None else []
-    try:
-        cleanup(compose, serving, network)
-    except (OSError, subprocess.SubprocessError) as error:
-        errors.append(error)
+    errors.extend(cleanup(compose, serving, network))
     if primary is not None:
         for error in errors:
             primary.add_note(f"Cleanup or diagnostics also failed: {error!r}")

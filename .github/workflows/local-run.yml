@@ -71,6 +71,7 @@ jobs:
   local-run:
     name: local run (${{ matrix.os }}, ${{ matrix.combination }})
     needs: prepare-containers
+    if: ${{ !cancelled() }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     strategy:
@@ -85,6 +86,11 @@ jobs:
           - {os: macos-latest, combination: server, server: true, index: false, host_docs: false, host_companion: false, compose_docs: false, compose_companion: false, processes: "installer stdio, then installer HTTP", ports: "8000"}
           - {os: macos-latest, combination: everything-without-docker, server: true, index: true, host_docs: true, host_companion: true, compose_docs: false, compose_companion: false, processes: "required-index HTTP, host documentation and portal", ports: "8000,8080,8081"}
     steps:
+      - name: Require container contexts for Compose rows (CI only)
+        if: (matrix.compose_docs || matrix.compose_companion) && needs.prepare-containers.result != 'success'
+        run: |
+          echo "::error::The local container context producer did not succeed."
+          exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0  # the package version is derived from the nearest tag
