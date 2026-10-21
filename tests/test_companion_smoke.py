@@ -19,6 +19,41 @@ from scripts.site_assets import load_footer
 
 
 class CompanionSmokeTest(unittest.TestCase):
+    def inspect(self, **changes):
+        record = {
+            "HostConfig": {"ReadonlyRootfs": True, "Memory": 1, "PidsLimit": 1},
+            "Config": {"User": "65532:65532"},
+            "Mounts": [{"Type": "volume", "Destination": "/state"}],
+            "NetworkSettings": {"Networks": {"internal": {}}},
+        }
+        for key, value in changes.items():
+            if isinstance(value, dict) and isinstance(record.get(key), dict):
+                record[key].update(value)
+            else:
+                record[key] = value
+        replies = ["None", json.dumps([record]), json.dumps([{"Internal": True}])]
+        with patch.object(companion_smoke, "docker", side_effect=replies):
+            companion_smoke.inspect_boundary("admin")
+
+    def test_companion_boundary_refuses_writable_root_and_extra_network(self):
+        cases = (
+            ("Companion root is writable", {"HostConfig": {"ReadonlyRootfs": False}}),
+            (
+                "Companion has an extra network",
+                {"NetworkSettings": {"Networks": {"internal": {}, "extra": {}}}},
+            ),
+        )
+        for message, changes in cases:
+            with self.subTest(message), self.assertRaisesRegex(RuntimeError, message):
+                self.inspect(**changes)
+
+    def test_companion_boundary_refuses_external_connectivity(self):
+        with (
+            patch.object(companion_smoke, "docker", side_effect=["1", "0"]),
+            self.assertRaisesRegex(RuntimeError, "can reach an external network"),
+        ):
+            companion_smoke.blocked_connectivity("admin", "10.0.0.2")
+
     def test_every_profile_plan_has_the_exact_services(self):
         replies = [
             "",
@@ -153,6 +188,17 @@ class CompanionSmokeTest(unittest.TestCase):
             patch.object(companion_smoke, "request", side_effect=[(303, ""), (503, "Unavailable")]),
             patch.object(processes.time, "sleep"),
             self.assertRaisesRegex(RuntimeError, "Benchmark results are unavailable"),
+        ):
+            companion_smoke.benchmark("owned-admin")
+
+    def test_cancelled_benchmark_is_not_accepted_as_completed(self):
+        run_id = "a" * 32
+        jobs = json.dumps({"jobs": [{"run_id": run_id, "state": "cancelled"}]})
+        with (
+            patch.object(companion_smoke.uuid, "uuid4", return_value=SimpleNamespace(hex=run_id)),
+            patch.object(companion_smoke, "docker", return_value=jobs),
+            patch.object(companion_smoke, "request", return_value=(303, "")),
+            self.assertRaisesRegex(RuntimeError, "ended as cancelled"),
         ):
             companion_smoke.benchmark("owned-admin")
 

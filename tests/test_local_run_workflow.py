@@ -760,6 +760,32 @@ class LocalRunWorkflowTest(unittest.TestCase):
             by_name["Verify server-only search without an index (CI only)"], SERVER_ONLY_RUN
         )
 
+    def test_combination_cleanup_classifies_every_process_exit_exactly(self):
+        run = run_by_name()["Verify every selected component together (CI only)"]
+        classification = """if [ "$signalled" = true ]; then
+      case "$child_status" in 0|143|241) ;; *) cleanup_status="$child_status" ;; esac
+    elif [ "$child_status" -ne 0 ]; then
+      cleanup_status="$child_status"
+    fi"""
+        self.assertIn(classification, run)
+        diagnostic = (
+            "printf 'cleanup %s pid=%s status=%s signalled=%s\\n' \\\n"
+            '      "$name" "$pid" "$child_status" "$signalled" >&2'
+        )
+        self.assertIn(diagnostic, run)
+
+    def test_compose_verification_compares_exactly_the_running_selected_services(self):
+        run = run_by_name()["Verify the selected Compose profiles (CI only)"]
+        self.assertIn(
+            "docker compose -f container/compose.local.yaml ps --status running --services | "
+            'sort > "$RUNNER_TEMP/running-services"',
+            run,
+        )
+        self.assertIn(
+            'printf \'%s\\n\' "${expected[@]}" | sort > "$RUNNER_TEMP/expected-services"', run
+        )
+        self.assertIn('cmp "$RUNNER_TEMP/running-services" "$RUNNER_TEMP/expected-services"', run)
+
     def test_the_ci_only_list_has_no_stale_entry(self):
         lines = {line.strip() for run in run_by_name().values() for line in run.splitlines()}
         names = {step["name"] for step in steps()}
