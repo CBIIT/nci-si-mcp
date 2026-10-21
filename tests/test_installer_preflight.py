@@ -1,7 +1,5 @@
-import tempfile
 import unittest
 from email.message import Message
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 
@@ -83,7 +81,7 @@ class AggregatePrerequisiteTest(unittest.TestCase):
         )
         self.assertNotIn(canary, repr(records))
 
-    def test_supported_platforms_and_http_reachability_are_observed(self):
+    def test_only_darwin_and_linux_are_supported(self):
         os_check = self.local_check("supported_os")
         for system, expected in (("Darwin", True), ("Linux", True), ("Windows", False)):
             with (
@@ -91,6 +89,8 @@ class AggregatePrerequisiteTest(unittest.TestCase):
                 patch("nci_si_mcp.installer.platform.system", return_value=system),
             ):
                 self.assertEqual(os_check.observe(), expected)
+
+    def test_an_http_error_still_proves_endpoint_reachability(self):
         http_error = HTTPError("http://example", 401, "denied", Message(), None)
         with patch("nci_si_mcp.installer.urlopen", side_effect=http_error):
             self.assertTrue(API.reachability_prerequisite("x", "http://example", "fix").observe())
@@ -108,10 +108,8 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             ):
                 API.local_prerequisites()
 
-    def test_server_only_needs_git_executable_not_a_checkout_or_pdm(self):
+    def test_server_only_has_the_exact_prerequisite_set_and_needs_only_git_executable(self):
         with (
-            tempfile.TemporaryDirectory() as directory,
-            patch("nci_si_mcp.installer.Path.cwd", return_value=Path(directory)),
             patch(
                 "nci_si_mcp.installer.shutil.which",
                 side_effect=lambda name: "/usr/bin/git" if name == "git" else None,
@@ -121,6 +119,9 @@ class AggregatePrerequisiteTest(unittest.TestCase):
             results = API.run_prerequisites(API.local_prerequisites())
 
         by_name = {result.name: result for result in results}
+        self.assertEqual(
+            list(by_name), ["supported_os", "git", "python", "evs_reachable", "cadsr_reachable"]
+        )
         self.assertTrue(by_name["git"].passed)
         self.assertNotIn("pdm", by_name)
 
@@ -131,7 +132,7 @@ class AggregatePrerequisiteTest(unittest.TestCase):
         with patch.object(API.sys, "version_info", (3, 14)):
             self.assertTrue(check.observe())
 
-    def test_reachability_uses_the_documented_five_second_timeout(self):
+    def test_reachability_uses_a_five_second_timeout(self):
         response = MagicMock()
         response.__enter__.return_value = response
         with patch("nci_si_mcp.installer.urlopen", return_value=response) as opened:

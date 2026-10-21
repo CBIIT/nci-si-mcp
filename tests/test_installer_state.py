@@ -58,6 +58,10 @@ class InstallerStateTest(unittest.TestCase):
             API.write_state(self.data_dir, self.state)
         self.assertEqual(self.path.read_bytes(), original)
         self.assertEqual(list(self.data_dir.glob(".installer-state.*.tmp")), [])
+
+    def test_state_write_validates_before_replacing_previous_state(self):
+        original = b'{"old":"state"}\n'
+        self.path.write_bytes(original)
         invalid = (
             API.InstallationState(3, "local", ("server",), ()),
             API.InstallationState(
@@ -69,7 +73,7 @@ class InstallerStateTest(unittest.TestCase):
                 API.write_state(self.data_dir, state)
         self.assertEqual(self.path.read_bytes(), original)
 
-    def test_invalid_or_mismatched_state_fails_closed_without_rewriting(self):
+    def test_malformed_or_unsupported_state_fails_closed_without_rewriting(self):
         cases = (
             (b"{", "malformed"),
             (
@@ -121,8 +125,16 @@ class InstallerStateTest(unittest.TestCase):
         with self.assertRaisesRegex(API.InstallerStateError, "Cannot read"):
             API.read_state(self.data_dir, "local", ("server",))
 
-    def test_semantically_invalid_state_is_refused_without_changing_bytes(self):
-        completed = {"step": "check_prerequisites", "status": "completed"}
+    def assert_invalid_state(self, cases):
+        for content in cases:
+            with self.subTest(content=content):
+                self.path.write_bytes(content)
+                with self.assertRaisesRegex(API.InstallerStateError, "malformed"):
+                    state = API.read_state(self.data_dir, "local", ("server",))
+                    API.validate_outcomes(state, ("check_prerequisites",))
+                self.assertEqual(self.path.read_bytes(), content)
+
+    def test_invalid_state_identity_is_refused_without_changing_bytes(self):
         cases = (
             b"\xff\xfe",
             b'{"version":'
@@ -130,14 +142,6 @@ class InstallerStateTest(unittest.TestCase):
             + b',"target":"local","components":["server"],"outcomes":[]}',
             self.encoded(version=True),
             b'{"version":2,"version":2,"target":"local","components":["server"],"transport":"stdio","profile":"unified","outcomes":[]}',
-            self.encoded(outcomes=[{"step": "unknown", "status": "completed"}]),
-            self.encoded(outcomes=[completed | {"extra": 1}]),
-            self.encoded(outcomes=[completed, completed]),
-            self.encoded(outcomes=[{"step": "check_prerequisites", "status": "blocked"}]),
-            self.encoded(
-                outcomes=[{"step": "check_prerequisites", "status": "blocked", "missing": [""]}]
-            ),
-            self.encoded(outcomes=[completed | {"missing": ["x"]}]),
             self.encoded(components=["server", "server"]),
             self.encoded(components=["alien"]),
             self.encoded(components="server"),
@@ -146,13 +150,21 @@ class InstallerStateTest(unittest.TestCase):
             self.encoded(transport="tcp"),
             self.encoded(profile="other"),
         )
-        for content in cases:
-            with self.subTest(content=content):
-                self.path.write_bytes(content)
-                with self.assertRaisesRegex(API.InstallerStateError, "malformed"):
-                    state = API.read_state(self.data_dir, "local", ("server",))
-                    API.validate_outcomes(state, ("check_prerequisites",))
-                self.assertEqual(self.path.read_bytes(), content)
+        self.assert_invalid_state(cases)
+
+    def test_invalid_outcome_records_are_refused_without_changing_bytes(self):
+        completed = {"step": "check_prerequisites", "status": "completed"}
+        cases = (
+            self.encoded(outcomes=[{"step": "unknown", "status": "completed"}]),
+            self.encoded(outcomes=[completed | {"extra": 1}]),
+            self.encoded(outcomes=[completed, completed]),
+            self.encoded(outcomes=[{"step": "check_prerequisites", "status": "blocked"}]),
+            self.encoded(
+                outcomes=[{"step": "check_prerequisites", "status": "blocked", "missing": [""]}]
+            ),
+            self.encoded(outcomes=[completed | {"missing": ["x"]}]),
+        )
+        self.assert_invalid_state(cases)
 
     def test_atomic_state_write_fsyncs_and_closes_the_parent_directory(self):
         events, opened_descriptors = [], []
@@ -190,7 +202,7 @@ class InstallerStateTest(unittest.TestCase):
         ):
             self.fail("second lock acquired")
 
-    def test_data_directory_access_failures_are_operator_refusals(self):
+    def test_installation_lock_access_failures_are_operator_refusals(self):
         file_path = self.data_dir / "not-a-directory"
         file_path.write_text("x", encoding="utf-8")
         with (

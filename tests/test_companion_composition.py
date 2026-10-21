@@ -13,17 +13,133 @@ class CompanionCompositionTest(unittest.TestCase):
         self.compose = yaml.safe_load(Path("container/compose.local.yaml").read_text())
 
     def test_local_services_publish_only_loopback_and_have_resource_boundaries(self):
-        for service in self.compose["services"].values():
-            with self.subTest(service=service["image"]):
-                self.assertTrue(
-                    all(port.startswith("127.0.0.1:") for port in service.get("ports", []))
-                )
-                self.assertTrue(service["read_only"])
-                self.assertEqual(service["user"], "65532:65532")
-                self.assertEqual(service["cap_drop"], ["ALL"])
-                self.assertGreater(service["pids_limit"], 0)
-                self.assertIn("mem_limit", service)
-                self.assertGreater(service["cpus"], 0)
+        common = {
+            "platform": "linux/amd64",
+            "read_only": True,
+            "user": "65532:65532",
+            "cap_drop": ["ALL"],
+            "security_opt": ["no-new-privileges:true"],
+        }
+        expected = {
+            "documentation": common
+            | {
+                "image": "nci-si-docs:local",
+                "ports": ["127.0.0.1:8080:8080"],
+                "networks": ["documentation"],
+                "pids_limit": 32,
+                "mem_limit": "256m",
+                "cpus": 0.5,
+                "tmpfs": ["/tmp:rw,noexec,nosuid,size=16m,mode=1777"],  # noqa: S108
+            },
+            "administration": common
+            | {
+                "image": "nci-si-admin:local",
+                "networks": ["validation"],
+                "pids_limit": 128,
+                "mem_limit": "2g",
+                "cpus": 2,
+                "stop_grace_period": "20s",
+                "volumes": ["evidence:/state"],
+                "tmpfs": ["/tmp:rw,noexec,nosuid,size=256m,mode=1777"],  # noqa: S108
+            },
+            "admin-ingress": common
+            | {
+                "image": "nci-si-docs:local",
+                "entrypoint": ["python3.14", "-m", "scripts.companion_relay"],
+                "ports": ["127.0.0.1:8081:8081"],
+                "networks": ["access", "validation"],
+                "pids_limit": 16,
+                "mem_limit": "128m",
+                "cpus": 0.5,
+                "healthcheck": {
+                    "test": [
+                        "CMD",
+                        "python3.14",
+                        "-c",
+                        "import urllib.request; "
+                        + "urllib.request.urlopen('http://127.0.0.1:8081/health',timeout=3).read()",
+                    ],
+                    "interval": "10s",
+                    "timeout": "5s",
+                },
+            },
+            "mcp": common
+            | {
+                "image": "nci-si-mcp:verified",
+                "ports": ["127.0.0.1:8000:8000"],
+                "networks": ["serving"],
+                "pids_limit": 128,
+                "mem_limit": "8g",
+                "cpus": 4,
+                "environment": {
+                    "NCI_SI_EMBEDDING_MODEL": "/model",
+                    "NCI_SI_HTTP_AUTH_MODE": "trusted-local",
+                },
+                "healthcheck": {
+                    "test": [
+                        "CMD",
+                        "python",
+                        "-c",
+                        "import os, urllib.request; "
+                        + "urllib.request.urlopen('http://127.0.0.1:' + "
+                        + "os.getenv('NCI_SI_HTTP_PORT', '8000') + '/ready', timeout=3).close()",
+                    ],
+                    "interval": "30s",
+                    "timeout": "5s",
+                    "start_period": "180s",
+                    "retries": 3,
+                },
+                "volumes": [
+                    "${NCI_SI_LOCAL_INDEX:-../tmp/serving-index}:/data",
+                    "${NCI_SI_LOCAL_MODEL:-../tmp/serving-model}:/model:ro",
+                ],
+                "tmpfs": [
+                    "/tmp:rw,noexec,nosuid,size=256m,mode=1777",  # noqa: S108
+                    "/model-cache:rw,noexec,nosuid,size=16m,mode=1777",
+                ],
+            },
+        }
+        for name, service in self.compose["services"].items():
+            with self.subTest(service=name):
+                controls = {
+                    key: value
+                    for key, value in service.items()
+                    if key not in {"profiles", "depends_on"}
+                }
+                self.assertEqual(controls, expected[name])
+
+    def test_each_service_has_exactly_its_independent_profile_and_dependencies(self):
+        self.assertEqual(
+            {
+                name: (service.get("profiles"), service.get("depends_on"))
+                for name, service in self.compose["services"].items()
+            },
+            {
+                "documentation": (["docs"], None),
+                "administration": (["companion"], None),
+                "admin-ingress": (["companion"], ["administration"]),
+                "mcp": (["mcp"], None),
+            },
+        )
+
+    def test_runbook_documents_exact_independent_start_and_stop_commands(self):
+        guide = Path("docs/local-guide.md").read_text(encoding="utf-8")
+        commands = [
+            "docker compose -f container/compose.local.yaml --profile docs up -d",
+            "docker compose -f container/compose.local.yaml --profile companion up -d",
+            "docker compose -f container/compose.local.yaml --profile docs "
+            + "--profile companion up -d",
+            "docker compose -f container/compose.local.yaml stop documentation",
+            "docker compose -f container/compose.local.yaml rm -f documentation",
+            "docker compose -f container/compose.local.yaml stop admin-ingress administration",
+            "docker compose -f container/compose.local.yaml rm -f admin-ingress administration",
+        ]
+        for command in commands:
+            with self.subTest(command=command):
+                self.assertIn(command, guide)
+        runbook = Path("docs/companion-containers.md").read_text(encoding="utf-8")
+        self.assertIn("docker compose -f container/compose.local.yaml stop mcp", runbook)
+        self.assertIn("docker compose -f container/compose.local.yaml rm -f mcp", runbook)
 
     def test_fixture_workers_have_no_serving_network_assets_or_credentials(self):
         services = self.compose["services"]

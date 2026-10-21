@@ -10,34 +10,71 @@ import yaml
 ROOT = Path(__file__).parent.parent
 WORKFLOWS = ROOT / ".github" / "workflows"
 LOCAL_RUN = WORKFLOWS / "local-run.yml"
+LOCAL_GUIDE = ROOT / "docs" / "local-guide.md"
 
 MACOS = "runner.os == 'macOS'"
 LINUX = "runner.os == 'Linux'"
+PDM_ROWS = "matrix.server || matrix.host_docs"
 
 # Every step in order: its name and its condition.
 STEPS = [
-    ("Remove the runner's python.org Python (macOS)", MACOS),
-    ("Remove preinstalled Python and PDM (macOS)", MACOS),
-    ("Install Python and PDM (macOS)", MACOS),
-    ("Install uv (Linux)", LINUX),
-    ("Open a new shell (Linux)", LINUX),
-    ("Install Python and PDM (Linux)", LINUX),
-    ("Install the project", None),
-    ("Check that the documented Python and PDM are in use (macOS)", MACOS),
-    ("Check that the documented Python and PDM are in use (Linux)", LINUX),
-    ("Print the EVS release", None),
-    ("Build a small local index", None),
+    (
+        "Require container contexts for Compose rows (CI only)",
+        "(matrix.compose_docs || matrix.compose_companion) && "
+        "needs.prepare-containers.result != 'success'",
+    ),
+    ("Remove the runner's python.org Python (macOS)", f"({PDM_ROWS}) && {MACOS}"),
+    ("Remove preinstalled Python and PDM (macOS)", f"({PDM_ROWS}) && {MACOS}"),
+    ("Install Python and PDM (macOS)", f"({PDM_ROWS}) && {MACOS}"),
+    ("Install uv (Linux)", f"({PDM_ROWS}) && {LINUX}"),
+    ("Open a new shell (Linux)", f"({PDM_ROWS}) && {LINUX}"),
+    ("Install Python and PDM (Linux)", f"({PDM_ROWS}) && {LINUX}"),
+    ("Install the project", PDM_ROWS),
+    ("Check that the documented Python and PDM are in use (macOS)", f"({PDM_ROWS}) && {MACOS}"),
+    ("Check that the documented Python and PDM are in use (Linux)", f"({PDM_ROWS}) && {LINUX}"),
+    ("Print the EVS release", "matrix.combination == 'server'"),
+    ("Select the released index source (CI only)", "matrix.server || matrix.index"),
+    ("Install released server and optional index environments", "matrix.server || matrix.index"),
+    ("Verify the local server lifecycle", "matrix.server"),
+    ("Build and evaluate a small local index", "matrix.index"),
     ("Write the readiness probe (CI only)", None),
-    ("Serve over stdio and initialize (CI only)", None),
-    ("Serve over streamable HTTP until ready (CI only)", None),
-    ("Run the acceptance suite against the fixtures", None),
-    ("Compare the outcomes with the expected ones", None),
-    ("Remove a preinstalled Node.js (macOS)", MACOS),
-    ("Install Node.js (macOS)", MACOS),
-    ("Install nvm and Node.js (Linux)", LINUX),
-    ("Check that the documented Node.js is in use", None),
-    ("Build the documentation site", None),
-    ("Serve the validation dashboard until ready (CI only)", None),
+    ("Serve over stdio and initialize (CI only)", "matrix.server"),
+    ("Verify required-index HTTP and indexed search (CI only)", "matrix.index"),
+    ("Verify server-only search without an index (CI only)", "matrix.index"),
+    ("Run the acceptance suite against the fixtures", "matrix.combination == 'server'"),
+    ("Compare the outcomes with the expected ones", "matrix.combination == 'server'"),
+    ("Remove a preinstalled Node.js (macOS)", "matrix.host_docs && runner.os == 'macOS'"),
+    ("Install Node.js (macOS)", "matrix.host_docs && runner.os == 'macOS'"),
+    (
+        "Install nvm and Node.js (Linux)",
+        "matrix.host_docs && " + LINUX,
+    ),
+    (
+        "Check that the documented Node.js is in use",
+        "matrix.host_docs",
+    ),
+    (
+        "Build the documentation site",
+        "matrix.host_docs",
+    ),
+    ("Serve host documentation until ready (CI only)", "matrix.host_docs"),
+    ("Serve the validation dashboard until ready (CI only)", "matrix.host_companion"),
+    (
+        "Download selected local container contexts (CI only)",
+        "matrix.compose_docs || matrix.compose_companion",
+    ),
+    (
+        "Build selected local container images",
+        "matrix.compose_docs || matrix.compose_companion",
+    ),
+    (
+        "Verify the selected Compose profiles (CI only)",
+        "matrix.compose_docs || matrix.compose_companion",
+    ),
+    (
+        "Verify every selected component together (CI only)",
+        "matrix.index && (matrix.host_docs || matrix.compose_docs || matrix.compose_companion)",
+    ),
 ]
 
 # The document that tells a developer to run each step's commands.
@@ -47,13 +84,25 @@ DOCUMENTS = {
     "Install Python and PDM (Linux)": "QUICKSTART.md",
     "Install the project": "QUICKSTART.md",
     "Print the EVS release": "QUICKSTART.md",
-    "Build a small local index": "QUICKSTART.md",
+    "Install released server and optional index environments": "docs/local-guide.md",
+    "Verify the local server lifecycle": "docs/local-guide.md",
+    "Build and evaluate a small local index": "docs/local-guide.md",
     "Run the acceptance suite against the fixtures": "AGENTS.md",
     "Compare the outcomes with the expected ones": "acceptance/README.md",
     "Install Node.js (macOS)": "QUICKSTART.md",
     "Install nvm and Node.js (Linux)": "QUICKSTART.md",
-    "Build the documentation site": "docs/documentation-site.md",
+    "Build the documentation site": "docs/local-guide.md",
+    "Build selected local container images": "docs/local-guide.md",
 }
+
+CI_INDEX_INSTALL = (
+    '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ '
+    'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
+)
+CI_SERVER_INSTALL = (
+    '"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ '
+    'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
+)
 
 # What exists only in CI, by step name (the whole step) or by exact line, and why.
 CI_ONLY = {
@@ -69,17 +118,58 @@ CI_ONLY = {
     "that the runner image ships takes over from the uv install",
     "Write the readiness probe (CI only)": "the helper that starts a documented server, waits "
     "for its readiness endpoint and stops it",
+    "Select the released index source (CI only)": "a pull request substitutes its checkout for "
+    "the tag in the documented release URL, while other runs select the latest release tag",
     "Serve over stdio and initialize (CI only)": "an initialize round-trip that no one types",
-    "Serve over streamable HTTP until ready (CI only)": "the documented serve command, run by "
-    "the probe: a foreground server would never end the step",
+    "Verify required-index HTTP and indexed search (CI only)": "starts the documented command "
+    "under a readiness probe, then calls MCP and asserts the sampled concept and index provenance",
+    "Verify server-only search without an index (CI only)": "calls a separate installed server "
+    "through MCP and asserts the no-index error contract",
+    "Verify the selected Compose profiles (CI only)": "selects each row's exact profile set, "
+    "waits for real health endpoints and removes only selected services",
+    "Verify every selected component together (CI only)": "starts the exact process and port set "
+    "of each everything row, probes every socket and removes only owned processes and services",
+    "Require container contexts for Compose rows (CI only)": "fails only rows that selected "
+    "Compose when their shared artifact producer failed; unrelated rows still run",
     "Check that the documented Node.js is in use": "fails the job when a Node.js that the "
     "runner image ships takes over from the documented install",
     "Serve the validation dashboard until ready (CI only)": "the documented portal serve "
     "command, run by the probe, for the same reason",
+    "Serve host documentation until ready (CI only)": "the documented static-server command, "
+    "run by the probe so its foreground process can be stopped",
     '. "$HOME/.nvm/nvm.sh"': "the documents say 'in a new shell', where nvm is loaded",
     'dirname "$(command -v node)" >> "$GITHUB_PATH"': "puts the nvm Node.js on the "
     "path of the job's next steps, as a new shell would",
+    'INDEX_VENV="$RUNNER_TEMP/index-venv"': "names the isolated release-style index environment",
+    'SERVER_VENV="$RUNNER_TEMP/server-venv"': "names the isolated server-only control environment",
+    'python3.14 -m venv "$INDEX_VENV"': "creates the release-style index environment",
+    'python3.14 -m venv "$SERVER_VENV"': "creates the server-only control environment",
+    CI_INDEX_INSTALL: "substitutes the selected concrete release tag or pull-request checkout for "
+    "the document's vX.Y.Z placeholder",
+    CI_SERVER_INSTALL: "installs the server-only control without the index extra",
+    'echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"': "passes the index environment to later steps",
+    'echo "SERVER_VENV=$SERVER_VENV" >> "$GITHUB_ENV"': "passes the control environment to "
+    "later steps",
+    'echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"': "passes the isolated index "
+    "data directory to later steps",
+    'if [ "${{ matrix.index }}" = "true" ]; then': "installs the optional index only in index rows",
+    'if [ "${{ matrix.compose_companion }}" = "true" ]; then': "builds the admin image only for "
+    "rows that select the companion",
+    "fi": "closes a matrix-selected workflow branch",
+    "set -euo pipefail": "makes a multi-command CI verification fail at its first failed command",
+    'STDIO_ROOT="$RUNNER_TEMP/guide-stdio"': "selects an isolated CI installer data directory",
+    'HTTP_ROOT="$RUNNER_TEMP/guide-http"': "selects an isolated CI installer data directory",
+    'mkdir -p "$STDIO_ROOT" "$HTTP_ROOT"': "creates the installer inputs the guide represents "
+    "as operator-selected paths",
+    "curl --fail --silent http://127.0.0.1:8000/ready": "verifies the guide's documented HTTP "
+    "readiness endpoint",
     "status=$?": "keeps the fixture run's exit status, which the next line judges",
+    'export NCI_SI_DATA_DIR="$INDEX_DATA"': "uses the workflow's temporary index directory in "
+    "place of the document's /path/to/data placeholder",
+    '"$INDEX_VENV/bin/nci-si-mcp" index-sample C3262 C2991 C40704 C153397 C116938': "runs the "
+    "documented sample through the isolated tagged-release environment",
+    '"$INDEX_VENV/bin/nci-si-mcp" evaluate': "runs the documented evaluation through the same "
+    "isolated tagged-release environment",
     '[ "$status" -le 1 ] && [ -s acceptance/fixture.json ] || { echo "::error::The fixture run '
     'did not finish (exit status $status)."; exit 1; }': "exit status 1 means some tests did "
     "not pass, which the comparison judges; any other status, or no report, is no run",
@@ -93,17 +183,93 @@ PROBES = {
         "pdm run nci-si-mcp serve",
         None,
     ),
-    "Serve over streamable HTTP until ready (CI only)": (
-        "QUICKSTART.md",
-        "pdm run nci-si-mcp serve --transport streamable-http",
-        "http://127.0.0.1:8000/ready",
-    ),
     "Serve the validation dashboard until ready (CI only)": (
-        "docs/local-validation.md",
+        "docs/local-guide.md",
         "pdm run portal serve",
         "http://127.0.0.1:8081/health",
     ),
+    "Serve host documentation until ready (CI only)": (
+        "docs/local-guide.md",
+        "pdm run python -m scripts.static_server --directory tmp/docs-site --port 8080",
+        "http://127.0.0.1:8080/health",
+    ),
 }
+
+DOCUMENTED_INDEX_INSTALL = (
+    '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ '
+    'git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"'
+)
+REQUIRED_INDEX_RUN = r"""set -euo pipefail
+server=""
+cleanup() {
+  status=$?
+  cleanup_status=0
+  signalled=false
+  if [ -n "$server" ]; then
+    if kill -0 "$server" 2>/dev/null; then
+      kill "$server" || cleanup_status=$?
+      signalled=true
+    fi
+    if wait "$server"; then child_status=0; else child_status=$?; fi
+    printf 'cleanup required-index pid=%s status=%s signalled=%s\n' \
+      "$server" "$child_status" "$signalled" >&2
+    if [ "$signalled" = true ]; then
+      case "$child_status" in 0|143|241) ;; *) cleanup_status="$child_status" ;; esac
+    elif [ "$child_status" -ne 0 ]; then
+      cleanup_status="$child_status"
+    fi
+  fi
+  if [ "$status" -eq 0 ]; then status=$cleanup_status; fi
+  exit "$status"
+}
+trap cleanup EXIT
+export NCI_SI_DATA_DIR="$INDEX_DATA"
+export NCI_SI_HTTP_REQUIRE_INDEX=1
+"$INDEX_VENV/bin/nci-si-mcp" serve --transport streamable-http &
+server=$!
+python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "$server"
+"$INDEX_VENV/bin/python" - <<'PY'
+import asyncio
+from mcp.client import Client
+from mcp.client.streamable_http import streamable_http_client
+
+async def check():
+    async with Client(streamable_http_client("http://127.0.0.1:8000/mcp")) as client:
+        arguments = {"terminology": "ncit", "query": "Neoplasm", "mode": "semantic"}
+        reply = await client.call_tool("search_concepts", arguments)
+        result = reply.structured_content
+        concept = result["results"][0]["concept"]
+        assert concept["code"] == "C3262", result
+        assert concept["provenance"]["servedBy"] == "index", result
+        assert concept["provenance"]["source"] == "evs_index", result
+
+asyncio.run(check())
+PY
+"""
+
+SERVER_ONLY_RUN = r"""export NCI_SI_DATA_DIR="$RUNNER_TEMP/server-only-data"
+"$SERVER_VENV/bin/python" - <<'PY'
+import asyncio
+import os
+from mcp.client import Client
+from mcp.client.stdio import StdioServerParameters, stdio_client
+
+async def check():
+    server = StdioServerParameters(
+        command=os.environ["SERVER_VENV"] + "/bin/nci-si-mcp",
+        args=["serve"],
+        env={"NCI_SI_DATA_DIR": os.environ["RUNNER_TEMP"] + "/server-only-data"},
+    )
+    async with Client(stdio_client(server)) as client:
+        arguments = {"terminology": "ncit", "query": "Neoplasm", "mode": "semantic"}
+        reply = await client.call_tool("search_concepts", arguments)
+        result = reply.structured_content
+        assert result["error"]["code"] == "capability_unavailable", result
+        assert "results" not in result, result
+
+asyncio.run(check())
+PY
+"""
 
 # The exact run text of the step that writes the readiness probe. It answers ready only while the
 # server it started is running, stops that server, and fails unless it ended by its own exit or
@@ -112,28 +278,39 @@ READY_PROBE_RUN = r"""cat > "$RUNNER_TEMP/ready.py" <<'PY'
 import os, signal, subprocess, sys, time, urllib.request
 
 url, command = sys.argv[1], sys.argv[2:]
-server = subprocess.Popen(command, start_new_session=True)
+owned = command[:1] != ["--pid"]
+server = (subprocess.Popen(command, start_new_session=True) if owned else None)
+pid = server.pid if server else int(command[1])
+def running():
+    if server is not None:
+        return server.poll() is None
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
 try:
     deadline = time.monotonic() + 90
     while True:
         try:
             with urllib.request.urlopen(url, timeout=5) as reply:
-                if server.poll() is None:
+                if running():
                     print(url, reply.status, reply.read().decode())
                     break
         except OSError:
             pass
-        if server.poll() is not None or time.monotonic() > deadline:
+        if not running() or time.monotonic() > deadline:
             sys.exit("not ready: " + url)
         time.sleep(1)
 finally:
-    try:
-        os.killpg(server.pid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
-    status = server.wait(timeout=30)
+    if server is not None:
+        try:
+            os.killpg(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        status = server.wait(timeout=30)
 # pdm run reports a child that the SIGTERM ended as 256 - 15.
-if status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
+if server is not None and status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
     sys.exit(f"the server stopped with status {status}")
 PY
 """
@@ -198,7 +375,16 @@ TRIGGERS = {
             "CONTRIBUTING.md",
             "acceptance/README.md",
             "docs/documentation-site.md",
+            "docs/local-guide.md",
             "docs/local-validation.md",
+            "docs/installer-targets.md",
+            "container/compose.local.yaml",
+            "container/Docs.Dockerfile",
+            "container/Admin.Dockerfile",
+            "scripts/companion_context.py",
+            "scripts/companion_relay.py",
+            "scripts/companion_smoke.py",
+            "scripts/static_server.py",
             "scripts/portal*.py",
             "scripts/operator_*.py",
             "scripts/docs_site.py",
@@ -206,6 +392,112 @@ TRIGGERS = {
         ]
     },
 }
+
+COMBINATIONS = [
+    {
+        "os": "ubuntu-24.04",
+        "combination": "server",
+        "server": True,
+        "index": False,
+        "host_docs": False,
+        "host_companion": False,
+        "compose_docs": False,
+        "compose_companion": False,
+        "processes": "installer stdio, then installer HTTP",
+        "ports": "8000",
+    },
+    {
+        "os": "ubuntu-24.04",
+        "combination": "server-index",
+        "server": True,
+        "index": True,
+        "host_docs": False,
+        "host_companion": False,
+        "compose_docs": False,
+        "compose_companion": False,
+        "processes": "installer stopped, then required-index HTTP",
+        "ports": "8000",
+    },
+    {
+        "os": "ubuntu-24.04",
+        "combination": "docs",
+        "server": False,
+        "index": False,
+        "host_docs": False,
+        "host_companion": False,
+        "compose_docs": True,
+        "compose_companion": False,
+        "processes": "Compose documentation",
+        "ports": "8080",
+    },
+    {
+        "os": "ubuntu-24.04",
+        "combination": "companion",
+        "server": False,
+        "index": False,
+        "host_docs": False,
+        "host_companion": False,
+        "compose_docs": False,
+        "compose_companion": True,
+        "processes": "Compose administration and ingress",
+        "ports": "8081",
+    },
+    {
+        "os": "ubuntu-24.04",
+        "combination": "everything",
+        "server": True,
+        "index": True,
+        "host_docs": False,
+        "host_companion": False,
+        "compose_docs": True,
+        "compose_companion": True,
+        "processes": "required-index HTTP, Compose documentation, administration and ingress",
+        "ports": "8000,8080,8081",
+    },
+    {
+        "os": "macos-latest",
+        "combination": "server",
+        "server": True,
+        "index": False,
+        "host_docs": False,
+        "host_companion": False,
+        "compose_docs": False,
+        "compose_companion": False,
+        "processes": "installer stdio, then installer HTTP",
+        "ports": "8000",
+    },
+    {
+        "os": "macos-latest",
+        "combination": "everything-without-docker",
+        "server": True,
+        "index": True,
+        "host_docs": True,
+        "host_companion": True,
+        "compose_docs": False,
+        "compose_companion": False,
+        "processes": "required-index HTTP, host documentation and portal",
+        "ports": "8000,8080,8081",
+    },
+]
+
+GUIDE_COMBINATIONS = [
+    ("Server", "macOS/Linux", "Installer stdio, then installer HTTP", "8000"),
+    ("Server and index", "Linux", "Installer stopped, then required-index HTTP", "8000"),
+    ("Documentation", "Linux with Compose", "Compose documentation", "8080"),
+    ("Companion", "Linux with Compose", "Compose administration and ingress", "8081"),
+    (
+        "Everything",
+        "Linux with Compose",
+        "Required-index HTTP, Compose documentation, administration and ingress",
+        "8000, 8080, 8081",
+    ),
+    (
+        "Everything without Docker",
+        "macOS",
+        "Required-index HTTP, host documentation and portal",
+        "8000, 8080, 8081",
+    ),
+]
 
 
 STDIO_INITIALIZE_RUN = r"""python3 - <<'PY'
@@ -247,6 +539,38 @@ def job():
 
 def steps():
     return [step for step in job()["steps"] if "name" in step]
+
+
+def run_by_name():
+    return {step["name"]: step["run"] for step in steps() if "run" in step}
+
+
+def guide_combinations():
+    rows = re.findall(
+        r"^\| ([^|]+) \| ([^|]+) \| ([^|]+) \| ([^|]+) \|",
+        LOCAL_GUIDE.read_text(encoding="utf-8"),
+        re.MULTILINE,
+    )
+    return [tuple(value.strip() for value in row) for row in rows if row[0] != "Combination"]
+
+
+def workflow_guide_combinations():
+    names = {
+        "server-index": ("Server and index", "Linux"),
+        "docs": ("Documentation", "Linux with Compose"),
+        "companion": ("Companion", "Linux with Compose"),
+        "everything": ("Everything", "Linux with Compose"),
+        "everything-without-docker": ("Everything without Docker", "macOS"),
+    }
+    return [
+        (
+            *names[row["combination"]],
+            row["processes"].casefold(),
+            row["ports"].replace(",", ", "),
+        )
+        for row in COMBINATIONS
+        if row["combination"] != "server"
+    ]
 
 
 def documented_commands(document):
@@ -302,12 +626,27 @@ class LocalRunWorkflowTest(unittest.TestCase):
         self.assertNotIn("secrets.", LOCAL_RUN.read_text(encoding="utf-8"))
 
     def test_it_runs_on_exactly_the_two_platforms_with_a_bound(self):
+        self.assertEqual(job()["name"], "local run (${{ matrix.os }}, ${{ matrix.combination }})")
+        self.assertEqual(job()["needs"], "prepare-containers")
+        self.assertEqual(job()["if"], "${{ !cancelled() }}")
         self.assertEqual(job()["runs-on"], "${{ matrix.os }}")
         self.assertEqual(
             job()["strategy"],
-            {"fail-fast": False, "matrix": {"os": ["macos-latest", "ubuntu-24.04"]}},
+            {"fail-fast": False, "matrix": {"include": COMBINATIONS}},
         )
-        self.assertEqual(job()["timeout-minutes"], 40)
+        self.assertEqual(job()["timeout-minutes"], 60)
+
+    def test_every_combination_has_exact_processes_ports_and_component_selection(self):
+        self.assertEqual(guide_combinations(), GUIDE_COMBINATIONS)
+        expected = [
+            (name, platform, process.casefold(), ports)
+            for name, platform, process, ports in GUIDE_COMBINATIONS[1:]
+        ]
+        self.assertEqual(workflow_guide_combinations(), expected)
+        self.assertEqual(
+            [row["os"] for row in COMBINATIONS if row["combination"] == "server"],
+            ["ubuntu-24.04", "macos-latest"],
+        )
 
     def test_checkout_keeps_tags_and_no_credentials(self):
         checkouts = [s for s in job()["steps"] if s.get("uses", "").startswith("actions/checkout@")]
@@ -317,7 +656,59 @@ class LocalRunWorkflowTest(unittest.TestCase):
     def test_it_installs_by_the_documented_route_not_a_setup_action(self):
         self.assertEqual(
             [s["uses"] for s in job()["steps"] if "uses" in s],
-            ["actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"],
+            [
+                "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+            ],
+        )
+
+    def test_container_context_is_prepared_once_and_downloaded_only_by_compose_rows(self):
+        prepare = load(LOCAL_RUN)["jobs"]["prepare-containers"]
+        self.assertEqual(
+            {key: prepare[key] for key in ("name", "runs-on", "timeout-minutes")},
+            {
+                "name": "prepare local container contexts",
+                "runs-on": "ubuntu-24.04",
+                "timeout-minutes": 10,
+            },
+        )
+        self.assertEqual(prepare["steps"][1]["uses"], "$/.github/actions/setup")
+        self.assertEqual(
+            prepare["steps"][0],
+            {
+                "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "with": {"fetch-depth": 0, "persist-credentials": False},
+            },
+        )
+        self.assertEqual(
+            [step.get("run") for step in prepare["steps"][2:5]],
+            [
+                "npm ci --prefix docs/site-assets --ignore-scripts",
+                "npm run build --prefix docs/site-assets",
+                "pdm run python -m scripts.companion_context",
+            ],
+        )
+        self.assertEqual(
+            prepare["steps"][5]["with"],
+            {
+                "name": "local-companion-context-${{ github.sha }}",
+                "path": "tmp/companion-context/",
+                "if-no-files-found": "error",
+                "retention-days": 1,
+            },
+        )
+        download = next(
+            step
+            for step in steps()
+            if step["name"] == "Download selected local container contexts (CI only)"
+        )
+        self.assertEqual(download["if"], "matrix.compose_docs || matrix.compose_companion")
+        self.assertEqual(
+            download["with"],
+            {
+                "name": "local-companion-context-${{ github.sha }}",
+                "path": "tmp/companion-context",
+            },
         )
 
     def test_the_steps_are_exactly_these_in_order_each_on_its_platform(self):
@@ -325,12 +716,14 @@ class LocalRunWorkflowTest(unittest.TestCase):
 
     def test_every_command_is_copied_from_the_document_it_walks(self):
         for step in steps():
+            if "run" not in step:
+                continue
             with self.subTest(step=step["name"]):
                 self.assertEqual(undocumented_lines(step["name"], step["run"], DOCUMENTS), [])
 
     def test_every_step_keeps_the_order_of_its_document(self):
         for step in steps():
-            if step["name"] in DOCUMENTS and step["name"] not in CI_ONLY:
+            if "run" in step and step["name"] in DOCUMENTS and step["name"] not in CI_ONLY:
                 commands = documented_commands(DOCUMENTS[step["name"]])
                 found = [
                     commands.index(line) for line in command_lines(step["run"]) if line in commands
@@ -339,16 +732,79 @@ class LocalRunWorkflowTest(unittest.TestCase):
                     self.assertEqual(found, sorted(found))
 
     def test_the_stdio_initialize_round_trip_is_exactly_this(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         self.assertEqual(by_name["Serve over stdio and initialize (CI only)"], STDIO_INITIALIZE_RUN)
 
+    def test_the_optional_index_uses_the_documented_release_extra_or_the_pr_checkout(self):
+        by_name = run_by_name()
+        self.assertIn(DOCUMENTED_INDEX_INSTALL, documented_commands("docs/local-guide.md"))
+        install = by_name["Install released server and optional index environments"]
+        self.assertIn(CI_INDEX_INSTALL, install)
+        self.assertIn(CI_SERVER_INSTALL, install)
+        self.assertIn(
+            'git config --global url."file://$GITHUB_WORKSPACE/".insteadOf '
+            "https://github.com/CBIIT/nci-si-mcp",
+            by_name["Select the released index source (CI only)"],
+        )
+
+    def test_required_index_readiness_and_search_are_exact(self):
+        by_name = run_by_name()
+        self.assertEqual(
+            by_name["Verify required-index HTTP and indexed search (CI only)"],
+            REQUIRED_INDEX_RUN,
+        )
+
+    def test_server_only_search_has_the_exact_no_index_error(self):
+        by_name = run_by_name()
+        self.assertEqual(
+            by_name["Verify server-only search without an index (CI only)"], SERVER_ONLY_RUN
+        )
+
+    def test_combination_cleanup_classifies_every_process_exit_exactly(self):
+        run = run_by_name()["Verify every selected component together (CI only)"]
+        classification = """if [ "$signalled" = true ]; then
+      case "$child_status" in 0|143|241) ;; *) cleanup_status="$child_status" ;; esac
+    elif [ "$child_status" -ne 0 ]; then
+      cleanup_status="$child_status"
+    fi"""
+        self.assertIn(classification, run)
+        diagnostic = (
+            "printf 'cleanup %s pid=%s status=%s signalled=%s\\n' \\\n"
+            '      "$name" "$pid" "$child_status" "$signalled" >&2'
+        )
+        self.assertIn(diagnostic, run)
+
+    def test_compose_verification_compares_exactly_the_running_selected_services(self):
+        checks = (
+            "docker compose -f container/compose.local.yaml ps --status running --services | "
+            'sort > "$RUNNER_TEMP/running-services"',
+            'cmp "$RUNNER_TEMP/running-services" "$RUNNER_TEMP/expected-services"',
+        )
+        runs = run_by_name()
+        profile = runs["Verify the selected Compose profiles (CI only)"]
+        combined = runs["Verify every selected component together (CI only)"]
+        for check in checks:
+            with self.subTest(step="profile", check=check):
+                self.assertIn(check, profile)
+            with self.subTest(step="combined", check=check):
+                self.assertIn(check, combined)
+        self.assertIn(
+            'printf \'%s\\n\' "${expected[@]}" | sort > "$RUNNER_TEMP/expected-services"',
+            profile,
+        )
+        self.assertIn(
+            "printf '%s\\n' admin-ingress administration documentation | sort > "
+            '"$RUNNER_TEMP/expected-services"',
+            combined,
+        )
+
     def test_the_ci_only_list_has_no_stale_entry(self):
-        lines = {line.strip() for step in steps() for line in step["run"].splitlines()}
+        lines = {line.strip() for run in run_by_name().values() for line in run.splitlines()}
         names = {step["name"] for step in steps()}
         self.assertEqual([key for key in CI_ONLY if key not in names | lines], [])
 
     def test_the_probe_steps_run_the_documented_server_commands(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         for name, (document, command, url) in PROBES.items():
             with self.subTest(step=name):
                 self.assertIn(command, documented_commands(document))
@@ -357,7 +813,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
                     self.assertEqual(by_name[name].strip(), probe_run(command, url))
 
     def test_the_in_use_checks_are_exactly_these(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         for name, run in IN_USE_CHECKS.items():
             with self.subTest(step=name):
                 self.assertEqual(by_name[name], run)
@@ -369,11 +825,11 @@ class LocalRunWorkflowTest(unittest.TestCase):
                 self.assertEqual(by_name[name]["timeout-minutes"], PROBE_TIMEOUT_MINUTES)
 
     def test_the_readiness_probe_is_exactly_this(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         self.assertEqual(by_name["Write the readiness probe (CI only)"], READY_PROBE_RUN)
 
     def test_the_runner_loses_its_python_org_builds_before_the_documented_install(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         self.assertEqual(
             by_name.get("Remove the runner's python.org Python (macOS)", "").splitlines(),
             [
@@ -383,7 +839,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
         )
 
     def test_a_failed_removal_of_a_preinstalled_formula_fails_the_job(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         for name, formulae in REMOVALS.items():
             with self.subTest(step=name):
                 self.assertEqual(
@@ -400,7 +856,10 @@ class LocalRunWorkflowTest(unittest.TestCase):
         # line does, or keep a failed check from failing the job, with every run line unchanged.
         workflow = load(LOCAL_RUN)
         self.assertEqual(set(workflow), {"name", True, "permissions", "concurrency", "jobs"})
-        self.assertEqual(set(job()), {"name", "runs-on", "strategy", "timeout-minutes", "steps"})
+        self.assertEqual(
+            set(job()),
+            {"name", "needs", "if", "runs-on", "strategy", "timeout-minutes", "steps"},
+        )
         allowed = {"name", "if", "uses", "with", "shell", "timeout-minutes", "run"}
         extra = {
             step.get("name", step.get("uses")): sorted(set(step) - allowed)

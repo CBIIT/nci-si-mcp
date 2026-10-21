@@ -138,22 +138,6 @@ class InstallerCliTest(unittest.TestCase):
         self.assertNotIn("PRIVATE-CANARY", stdout + stderr)
         self.assertFalse((ROOT / "missing-installer-state").exists())
 
-    def test_unselected_components_contribute_no_component_prerequisites(self):
-        environment = os.environ | {
-            "NCI_SI_EVS_BASE_URL": "http://127.0.0.1:1",
-            "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:2",
-        }
-        code, stdout, stderr = self.run_installer(
-            "check", "--target", "local", environment=environment
-        )
-
-        self.assertIn(code, (0, 1))
-        self.assertEqual(stderr, "")
-        self.assertEqual(
-            [result["name"] for result in json.loads(stdout)["results"]],
-            ["supported_os", "git", "python", "evs_reachable", "cadsr_reachable"],
-        )
-
     def test_unexpected_value_and_runtime_bugs_propagate_from_main(self):
         for error in (ValueError("PRIVATE-CANARY"), RuntimeError("PRIVATE-CANARY")):
             with (

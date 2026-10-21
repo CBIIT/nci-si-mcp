@@ -6,6 +6,9 @@ contains no operational results.
 
 ## Build and start locally
 
+The [complete local guide](local-guide.md#documentation-and-companion-containers) owns the exact
+build, start and component-scoped stop commands. This runbook explains their boundaries and data.
+
 Install the [prerequisites](../QUICKSTART.md#platforms-and-prerequisites), including a
 Docker-compatible engine with Compose. Images currently target Linux amd64; the Dockerfiles do
 not bake in an architecture. On Apple Silicon, the engine needs amd64 emulation. No registry
@@ -20,15 +23,7 @@ stop unrelated workloads, change shared VM settings or run a global prune during
 Commit source changes first: the worker archive, application wheels and public documentation
 must identify the same clean checkout. No Git metadata or host credentials enter the contexts.
 
-```bash
-pdm install -G docs
-npm ci --prefix docs/site-assets --ignore-scripts
-npm run build --prefix docs/site-assets
-pdm run python -m scripts.companion_context
-docker build --platform linux/amd64 --load -t nci-si-docs:local tmp/companion-context/docs
-docker build --platform linux/amd64 --load -t nci-si-admin:local tmp/companion-context/admin
-docker compose -f container/compose.local.yaml up -d
-```
+Selecting neither profile starts nothing; selecting one never starts the other.
 
 To reuse an already browser-tested public site, pass `--site tmp/docs-site` to
 `scripts.companion_context` instead of building it again. Its `build.json` must name the
@@ -113,11 +108,12 @@ These local images are not published as new GHCR packages. The hash-locked compa
 file is derived from `pdm.lock`; regenerate with `pdm run python -m scripts.companion_lock write`
 when the relevant lock groups change. Model and embedding runtimes are excluded.
 
-```bash
-docker compose -f container/compose.local.yaml --profile mcp down
-```
+Stop and remove one component with the component-scoped commands in the complete local guide.
+For the optional MCP service, use `docker compose -f container/compose.local.yaml stop mcp`
+followed by `docker compose -f container/compose.local.yaml rm -f mcp`.
 
-This preserves evidence. Add `--volumes` only when deliberately deleting that local history.
+Removing the companion containers preserves evidence. Use a project-wide `down --volumes` only
+when deliberately removing every selected component and deleting that local history.
 Remove `tmp/companion-context` after image construction; a rebuild requires a fresh output
 directory (or `--output` with another path). Do not delete a directory someone else uses.
 

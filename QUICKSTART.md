@@ -2,7 +2,9 @@
 
 How to install and run the server, what it serves, and how it fails. What this repository
 is, and the status of each tool group, is in [README.md](README.md).
-The [installer target interface](docs/installer-targets.md) installs and operates the local server only. The same guide links the independent local commands for optional components.
+Start with the [complete local guide](docs/local-guide.md) to choose a server, index,
+documentation and companion combination. The [installer target interface](docs/installer-targets.md)
+installs and operates the local server only.
 
 See also: the same instructions and diagrams as a searchable website
 ([local documentation preview](docs/documentation-site.md#build-and-preview)); the documentation
@@ -38,13 +40,9 @@ the test and lint tools, the `server` extra (MCP), and the `index` extra (NumPy 
 indexed search). Every command below that runs from a checkout goes through `pdm run`, which
 uses that environment without activating it.
 
-To run a released version without a checkout, install it from its tag; the
-[releases page](https://github.com/CBIIT/nci-si-mcp/releases) lists the versions:
-
-```bash
-pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"
-nci-si-mcp serve
-```
+For a released version without a checkout, use the tagged server and index commands in the
+[complete local guide](docs/local-guide.md). The
+[releases page](https://github.com/CBIIT/nci-si-mcp/releases) lists the versions.
 
 The package version is not written in any file. It is derived from the nearest `vX.Y.Z` git
 tag when the package is installed or built; a commit after the tag gets a development version
@@ -150,7 +148,8 @@ rejected: unset it instead.
 
 ## Build a small local index
 
-The full NCIt concept universe is large. Start with a known sample:
+The full NCIt concept universe is large. The complete local guide owns the released sample and
+required-index server sequence. From a checkout, use:
 
 ```bash
 pdm run nci-si-mcp index-sample C3262 C2991 C40704 C153397 C116938

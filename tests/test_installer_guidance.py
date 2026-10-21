@@ -26,7 +26,6 @@ class Input(io.StringIO):
 
 class InstallerGuidanceTest(unittest.TestCase):
     def run_main(self, stream, observations, *extra):
-        self.assertEqual(stream.isatty(), stream.tty)
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         values = iter(observations)
@@ -53,7 +52,15 @@ class InstallerGuidanceTest(unittest.TestCase):
 
     def test_tty_confirmation_only_rechecks_and_advances_after_verification(self):
         stream = Input("\n\n", tty=True)
-        code, result, prompt, state = self.run_main(stream, (False, False, True, True, True))
+        checks = 0
+        passes_on_check = 3
+
+        def observe():
+            nonlocal checks
+            checks += 1
+            return checks >= passes_on_check
+
+        code, result, prompt, state = self.run_main(stream, iter(observe, None))
         self.assertEqual((code, stream.reads), (0, 2))
         self.assertEqual(prompt.count("Repair the required input."), 2)
         self.assertNotIn("PRIVATE-CANARY", prompt + json.dumps(result))

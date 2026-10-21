@@ -8,7 +8,6 @@ import re
 import subprocess
 import sys
 import uuid
-from contextlib import ExitStack
 from http import HTTPStatus
 from http.client import HTTPConnection
 from typing import Any
@@ -29,6 +28,16 @@ def docker(*args: str, check: bool = True) -> str:
         timeout=60,
     )
     return result.stdout.strip()
+
+
+def docker_result(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(  # noqa: S603 - fixed executable and owned diagnostic resources
+        ["docker", *args],  # noqa: S607 - local container engine executable
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+    )
 
 
 def require(condition: bool, message: str) -> None:
@@ -188,12 +197,68 @@ def _remove_owned(kind: str, name: str) -> None:
         docker(kind, "rm", *force, name)
 
 
-def cleanup(compose: tuple[str, ...], serving: str, network: str) -> None:
-    # Every owned cleanup is attempted even if an earlier engine operation fails.
-    with ExitStack() as pending:
-        pending.callback(_remove_owned, "network", network)
-        pending.callback(_remove_owned, "container", serving)
-        pending.callback(docker, *compose, "down", "--volumes")
+def cleanup(compose: tuple[str, ...], serving: str, network: str) -> list[Exception]:
+    errors: list[Exception] = []
+    operations = (
+        lambda: docker(*compose, "down", "--volumes"),
+        lambda: _remove_owned("container", serving),
+        lambda: _remove_owned("network", network),
+    )
+    for operation in operations:
+        try:
+            operation()
+        except (OSError, subprocess.SubprocessError) as error:
+            errors.append(error)
+    return errors
+
+
+def _diagnostics(compose: tuple[str, ...]) -> list[Exception]:
+    errors: list[Exception] = []
+    for arguments in (("ps", "--all"), ("logs", "--no-color", "--tail", "30")):
+        try:
+            result = docker_result(*compose, *arguments)
+        except (OSError, subprocess.SubprocessError) as error:
+            errors.append(error)
+            continue
+        print(result.stdout.strip())
+        if result.returncode:
+            errors.append(
+                RuntimeError(
+                    f"docker {' '.join(arguments)} failed with status {result.returncode}: "
+                    f"{result.stderr.strip()}"
+                )
+            )
+    return errors
+
+
+def _finish(compose: tuple[str, ...], serving: str, network: str) -> None:
+    primary = sys.exception()
+    errors = _diagnostics(compose) if primary is not None else []
+    errors.extend(cleanup(compose, serving, network))
+    if primary is not None:
+        for error in errors:
+            primary.add_note(f"Cleanup or diagnostics also failed: {error!r}")
+    elif errors:
+        raise ExceptionGroup("Companion cleanup failed", errors)
+
+
+def verify_plans(compose: tuple[str, ...]) -> None:
+    scenarios = (
+        ((), []),
+        (("docs",), ["documentation"]),
+        (("companion",), ["administration", "admin-ingress"]),
+        (("docs", "companion"), ["administration", "admin-ingress", "documentation"]),
+        (("mcp",), ["mcp"]),
+    )
+    for profiles, expected in scenarios:
+        selected = tuple(option for profile in profiles for option in ("--profile", profile))
+        services = docker(*compose, *selected, "config", "--services").splitlines()
+        require(services == expected, f"Profiles {profiles or ('none',)} selected {services}")
+
+
+def remove_component(compose: tuple[str, ...], *services: str) -> None:
+    docker(*compose, "stop", *services)
+    docker(*compose, "rm", "-f", *services)
 
 
 def main() -> None:
@@ -202,10 +267,15 @@ def main() -> None:
     serving = project + "-serving"
     network = project + "-probe"
     try:
-        docker(*compose, "up", "-d")
+        verify_plans(compose)
+
+        docker(*compose, "--profile", "docs", "up", "-d")
         ready(8080)
-        ready(8081)
         require("National Cancer Institute" in request(8080, "/")[1], "Docs identity missing")
+        remove_component(compose, "documentation")
+
+        docker(*compose, "--profile", "companion", "up", "-d")
+        ready(8081)
         portal_styling(8081)
         admin = docker(*compose, "ps", "-q", "administration")
         inspect_boundary(admin)
@@ -213,18 +283,23 @@ def main() -> None:
         ready(port)
         blocked_connectivity(admin, address)
         benchmark(admin)
-        docker(*compose, "stop", "administration")
+        remove_component(compose, "admin-ingress", "administration")
         require(
             request(port, "/health")[0] == HTTPStatus.OK, "Stopping admin stopped the serving MCP"
         )
+
+        docker(*compose, "--profile", "docs", "--profile", "companion", "up", "-d")
+        ready(8080)
+        ready(8081)
+        remove_component(compose, "documentation")
+        require(request(8081, "/health")[0] == HTTPStatus.OK, "Stopping docs stopped companion")
+        docker(*compose, "--profile", "docs", "up", "-d", "documentation")
+        ready(8080)
+        remove_component(compose, "admin-ingress", "administration")
+        require(request(8080, "/health")[0] == HTTPStatus.OK, "Stopping companion stopped docs")
     finally:
-        try:
-            if sys.exception() is not None:
-                print(docker(*compose, "ps", "--all", check=False))
-                print(docker(*compose, "logs", "--no-color", "--tail", "30", check=False))
-        finally:
-            cleanup(compose, serving, network)
-    print("Companion health, isolation, fixture benchmark and independent shutdown passed")
+        _finish(compose, serving, network)
+    print("Profile plans, health, isolation, fixture benchmark and independent shutdown passed")
 
 
 if __name__ == "__main__":

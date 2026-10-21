@@ -75,6 +75,9 @@ def wait_until(predicate: Callable[[], bool], seconds: float, *, interval: float
 
 
 def _interrupt(_signum: int, _frame: Any) -> None:
+    # The first SIGTERM starts stack unwinding. A supervisor can forward the same signal again;
+    # do not let that second delivery interrupt owned cleanup already in progress.
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
     raise KeyboardInterrupt
 
 

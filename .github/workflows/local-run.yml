@@ -1,12 +1,12 @@
 name: Local run
 
-# The documented local setup, walked literally on a clean runner of each platform a developer
-# uses (macOS first, Linux). Each `run:` line is copied from the document that tells a developer
+# The documented local setup, walked literally through the supported combinations on clean
+# macOS and Linux runners. Each `run:` line is copied from the document that tells a developer
 # to run it, in document order; tests/test_local_run_workflow.py compares them and lists, with a
 # reason each, the few lines that exist only in CI. The runs use the live EVS service as the
-# documents do (not a required check, so an outage cannot block a pull request); only the
-# acceptance run uses fixtures, as acceptance/README.md says. Containers are not run: macOS
-# runners have no container runtime, and the CI `image` and `companions` jobs cover Linux.
+# documents do, so an outage can fail a run; only the
+# acceptance run uses fixtures, as acceptance/README.md says. macOS rows use host processes;
+# Linux docs and companion rows build and run their selected Compose profiles.
 on:
   push:
     branches: [main]
@@ -24,7 +24,16 @@ on:
       - CONTRIBUTING.md
       - acceptance/README.md
       - docs/documentation-site.md
+      - docs/local-guide.md
       - docs/local-validation.md
+      - docs/installer-targets.md
+      - container/compose.local.yaml
+      - container/Docs.Dockerfile
+      - container/Admin.Dockerfile
+      - scripts/companion_context.py
+      - scripts/companion_relay.py
+      - scripts/companion_smoke.py
+      - scripts/static_server.py
       - scripts/portal*.py
       - scripts/operator_*.py
       - scripts/docs_site.py
@@ -39,15 +48,49 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  prepare-containers:
+    name: prepare local container contexts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+      - run: npm ci --prefix docs/site-assets --ignore-scripts
+      - run: npm run build --prefix docs/site-assets
+      - run: pdm run python -m scripts.companion_context
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: local-companion-context-${{ github.sha }}
+          path: tmp/companion-context/
+          if-no-files-found: error
+          retention-days: 1
+
   local-run:
-    name: local run (${{ matrix.os }})
+    name: local run (${{ matrix.os }}, ${{ matrix.combination }})
+    needs: prepare-containers
+    if: ${{ !cancelled() }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-24.04]
+        include:
+          - {os: ubuntu-24.04, combination: server, server: true, index: false, host_docs: false, host_companion: false, compose_docs: false, compose_companion: false, processes: "installer stdio, then installer HTTP", ports: "8000"}
+          - {os: ubuntu-24.04, combination: server-index, server: true, index: true, host_docs: false, host_companion: false, compose_docs: false, compose_companion: false, processes: "installer stopped, then required-index HTTP", ports: "8000"}
+          - {os: ubuntu-24.04, combination: docs, server: false, index: false, host_docs: false, host_companion: false, compose_docs: true, compose_companion: false, processes: "Compose documentation", ports: "8080"}
+          - {os: ubuntu-24.04, combination: companion, server: false, index: false, host_docs: false, host_companion: false, compose_docs: false, compose_companion: true, processes: "Compose administration and ingress", ports: "8081"}
+          - {os: ubuntu-24.04, combination: everything, server: true, index: true, host_docs: false, host_companion: false, compose_docs: true, compose_companion: true, processes: "required-index HTTP, Compose documentation, administration and ingress", ports: "8000,8080,8081"}
+          - {os: macos-latest, combination: server, server: true, index: false, host_docs: false, host_companion: false, compose_docs: false, compose_companion: false, processes: "installer stdio, then installer HTTP", ports: "8000"}
+          - {os: macos-latest, combination: everything-without-docker, server: true, index: true, host_docs: true, host_companion: true, compose_docs: false, compose_companion: false, processes: "required-index HTTP, host documentation and portal", ports: "8000,8080,8081"}
     steps:
+      - name: Require container contexts for Compose rows (CI only)
+        if: (matrix.compose_docs || matrix.compose_companion) && needs.prepare-containers.result != 'success'
+        run: |
+          echo "::error::The local container context producer did not succeed."
+          exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0  # the package version is derived from the nearest tag
@@ -56,7 +99,7 @@ jobs:
       # The runner image ships python.org builds in /Library/Frameworks, linked from /usr/local/bin,
       # that a clean Mac lacks; PDM picks them over Homebrew's python@3.14. Remove them first.
       - name: Remove the runner's python.org Python (macOS)
-        if: runner.os == 'macOS'
+        if: (matrix.server || matrix.host_docs) && runner.os == 'macOS'
         run: |
           sudo find /usr/local/bin -lname '*Library/Frameworks/Python.framework/*' -delete
           sudo rm -rf /Library/Frameworks/Python.framework
@@ -64,34 +107,35 @@ jobs:
       # in-use checks below could pass without the documented install having run. A failed
       # uninstall fails the job.
       - name: Remove preinstalled Python and PDM (macOS)
-        if: runner.os == 'macOS'
+        if: (matrix.server || matrix.host_docs) && runner.os == 'macOS'
         run: |
           if brew list --versions python@3.14 >/dev/null; then brew uninstall --ignore-dependencies python@3.14; fi
           if brew list --versions pdm >/dev/null; then brew uninstall --ignore-dependencies pdm; fi
       # QUICKSTART, "Platforms and prerequisites": Python and PDM by the documented route.
       # Not actions/setup-python or setup-pdm, which are the tuned path.
       - name: Install Python and PDM (macOS)
-        if: runner.os == 'macOS'
+        if: (matrix.server || matrix.host_docs) && runner.os == 'macOS'
         run: brew install python@3.14 pdm && pdm use -f "$(command -v python3.14)"
       - name: Install uv (Linux)
-        if: runner.os == 'Linux'
+        if: (matrix.server || matrix.host_docs) && runner.os == 'Linux'
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
       # The documents say "in a new shell"; a job's next step sees the path added here.
       - name: Open a new shell (Linux)
-        if: runner.os == 'Linux'
+        if: (matrix.server || matrix.host_docs) && runner.os == 'Linux'
         run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Install Python and PDM (Linux)
-        if: runner.os == 'Linux'
+        if: (matrix.server || matrix.host_docs) && runner.os == 'Linux'
         run: |
           uv python install 3.14
           uv tool install pdm
 
       - name: Install the project
+        if: matrix.server || matrix.host_docs
         run: pdm install
 
       # A copy of Python or PDM that the runner image ships must not take over unnoticed.
       - name: Check that the documented Python and PDM are in use (macOS)
-        if: runner.os == 'macOS'
+        if: (matrix.server || matrix.host_docs) && runner.os == 'macOS'
         run: |
           fail() { echo "::error::$1"; exit 1; }
           [ "$(command -v pdm)" = "$(brew --prefix)/bin/pdm" ] || fail "pdm is $(command -v pdm), not the Homebrew install"
@@ -101,7 +145,7 @@ jobs:
           formula="$(brew --prefix python@3.14)"
           case "$base" in "$formula"/*) ;; *) fail "the project's Python is $base, not Homebrew's python@3.14 ($formula)" ;; esac
       - name: Check that the documented Python and PDM are in use (Linux)
-        if: runner.os == 'Linux'
+        if: (matrix.server || matrix.host_docs) && runner.os == 'Linux'
         run: |
           fail() { echo "::error::$1"; exit 1; }
           [ "$(command -v pdm)" = "$HOME/.local/bin/pdm" ] || fail "pdm is $(command -v pdm), not the uv tool install"
@@ -111,45 +155,107 @@ jobs:
           managed="$(uv python dir)"
           case "$base" in "$managed"/*) ;; *) fail "the project's Python is $base, not a uv-managed one under $managed" ;; esac
 
-      # QUICKSTART: first commands, live EVS, and a small local index.
+      # QUICKSTART supplies release-info; docs/local-guide.md supplies released environments and
+      # the explicit sample index.
       - name: Print the EVS release
+        if: matrix.combination == 'server'
         run: pdm run nci-si-mcp release-info
-      - name: Build a small local index
-        run: pdm run nci-si-mcp index-sample C3262 C2991 C40704 C153397 C116938
+      - name: Select the released index source (CI only)
+        if: matrix.server || matrix.index
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            RELEASE_TAG=v0.0.0
+            git tag "$RELEASE_TAG" HEAD
+            git config --global url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
+          else
+            RELEASE_TAG="$(git describe --tags --abbrev=0)"
+          fi
+          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
+      - name: Install released server and optional index environments
+        if: matrix.server || matrix.index
+        run: |
+          INDEX_VENV="$RUNNER_TEMP/index-venv"
+          SERVER_VENV="$RUNNER_TEMP/server-venv"
+          python3.14 -m venv "$SERVER_VENV"
+          "$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+          echo "SERVER_VENV=$SERVER_VENV" >> "$GITHUB_ENV"
+          if [ "${{ matrix.index }}" = "true" ]; then
+            python3.14 -m venv "$INDEX_VENV"
+            "$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+            echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"
+          fi
+          echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"
+      - name: Verify the local server lifecycle
+        if: matrix.server
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          STDIO_ROOT="$RUNNER_TEMP/guide-stdio"
+          HTTP_ROOT="$RUNNER_TEMP/guide-http"
+          mkdir -p "$STDIO_ROOT" "$HTTP_ROOT"
+          "$SERVER_VENV/bin/nci-si-install" check --target local
+          "$SERVER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$STDIO_ROOT" --non-interactive
+          "$SERVER_VENV/bin/nci-si-install" status --target local --transport stdio --data-dir "$STDIO_ROOT"
+          "$SERVER_VENV/bin/nci-si-install" uninstall --target local --transport stdio --data-dir "$STDIO_ROOT"
+          "$SERVER_VENV/bin/nci-si-install" run --target local --transport http --data-dir "$HTTP_ROOT" --non-interactive
+          "$SERVER_VENV/bin/nci-si-install" status --target local --transport http --data-dir "$HTTP_ROOT"
+          "$SERVER_VENV/bin/nci-si-install" start --target local --transport http --data-dir "$HTTP_ROOT"
+          curl --fail --silent http://127.0.0.1:8000/ready
+          "$SERVER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT"
+          "$SERVER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT"
+      - name: Build and evaluate a small local index
+        if: matrix.index
+        run: |
+          export NCI_SI_DATA_DIR="$INDEX_DATA"
+          "$INDEX_VENV/bin/nci-si-mcp" index-sample C3262 C2991 C40704 C153397 C116938
+          "$INDEX_VENV/bin/nci-si-mcp" evaluate
 
-      # Probes for the servers QUICKSTART tells a developer to start: each starts the documented
-      # command, waits (bounded) until it answers, and stops it.
+      # CI-only helper for documented foreground commands and already-owned processes: wait for
+      # the health outcome while requiring the selected process to remain alive.
       - name: Write the readiness probe (CI only)
         run: |
           cat > "$RUNNER_TEMP/ready.py" <<'PY'
           import os, signal, subprocess, sys, time, urllib.request
 
           url, command = sys.argv[1], sys.argv[2:]
-          server = subprocess.Popen(command, start_new_session=True)
+          owned = command[:1] != ["--pid"]
+          server = (subprocess.Popen(command, start_new_session=True) if owned else None)
+          pid = server.pid if server else int(command[1])
+          def running():
+              if server is not None:
+                  return server.poll() is None
+              try:
+                  os.kill(pid, 0)
+              except ProcessLookupError:
+                  return False
+              return True
           try:
               deadline = time.monotonic() + 90
               while True:
                   try:
                       with urllib.request.urlopen(url, timeout=5) as reply:
-                          if server.poll() is None:
+                          if running():
                               print(url, reply.status, reply.read().decode())
                               break
                   except OSError:
                       pass
-                  if server.poll() is not None or time.monotonic() > deadline:
+                  if not running() or time.monotonic() > deadline:
                       sys.exit("not ready: " + url)
                   time.sleep(1)
           finally:
-              try:
-                  os.killpg(server.pid, signal.SIGTERM)
-              except ProcessLookupError:
-                  pass
-              status = server.wait(timeout=30)
+              if server is not None:
+                  try:
+                      os.killpg(pid, signal.SIGTERM)
+                  except ProcessLookupError:
+                      pass
+                  status = server.wait(timeout=30)
           # pdm run reports a child that the SIGTERM ended as 256 - 15.
-          if status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
+          if server is not None and status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
               sys.exit(f"the server stopped with status {status}")
           PY
       - name: Serve over stdio and initialize (CI only)
+        if: matrix.server
         timeout-minutes: 3
         run: |
           python3 - <<'PY'
@@ -170,13 +276,87 @@ jobs:
               server.kill()
               server.wait(timeout=30)
           PY
-      - name: Serve over streamable HTTP until ready (CI only)
+      - name: Verify required-index HTTP and indexed search (CI only)
+        if: matrix.index
         timeout-minutes: 3
-        run: python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready pdm run nci-si-mcp serve --transport streamable-http
+        run: |
+          set -euo pipefail
+          server=""
+          cleanup() {
+            status=$?
+            cleanup_status=0
+            signalled=false
+            if [ -n "$server" ]; then
+              if kill -0 "$server" 2>/dev/null; then
+                kill "$server" || cleanup_status=$?
+                signalled=true
+              fi
+              if wait "$server"; then child_status=0; else child_status=$?; fi
+              printf 'cleanup required-index pid=%s status=%s signalled=%s\n' \
+                "$server" "$child_status" "$signalled" >&2
+              if [ "$signalled" = true ]; then
+                case "$child_status" in 0|143|241) ;; *) cleanup_status="$child_status" ;; esac
+              elif [ "$child_status" -ne 0 ]; then
+                cleanup_status="$child_status"
+              fi
+            fi
+            if [ "$status" -eq 0 ]; then status=$cleanup_status; fi
+            exit "$status"
+          }
+          trap cleanup EXIT
+          export NCI_SI_DATA_DIR="$INDEX_DATA"
+          export NCI_SI_HTTP_REQUIRE_INDEX=1
+          "$INDEX_VENV/bin/nci-si-mcp" serve --transport streamable-http &
+          server=$!
+          python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "$server"
+          "$INDEX_VENV/bin/python" - <<'PY'
+          import asyncio
+          from mcp.client import Client
+          from mcp.client.streamable_http import streamable_http_client
+
+          async def check():
+              async with Client(streamable_http_client("http://127.0.0.1:8000/mcp")) as client:
+                  arguments = {"terminology": "ncit", "query": "Neoplasm", "mode": "semantic"}
+                  reply = await client.call_tool("search_concepts", arguments)
+                  result = reply.structured_content
+                  concept = result["results"][0]["concept"]
+                  assert concept["code"] == "C3262", result
+                  assert concept["provenance"]["servedBy"] == "index", result
+                  assert concept["provenance"]["source"] == "evs_index", result
+
+          asyncio.run(check())
+          PY
+      - name: Verify server-only search without an index (CI only)
+        if: matrix.index
+        timeout-minutes: 3
+        run: |
+          export NCI_SI_DATA_DIR="$RUNNER_TEMP/server-only-data"
+          "$SERVER_VENV/bin/python" - <<'PY'
+          import asyncio
+          import os
+          from mcp.client import Client
+          from mcp.client.stdio import StdioServerParameters, stdio_client
+
+          async def check():
+              server = StdioServerParameters(
+                  command=os.environ["SERVER_VENV"] + "/bin/nci-si-mcp",
+                  args=["serve"],
+                  env={"NCI_SI_DATA_DIR": os.environ["RUNNER_TEMP"] + "/server-only-data"},
+              )
+              async with Client(stdio_client(server)) as client:
+                  arguments = {"terminology": "ncit", "query": "Neoplasm", "mode": "semantic"}
+                  reply = await client.call_tool("search_concepts", arguments)
+                  result = reply.structured_content
+                  assert result["error"]["code"] == "capability_unavailable", result
+                  assert "results" not in result, result
+
+          asyncio.run(check())
+          PY
 
       # AGENTS.md: the fixture run, prepared as in CI. Exit status 1 means some tests did not pass,
       # which is for the comparison below to judge; any other status, or no report, is no run.
       - name: Run the acceptance suite against the fixtures
+        if: matrix.combination == 'server'
         shell: bash {0}
         run: |
           # shellcheck disable=SC2016 # the single quotes are the documented form
@@ -184,24 +364,26 @@ jobs:
           status=$?
           [ "$status" -le 1 ] && [ -s acceptance/fixture.json ] || { echo "::error::The fixture run did not finish (exit status $status)."; exit 1; }
       - name: Compare the outcomes with the expected ones
+        if: matrix.combination == 'server'
         run: pdm run acceptance-expected check acceptance/fixture.json
 
       # QUICKSTART: Node.js 24 or newer, for the documentation site only.
       - name: Remove a preinstalled Node.js (macOS)
-        if: runner.os == 'macOS'
+        if: matrix.host_docs && runner.os == 'macOS'
         run: |
           if brew list --versions node >/dev/null; then brew uninstall --ignore-dependencies node; fi
       - name: Install Node.js (macOS)
-        if: runner.os == 'macOS'
+        if: matrix.host_docs && runner.os == 'macOS'
         run: brew install node
       - name: Install nvm and Node.js (Linux)
-        if: runner.os == 'Linux'
+        if: matrix.host_docs && runner.os == 'Linux'
         run: |
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash
           . "$HOME/.nvm/nvm.sh"
           nvm install 24
           dirname "$(command -v node)" >> "$GITHUB_PATH"
       - name: Check that the documented Node.js is in use
+        if: matrix.host_docs
         run: |
           fail() { echo "::error::$1"; exit 1; }
           case "$RUNNER_OS" in
@@ -212,8 +394,10 @@ jobs:
           case "$(command -v node)" in $expected) ;; *) fail "node is $(command -v node), not the documented install ($expected)" ;; esac
           node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 24 ? 0 : 1)' || fail "Node.js $(node --version) is older than 24"
 
-      # docs/documentation-site.md, "Build and preview", without the preview server.
+      # docs/local-guide.md, "Host documentation and companion", without foreground servers.
       - name: Build the documentation site
+        # The admin image copies portal assets directly; only host documentation needs this site.
+        if: matrix.host_docs
         run: |
           pdm install -G docs
           npm ci --prefix docs/site-assets --ignore-scripts
@@ -221,7 +405,117 @@ jobs:
           npm run build --prefix docs/site-assets
           pdm run docs-build
 
-      # docs/local-validation.md: the validation dashboard, until it answers.
+      - name: Serve host documentation until ready (CI only)
+        if: matrix.host_docs
+        timeout-minutes: 3
+        run: python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health pdm run python -m scripts.static_server --directory tmp/docs-site --port 8080
+
+      # docs/local-guide.md: the validation dashboard, until it answers.
       - name: Serve the validation dashboard until ready (CI only)
+        if: matrix.host_companion
         timeout-minutes: 3
         run: python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health pdm run portal serve
+
+      - name: Download selected local container contexts (CI only)
+        if: matrix.compose_docs || matrix.compose_companion
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: local-companion-context-${{ github.sha }}
+          path: tmp/companion-context
+      - name: Build selected local container images
+        if: matrix.compose_docs || matrix.compose_companion
+        timeout-minutes: 15
+        run: |
+          docker build --platform linux/amd64 --load -t nci-si-docs:local tmp/companion-context/docs
+          if [ "${{ matrix.compose_companion }}" = "true" ]; then
+            docker build --platform linux/amd64 --load -t nci-si-admin:local tmp/companion-context/admin
+          fi
+      - name: Verify the selected Compose profiles (CI only)
+        if: matrix.compose_docs || matrix.compose_companion
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          profiles=()
+          services=()
+          expected=()
+          if [ "${{ matrix.compose_docs }}" = "true" ]; then profiles+=(--profile docs); services+=(documentation); fi
+          if [ "${{ matrix.compose_companion }}" = "true" ]; then profiles+=(--profile companion); services+=(admin-ingress administration); fi
+          if [ "${{ matrix.compose_docs }}" = "true" ]; then expected+=(documentation); fi
+          if [ "${{ matrix.compose_companion }}" = "true" ]; then expected+=(admin-ingress administration); fi
+          cleanup() {
+            status=$?
+            cleanup_status=0
+            docker compose -f container/compose.local.yaml stop "${services[@]}" || cleanup_status=$?
+            docker compose -f container/compose.local.yaml rm -f "${services[@]}" || cleanup_status=$?
+            if [ "$status" -eq 0 ]; then status=$cleanup_status; fi
+            exit "$status"
+          }
+          trap cleanup EXIT
+          docker compose -f container/compose.local.yaml "${profiles[@]}" up -d
+          if [ "${{ matrix.compose_docs }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"; fi
+          if [ "${{ matrix.compose_companion }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"; fi
+          docker compose -f container/compose.local.yaml ps --status running --services | sort > "$RUNNER_TEMP/running-services"
+          printf '%s\n' "${expected[@]}" | sort > "$RUNNER_TEMP/expected-services"
+          cmp "$RUNNER_TEMP/running-services" "$RUNNER_TEMP/expected-services"
+          if [ "${{ matrix.compose_docs }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"; fi
+          if [ "${{ matrix.compose_companion }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"; fi
+
+      - name: Verify every selected component together (CI only)
+        if: matrix.index && (matrix.host_docs || matrix.compose_docs || matrix.compose_companion)
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          names=()
+          pids=()
+          services=()
+          cleanup() {
+            status=$?
+            cleanup_status=0
+            for index in "${!pids[@]}"; do
+              name="${names[$index]}"
+              pid="${pids[$index]}"
+              signalled=false
+              if kill -0 "$pid" 2>/dev/null; then
+                kill "$pid" || cleanup_status=$?
+                signalled=true
+              fi
+              if wait "$pid"; then child_status=0; else child_status=$?; fi
+              printf 'cleanup %s pid=%s status=%s signalled=%s\n' \
+                "$name" "$pid" "$child_status" "$signalled" >&2
+              if [ "$signalled" = true ]; then
+                case "$child_status" in 0|143|241) ;; *) cleanup_status="$child_status" ;; esac
+              elif [ "$child_status" -ne 0 ]; then
+                cleanup_status="$child_status"
+              fi
+            done
+            if [ "${#services[@]}" -gt 0 ]; then
+              docker compose -f container/compose.local.yaml stop "${services[@]}" || cleanup_status=$?
+              docker compose -f container/compose.local.yaml rm -f "${services[@]}" || cleanup_status=$?
+            fi
+            if [ "$status" -eq 0 ]; then status=$cleanup_status; fi
+            exit "$status"
+          }
+          trap cleanup EXIT
+          NCI_SI_DATA_DIR="$INDEX_DATA" NCI_SI_HTTP_REQUIRE_INDEX=1 "$INDEX_VENV/bin/nci-si-mcp" serve --transport streamable-http &
+          names+=(index); pids+=("$!")
+          python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "${pids[0]}"
+          if [ "${{ matrix.host_docs }}" = "true" ]; then
+            pdm run python -m scripts.static_server --directory tmp/docs-site --port 8080 & names+=(documentation); pids+=("$!")
+            pdm run portal serve & names+=(portal); pids+=("$!")
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "${pids[1]}"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "${pids[2]}"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "${pids[0]}"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "${pids[1]}"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "${pids[2]}"
+          else
+            docker compose -f container/compose.local.yaml --profile docs --profile companion up -d
+            services=(documentation admin-ingress administration)
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"
+            docker compose -f container/compose.local.yaml ps --status running --services | sort > "$RUNNER_TEMP/running-services"
+            printf '%s\n' admin-ingress administration documentation | sort > "$RUNNER_TEMP/expected-services"
+            cmp "$RUNNER_TEMP/running-services" "$RUNNER_TEMP/expected-services"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "${pids[0]}"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"
+          fi

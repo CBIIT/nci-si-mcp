@@ -185,6 +185,42 @@ class ExitOnSigtermTest(unittest.TestCase):
                 child.stdout.close()
             self.assertEqual(marker.read_text(), "cleaned")
 
+    def test_a_second_sigterm_during_cleanup_does_not_interrupt_unwinding(self):
+        script = (
+            "import sys,time; from scripts.processes import exit_on_sigterm; exit_on_sigterm(); "
+            "print('ready',flush=True)\n"
+            "try:\n    time.sleep(300)\n"
+            "except KeyboardInterrupt:\n"
+            "    print('cleaning',flush=True)\n"
+            "    sys.stdin.readline()\n"
+            "    print('cleaned',flush=True)\n"
+        )
+        child = subprocess.Popen(  # noqa: S603 - fixed test child, reaped below
+            [sys.executable, "-c", script],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=Path(__file__).parents[1],
+        )
+        try:
+            self.assertEqual(child.stdout.readline().strip(), "ready")
+            child.send_signal(signal.SIGTERM)
+            self.assertEqual(child.stdout.readline().strip(), "cleaning")
+            child.send_signal(signal.SIGTERM)
+            child.stdin.write("finish\n")
+            child.stdin.flush()
+            self.assertEqual(child.wait(timeout=10), 0)
+            self.assertEqual(child.stdout.readline().strip(), "cleaned")
+            self.assertEqual(child.stderr.read(), "")
+        finally:
+            if child.poll() is None:
+                child.kill()
+                child.wait(timeout=5)
+            child.stdin.close()
+            child.stdout.close()
+            child.stderr.close()
+
 
 class PrintServerLogTailTest(unittest.TestCase):
     def tail(self, log: Path) -> str:
