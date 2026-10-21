@@ -26,10 +26,13 @@ STEPS = [
     ("Check that the documented Python and PDM are in use (macOS)", MACOS),
     ("Check that the documented Python and PDM are in use (Linux)", LINUX),
     ("Print the EVS release", None),
-    ("Build a small local index", None),
+    ("Select the released index source (CI only)", None),
+    ("Install the optional local index", None),
+    ("Build and evaluate a small local index", None),
     ("Write the readiness probe (CI only)", None),
     ("Serve over stdio and initialize (CI only)", None),
-    ("Serve over streamable HTTP until ready (CI only)", None),
+    ("Verify required-index HTTP and indexed search (CI only)", None),
+    ("Verify server-only search without an index (CI only)", None),
     ("Run the acceptance suite against the fixtures", None),
     ("Compare the outcomes with the expected ones", None),
     ("Remove a preinstalled Node.js (macOS)", MACOS),
@@ -47,7 +50,8 @@ DOCUMENTS = {
     "Install Python and PDM (Linux)": "QUICKSTART.md",
     "Install the project": "QUICKSTART.md",
     "Print the EVS release": "QUICKSTART.md",
-    "Build a small local index": "QUICKSTART.md",
+    "Install the optional local index": "QUICKSTART.md",
+    "Build and evaluate a small local index": "QUICKSTART.md",
     "Run the acceptance suite against the fixtures": "AGENTS.md",
     "Compare the outcomes with the expected ones": "acceptance/README.md",
     "Install Node.js (macOS)": "QUICKSTART.md",
@@ -69,9 +73,13 @@ CI_ONLY = {
     "that the runner image ships takes over from the uv install",
     "Write the readiness probe (CI only)": "the helper that starts a documented server, waits "
     "for its readiness endpoint and stops it",
+    "Select the released index source (CI only)": "a pull request substitutes its checkout for "
+    "the tag in the documented release URL, while other runs select the latest release tag",
     "Serve over stdio and initialize (CI only)": "an initialize round-trip that no one types",
-    "Serve over streamable HTTP until ready (CI only)": "the documented serve command, run by "
-    "the probe: a foreground server would never end the step",
+    "Verify required-index HTTP and indexed search (CI only)": "starts the documented command "
+    "under a readiness probe, then calls MCP and asserts the sampled concept and index provenance",
+    "Verify server-only search without an index (CI only)": "calls a separate installed server "
+    "through MCP and asserts the no-index error contract",
     "Check that the documented Node.js is in use": "fails the job when a Node.js that the "
     "runner image ships takes over from the documented install",
     "Serve the validation dashboard until ready (CI only)": "the documented portal serve "
@@ -93,17 +101,75 @@ PROBES = {
         "pdm run nci-si-mcp serve",
         None,
     ),
-    "Serve over streamable HTTP until ready (CI only)": (
-        "QUICKSTART.md",
-        "pdm run nci-si-mcp serve --transport streamable-http",
-        "http://127.0.0.1:8000/ready",
-    ),
     "Serve the validation dashboard until ready (CI only)": (
         "docs/local-validation.md",
         "pdm run portal serve",
         "http://127.0.0.1:8081/health",
     ),
 }
+
+DOCUMENTED_INDEX_INSTALL = (
+    'pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"'
+)
+CI_INDEX_INSTALL = (
+    '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ '
+    'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
+)
+
+REQUIRED_INDEX_RUN = r"""set -euo pipefail
+server=""
+cleanup() {
+  if [ -n "$server" ]; then
+    kill "$server" 2>/dev/null || true
+    wait "$server" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+export NCI_SI_DATA_DIR="$INDEX_DATA"
+export NCI_SI_HTTP_REQUIRE_INDEX=1
+"$INDEX_VENV/bin/nci-si-mcp" serve --transport streamable-http &
+server=$!
+python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "$server"
+"$INDEX_VENV/bin/python" - <<'PY'
+import asyncio
+from mcp.client import Client
+from mcp.client.streamable_http import streamable_http_client
+
+async def check():
+    async with Client(streamable_http_client("http://127.0.0.1:8000/mcp")) as client:
+        reply = await client.call_tool("search_concepts", {"query": "Neoplasm", "mode": "semantic"})
+        result = reply.structured_content
+        first = result["results"][0]
+        assert first["code"] == "C3262", result
+        assert first["provenance"]["servedBy"] == "index", result
+        assert first["provenance"]["source"] == "evs_index", result
+
+asyncio.run(check())
+PY
+"""
+
+SERVER_ONLY_RUN = r"""export NCI_SI_DATA_DIR="$RUNNER_TEMP/server-only-data"
+"$INDEX_VENV/bin/python" - <<'PY'
+import asyncio
+import os
+from mcp.client import Client
+from mcp.client.stdio import StdioServerParameters, stdio_client
+
+async def check():
+    server = StdioServerParameters(
+        command=os.environ["INDEX_VENV"] + "/bin/nci-si-mcp",
+        args=["serve"],
+        env={"NCI_SI_DATA_DIR": os.environ["RUNNER_TEMP"] + "/server-only-data"},
+    )
+    async with Client(stdio_client(server)) as client:
+        reply = await client.call_tool("search_concepts", {"query": "Neoplasm", "mode": "semantic"})
+        result = reply.structured_content
+        assert result["error"]["code"] == "capability_unavailable", result
+        assert "results" not in result, result
+
+asyncio.run(check())
+PY
+"""
 
 # The exact run text of the step that writes the readiness probe. It answers ready only while the
 # server it started is running, stops that server, and fails unless it ended by its own exit or
@@ -199,6 +265,7 @@ TRIGGERS = {
             "acceptance/README.md",
             "docs/documentation-site.md",
             "docs/local-validation.md",
+            "docs/installer-targets.md",
             "scripts/portal*.py",
             "scripts/operator_*.py",
             "scripts/docs_site.py",
@@ -341,6 +408,29 @@ class LocalRunWorkflowTest(unittest.TestCase):
     def test_the_stdio_initialize_round_trip_is_exactly_this(self):
         by_name = {step["name"]: step["run"] for step in steps()}
         self.assertEqual(by_name["Serve over stdio and initialize (CI only)"], STDIO_INITIALIZE_RUN)
+
+    def test_the_optional_index_uses_the_documented_release_extra_or_the_pr_checkout(self):
+        by_name = {step["name"]: step["run"] for step in steps()}
+        self.assertIn(DOCUMENTED_INDEX_INSTALL, documented_commands("QUICKSTART.md"))
+        self.assertIn(CI_INDEX_INSTALL, by_name["Install the optional local index"])
+        self.assertIn(
+            'git config --global url."file://$GITHUB_WORKSPACE/".insteadOf '
+            "https://github.com/CBIIT/nci-si-mcp",
+            by_name["Select the released index source (CI only)"],
+        )
+
+    def test_required_index_readiness_and_search_are_exact(self):
+        by_name = {step["name"]: step["run"] for step in steps()}
+        self.assertEqual(
+            by_name["Verify required-index HTTP and indexed search (CI only)"],
+            REQUIRED_INDEX_RUN,
+        )
+
+    def test_server_only_search_has_the_exact_no_index_error(self):
+        by_name = {step["name"]: step["run"] for step in steps()}
+        self.assertEqual(
+            by_name["Verify server-only search without an index (CI only)"], SERVER_ONLY_RUN
+        )
 
     def test_the_ci_only_list_has_no_stale_entry(self):
         lines = {line.strip() for step in steps() for line in step["run"].splitlines()}
