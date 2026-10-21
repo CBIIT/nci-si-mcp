@@ -98,8 +98,8 @@ CI_ONLY = {
     "path of the job's next steps, as a new shell would",
     'INDEX_VENV="$RUNNER_TEMP/index-venv"': "names the isolated release-style index environment",
     'SERVER_VENV="$RUNNER_TEMP/server-venv"': "names the isolated server-only control environment",
-    'python3 -m venv "$INDEX_VENV"': "creates the release-style index environment",
-    'python3 -m venv "$SERVER_VENV"': "creates the server-only control environment",
+    'python3.14 -m venv "$INDEX_VENV"': "creates the release-style index environment",
+    'python3.14 -m venv "$SERVER_VENV"': "creates the server-only control environment",
     CI_INDEX_INSTALL: "substitutes the selected concrete release tag or pull-request checkout for "
     "the document's vX.Y.Z placeholder",
     CI_SERVER_INSTALL: "installs the server-only control without the index extra",
@@ -159,7 +159,8 @@ from mcp.client.streamable_http import streamable_http_client
 
 async def check():
     async with Client(streamable_http_client("http://127.0.0.1:8000/mcp")) as client:
-        reply = await client.call_tool("search_concepts", {"query": "Neoplasm", "mode": "semantic"})
+        arguments = {"terminology": "ncit", "query": "Neoplasm", "mode": "semantic"}
+        reply = await client.call_tool("search_concepts", arguments)
         result = reply.structured_content
         concept = result["results"][0]["concept"]
         assert concept["code"] == "C3262", result
@@ -184,7 +185,8 @@ async def check():
         env={"NCI_SI_DATA_DIR": os.environ["RUNNER_TEMP"] + "/server-only-data"},
     )
     async with Client(stdio_client(server)) as client:
-        reply = await client.call_tool("search_concepts", {"query": "Neoplasm", "mode": "semantic"})
+        arguments = {"terminology": "ncit", "query": "Neoplasm", "mode": "semantic"}
+        reply = await client.call_tool("search_concepts", arguments)
         result = reply.structured_content
         assert result["error"]["code"] == "capability_unavailable", result
         assert "results" not in result, result
@@ -203,17 +205,25 @@ url, command = sys.argv[1], sys.argv[2:]
 owned = command[:1] != ["--pid"]
 server = (subprocess.Popen(command, start_new_session=True) if owned else None)
 pid = server.pid if server else int(command[1])
+def running():
+    if server is not None:
+        return server.poll() is None
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
 try:
     deadline = time.monotonic() + 90
     while True:
         try:
             with urllib.request.urlopen(url, timeout=5) as reply:
-                if server is None or server.poll() is None:
+                if running():
                     print(url, reply.status, reply.read().decode())
                     break
         except OSError:
             pass
-        if (server is not None and server.poll() is not None) or time.monotonic() > deadline:
+        if not running() or time.monotonic() > deadline:
             sys.exit("not ready: " + url)
         time.sleep(1)
 finally:
