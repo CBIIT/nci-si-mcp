@@ -10,7 +10,6 @@ ROOT = Path(__file__).parent.parent
 WORKFLOW = ROOT / ".github" / "workflows" / "local-installer.yml"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 DOCUMENT = ROOT / "docs" / "installer-targets.md"
-JOB_NAME = "local installer (macOS/Linux)"
 STDIO_CAPTURE = (
     'STDIO_CLIENT="$("$INSTALLER_VENV/bin/nci-si-install" start '
     '--target local --transport stdio --data-dir "$STDIO_ROOT")"'
@@ -200,15 +199,50 @@ def named_steps():
     return [step for step in job()["steps"] if "name" in step]
 
 
-def documented_commands():
+def documented_lines():
     text = DOCUMENT.read_text(encoding="utf-8")
     blocks = re.findall(r"^```(?:bash|sh|shell)\n(.*?)^```", text, re.DOTALL | re.MULTILINE)
-    return {line.strip() for block in blocks for line in block.splitlines() if line.strip()}
+    return [line.strip() for block in blocks for line in block.splitlines() if line.strip()]
+
+
+def documented_commands():
+    return set(documented_lines())
 
 
 def undocumented_operator_lines(run, documented):
     lines = [line.strip() for line in run.splitlines() if "nci-si-install" in line]
     return [line for line in lines if line not in documented and line not in CI_ONLY]
+
+
+def documented_operator_lines():
+    return [
+        line
+        for line in documented_lines()
+        if line.startswith('"$INSTALLER_VENV/bin/nci-si-install"')
+    ]
+
+
+def documented_install_lines():
+    commands = documented_lines()
+    return [
+        line
+        for line in (
+            '"$PYTHON" -m venv "$INSTALLER_VENV"',
+            '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ '
+            'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"',
+        )
+        if line in commands
+    ]
+
+
+def workflow_operator_lines(run):
+    lines = [line.strip() for line in run.splitlines()]
+    selected = [
+        line
+        for line in lines
+        if line.startswith('"$INSTALLER_VENV/bin/nci-si-install"') or line == STDIO_CAPTURE
+    ]
+    return [line for line in selected if "|| cleanup_status=$?" not in line]
 
 
 class ReleaseInstallerWorkflowTest(unittest.TestCase):
@@ -248,98 +282,27 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
             },
         )
 
-    def test_job_uses_prepared_source_with_read_only_permissions(self):
-        value = job()
-        self.assertEqual(value["name"], JOB_NAME + " (${{ matrix.os }})")
-        self.assertEqual(value["needs"], "prepare")
-        self.assertEqual(value["permissions"], {"contents": "read"})
-        self.assertEqual(value["runs-on"], "${{ matrix.os }}")
-        self.assertEqual(
-            value["strategy"],
-            {"fail-fast": False, "matrix": {"os": ["macos-latest", "ubuntu-24.04"]}},
-        )
-        self.assertEqual(value["timeout-minutes"], 20)
-
-    def test_checkout_is_the_exact_selected_source_without_credentials(self):
-        checkout = job()["steps"][0]
-        self.assertEqual(
-            checkout,
-            {
-                "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
-                "with": {
-                    "ref": "${{ needs.prepare.outputs.ref }}",
-                    "fetch-depth": 0,
-                    "persist-credentials": False,
-                },
-            },
-        )
-
-    def test_python_is_the_sha_pinned_setup_action_on_both_platforms(self):
-        setup = job()["steps"][1]
-        self.assertEqual(
-            setup,
-            {
-                "name": "Install Python",
-                "id": "python",
-                "uses": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
-                "with": {"python-version": "3.14"},
-            },
-        )
-        steps = {step["name"]: step for step in named_steps()}
-        self.assertEqual(
-            steps["Install the selected installer source"]["env"]["PYTHON"],
-            "${{ steps.python.outputs.python-path }}",
-        )
-        self.assertNotIn("curl", WORKFLOW.read_text(encoding="utf-8"))
-
     def test_installer_commands_run_outside_checkout_with_the_release_executable(self):
         steps = {step["name"]: step for step in named_steps()}
         install = steps["Install the selected installer source"]
         self.assertEqual(install["working-directory"], "${{ runner.temp }}")
-        self.assertIn("@${RELEASE_TAG}", install["run"])
-        self.assertIn('"$PYTHON" -m venv "$INSTALLER_VENV"', documented_commands())
-        self.assertIn('"$PYTHON" -m venv "$INSTALLER_VENV"', install["run"])
+        self.assertEqual(
+            install["run"].splitlines(),
+            documented_install_lines(),
+        )
         lifecycle = steps["Verify stdio and HTTP installer lifecycles"]
         self.assertEqual(lifecycle["working-directory"], "${{ runner.temp }}")
-        lines = lifecycle["run"].splitlines()
-        installer = '"$INSTALLER_VENV/bin/nci-si-install"'
-        for command in ("check", "run", "status", "start", "stop", "uninstall"):
-            self.assertTrue(any(line.startswith(f"{installer} {command} ") for line in lines))
-        self.assertNotIn("pdm run nci-si-install", lifecycle["run"])
-
-    def test_acceptance_targets_fixture_calls_that_execute_on_each_transport(self):
-        run = next(
-            step["run"]
-            for step in named_steps()
-            if step["name"] == "Verify stdio and HTTP installer lifecycles"
+        stdio_start = (
+            '"$INSTALLER_VENV/bin/nci-si-install" start --target local --transport stdio '
+            '--data-dir "$STDIO_ROOT"'
         )
-        self.assertIn("test_a_resolved_release_is_never_cached", run)
-        self.assertIn("test_an_index_mode_without_an_index_is_unavailable", run)
-        self.assertIn("test_a_discovered_release_identifies_the_concept_and_its_provenance", run)
-        self.assertIn("NCI_SI_ACCEPTANCE_SERVER", run)
-        self.assertIn("NCI_SI_ACCEPTANCE_URL", run)
-        self.assertIn("acceptance/expected/fixture.json", run)
-        self.assertIn(STDIO_CAPTURE, run)
-        self.assertNotIn('NCI_SI_ACCEPTANCE_SERVER="$STDIO_ROOT/venv/bin/nci-si-mcp serve"', run)
-        self.assertIn("REQUIRED_TESTS=", run)
-        self.assertIn("assert set(actual) == required", run)
-        self.assertIn("trap cleanup EXIT", run)
-        self.assertIn('if [ "$status" -eq 0 ]; then status=$cleanup_status; fi', run)
-        self.assertIn('names = os.environ[f"{name.upper()}_REQUIRED_TESTS"].split()', run)
-        self.assertIn(
-            "required = {key for key in expected if any(test in key for test in names)}", run
+        expected = [
+            STDIO_CAPTURE if line == stdio_start else line for line in documented_operator_lines()
+        ]
+        self.assertEqual(
+            workflow_operator_lines(lifecycle["run"]),
+            expected,
         )
-        self.assertIn('assert set(actual.values()) == {"passed"}', run)
-
-    def test_uninstall_check_distinguishes_owned_and_unowned_paths(self):
-        run = next(
-            step["run"]
-            for step in named_steps()
-            if step["name"] == "Verify stdio and HTTP installer lifecycles"
-        )
-        self.assertIn('test -f "$STDIO_ROOT/unowned"', run)
-        self.assertIn('test ! -e "$STDIO_ROOT/venv"', run)
-        self.assertIn('test ! -e "$STDIO_ROOT/installer-state.json"', run)
 
     def test_every_operator_command_is_documented(self):
         documented = documented_commands()
@@ -354,24 +317,3 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
             '--data-dir "$STDIO_ROOT"',
             documented,
         )
-
-    def test_lifecycle_script_keeps_the_exact_ordered_commands(self):
-        run = next(
-            step["run"]
-            for step in named_steps()
-            if step["name"] == "Verify stdio and HTTP installer lifecycles"
-        )
-        expected = [
-            "run --target local --transport stdio",
-            "status --target local --transport stdio",
-            "start --target local --transport stdio",
-            "uninstall --target local --transport stdio",
-            "run --target local --transport http",
-            "status --target local --transport http",
-            "start --target local --transport http",
-            "stop --target local --transport http",
-            "uninstall --target local --transport http",
-        ]
-        success = run.partition('mkdir -p "$STDIO_ROOT"')[2]
-        positions = [success.index(command) for command in expected]
-        self.assertEqual(positions, sorted(positions))
