@@ -200,13 +200,13 @@ def _remove_owned(kind: str, name: str) -> None:
 def cleanup(compose: tuple[str, ...], serving: str, network: str) -> list[Exception]:
     errors: list[Exception] = []
     operations = (
-        (docker, (*compose, "down", "--volumes")),
-        (_remove_owned, ("container", serving)),
-        (_remove_owned, ("network", network)),
+        lambda: docker(*compose, "down", "--volumes"),
+        lambda: _remove_owned("container", serving),
+        lambda: _remove_owned("network", network),
     )
-    for operation, arguments in operations:
+    for operation in operations:
         try:
-            operation(*arguments)
+            operation()
         except (OSError, subprocess.SubprocessError) as error:
             errors.append(error)
     return errors

@@ -57,7 +57,7 @@ class CompanionCompositionTest(unittest.TestCase):
                         "python3.14",
                         "-c",
                         "import urllib.request; "
-                        "urllib.request.urlopen('http://127.0.0.1:8081/health',timeout=3).read()",
+                        + "urllib.request.urlopen('http://127.0.0.1:8081/health',timeout=3).read()",
                     ],
                     "interval": "10s",
                     "timeout": "5s",
@@ -81,8 +81,8 @@ class CompanionCompositionTest(unittest.TestCase):
                         "python",
                         "-c",
                         "import os, urllib.request; "
-                        "urllib.request.urlopen('http://127.0.0.1:' + "
-                        "os.getenv('NCI_SI_HTTP_PORT', '8000') + '/ready', timeout=3).close()",
+                        + "urllib.request.urlopen('http://127.0.0.1:' + "
+                        + "os.getenv('NCI_SI_HTTP_PORT', '8000') + '/ready', timeout=3).close()",
                     ],
                     "interval": "30s",
                     "timeout": "5s",
@@ -128,7 +128,7 @@ class CompanionCompositionTest(unittest.TestCase):
             "docker compose -f container/compose.local.yaml --profile docs up -d",
             "docker compose -f container/compose.local.yaml --profile companion up -d",
             "docker compose -f container/compose.local.yaml --profile docs "
-            "--profile companion up -d",
+            + "--profile companion up -d",
             "docker compose -f container/compose.local.yaml stop documentation",
             "docker compose -f container/compose.local.yaml rm -f documentation",
             "docker compose -f container/compose.local.yaml stop admin-ingress administration",
