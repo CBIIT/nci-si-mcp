@@ -421,7 +421,15 @@ class DocumentationTest(unittest.TestCase):
         # After `pdm install` the environment is not activated, so a bare `python -m ...`
         # or `nci-si-mcp ...` fails for a new developer. The one exception installs the
         # released package with pip, which puts `nci-si-mcp` on the PATH itself.
-        released = {("QUICKSTART.md", "nci-si-mcp serve")}
+        released = {
+            ("QUICKSTART.md", command)
+            for command in (
+                "nci-si-mcp serve",
+                "nci-si-mcp index-sample C3262 C2991 C40704 C153397 C116938",
+                "nci-si-mcp evaluate",
+                "nci-si-mcp serve --transport streamable-http",
+            )
+        }
         bare = re.compile(
             r"(?:\w+=\S+\s+)*(?:python3?(?:\.\d+)?|nci-si-mcp|pytest|ruff|basedpyright)\s"
         )

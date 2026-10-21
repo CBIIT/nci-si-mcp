@@ -26,10 +26,13 @@ STEPS = [
     ("Check that the documented Python and PDM are in use (macOS)", MACOS),
     ("Check that the documented Python and PDM are in use (Linux)", LINUX),
     ("Print the EVS release", None),
-    ("Build a small local index", None),
+    ("Select the released index source (CI only)", None),
+    ("Install the optional local index", None),
+    ("Build and evaluate a small local index", None),
     ("Write the readiness probe (CI only)", None),
     ("Serve over stdio and initialize (CI only)", None),
-    ("Serve over streamable HTTP until ready (CI only)", None),
+    ("Verify required-index HTTP and indexed search (CI only)", None),
+    ("Verify server-only search without an index (CI only)", None),
     ("Run the acceptance suite against the fixtures", None),
     ("Compare the outcomes with the expected ones", None),
     ("Remove a preinstalled Node.js (macOS)", MACOS),
@@ -47,13 +50,23 @@ DOCUMENTS = {
     "Install Python and PDM (Linux)": "QUICKSTART.md",
     "Install the project": "QUICKSTART.md",
     "Print the EVS release": "QUICKSTART.md",
-    "Build a small local index": "QUICKSTART.md",
+    "Install the optional local index": "QUICKSTART.md",
+    "Build and evaluate a small local index": "QUICKSTART.md",
     "Run the acceptance suite against the fixtures": "AGENTS.md",
     "Compare the outcomes with the expected ones": "acceptance/README.md",
     "Install Node.js (macOS)": "QUICKSTART.md",
     "Install nvm and Node.js (Linux)": "QUICKSTART.md",
     "Build the documentation site": "docs/documentation-site.md",
 }
+
+CI_INDEX_INSTALL = (
+    '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ '
+    'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
+)
+CI_SERVER_INSTALL = (
+    '"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ '
+    'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
+)
 
 # What exists only in CI, by step name (the whole step) or by exact line, and why.
 CI_ONLY = {
@@ -69,9 +82,13 @@ CI_ONLY = {
     "that the runner image ships takes over from the uv install",
     "Write the readiness probe (CI only)": "the helper that starts a documented server, waits "
     "for its readiness endpoint and stops it",
+    "Select the released index source (CI only)": "a pull request substitutes its checkout for "
+    "the tag in the documented release URL, while other runs select the latest release tag",
     "Serve over stdio and initialize (CI only)": "an initialize round-trip that no one types",
-    "Serve over streamable HTTP until ready (CI only)": "the documented serve command, run by "
-    "the probe: a foreground server would never end the step",
+    "Verify required-index HTTP and indexed search (CI only)": "starts the documented command "
+    "under a readiness probe, then calls MCP and asserts the sampled concept and index provenance",
+    "Verify server-only search without an index (CI only)": "calls a separate installed server "
+    "through MCP and asserts the no-index error contract",
     "Check that the documented Node.js is in use": "fails the job when a Node.js that the "
     "runner image ships takes over from the documented install",
     "Serve the validation dashboard until ready (CI only)": "the documented portal serve "
@@ -79,7 +96,25 @@ CI_ONLY = {
     '. "$HOME/.nvm/nvm.sh"': "the documents say 'in a new shell', where nvm is loaded",
     'dirname "$(command -v node)" >> "$GITHUB_PATH"': "puts the nvm Node.js on the "
     "path of the job's next steps, as a new shell would",
+    'INDEX_VENV="$RUNNER_TEMP/index-venv"': "names the isolated release-style index environment",
+    'SERVER_VENV="$RUNNER_TEMP/server-venv"': "names the isolated server-only control environment",
+    'python3 -m venv "$INDEX_VENV"': "creates the release-style index environment",
+    'python3 -m venv "$SERVER_VENV"': "creates the server-only control environment",
+    CI_INDEX_INSTALL: "substitutes the selected concrete release tag or pull-request checkout for "
+    "the document's vX.Y.Z placeholder",
+    CI_SERVER_INSTALL: "installs the server-only control without the index extra",
+    'echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"': "passes the index environment to later steps",
+    'echo "SERVER_VENV=$SERVER_VENV" >> "$GITHUB_ENV"': "passes the control environment to "
+    "later steps",
+    'echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"': "passes the isolated index "
+    "data directory to later steps",
     "status=$?": "keeps the fixture run's exit status, which the next line judges",
+    'export NCI_SI_DATA_DIR="$INDEX_DATA"': "uses the workflow's temporary index directory in "
+    "place of the document's /path/to/data placeholder",
+    '"$INDEX_VENV/bin/nci-si-mcp" index-sample C3262 C2991 C40704 C153397 C116938': "runs the "
+    "documented sample through the isolated tagged-release environment",
+    '"$INDEX_VENV/bin/nci-si-mcp" evaluate': "runs the documented evaluation through the same "
+    "isolated tagged-release environment",
     '[ "$status" -le 1 ] && [ -s acceptance/fixture.json ] || { echo "::error::The fixture run '
     'did not finish (exit status $status)."; exit 1; }': "exit status 1 means some tests did "
     "not pass, which the comparison judges; any other status, or no report, is no run",
@@ -93,17 +128,70 @@ PROBES = {
         "pdm run nci-si-mcp serve",
         None,
     ),
-    "Serve over streamable HTTP until ready (CI only)": (
-        "QUICKSTART.md",
-        "pdm run nci-si-mcp serve --transport streamable-http",
-        "http://127.0.0.1:8000/ready",
-    ),
     "Serve the validation dashboard until ready (CI only)": (
         "docs/local-validation.md",
         "pdm run portal serve",
         "http://127.0.0.1:8081/health",
     ),
 }
+
+DOCUMENTED_INDEX_INSTALL = (
+    'pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"'
+)
+REQUIRED_INDEX_RUN = r"""set -euo pipefail
+server=""
+cleanup() {
+  if [ -n "$server" ]; then
+    kill "$server" 2>/dev/null || true
+    wait "$server" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+export NCI_SI_DATA_DIR="$INDEX_DATA"
+export NCI_SI_HTTP_REQUIRE_INDEX=1
+"$INDEX_VENV/bin/nci-si-mcp" serve --transport streamable-http &
+server=$!
+python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "$server"
+"$INDEX_VENV/bin/python" - <<'PY'
+import asyncio
+from mcp.client import Client
+from mcp.client.streamable_http import streamable_http_client
+
+async def check():
+    async with Client(streamable_http_client("http://127.0.0.1:8000/mcp")) as client:
+        reply = await client.call_tool("search_concepts", {"query": "Neoplasm", "mode": "semantic"})
+        result = reply.structured_content
+        concept = result["results"][0]["concept"]
+        assert concept["code"] == "C3262", result
+        assert concept["provenance"]["servedBy"] == "index", result
+        assert concept["provenance"]["source"] == "evs_index", result
+
+asyncio.run(check())
+PY
+"""
+
+SERVER_ONLY_RUN = r"""export NCI_SI_DATA_DIR="$RUNNER_TEMP/server-only-data"
+"$SERVER_VENV/bin/python" - <<'PY'
+import asyncio
+import os
+from mcp.client import Client
+from mcp.client.stdio import StdioServerParameters, stdio_client
+
+async def check():
+    server = StdioServerParameters(
+        command=os.environ["SERVER_VENV"] + "/bin/nci-si-mcp",
+        args=["serve"],
+        env={"NCI_SI_DATA_DIR": os.environ["RUNNER_TEMP"] + "/server-only-data"},
+    )
+    async with Client(stdio_client(server)) as client:
+        reply = await client.call_tool("search_concepts", {"query": "Neoplasm", "mode": "semantic"})
+        result = reply.structured_content
+        assert result["error"]["code"] == "capability_unavailable", result
+        assert "results" not in result, result
+
+asyncio.run(check())
+PY
+"""
 
 # The exact run text of the step that writes the readiness probe. It answers ready only while the
 # server it started is running, stops that server, and fails unless it ended by its own exit or
@@ -112,28 +200,31 @@ READY_PROBE_RUN = r"""cat > "$RUNNER_TEMP/ready.py" <<'PY'
 import os, signal, subprocess, sys, time, urllib.request
 
 url, command = sys.argv[1], sys.argv[2:]
-server = subprocess.Popen(command, start_new_session=True)
+owned = command[:1] != ["--pid"]
+server = (subprocess.Popen(command, start_new_session=True) if owned else None)
+pid = server.pid if server else int(command[1])
 try:
     deadline = time.monotonic() + 90
     while True:
         try:
             with urllib.request.urlopen(url, timeout=5) as reply:
-                if server.poll() is None:
+                if server is None or server.poll() is None:
                     print(url, reply.status, reply.read().decode())
                     break
         except OSError:
             pass
-        if server.poll() is not None or time.monotonic() > deadline:
+        if (server is not None and server.poll() is not None) or time.monotonic() > deadline:
             sys.exit("not ready: " + url)
         time.sleep(1)
 finally:
-    try:
-        os.killpg(server.pid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
-    status = server.wait(timeout=30)
+    if server is not None:
+        try:
+            os.killpg(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        status = server.wait(timeout=30)
 # pdm run reports a child that the SIGTERM ended as 256 - 15.
-if status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
+if server is not None and status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
     sys.exit(f"the server stopped with status {status}")
 PY
 """
@@ -199,6 +290,7 @@ TRIGGERS = {
             "acceptance/README.md",
             "docs/documentation-site.md",
             "docs/local-validation.md",
+            "docs/installer-targets.md",
             "scripts/portal*.py",
             "scripts/operator_*.py",
             "scripts/docs_site.py",
@@ -341,6 +433,30 @@ class LocalRunWorkflowTest(unittest.TestCase):
     def test_the_stdio_initialize_round_trip_is_exactly_this(self):
         by_name = {step["name"]: step["run"] for step in steps()}
         self.assertEqual(by_name["Serve over stdio and initialize (CI only)"], STDIO_INITIALIZE_RUN)
+
+    def test_the_optional_index_uses_the_documented_release_extra_or_the_pr_checkout(self):
+        by_name = {step["name"]: step["run"] for step in steps()}
+        self.assertIn(DOCUMENTED_INDEX_INSTALL, documented_commands("QUICKSTART.md"))
+        self.assertIn(CI_INDEX_INSTALL, by_name["Install the optional local index"])
+        self.assertIn(CI_SERVER_INSTALL, by_name["Install the optional local index"])
+        self.assertIn(
+            'git config --global url."file://$GITHUB_WORKSPACE/".insteadOf '
+            "https://github.com/CBIIT/nci-si-mcp",
+            by_name["Select the released index source (CI only)"],
+        )
+
+    def test_required_index_readiness_and_search_are_exact(self):
+        by_name = {step["name"]: step["run"] for step in steps()}
+        self.assertEqual(
+            by_name["Verify required-index HTTP and indexed search (CI only)"],
+            REQUIRED_INDEX_RUN,
+        )
+
+    def test_server_only_search_has_the_exact_no_index_error(self):
+        by_name = {step["name"]: step["run"] for step in steps()}
+        self.assertEqual(
+            by_name["Verify server-only search without an index (CI only)"], SERVER_ONLY_RUN
+        )
 
     def test_the_ci_only_list_has_no_stale_entry(self):
         lines = {line.strip() for step in steps() for line in step["run"].splitlines()}
