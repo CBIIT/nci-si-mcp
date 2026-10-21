@@ -662,6 +662,37 @@ class LocalInstallerTest(unittest.TestCase):
             process.terminate()
             process.wait(timeout=30)
 
+    def test_http_start_refuses_failed_process_inspection_even_when_it_prints_output(self):
+        self.write_distribution()
+        self.write_completed_state(transport="http")
+        installer.LocalActions(self.data_dir, transport="http", profile="unified").apply(
+            "configure"
+        )
+        process = MagicMock(pid=4321)
+        failed = subprocess.CompletedProcess(["ps"], 1, stdout="plausible process identity")
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "_owned_process", return_value=None),
+            patch.object(installer, "_port_available", return_value=True),
+            patch.object(installer.subprocess, "Popen", return_value=process),
+            patch.object(installer.subprocess, "run", return_value=failed),
+            patch.object(installer.time, "sleep"),
+        ):
+            code, output, error = self.run_main(
+                "start",
+                "--target",
+                "local",
+                "--transport",
+                "http",
+                "--data-dir",
+                str(self.data_dir),
+            )
+        self.assertEqual((code, output), (2, ""))
+        self.assertIn("Cannot record server process ownership", error)
+        process.terminate.assert_called_once_with()
+        process.wait.assert_called_once_with(timeout=30)
+        self.assertFalse((self.data_dir / "runtime/server-process.json").exists())
+
     def test_http_start_failure_reaps_child_and_removes_record(self):
         self.write_distribution()
         self.write_completed_state(transport="http")

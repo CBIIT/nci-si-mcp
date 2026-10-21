@@ -14,15 +14,6 @@ STDIO_CAPTURE = (
     'STDIO_CLIENT="$("$INSTALLER_VENV/bin/nci-si-install" start '
     '--target local --transport stdio --data-dir "$STDIO_ROOT")"'
 )
-CI_ONLY = {
-    'git tag "$INSTALL_TAG" "$INSTALL_REF"': "gives the PR head a synthetic v0.0.0 release identity for release-only checks",
-    'git config --global url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp': "redirects the installer Git URL to the checked-out PR source",
-    STDIO_CAPTURE: "captures the documented client record for the acceptance harness",
-    '"$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http '
-    '--data-dir "$HTTP_ROOT" || cleanup_status=$?': "cleans up HTTP after a failed check",
-    '"$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport http '
-    '--data-dir "$HTTP_ROOT" || cleanup_status=$?': "cleans up HTTP after a failed check",
-}
 EXPECTED_JOB = yaml.safe_load(r"""
 name: local installer (macOS/Linux) (${{ matrix.os }})
 needs: prepare
@@ -205,15 +196,6 @@ def documented_lines():
     return [line.strip() for block in blocks for line in block.splitlines() if line.strip()]
 
 
-def documented_commands():
-    return set(documented_lines())
-
-
-def undocumented_operator_lines(run, documented):
-    lines = [line.strip() for line in run.splitlines() if "nci-si-install" in line]
-    return [line for line in lines if line not in documented and line not in CI_ONLY]
-
-
 def documented_operator_lines():
     return [
         line
@@ -302,18 +284,4 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
         self.assertEqual(
             workflow_operator_lines(lifecycle["run"]),
             expected,
-        )
-
-    def test_every_operator_command_is_documented(self):
-        documented = documented_commands()
-        run = next(
-            step["run"]
-            for step in named_steps()
-            if step["name"] == "Verify stdio and HTTP installer lifecycles"
-        )
-        self.assertEqual(undocumented_operator_lines(run, documented), [])
-        self.assertIn(
-            '"$INSTALLER_VENV/bin/nci-si-install" start --target local --transport stdio '
-            '--data-dir "$STDIO_ROOT"',
-            documented,
         )
