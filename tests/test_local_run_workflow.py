@@ -775,16 +775,28 @@ class LocalRunWorkflowTest(unittest.TestCase):
         self.assertIn(diagnostic, run)
 
     def test_compose_verification_compares_exactly_the_running_selected_services(self):
-        run = run_by_name()["Verify the selected Compose profiles (CI only)"]
-        self.assertIn(
+        checks = (
             "docker compose -f container/compose.local.yaml ps --status running --services | "
             'sort > "$RUNNER_TEMP/running-services"',
-            run,
+            'cmp "$RUNNER_TEMP/running-services" "$RUNNER_TEMP/expected-services"',
+        )
+        runs = run_by_name()
+        profile = runs["Verify the selected Compose profiles (CI only)"]
+        combined = runs["Verify every selected component together (CI only)"]
+        for check in checks:
+            with self.subTest(step="profile", check=check):
+                self.assertIn(check, profile)
+            with self.subTest(step="combined", check=check):
+                self.assertIn(check, combined)
+        self.assertIn(
+            'printf \'%s\\n\' "${expected[@]}" | sort > "$RUNNER_TEMP/expected-services"',
+            profile,
         )
         self.assertIn(
-            'printf \'%s\\n\' "${expected[@]}" | sort > "$RUNNER_TEMP/expected-services"', run
+            "printf '%s\\n' admin-ingress administration documentation | sort > "
+            '"$RUNNER_TEMP/expected-services"',
+            combined,
         )
-        self.assertIn('cmp "$RUNNER_TEMP/running-services" "$RUNNER_TEMP/expected-services"', run)
 
     def test_the_ci_only_list_has_no_stale_entry(self):
         lines = {line.strip() for run in run_by_name().values() for line in run.splitlines()}
