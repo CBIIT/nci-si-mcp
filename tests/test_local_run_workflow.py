@@ -586,9 +586,16 @@ class LocalRunWorkflowTest(unittest.TestCase):
             },
         )
         self.assertEqual(prepare["steps"][1]["uses"], "$/.github/actions/setup")
-        self.assertEqual(prepare["steps"][2]["run"], "pdm run python -m scripts.companion_context")
         self.assertEqual(
-            prepare["steps"][3]["with"],
+            [step.get("run") for step in prepare["steps"][2:5]],
+            [
+                "npm ci --prefix docs/site-assets --ignore-scripts",
+                "npm run build --prefix docs/site-assets",
+                "pdm run python -m scripts.companion_context",
+            ],
+        )
+        self.assertEqual(
+            prepare["steps"][5]["with"],
             {
                 "name": "local-companion-context-${{ github.sha }}",
                 "path": "tmp/companion-context/",
