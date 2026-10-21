@@ -1,6 +1,7 @@
 import io
 import json
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -183,7 +184,7 @@ class LocalInstallerTest(unittest.TestCase):
 
         with (
             patch.object(installer, "__version__", "0.21.0"),
-            patch.object(installer, "_verify_stdio", return_value=True),
+            patch.object(installer, "_verify_stdio", return_value=None),
         ):
             code, output, error = self.run_main(
                 "start",
@@ -325,7 +326,7 @@ class LocalInstallerTest(unittest.TestCase):
 
     def test_stdio_and_http_verification_honor_results_and_environment(self):
         environment = {"NCI_SI_PROFILE": "cadsr"}
-        for status, expected in ((0, True), (1, False)):
+        for status in (0, 1):
             with (
                 self.subTest(status=status),
                 patch.dict(
@@ -337,12 +338,21 @@ class LocalInstallerTest(unittest.TestCase):
                     return_value=subprocess.CompletedProcess([], status),
                 ) as run,
             ):
-                self.assertEqual(
-                    installer._verify_stdio(Path("/venv/python"), environment), expected
-                )
+                if status:
+                    with self.assertRaisesRegex(installer.InstallerStateError, "server.log"):
+                        installer._verify_stdio(Path("/venv/python"), self.data_dir, environment)
+                else:
+                    installer._verify_stdio(Path("/venv/python"), self.data_dir, environment)
                 self.assertEqual(
                     run.call_args.kwargs["env"],
                     {"PATH": "/bin", "HOME": "/home/test", **environment},
+                )
+                self.assertEqual(run.call_args.kwargs["timeout"], 30)
+                self.assertFalse(run.call_args.kwargs["check"])
+                self.assertEqual(run.call_args.kwargs["stdin"], subprocess.DEVNULL)
+                self.assertEqual(run.call_args.kwargs["stdout"], subprocess.DEVNULL)
+                self.assertEqual(
+                    Path(run.call_args.kwargs["stderr"].name), self.data_dir / "server.log"
                 )
         response = MagicMock()
         response.__enter__.return_value = response
@@ -350,6 +360,150 @@ class LocalInstallerTest(unittest.TestCase):
             response.status = status
             with patch.object(installer, "urlopen", return_value=response):
                 self.assertEqual(installer._ready(), expected)
+
+    def test_stdio_verifier_initializes_real_server_through_real_sdk(self):
+        environment = {
+            "NCI_SI_DATA_DIR": str(self.data_dir / "server-data"),
+            "NCI_SI_PROFILE": "unified",
+            "NCI_SI_TRANSPORT": "stdio",
+        }
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        installer._verify_stdio(Path(sys.executable), runtime, environment)
+        self.assertEqual((runtime / "server.log").read_text(encoding="utf-8"), "")
+
+    def test_stdio_verifier_passes_configured_environment_to_real_server(self):
+        environment = {
+            "NCI_SI_DATA_DIR": str(self.data_dir / "server-data"),
+            "NCI_SI_PROFILE": "invalid-profile",
+            "NCI_SI_TRANSPORT": "stdio",
+        }
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        with self.assertRaisesRegex(installer.InstallerStateError, "server.log"):
+            installer._verify_stdio(Path(sys.executable), runtime, environment)
+
+    def test_stdio_verifier_passes_configured_data_directory_to_real_server(self):
+        data_path = self.data_dir / "not-a-directory"
+        data_path.write_text("occupied", encoding="utf-8")
+        environment = {
+            "NCI_SI_DATA_DIR": str(data_path),
+            "NCI_SI_PROFILE": "unified",
+            "NCI_SI_TRANSPORT": "stdio",
+        }
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        with self.assertRaisesRegex(installer.InstallerStateError, "server.log"):
+            installer._verify_stdio(Path(sys.executable), runtime, environment)
+        self.assertIn(str(data_path), (runtime / "server.log").read_text(encoding="utf-8"))
+
+    def test_stdio_verifier_reports_real_child_error_in_owned_log(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        environment = {
+            "NCI_SI_DATA_DIR": str(self.data_dir / "server-data"),
+            "NCI_SI_PROFILE": "invalid-profile",
+            "NCI_SI_TRANSPORT": "stdio",
+        }
+        with self.assertRaisesRegex(installer.InstallerStateError, "server.log"):
+            installer._verify_stdio(Path(sys.executable), runtime, environment)
+        log = (runtime / "server.log").read_text()
+        self.assertIn("NCI_SI_PROFILE", log)
+
+    def test_stdio_verifier_appends_real_child_error_to_owned_log(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        log = runtime / "server.log"
+        log.write_text("earlier HTTP diagnostic\n", encoding="utf-8")
+        environment = {
+            "NCI_SI_DATA_DIR": str(self.data_dir / "server-data"),
+            "NCI_SI_PROFILE": "invalid-profile",
+            "NCI_SI_TRANSPORT": "stdio",
+        }
+        with self.assertRaisesRegex(installer.InstallerStateError, "server.log"):
+            installer._verify_stdio(Path(sys.executable), runtime, environment)
+        contents = log.read_text(encoding="utf-8")
+        self.assertTrue(contents.startswith("earlier HTTP diagnostic\n"))
+        self.assertIn("NCI_SI_PROFILE", contents)
+
+    def test_stdio_execution_failures_report_the_owned_log_without_a_traceback(self):
+        self.write_distribution()
+        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
+        actions.apply("configure")
+        installer_state.write_state(
+            self.data_dir,
+            installer_state.InstallationState(
+                2,
+                "local",
+                ("server",),
+                tuple(
+                    installer_state.StepOutcome(step, "completed")
+                    for step in ("check_prerequisites", "install", "configure")
+                ),
+            ),
+        )
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(
+                installer.subprocess,
+                "run",
+                side_effect=subprocess.TimeoutExpired(["verify"], 30),
+            ),
+        ):
+            code, output, error = self.run_main(
+                "run",
+                "--target",
+                "local",
+                "--data-dir",
+                str(self.data_dir),
+                "--non-interactive",
+            )
+        self.assertEqual((code, output), (2, ""))
+        self.assertIn("timed out", error)
+        self.assertIn(str(self.data_dir / "runtime/server.log"), error)
+        self.assertNotIn("Traceback", error)
+
+    def test_stdio_timeout_has_exact_guidance_without_an_exception_cause(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        with (
+            patch.object(
+                installer.subprocess,
+                "run",
+                side_effect=subprocess.TimeoutExpired(["verify"], 30),
+            ),
+            self.assertRaises(installer.InstallerStateError) as caught,
+        ):
+            installer._verify_stdio(Path(sys.executable), runtime, {})
+        self.assertEqual(
+            str(caught.exception),
+            f"Installed stdio server verification timed out; inspect {runtime / 'server.log'}.",
+        )
+        self.assertIsNone(caught.exception.__cause__)
+        self.assertTrue(caught.exception.__suppress_context__)
+
+    def test_stdio_missing_interpreter_reports_the_launch_cause(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        missing = self.data_dir / "missing-python"
+        with self.assertRaisesRegex(
+            installer.InstallerStateError,
+            r"could not launch: \[Errno 2\] No such file or directory",
+        ):
+            installer._verify_stdio(missing, runtime, {})
+
+    def test_stdio_log_open_failure_names_the_unavailable_log_and_cause(self):
+        runtime = self.data_dir / "runtime"
+        runtime.mkdir()
+        with (
+            patch.object(Path, "open", side_effect=PermissionError("read only")),
+            self.assertRaisesRegex(
+                installer.InstallerStateError,
+                r"Cannot open stdio verification log .*server\.log: read only",
+            ),
+        ):
+            installer._verify_stdio(Path(sys.executable), runtime, {})
 
     def test_stdio_verify_requires_install_and_configuration(self):
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
@@ -362,7 +516,7 @@ class LocalInstallerTest(unittest.TestCase):
                     autospec=True,
                     side_effect=lambda _self, step, failed=failed: step != failed,
                 ),
-                patch.object(installer, "_verify_stdio", return_value=True),
+                patch.object(installer, "_verify_stdio", return_value=None),
             ):
                 self.assertFalse(actions._verify_server())
 
@@ -747,7 +901,7 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertIn(call(runtime, installer.os.O_RDONLY), opened.mock_calls)
         fsync.assert_any_call(descriptors[-1])
         close.assert_called_once_with(descriptors[-1])
-        self.assertEqual(installer._http_log(runtime), runtime / "server.log")
+        self.assertEqual(installer._server_log(runtime), runtime / "server.log")
 
     def test_http_verification_cleans_up_a_transient_process_and_blocks_an_unowned_port(self):
         self.write_distribution()
@@ -810,6 +964,19 @@ class LocalInstallerTest(unittest.TestCase):
         available.assert_called_with(8000)
         self.assertEqual(start.call_args.kwargs["env"]["NCI_SI_HTTP_PORT"], "8000")
         opened.assert_called_with("http://127.0.0.1:8000/ready", timeout=5)
+
+    def test_port_probe_matches_a_reusable_listener_after_server_side_close(self):
+        with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind(("127.0.0.1", 0))
+            port = listener.getsockname()[1]
+            listener.listen()
+            with socket.create_connection(("127.0.0.1", port)) as client:
+                accepted, _ = listener.accept()
+                accepted.close()
+                self.assertEqual(client.recv(1), b"")
+            self.assertFalse(installer._port_available(port))
+        self.assertTrue(installer._port_available(port))
 
     def test_http_verification_kills_a_transient_process_that_ignores_sigterm(self):
         self.write_distribution()
