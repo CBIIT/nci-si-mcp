@@ -294,11 +294,8 @@ finally:
         except ProcessLookupError:
             pass
         status = server.wait(timeout=30)
-# pdm run reports SIGTERM directly, or as 256 - SIGTERM. A documented process signal
-# handler may convert it to KeyboardInterrupt, which pdm reports as 256 - SIGINT.
-if server is not None and status not in (
-    0, -signal.SIGTERM, 256 - signal.SIGTERM, 256 - signal.SIGINT
-):
+# pdm run reports a child that the SIGTERM ended as 256 - 15.
+if server is not None and status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
     sys.exit(f"the server stopped with status {status}")
 PY
 """
