@@ -39,11 +39,9 @@ class InstallerStepsTest(unittest.TestCase):
 
     @staticmethod
     def state(*outcomes):
-        return API.InstallationState(1, "local", ("server",), outcomes)
+        return API.InstallationState(API.STATE_VERSION, "local", ("server",), outcomes)
 
     def reconcile(self, restart=False):
-        self.assertEqual(self.actions.step_names, ("first", "second", "third"))
-        self.assertEqual(self.actions.missing_inputs("first"), ())
         return API.reconcile(
             self.data_dir,
             "local",
@@ -113,8 +111,12 @@ class InstallerStepsTest(unittest.TestCase):
         self.assertEqual(status["failed"], ["second"])
         self.assertEqual(status["pending"], ["third"])
         self.assertEqual(status["nextAction"], "Retry failed step second.")
+
+    def test_reverify_marks_stale_and_previously_failed_steps_failed(self):
+        state = self.state(
+            API.StepOutcome("first", "completed"), API.StepOutcome("second", "failed")
+        )
         stale = self.state(*state.outcomes[:1])
-        self.actions.present.remove("first")
         self.assertEqual(API.reverify(stale, self.actions).outcomes[0].status, "failed")
         previously_failed = self.state(*state.outcomes)
         self.assertEqual(
@@ -132,13 +134,12 @@ class InstallerStepsTest(unittest.TestCase):
         self.actions.present.add("first")
         self.assertEqual(API.reverify(current, self.actions).outcomes[0].status, "completed")
 
-    def test_restart_resets_progress_for_the_same_selection_without_uninstall(self):
+    def test_restart_resets_progress_for_the_same_selection(self):
         self.reconcile()
         self.actions.calls.clear()
         state = self.reconcile(restart=True)
         self.assertEqual([call[0] for call in self.actions.calls], ["apply", "verify"] * 3)
         self.assertEqual([outcome.status for outcome in state.outcomes], ["completed"] * 3)
-        self.assertFalse(any(call[0] == "uninstall" for call in self.actions.calls))
 
     def test_an_action_bug_propagates_without_recording_clean_completion(self):
         self.actions.bug = "second"

@@ -284,30 +284,25 @@ class LocalInstallerTest(unittest.TestCase):
             self.assertEqual((code, output), (2, ""))
             self.assertIn("incomplete", error)
 
-    def test_wrong_installed_revision_fails_reverification(self):
-        self.write_distribution(revision="v0.20.0")
-        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
-        self.assertFalse(actions.verify("install"))
-
-    def test_release_and_configuration_verifiers_fail_closed(self):
+    def test_release_version_is_anchored_and_revision_must_match(self):
         self.assertTrue(installer.RELEASE_VERSION.pattern.endswith(r"\Z"))
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
-        cases = (
-            ("0.21.0.dev1", "v0.21.0", False),
-            ("0.21.0", "v0.20.0", False),
-            ("0.21.0", None, False),
-        )
-        for version, revision, expected in cases:
+        for version, revision in (("0.21.0.dev1", "v0.21.0"), ("0.21.0", "v0.20.0")):
             with self.subTest(version=version, revision=revision):
-                self.write_distribution(version, revision or "v0.21.0")
-                direct = next(
-                    (self.data_dir / "venv").glob("lib/python*/site-packages/*/direct_url.json")
-                )
-                if revision is None:
-                    direct.write_text('{"vcs_info":{}}')
+                self.write_distribution(version, revision)
                 with patch.object(installer, "__version__", "0.21.0"):
-                    self.assertEqual(actions.verify("install"), expected)
+                    self.assertFalse(actions.verify("install"))
                 shutil.rmtree(self.data_dir / "venv")
+
+    def test_release_metadata_requires_one_distribution_and_a_requested_revision(self):
+        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
+        self.write_distribution()
+        direct = next((self.data_dir / "venv").glob("lib/python*/site-packages/*/direct_url.json"))
+        direct.write_text('{"vcs_info":{}}')
+        with patch.object(installer, "__version__", "0.21.0"):
+            self.assertFalse(actions.verify("install"))
+        shutil.rmtree(self.data_dir / "venv")
+
         self.write_distribution()
         original = self.data_dir / "venv/lib/python3.14/site-packages/nci_si_mcp-0.21.0.dist-info"
         duplicate = (
@@ -318,13 +313,16 @@ class LocalInstallerTest(unittest.TestCase):
             shutil.copy2(original / name, duplicate / name)
         with patch.object(installer, "__version__", "0.21.0"):
             self.assertFalse(actions.verify("install"))
+
+    def test_configuration_verifier_requires_the_exact_typed_record(self):
+        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         actions.apply("configure")
         (self.data_dir / "runtime/server.json").write_text("{}")
         self.assertFalse(actions.verify("configure"))
         (self.data_dir / "runtime/server.json").write_text('{"valid":"x","invalid":1}')
         self.assertIsNone(installer._configuration(self.data_dir))
 
-    def test_stdio_and_http_verification_honor_results_and_environment(self):
+    def test_stdio_verification_honors_results_environment_and_process_options(self):
         environment = {"NCI_SI_PROFILE": "cadsr"}
         for status in (0, 1):
             with (
@@ -354,6 +352,8 @@ class LocalInstallerTest(unittest.TestCase):
                 self.assertEqual(
                     Path(run.call_args.kwargs["stderr"].name), self.data_dir / "server.log"
                 )
+
+    def test_http_readiness_requires_status_200(self):
         response = MagicMock()
         response.__enter__.return_value = response
         for status, expected in ((200, True), (201, False)):
@@ -520,7 +520,7 @@ class LocalInstallerTest(unittest.TestCase):
             ):
                 self.assertFalse(actions._verify_server())
 
-    def test_http_start_and_stop_refusals_are_exact(self):
+    def test_http_start_refuses_an_unowned_port_and_an_unready_owned_server(self):
         actions = installer.LocalActions(self.data_dir, transport="http", profile="unified")
         actions.apply("configure")
         with (
@@ -535,8 +535,15 @@ class LocalInstallerTest(unittest.TestCase):
             self.assertRaisesRegex(installer.InstallerStateError, "not ready"),
         ):
             installer._start_http(actions)
+
+    def test_http_stop_without_an_owned_process_reports_stopped(self):
+        actions = installer.LocalActions(self.data_dir, transport="http", profile="unified")
         with patch.object(installer, "_owned_process", return_value=None):
             self.assertEqual(installer._stop_http(actions), {"status": "stopped"})
+
+    def test_http_verification_refuses_an_owned_but_unready_server(self):
+        actions = installer.LocalActions(self.data_dir, transport="http", profile="unified")
+        actions.apply("configure")
         with (
             patch.object(installer, "_owned_process", return_value=42),
             patch.object(installer, "_ready", return_value=False),
@@ -572,6 +579,7 @@ class LocalInstallerTest(unittest.TestCase):
             patch.object(
                 installer.os, "kill", side_effect=[None] * 30 + [None] + [None] * 30
             ) as kill,
+            patch.object(installer.time, "sleep"),
             self.assertRaisesRegex(installer.InstallerStateError, "Cannot stop"),
         ):
             installer._wait_for_pid(42)
@@ -777,7 +785,7 @@ class LocalInstallerTest(unittest.TestCase):
         process.terminate.assert_called_once_with()
         process.wait.assert_called_once_with(timeout=30)
 
-    def test_uninstall_refuses_owned_child_symlinks(self):
+    def test_uninstall_refuses_unowned_child_directories_and_symlinks(self):
         for child in ("venv", "server-data", "runtime"):
             for kind in ("directory", "symlink"):
                 with (
@@ -827,7 +835,7 @@ class LocalInstallerTest(unittest.TestCase):
                     with self.assertRaisesRegex(installer.InstallerStateError, "unowned"):
                         actions.apply(step)
 
-    def test_uninstall_failure_modes_preserve_state_or_report_the_os_error(self):
+    def test_uninstall_refuses_malformed_state_before_deleting_children(self):
         self.write_completed_state()
         for child in ("venv", "server-data", "runtime"):
             path = self.data_dir / child
@@ -845,6 +853,14 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("malformed", error)
         self.assertTrue(state_path.exists())
+
+    def test_uninstall_removal_failure_reports_the_os_error_and_preserves_state(self):
+        self.write_completed_state()
+        for child in ("venv", "server-data", "runtime"):
+            path = self.data_dir / child
+            path.mkdir()
+            (path / ".installer-owned").touch()
+        state_path = self.data_dir / "installer-state.json"
         self.write_completed_state()
         with patch.object(
             installer.shutil, "rmtree", side_effect=OSError("cannot remove")
@@ -881,7 +897,7 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertTrue((self.data_dir / "venv" / "keep").exists())
 
-    def test_process_record_is_atomic_and_http_keeps_diagnostics(self):
+    def test_process_record_syncs_its_directory_and_http_uses_the_owned_log(self):
         runtime = self.data_dir / "runtime"
         runtime.mkdir()
         descriptors = []
