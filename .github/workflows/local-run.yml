@@ -25,6 +25,7 @@ on:
       - acceptance/README.md
       - docs/documentation-site.md
       - docs/local-validation.md
+      - docs/installer-targets.md
       - scripts/portal*.py
       - scripts/operator_*.py
       - scripts/docs_site.py
@@ -114,8 +115,33 @@ jobs:
       # QUICKSTART: first commands, live EVS, and a small local index.
       - name: Print the EVS release
         run: pdm run nci-si-mcp release-info
-      - name: Build a small local index
-        run: pdm run nci-si-mcp index-sample C3262 C2991 C40704 C153397 C116938
+      - name: Select the released index source (CI only)
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            RELEASE_TAG=v0.0.0
+            git tag "$RELEASE_TAG" HEAD
+            git config --global url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
+          else
+            RELEASE_TAG="$(git describe --tags --abbrev=0)"
+          fi
+          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
+      - name: Install the optional local index
+        run: |
+          INDEX_VENV="$RUNNER_TEMP/index-venv"
+          SERVER_VENV="$RUNNER_TEMP/server-venv"
+          python3 -m venv "$INDEX_VENV"
+          python3 -m venv "$SERVER_VENV"
+          "$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+          "$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+          echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"
+          echo "SERVER_VENV=$SERVER_VENV" >> "$GITHUB_ENV"
+          echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"
+      - name: Build and evaluate a small local index
+        run: |
+          export NCI_SI_DATA_DIR="$INDEX_DATA"
+          "$INDEX_VENV/bin/nci-si-mcp" index-sample C3262 C2991 C40704 C153397 C116938
+          "$INDEX_VENV/bin/nci-si-mcp" evaluate
 
       # Probes for the servers QUICKSTART tells a developer to start: each starts the documented
       # command, waits (bounded) until it answers, and stops it.
@@ -125,28 +151,31 @@ jobs:
           import os, signal, subprocess, sys, time, urllib.request
 
           url, command = sys.argv[1], sys.argv[2:]
-          server = subprocess.Popen(command, start_new_session=True)
+          owned = command[:1] != ["--pid"]
+          server = (subprocess.Popen(command, start_new_session=True) if owned else None)
+          pid = server.pid if server else int(command[1])
           try:
               deadline = time.monotonic() + 90
               while True:
                   try:
                       with urllib.request.urlopen(url, timeout=5) as reply:
-                          if server.poll() is None:
+                          if server is None or server.poll() is None:
                               print(url, reply.status, reply.read().decode())
                               break
                   except OSError:
                       pass
-                  if server.poll() is not None or time.monotonic() > deadline:
+                  if (server is not None and server.poll() is not None) or time.monotonic() > deadline:
                       sys.exit("not ready: " + url)
                   time.sleep(1)
           finally:
-              try:
-                  os.killpg(server.pid, signal.SIGTERM)
-              except ProcessLookupError:
-                  pass
-              status = server.wait(timeout=30)
+              if server is not None:
+                  try:
+                      os.killpg(pid, signal.SIGTERM)
+                  except ProcessLookupError:
+                      pass
+                  status = server.wait(timeout=30)
           # pdm run reports a child that the SIGTERM ended as 256 - 15.
-          if status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
+          if server is not None and status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
               sys.exit(f"the server stopped with status {status}")
           PY
       - name: Serve over stdio and initialize (CI only)
@@ -170,9 +199,63 @@ jobs:
               server.kill()
               server.wait(timeout=30)
           PY
-      - name: Serve over streamable HTTP until ready (CI only)
+      - name: Verify required-index HTTP and indexed search (CI only)
         timeout-minutes: 3
-        run: python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready pdm run nci-si-mcp serve --transport streamable-http
+        run: |
+          set -euo pipefail
+          server=""
+          cleanup() {
+            if [ -n "$server" ]; then
+              kill "$server" 2>/dev/null || true
+              wait "$server" 2>/dev/null || true
+            fi
+          }
+          trap cleanup EXIT
+          export NCI_SI_DATA_DIR="$INDEX_DATA"
+          export NCI_SI_HTTP_REQUIRE_INDEX=1
+          "$INDEX_VENV/bin/nci-si-mcp" serve --transport streamable-http &
+          server=$!
+          python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "$server"
+          "$INDEX_VENV/bin/python" - <<'PY'
+          import asyncio
+          from mcp.client import Client
+          from mcp.client.streamable_http import streamable_http_client
+
+          async def check():
+              async with Client(streamable_http_client("http://127.0.0.1:8000/mcp")) as client:
+                  reply = await client.call_tool("search_concepts", {"query": "Neoplasm", "mode": "semantic"})
+                  result = reply.structured_content
+                  concept = result["results"][0]["concept"]
+                  assert concept["code"] == "C3262", result
+                  assert concept["provenance"]["servedBy"] == "index", result
+                  assert concept["provenance"]["source"] == "evs_index", result
+
+          asyncio.run(check())
+          PY
+      - name: Verify server-only search without an index (CI only)
+        timeout-minutes: 3
+        run: |
+          export NCI_SI_DATA_DIR="$RUNNER_TEMP/server-only-data"
+          "$SERVER_VENV/bin/python" - <<'PY'
+          import asyncio
+          import os
+          from mcp.client import Client
+          from mcp.client.stdio import StdioServerParameters, stdio_client
+
+          async def check():
+              server = StdioServerParameters(
+                  command=os.environ["SERVER_VENV"] + "/bin/nci-si-mcp",
+                  args=["serve"],
+                  env={"NCI_SI_DATA_DIR": os.environ["RUNNER_TEMP"] + "/server-only-data"},
+              )
+              async with Client(stdio_client(server)) as client:
+                  reply = await client.call_tool("search_concepts", {"query": "Neoplasm", "mode": "semantic"})
+                  result = reply.structured_content
+                  assert result["error"]["code"] == "capability_unavailable", result
+                  assert "results" not in result, result
+
+          asyncio.run(check())
+          PY
 
       # AGENTS.md: the fixture run, prepared as in CI. Exit status 1 means some tests did not pass,
       # which is for the comparison below to judge; any other status, or no report, is no run.

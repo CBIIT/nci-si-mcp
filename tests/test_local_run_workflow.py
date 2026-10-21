@@ -59,6 +59,15 @@ DOCUMENTS = {
     "Build the documentation site": "docs/documentation-site.md",
 }
 
+CI_INDEX_INSTALL = (
+    '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ '
+    'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
+)
+CI_SERVER_INSTALL = (
+    '"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ '
+    'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
+)
+
 # What exists only in CI, by step name (the whole step) or by exact line, and why.
 CI_ONLY = {
     "Remove the runner's python.org Python (macOS)": "the runner image ships python.org builds "
@@ -87,7 +96,25 @@ CI_ONLY = {
     '. "$HOME/.nvm/nvm.sh"': "the documents say 'in a new shell', where nvm is loaded",
     'dirname "$(command -v node)" >> "$GITHUB_PATH"': "puts the nvm Node.js on the "
     "path of the job's next steps, as a new shell would",
+    'INDEX_VENV="$RUNNER_TEMP/index-venv"': "names the isolated release-style index environment",
+    'SERVER_VENV="$RUNNER_TEMP/server-venv"': "names the isolated server-only control environment",
+    'python3 -m venv "$INDEX_VENV"': "creates the release-style index environment",
+    'python3 -m venv "$SERVER_VENV"': "creates the server-only control environment",
+    CI_INDEX_INSTALL: "substitutes the selected concrete release tag or pull-request checkout for "
+    "the document's vX.Y.Z placeholder",
+    CI_SERVER_INSTALL: "installs the server-only control without the index extra",
+    'echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"': "passes the index environment to later steps",
+    'echo "SERVER_VENV=$SERVER_VENV" >> "$GITHUB_ENV"': "passes the control environment to "
+    "later steps",
+    'echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"': "passes the isolated index "
+    "data directory to later steps",
     "status=$?": "keeps the fixture run's exit status, which the next line judges",
+    'export NCI_SI_DATA_DIR="$INDEX_DATA"': "uses the workflow's temporary index directory in "
+    "place of the document's /path/to/data placeholder",
+    '"$INDEX_VENV/bin/nci-si-mcp" index-sample C3262 C2991 C40704 C153397 C116938': "runs the "
+    "documented sample through the isolated tagged-release environment",
+    '"$INDEX_VENV/bin/nci-si-mcp" evaluate': "runs the documented evaluation through the same "
+    "isolated tagged-release environment",
     '[ "$status" -le 1 ] && [ -s acceptance/fixture.json ] || { echo "::error::The fixture run '
     'did not finish (exit status $status)."; exit 1; }': "exit status 1 means some tests did "
     "not pass, which the comparison judges; any other status, or no report, is no run",
@@ -111,11 +138,6 @@ PROBES = {
 DOCUMENTED_INDEX_INSTALL = (
     'pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"'
 )
-CI_INDEX_INSTALL = (
-    '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ '
-    'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
-)
-
 REQUIRED_INDEX_RUN = r"""set -euo pipefail
 server=""
 cleanup() {
@@ -139,17 +161,17 @@ async def check():
     async with Client(streamable_http_client("http://127.0.0.1:8000/mcp")) as client:
         reply = await client.call_tool("search_concepts", {"query": "Neoplasm", "mode": "semantic"})
         result = reply.structured_content
-        first = result["results"][0]
-        assert first["code"] == "C3262", result
-        assert first["provenance"]["servedBy"] == "index", result
-        assert first["provenance"]["source"] == "evs_index", result
+        concept = result["results"][0]["concept"]
+        assert concept["code"] == "C3262", result
+        assert concept["provenance"]["servedBy"] == "index", result
+        assert concept["provenance"]["source"] == "evs_index", result
 
 asyncio.run(check())
 PY
 """
 
 SERVER_ONLY_RUN = r"""export NCI_SI_DATA_DIR="$RUNNER_TEMP/server-only-data"
-"$INDEX_VENV/bin/python" - <<'PY'
+"$SERVER_VENV/bin/python" - <<'PY'
 import asyncio
 import os
 from mcp.client import Client
@@ -157,7 +179,7 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 
 async def check():
     server = StdioServerParameters(
-        command=os.environ["INDEX_VENV"] + "/bin/nci-si-mcp",
+        command=os.environ["SERVER_VENV"] + "/bin/nci-si-mcp",
         args=["serve"],
         env={"NCI_SI_DATA_DIR": os.environ["RUNNER_TEMP"] + "/server-only-data"},
     )
@@ -178,28 +200,31 @@ READY_PROBE_RUN = r"""cat > "$RUNNER_TEMP/ready.py" <<'PY'
 import os, signal, subprocess, sys, time, urllib.request
 
 url, command = sys.argv[1], sys.argv[2:]
-server = subprocess.Popen(command, start_new_session=True)
+owned = command[:1] != ["--pid"]
+server = (subprocess.Popen(command, start_new_session=True) if owned else None)
+pid = server.pid if server else int(command[1])
 try:
     deadline = time.monotonic() + 90
     while True:
         try:
             with urllib.request.urlopen(url, timeout=5) as reply:
-                if server.poll() is None:
+                if server is None or server.poll() is None:
                     print(url, reply.status, reply.read().decode())
                     break
         except OSError:
             pass
-        if server.poll() is not None or time.monotonic() > deadline:
+        if (server is not None and server.poll() is not None) or time.monotonic() > deadline:
             sys.exit("not ready: " + url)
         time.sleep(1)
 finally:
-    try:
-        os.killpg(server.pid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
-    status = server.wait(timeout=30)
+    if server is not None:
+        try:
+            os.killpg(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        status = server.wait(timeout=30)
 # pdm run reports a child that the SIGTERM ended as 256 - 15.
-if status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
+if server is not None and status not in (0, -signal.SIGTERM, 256 - signal.SIGTERM):
     sys.exit(f"the server stopped with status {status}")
 PY
 """
@@ -413,6 +438,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
         by_name = {step["name"]: step["run"] for step in steps()}
         self.assertIn(DOCUMENTED_INDEX_INSTALL, documented_commands("QUICKSTART.md"))
         self.assertIn(CI_INDEX_INSTALL, by_name["Install the optional local index"])
+        self.assertIn(CI_SERVER_INSTALL, by_name["Install the optional local index"])
         self.assertIn(
             'git config --global url."file://$GITHUB_WORKSPACE/".insteadOf '
             "https://github.com/CBIIT/nci-si-mcp",

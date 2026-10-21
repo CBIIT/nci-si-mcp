@@ -46,6 +46,13 @@ pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z
 nci-si-mcp serve
 ```
 
+The local NCIt index is an independent opt-in. Install NumPy with the `index` extra into the
+same environment as the server:
+
+```bash
+pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"
+```
+
 The package version is not written in any file. It is derived from the nearest `vX.Y.Z` git
 tag when the package is installed or built; a commit after the tag gets a development version
 such as `0.1.1.dev1+g<commit>`. Install from a git clone that has its tags: a clone without
@@ -150,7 +157,18 @@ rejected: unset it instead.
 
 ## Build a small local index
 
-The full NCIt concept universe is large. Start with a known sample:
+The full NCIt concept universe is large. A released installation can start with a known sample,
+evaluate it, and require that active index when serving HTTP:
+
+```bash
+export NCI_SI_DATA_DIR=/path/to/data
+nci-si-mcp index-sample C3262 C2991 C40704 C153397 C116938
+nci-si-mcp evaluate
+export NCI_SI_HTTP_REQUIRE_INDEX=1
+nci-si-mcp serve --transport streamable-http
+```
+
+The checkout equivalents are:
 
 ```bash
 pdm run nci-si-mcp index-sample C3262 C2991 C40704 C153397 C116938
