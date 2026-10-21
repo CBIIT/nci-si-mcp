@@ -9,11 +9,11 @@ owns the server only. It never installs an index, documentation or the companion
 | Combination | Platform | Processes | Fixed ports | Sections |
 |---|---|---|---|---|
 | Server | macOS/Linux | Installer stdio, then installer HTTP | 8000 | [Server](#server) |
-| Server and index | macOS/Linux | Installer stopped, then required-index HTTP | 8000 | [Server](#server), [index](#index) |
+| Server and index | Linux | Installer stopped, then required-index HTTP | 8000 | [Server](#server), [index](#index) |
 | Documentation | Linux with Compose | Compose documentation | 8080 | [Containers](#documentation-and-companion-containers) |
 | Companion | Linux with Compose | Compose administration and ingress | 8081 | [Containers](#documentation-and-companion-containers) |
-| Everything | Linux with Compose | Required-index HTTP, Compose documentation, administration and ingress | 8000, 8080, 8081 | All sections |
-| Everything without Docker | macOS/Linux | Required-index HTTP, host documentation and portal | 8000, 8080, 8081 | [Server](#server), [index](#index), [host documentation and companion](#host-documentation-and-companion) |
+| Everything | Linux with Compose | Required-index HTTP, Compose documentation, administration and ingress | 8000, 8080, 8081 | [Server](#server), [index](#index), [containers](#documentation-and-companion-containers) |
+| Everything without Docker | macOS | Required-index HTTP, host documentation and portal | 8000, 8080, 8081 | [Server](#server), [index](#index), [host documentation and companion](#host-documentation-and-companion) |
 
 For a combination with an index, finish the installer lifecycle before starting the index server.
 Run only one server on `127.0.0.1:8000`: the `[server,index]` environment's required-index
@@ -21,9 +21,17 @@ server replaces the installer's HTTP server. Documentation uses 8080. The compan
 
 ## Prerequisites
 
-Use Python 3.14 or newer and Git. A released installation needs its exact `vX.Y.Z` tag. Host
-documentation also needs Node.js 24 or newer. Container combinations need a Docker-compatible
-engine with Compose; the images target Linux amd64.
+Use Python 3.14 or newer and Git. Replace `vX.Y.Z` below with the exact tag from the releases
+page. Before the server and index commands, set `SERVER_VENV`, `INDEX_VENV`, `STDIO_ROOT`,
+`HTTP_ROOT` and `INDEX_DATA` to five fresh absolute paths; the two installer roots must differ
+because each state record binds its transport and profile. An omitted `--profile` means `unified`;
+when selecting `evs` or `cadsr`, pass that same profile to every installer lifecycle command.
+
+Host documentation and container construction run from a repository checkout with PDM installed.
+They need Node.js 24 or newer. The site and companion-context output directories must not exist;
+use a fresh `--output` for a later build. Companion context construction also requires a clean,
+committed checkout. Container combinations need a Docker-compatible engine with Compose; the
+images target Linux amd64.
 
 ## Server
 
@@ -95,14 +103,14 @@ Verify documentation at `http://127.0.0.1:8080/health` and the portal at
 
 ## Documentation and companion containers
 
-Build the allowlisted contexts and local images:
+Build the allowlisted contexts and local images. This route builds the public site as part of
+context creation:
 
 ```bash
 pdm install -G docs
 npm ci --prefix docs/site-assets --ignore-scripts
 npm run build --prefix docs/site-assets
 pdm run python -m scripts.companion_context
-pdm run python -m scripts.companion_context --site tmp/docs-site
 docker build --platform linux/amd64 --load -t nci-si-docs:local tmp/companion-context/docs
 docker build --platform linux/amd64 --load -t nci-si-admin:local tmp/companion-context/admin
 ```
@@ -127,3 +135,8 @@ docker compose -f container/compose.local.yaml rm -f admin-ingress administratio
 
 The evidence volume remains. See [local companion containers](companion-containers.md) for the
 security boundaries, persistent evidence and optional serving-MCP profile.
+
+To reuse a separately built, same-commit site instead, run `pdm run docs-build` and replace the
+single context command above with
+`pdm run python -m scripts.companion_context --site tmp/docs-site`. These are alternatives; never
+run both against the same output directory.

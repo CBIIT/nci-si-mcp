@@ -196,6 +196,30 @@ def cleanup(compose: tuple[str, ...], serving: str, network: str) -> None:
         pending.callback(docker, *compose, "down", "--volumes")
 
 
+def _diagnostics(compose: tuple[str, ...]) -> list[Exception]:
+    errors: list[Exception] = []
+    for arguments in (("ps", "--all"), ("logs", "--no-color", "--tail", "30")):
+        try:
+            print(docker(*compose, *arguments, check=False))
+        except (OSError, subprocess.SubprocessError) as error:
+            errors.append(error)
+    return errors
+
+
+def _finish(compose: tuple[str, ...], serving: str, network: str) -> None:
+    primary = sys.exception()
+    errors = _diagnostics(compose) if primary is not None else []
+    try:
+        cleanup(compose, serving, network)
+    except (OSError, subprocess.SubprocessError) as error:
+        errors.append(error)
+    if primary is not None:
+        for error in errors:
+            primary.add_note(f"Cleanup or diagnostics also failed: {error!r}")
+    elif errors:
+        raise ExceptionGroup("Companion cleanup failed", errors)
+
+
 def verify_plans(compose: tuple[str, ...]) -> None:
     scenarios = (
         ((), []),
@@ -252,12 +276,7 @@ def main() -> None:
         remove_component(compose, "admin-ingress", "administration")
         require(request(8080, "/health")[0] == HTTPStatus.OK, "Stopping companion stopped docs")
     finally:
-        try:
-            if sys.exception() is not None:
-                print(docker(*compose, "ps", "--all", check=False))
-                print(docker(*compose, "logs", "--no-color", "--tail", "30", check=False))
-        finally:
-            cleanup(compose, serving, network)
+        _finish(compose, serving, network)
     print("Profile plans, health, isolation, fixture benchmark and independent shutdown passed")
 
 

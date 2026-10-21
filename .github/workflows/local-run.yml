@@ -1,10 +1,10 @@
 name: Local run
 
-# The documented local setup, walked literally on a clean runner of each platform a developer
-# uses (macOS first, Linux). Each `run:` line is copied from the document that tells a developer
+# The documented local setup, walked literally through the supported combinations on clean
+# macOS and Linux runners. Each `run:` line is copied from the document that tells a developer
 # to run it, in document order; tests/test_local_run_workflow.py compares them and lists, with a
 # reason each, the few lines that exist only in CI. The runs use the live EVS service as the
-# documents do (not a required check, so an outage cannot block a pull request); only the
+# documents do, so an outage can fail a run; only the
 # acceptance run uses fixtures, as acceptance/README.md says. macOS rows use host processes;
 # Linux docs and companion rows build and run their selected Compose profiles.
 on:
@@ -27,6 +27,13 @@ on:
       - docs/local-guide.md
       - docs/local-validation.md
       - docs/installer-targets.md
+      - container/compose.local.yaml
+      - container/Docs.Dockerfile
+      - container/Admin.Dockerfile
+      - scripts/companion_context.py
+      - scripts/companion_relay.py
+      - scripts/companion_smoke.py
+      - scripts/static_server.py
       - scripts/portal*.py
       - scripts/operator_*.py
       - scripts/docs_site.py
@@ -142,7 +149,8 @@ jobs:
           managed="$(uv python dir)"
           case "$base" in "$managed"/*) ;; *) fail "the project's Python is $base, not a uv-managed one under $managed" ;; esac
 
-      # QUICKSTART: first commands, live EVS, and a small local index.
+      # QUICKSTART supplies release-info; docs/local-guide.md supplies released environments and
+      # the explicit sample index.
       - name: Print the EVS release
         if: matrix.combination == 'server'
         run: pdm run nci-si-mcp release-info
@@ -158,7 +166,7 @@ jobs:
             RELEASE_TAG="$(git describe --tags --abbrev=0)"
           fi
           echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
-      - name: Install the optional local index
+      - name: Install released server and optional index environments
         if: matrix.server || matrix.index
         run: |
           INDEX_VENV="$RUNNER_TEMP/index-venv"
@@ -197,8 +205,8 @@ jobs:
           "$INDEX_VENV/bin/nci-si-mcp" index-sample C3262 C2991 C40704 C153397 C116938
           "$INDEX_VENV/bin/nci-si-mcp" evaluate
 
-      # Probes for the servers QUICKSTART tells a developer to start: each starts the documented
-      # command, waits (bounded) until it answers, and stops it.
+      # CI-only helper for documented foreground commands and already-owned processes: wait for
+      # the health outcome while requiring the selected process to remain alive.
       - name: Write the readiness probe (CI only)
         run: |
           cat > "$RUNNER_TEMP/ready.py" <<'PY'
@@ -269,10 +277,18 @@ jobs:
           set -euo pipefail
           server=""
           cleanup() {
+            status=$?
+            cleanup_status=0
             if [ -n "$server" ]; then
-              kill "$server" 2>/dev/null || true
-              wait "$server" 2>/dev/null || true
+              if kill -0 "$server" 2>/dev/null; then
+                kill "$server" || cleanup_status=$?
+                wait "$server" || [ "$?" -eq 143 ] || cleanup_status=$?
+              else
+                wait "$server" || cleanup_status=$?
+              fi
             fi
+            if [ "$status" -eq 0 ]; then status=$cleanup_status; fi
+            exit "$status"
           }
           trap cleanup EXIT
           export NCI_SI_DATA_DIR="$INDEX_DATA"
@@ -365,7 +381,7 @@ jobs:
           case "$(command -v node)" in $expected) ;; *) fail "node is $(command -v node), not the documented install ($expected)" ;; esac
           node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 24 ? 0 : 1)' || fail "Node.js $(node --version) is older than 24"
 
-      # docs/documentation-site.md, "Build and preview", without the preview server.
+      # docs/local-guide.md, "Host documentation and companion", without foreground servers.
       - name: Build the documentation site
         # The admin image copies portal assets directly; only host documentation needs this site.
         if: matrix.host_docs
@@ -381,7 +397,7 @@ jobs:
         timeout-minutes: 3
         run: python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health pdm run python -m scripts.static_server --directory tmp/docs-site --port 8080
 
-      # docs/local-validation.md: the validation dashboard, until it answers.
+      # docs/local-guide.md: the validation dashboard, until it answers.
       - name: Serve the validation dashboard until ready (CI only)
         if: matrix.host_companion
         timeout-minutes: 3
@@ -408,11 +424,26 @@ jobs:
           set -euo pipefail
           profiles=()
           services=()
+          expected=()
           if [ "${{ matrix.compose_docs }}" = "true" ]; then profiles+=(--profile docs); services+=(documentation); fi
           if [ "${{ matrix.compose_companion }}" = "true" ]; then profiles+=(--profile companion); services+=(admin-ingress administration); fi
-          cleanup() { docker compose -f container/compose.local.yaml stop "${services[@]}" || true; docker compose -f container/compose.local.yaml rm -f "${services[@]}" || true; }
+          if [ "${{ matrix.compose_docs }}" = "true" ]; then expected+=(documentation); fi
+          if [ "${{ matrix.compose_companion }}" = "true" ]; then expected+=(admin-ingress administration); fi
+          cleanup() {
+            status=$?
+            cleanup_status=0
+            docker compose -f container/compose.local.yaml stop "${services[@]}" || cleanup_status=$?
+            docker compose -f container/compose.local.yaml rm -f "${services[@]}" || cleanup_status=$?
+            if [ "$status" -eq 0 ]; then status=$cleanup_status; fi
+            exit "$status"
+          }
           trap cleanup EXIT
           docker compose -f container/compose.local.yaml "${profiles[@]}" up -d
+          if [ "${{ matrix.compose_docs }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"; fi
+          if [ "${{ matrix.compose_companion }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"; fi
+          docker compose -f container/compose.local.yaml ps --status running --services | sort > "$RUNNER_TEMP/running-services"
+          printf '%s\n' "${expected[@]}" | sort > "$RUNNER_TEMP/expected-services"
+          cmp "$RUNNER_TEMP/running-services" "$RUNNER_TEMP/expected-services"
           if [ "${{ matrix.compose_docs }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"; fi
           if [ "${{ matrix.compose_companion }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"; fi
 
@@ -424,11 +455,22 @@ jobs:
           pids=()
           services=()
           cleanup() {
-            for pid in "${pids[@]}"; do kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; done
+            status=$?
+            cleanup_status=0
+            for pid in "${pids[@]}"; do
+              if kill -0 "$pid" 2>/dev/null; then
+                kill "$pid" || cleanup_status=$?
+                wait "$pid" || [ "$?" -eq 143 ] || cleanup_status=$?
+              else
+                wait "$pid" || cleanup_status=$?
+              fi
+            done
             if [ "${#services[@]}" -gt 0 ]; then
-              docker compose -f container/compose.local.yaml stop "${services[@]}" || true
-              docker compose -f container/compose.local.yaml rm -f "${services[@]}" || true
+              docker compose -f container/compose.local.yaml stop "${services[@]}" || cleanup_status=$?
+              docker compose -f container/compose.local.yaml rm -f "${services[@]}" || cleanup_status=$?
             fi
+            if [ "$status" -eq 0 ]; then status=$cleanup_status; fi
+            exit "$status"
           }
           trap cleanup EXIT
           NCI_SI_DATA_DIR="$INDEX_DATA" NCI_SI_HTTP_REQUIRE_INDEX=1 "$INDEX_VENV/bin/nci-si-mcp" serve --transport streamable-http &
@@ -439,9 +481,18 @@ jobs:
             pdm run portal serve & pids+=("$!")
             python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "${pids[1]}"
             python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "${pids[2]}"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "${pids[0]}"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "${pids[1]}"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "${pids[2]}"
           else
             docker compose -f container/compose.local.yaml --profile docs --profile companion up -d
             services=(documentation admin-ingress administration)
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"
+            docker compose -f container/compose.local.yaml ps --status running --services | sort > "$RUNNER_TEMP/running-services"
+            printf '%s\n' admin-ingress administration documentation | sort > "$RUNNER_TEMP/expected-services"
+            cmp "$RUNNER_TEMP/running-services" "$RUNNER_TEMP/expected-services"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "${pids[0]}"
             python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"
             python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"
           fi

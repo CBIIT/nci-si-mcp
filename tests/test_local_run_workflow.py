@@ -28,7 +28,7 @@ STEPS = [
     ("Check that the documented Python and PDM are in use (Linux)", f"({PDM_ROWS}) && {LINUX}"),
     ("Print the EVS release", "matrix.combination == 'server'"),
     ("Select the released index source (CI only)", "matrix.server || matrix.index"),
-    ("Install the optional local index", "matrix.server || matrix.index"),
+    ("Install released server and optional index environments", "matrix.server || matrix.index"),
     ("Verify the local server lifecycle", "matrix.server"),
     ("Build and evaluate a small local index", "matrix.index"),
     ("Write the readiness probe (CI only)", None),
@@ -78,7 +78,7 @@ DOCUMENTS = {
     "Install Python and PDM (Linux)": "QUICKSTART.md",
     "Install the project": "QUICKSTART.md",
     "Print the EVS release": "QUICKSTART.md",
-    "Install the optional local index": "docs/local-guide.md",
+    "Install released server and optional index environments": "docs/local-guide.md",
     "Verify the local server lifecycle": "docs/local-guide.md",
     "Build and evaluate a small local index": "docs/local-guide.md",
     "Run the acceptance suite against the fixtures": "AGENTS.md",
@@ -194,10 +194,18 @@ DOCUMENTED_INDEX_INSTALL = (
 REQUIRED_INDEX_RUN = r"""set -euo pipefail
 server=""
 cleanup() {
+  status=$?
+  cleanup_status=0
   if [ -n "$server" ]; then
-    kill "$server" 2>/dev/null || true
-    wait "$server" 2>/dev/null || true
+    if kill -0 "$server" 2>/dev/null; then
+      kill "$server" || cleanup_status=$?
+      wait "$server" || [ "$?" -eq 143 ] || cleanup_status=$?
+    else
+      wait "$server" || cleanup_status=$?
+    fi
   fi
+  if [ "$status" -eq 0 ]; then status=$cleanup_status; fi
+  exit "$status"
 }
 trap cleanup EXIT
 export NCI_SI_DATA_DIR="$INDEX_DATA"
@@ -355,6 +363,13 @@ TRIGGERS = {
             "docs/local-guide.md",
             "docs/local-validation.md",
             "docs/installer-targets.md",
+            "container/compose.local.yaml",
+            "container/Docs.Dockerfile",
+            "container/Admin.Dockerfile",
+            "scripts/companion_context.py",
+            "scripts/companion_relay.py",
+            "scripts/companion_smoke.py",
+            "scripts/static_server.py",
             "scripts/portal*.py",
             "scripts/operator_*.py",
             "scripts/docs_site.py",
@@ -644,8 +659,9 @@ class LocalRunWorkflowTest(unittest.TestCase):
     def test_the_optional_index_uses_the_documented_release_extra_or_the_pr_checkout(self):
         by_name = run_by_name()
         self.assertIn(DOCUMENTED_INDEX_INSTALL, documented_commands("docs/local-guide.md"))
-        self.assertIn(CI_INDEX_INSTALL, by_name["Install the optional local index"])
-        self.assertIn(CI_SERVER_INSTALL, by_name["Install the optional local index"])
+        install = by_name["Install released server and optional index environments"]
+        self.assertIn(CI_INDEX_INSTALL, install)
+        self.assertIn(CI_SERVER_INSTALL, install)
         self.assertIn(
             'git config --global url."file://$GITHUB_WORKSPACE/".insteadOf '
             "https://github.com/CBIIT/nci-si-mcp",

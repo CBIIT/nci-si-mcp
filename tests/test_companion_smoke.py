@@ -62,6 +62,30 @@ class CompanionSmokeTest(unittest.TestCase):
             companion_smoke.cleanup(("compose",), "owned-serving", "owned-network")
         self.assertEqual(resources, {"container": set(), "network": set()})
 
+    def test_primary_failure_survives_diagnostic_and_cleanup_failures(self):
+        primary = RuntimeError("primary verification failure")
+        secondary = subprocess.TimeoutExpired("docker", 60)
+        with (
+            patch.object(companion_smoke.sys, "exception", return_value=primary),
+            patch.object(companion_smoke, "docker", side_effect=secondary),
+            self.assertRaisesRegex(RuntimeError, "primary verification failure") as raised,
+        ):
+            try:
+                raise primary
+            finally:
+                companion_smoke._finish(("compose",), "serving", "network")
+        self.assertTrue(any("also failed" in note for note in raised.exception.__notes__))
+
+    def test_cleanup_failure_after_success_is_not_silent(self):
+        failure = subprocess.CalledProcessError(1, ["docker", "compose", "down"])
+        with (
+            patch.object(companion_smoke.sys, "exception", return_value=None),
+            patch.object(companion_smoke, "cleanup", side_effect=failure),
+            self.assertRaises(ExceptionGroup) as raised,
+        ):
+            companion_smoke._finish(("compose",), "serving", "network")
+        self.assertEqual(raised.exception.exceptions, (failure,))
+
     def test_pending_job_is_polled_until_completed_and_results_are_required(self):
         run_id = "a" * 32
         history = [
