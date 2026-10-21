@@ -279,13 +279,19 @@ jobs:
           cleanup() {
             status=$?
             cleanup_status=0
+            signalled=false
             if [ -n "$server" ]; then
               if kill -0 "$server" 2>/dev/null; then
                 kill "$server" || cleanup_status=$?
-                if wait "$server"; then child_status=0; else child_status=$?; fi
+                signalled=true
+              fi
+              if wait "$server"; then child_status=0; else child_status=$?; fi
+              printf 'cleanup required-index pid=%s status=%s signalled=%s\n' \
+                "$server" "$child_status" "$signalled" >&2
+              if [ "$signalled" = true ]; then
                 case "$child_status" in 0|143|241) ;; *) cleanup_status="$child_status" ;; esac
-              else
-                wait "$server" || cleanup_status=$?
+              elif [ "$child_status" -ne 0 ]; then
+                cleanup_status="$child_status"
               fi
             fi
             if [ "$status" -eq 0 ]; then status=$cleanup_status; fi
@@ -453,18 +459,27 @@ jobs:
         timeout-minutes: 10
         run: |
           set -euo pipefail
+          names=()
           pids=()
           services=()
           cleanup() {
             status=$?
             cleanup_status=0
-            for pid in "${pids[@]}"; do
+            for index in "${!pids[@]}"; do
+              name="${names[$index]}"
+              pid="${pids[$index]}"
+              signalled=false
               if kill -0 "$pid" 2>/dev/null; then
                 kill "$pid" || cleanup_status=$?
-                if wait "$pid"; then child_status=0; else child_status=$?; fi
+                signalled=true
+              fi
+              if wait "$pid"; then child_status=0; else child_status=$?; fi
+              printf 'cleanup %s pid=%s status=%s signalled=%s\n' \
+                "$name" "$pid" "$child_status" "$signalled" >&2
+              if [ "$signalled" = true ]; then
                 case "$child_status" in 0|143|241) ;; *) cleanup_status="$child_status" ;; esac
-              else
-                wait "$pid" || cleanup_status=$?
+              elif [ "$child_status" -ne 0 ]; then
+                cleanup_status="$child_status"
               fi
             done
             if [ "${#services[@]}" -gt 0 ]; then
@@ -476,11 +491,11 @@ jobs:
           }
           trap cleanup EXIT
           NCI_SI_DATA_DIR="$INDEX_DATA" NCI_SI_HTTP_REQUIRE_INDEX=1 "$INDEX_VENV/bin/nci-si-mcp" serve --transport streamable-http &
-          pids+=("$!")
+          names+=(index); pids+=("$!")
           python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "${pids[0]}"
           if [ "${{ matrix.host_docs }}" = "true" ]; then
-            pdm run python -m scripts.static_server --directory tmp/docs-site --port 8080 & pids+=("$!")
-            pdm run portal serve & pids+=("$!")
+            pdm run python -m scripts.static_server --directory tmp/docs-site --port 8080 & names+=(documentation); pids+=("$!")
+            pdm run portal serve & names+=(portal); pids+=("$!")
             python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "${pids[1]}"
             python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "${pids[2]}"
             python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "${pids[0]}"

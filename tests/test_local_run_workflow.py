@@ -196,13 +196,19 @@ server=""
 cleanup() {
   status=$?
   cleanup_status=0
+  signalled=false
   if [ -n "$server" ]; then
     if kill -0 "$server" 2>/dev/null; then
       kill "$server" || cleanup_status=$?
-      if wait "$server"; then child_status=0; else child_status=$?; fi
+      signalled=true
+    fi
+    if wait "$server"; then child_status=0; else child_status=$?; fi
+    printf 'cleanup required-index pid=%s status=%s signalled=%s\n' \
+      "$server" "$child_status" "$signalled" >&2
+    if [ "$signalled" = true ]; then
       case "$child_status" in 0|143|241) ;; *) cleanup_status="$child_status" ;; esac
-    else
-      wait "$server" || cleanup_status=$?
+    elif [ "$child_status" -ne 0 ]; then
+      cleanup_status="$child_status"
     fi
   fi
   if [ "$status" -eq 0 ]; then status=$cleanup_status; fi
