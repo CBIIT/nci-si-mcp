@@ -199,7 +199,8 @@ cleanup() {
   if [ -n "$server" ]; then
     if kill -0 "$server" 2>/dev/null; then
       kill "$server" || cleanup_status=$?
-      wait "$server" || [ "$?" -eq 143 ] || cleanup_status=$?
+      if wait "$server"; then child_status=0; else child_status=$?; fi
+      case "$child_status" in 0|143|241) ;; *) cleanup_status="$child_status" ;; esac
     else
       wait "$server" || cleanup_status=$?
     fi
