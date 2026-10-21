@@ -10,6 +10,7 @@ import yaml
 ROOT = Path(__file__).parent.parent
 WORKFLOWS = ROOT / ".github" / "workflows"
 LOCAL_RUN = WORKFLOWS / "local-run.yml"
+LOCAL_GUIDE = ROOT / "docs" / "local-guide.md"
 
 MACOS = "runner.os == 'macOS'"
 LINUX = "runner.os == 'Linux'"
@@ -479,6 +480,25 @@ COMBINATIONS = [
     },
 ]
 
+GUIDE_COMBINATIONS = [
+    ("Server", "macOS/Linux", "Installer stdio, then installer HTTP", "8000"),
+    ("Server and index", "Linux", "Installer stopped, then required-index HTTP", "8000"),
+    ("Documentation", "Linux with Compose", "Compose documentation", "8080"),
+    ("Companion", "Linux with Compose", "Compose administration and ingress", "8081"),
+    (
+        "Everything",
+        "Linux with Compose",
+        "Required-index HTTP, Compose documentation, administration and ingress",
+        "8000, 8080, 8081",
+    ),
+    (
+        "Everything without Docker",
+        "macOS",
+        "Required-index HTTP, host documentation and portal",
+        "8000, 8080, 8081",
+    ),
+]
+
 
 STDIO_INITIALIZE_RUN = r"""python3 - <<'PY'
 import json, subprocess
@@ -523,6 +543,34 @@ def steps():
 
 def run_by_name():
     return {step["name"]: step["run"] for step in steps() if "run" in step}
+
+
+def guide_combinations():
+    rows = re.findall(
+        r"^\| ([^|]+) \| ([^|]+) \| ([^|]+) \| ([^|]+) \|",
+        LOCAL_GUIDE.read_text(encoding="utf-8"),
+        re.MULTILINE,
+    )
+    return [tuple(value.strip() for value in row) for row in rows if row[0] != "Combination"]
+
+
+def workflow_guide_combinations():
+    names = {
+        "server-index": ("Server and index", "Linux"),
+        "docs": ("Documentation", "Linux with Compose"),
+        "companion": ("Companion", "Linux with Compose"),
+        "everything": ("Everything", "Linux with Compose"),
+        "everything-without-docker": ("Everything without Docker", "macOS"),
+    }
+    return [
+        (
+            *names[row["combination"]],
+            row["processes"].casefold(),
+            row["ports"].replace(",", ", "),
+        )
+        for row in COMBINATIONS
+        if row["combination"] != "server"
+    ]
 
 
 def documented_commands(document):
@@ -589,7 +637,16 @@ class LocalRunWorkflowTest(unittest.TestCase):
         self.assertEqual(job()["timeout-minutes"], 60)
 
     def test_every_combination_has_exact_processes_ports_and_component_selection(self):
-        self.assertEqual(job()["strategy"]["matrix"]["include"], COMBINATIONS)
+        self.assertEqual(guide_combinations(), GUIDE_COMBINATIONS)
+        expected = [
+            (name, platform, process.casefold(), ports)
+            for name, platform, process, ports in GUIDE_COMBINATIONS[1:]
+        ]
+        self.assertEqual(workflow_guide_combinations(), expected)
+        self.assertEqual(
+            [row["os"] for row in COMBINATIONS if row["combination"] == "server"],
+            ["ubuntu-24.04", "macos-latest"],
+        )
 
     def test_checkout_keeps_tags_and_no_credentials(self):
         checkouts = [s for s in job()["steps"] if s.get("uses", "").startswith("actions/checkout@")]
@@ -616,6 +673,13 @@ class LocalRunWorkflowTest(unittest.TestCase):
             },
         )
         self.assertEqual(prepare["steps"][1]["uses"], "$/.github/actions/setup")
+        self.assertEqual(
+            prepare["steps"][0],
+            {
+                "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "with": {"fetch-depth": 0, "persist-credentials": False},
+            },
+        )
         self.assertEqual(
             [step.get("run") for step in prepare["steps"][2:5]],
             [

@@ -19,6 +19,41 @@ from scripts.site_assets import load_footer
 
 
 class CompanionSmokeTest(unittest.TestCase):
+    def test_every_profile_plan_has_the_exact_services(self):
+        replies = [
+            "",
+            "documentation",
+            "administration\nadmin-ingress",
+            "administration\nadmin-ingress\ndocumentation",
+            "mcp",
+        ]
+        commands = []
+
+        def docker(*args):
+            commands.append(args)
+            return replies[len(commands) - 1]
+
+        with patch.object(companion_smoke, "docker", side_effect=docker):
+            companion_smoke.verify_plans(("compose",))
+        self.assertEqual(
+            commands,
+            [
+                ("compose", "config", "--services"),
+                ("compose", "--profile", "docs", "config", "--services"),
+                ("compose", "--profile", "companion", "config", "--services"),
+                (
+                    "compose",
+                    "--profile",
+                    "docs",
+                    "--profile",
+                    "companion",
+                    "config",
+                    "--services",
+                ),
+                ("compose", "--profile", "mcp", "config", "--services"),
+            ],
+        )
+
     def test_serving_probe_explicitly_opts_into_local_auth(self):
         record = {
             "NetworkSettings": {
