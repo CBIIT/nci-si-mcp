@@ -422,12 +422,13 @@ class DocumentationTest(unittest.TestCase):
         # or `nci-si-mcp ...` fails for a new developer. The one exception installs the
         # released package with pip, which puts `nci-si-mcp` on the PATH itself.
         released = {
-            ("QUICKSTART.md", command)
+            ("docs/local-guide.md", command)
             for command in (
-                "nci-si-mcp serve",
-                "nci-si-mcp index-sample C3262 C2991 C40704 C153397 C116938",
-                "nci-si-mcp evaluate",
-                "nci-si-mcp serve --transport streamable-http",
+                'python3.14 -m venv "$SERVER_VENV"',
+                'python3.14 -m venv "$INDEX_VENV"',
+                '"$INDEX_VENV/bin/nci-si-mcp" index-sample C3262 C2991 C40704 C153397 C116938',
+                '"$INDEX_VENV/bin/nci-si-mcp" evaluate',
+                '"$INDEX_VENV/bin/nci-si-mcp" serve --transport streamable-http',
             )
         }
         bare = re.compile(
