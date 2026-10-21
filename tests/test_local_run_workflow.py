@@ -309,6 +309,93 @@ TRIGGERS = {
     },
 }
 
+COMBINATIONS = [
+    {
+        "os": "ubuntu-24.04",
+        "combination": "server",
+        "server": True,
+        "index": False,
+        "host_docs": False,
+        "host_companion": False,
+        "compose_docs": False,
+        "compose_companion": False,
+        "processes": "installer stdio, then installer HTTP",
+        "ports": "8000",
+    },
+    {
+        "os": "ubuntu-24.04",
+        "combination": "server-index",
+        "server": True,
+        "index": True,
+        "host_docs": False,
+        "host_companion": False,
+        "compose_docs": False,
+        "compose_companion": False,
+        "processes": "installer stopped, then required-index HTTP",
+        "ports": "8000",
+    },
+    {
+        "os": "ubuntu-24.04",
+        "combination": "docs",
+        "server": False,
+        "index": False,
+        "host_docs": False,
+        "host_companion": False,
+        "compose_docs": True,
+        "compose_companion": False,
+        "processes": "Compose documentation",
+        "ports": "8080",
+    },
+    {
+        "os": "ubuntu-24.04",
+        "combination": "companion",
+        "server": False,
+        "index": False,
+        "host_docs": False,
+        "host_companion": False,
+        "compose_docs": False,
+        "compose_companion": True,
+        "processes": "Compose administration and ingress",
+        "ports": "8081",
+    },
+    {
+        "os": "ubuntu-24.04",
+        "combination": "everything",
+        "server": True,
+        "index": True,
+        "host_docs": False,
+        "host_companion": False,
+        "compose_docs": True,
+        "compose_companion": True,
+        "processes": "required-index HTTP, Compose documentation, administration and ingress",
+        "ports": "8000,8080,8081",
+    },
+    {
+        "os": "macos-latest",
+        "combination": "server",
+        "server": True,
+        "index": False,
+        "host_docs": False,
+        "host_companion": False,
+        "compose_docs": False,
+        "compose_companion": False,
+        "processes": "installer stdio, then installer HTTP",
+        "ports": "8000",
+    },
+    {
+        "os": "macos-latest",
+        "combination": "everything-without-docker",
+        "server": True,
+        "index": True,
+        "host_docs": True,
+        "host_companion": True,
+        "compose_docs": False,
+        "compose_companion": False,
+        "processes": "required-index HTTP, host documentation and portal",
+        "ports": "8000,8080,8081",
+    },
+]
+
 
 STDIO_INITIALIZE_RUN = r"""python3 - <<'PY'
 import json, subprocess
@@ -407,9 +494,12 @@ class LocalRunWorkflowTest(unittest.TestCase):
         self.assertEqual(job()["runs-on"], "${{ matrix.os }}")
         self.assertEqual(
             job()["strategy"],
-            {"fail-fast": False, "matrix": {"os": ["macos-latest", "ubuntu-24.04"]}},
+            {"fail-fast": False, "matrix": {"include": COMBINATIONS}},
         )
         self.assertEqual(job()["timeout-minutes"], 40)
+
+    def test_every_combination_has_exact_processes_ports_and_component_selection(self):
+        self.assertEqual(job()["strategy"]["matrix"]["include"], COMBINATIONS)
 
     def test_checkout_keeps_tags_and_no_credentials(self):
         checkouts = [s for s in job()["steps"] if s.get("uses", "").startswith("actions/checkout@")]
