@@ -540,6 +540,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
         self.assertNotIn("secrets.", LOCAL_RUN.read_text(encoding="utf-8"))
 
     def test_it_runs_on_exactly_the_two_platforms_with_a_bound(self):
+        self.assertEqual(job()["name"], "local run (${{ matrix.os }}, ${{ matrix.combination }})")
         self.assertEqual(job()["runs-on"], "${{ matrix.os }}")
         self.assertEqual(
             job()["strategy"],

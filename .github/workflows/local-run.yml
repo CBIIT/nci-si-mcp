@@ -42,7 +42,7 @@ concurrency:
 
 jobs:
   local-run:
-    name: local run (${{ matrix.os }})
+    name: local run (${{ matrix.os }}, ${{ matrix.combination }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     strategy:
