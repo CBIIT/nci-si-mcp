@@ -25,6 +25,38 @@ class CompanionCompositionTest(unittest.TestCase):
                 self.assertIn("mem_limit", service)
                 self.assertGreater(service["cpus"], 0)
 
+    def test_each_service_has_exactly_its_independent_profile_and_dependencies(self):
+        self.assertEqual(
+            {
+                name: (service.get("profiles"), service.get("depends_on"))
+                for name, service in self.compose["services"].items()
+            },
+            {
+                "documentation": (["docs"], None),
+                "administration": (["companion"], None),
+                "admin-ingress": (["companion"], ["administration"]),
+                "mcp": (["mcp"], None),
+            },
+        )
+
+    def test_runbook_documents_exact_independent_start_and_stop_commands(self):
+        runbook = Path("docs/companion-containers.md").read_text(encoding="utf-8")
+        commands = [
+            "docker compose -f container/compose.local.yaml --profile docs up -d",
+            "docker compose -f container/compose.local.yaml --profile companion up -d",
+            "docker compose -f container/compose.local.yaml --profile docs "
+            "--profile companion up -d",
+            "docker compose -f container/compose.local.yaml stop documentation",
+            "docker compose -f container/compose.local.yaml rm -f documentation",
+            "docker compose -f container/compose.local.yaml stop admin-ingress administration",
+            "docker compose -f container/compose.local.yaml rm -f admin-ingress administration",
+            "docker compose -f container/compose.local.yaml stop mcp",
+            "docker compose -f container/compose.local.yaml rm -f mcp",
+        ]
+        for command in commands:
+            with self.subTest(command=command):
+                self.assertIn(command, runbook)
+
     def test_fixture_workers_have_no_serving_network_assets_or_credentials(self):
         services = self.compose["services"]
         admin = services["administration"]
