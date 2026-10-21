@@ -5,8 +5,8 @@ name: Local run
 # to run it, in document order; tests/test_local_run_workflow.py compares them and lists, with a
 # reason each, the few lines that exist only in CI. The runs use the live EVS service as the
 # documents do (not a required check, so an outage cannot block a pull request); only the
-# acceptance run uses fixtures, as acceptance/README.md says. Containers are not run: macOS
-# runners have no container runtime, and the CI `image` and `companions` jobs cover Linux.
+# acceptance run uses fixtures, as acceptance/README.md says. macOS rows use host processes;
+# Linux docs and companion rows build and run their selected Compose profiles.
 on:
   push:
     branches: [main]
