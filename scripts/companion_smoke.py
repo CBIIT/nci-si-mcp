@@ -253,7 +253,10 @@ def verify_plans(compose: tuple[str, ...]) -> None:
     for profiles, expected in scenarios:
         selected = tuple(option for profile in profiles for option in ("--profile", profile))
         services = docker(*compose, *selected, "config", "--services").splitlines()
-        require(services == expected, f"Profiles {profiles or ('none',)} selected {services}")
+        require(
+            sorted(services) == sorted(expected),
+            f"Profiles {profiles or ('none',)} selected {services}",
+        )
 
 
 def remove_component(compose: tuple[str, ...], *services: str) -> None:

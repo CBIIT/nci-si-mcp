@@ -59,7 +59,7 @@ class CompanionSmokeTest(unittest.TestCase):
             "",
             "documentation",
             "administration\nadmin-ingress",
-            "administration\nadmin-ingress\ndocumentation",
+            "documentation\nadministration\nadmin-ingress",
             "mcp",
         ]
         commands = []
