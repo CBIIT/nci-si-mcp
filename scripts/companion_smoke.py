@@ -196,16 +196,40 @@ def cleanup(compose: tuple[str, ...], serving: str, network: str) -> None:
         pending.callback(docker, *compose, "down", "--volumes")
 
 
+def verify_plans(compose: tuple[str, ...]) -> None:
+    scenarios = (
+        ((), []),
+        (("docs",), ["documentation"]),
+        (("companion",), ["administration", "admin-ingress"]),
+        (("docs", "companion"), ["administration", "admin-ingress", "documentation"]),
+        (("mcp",), ["mcp"]),
+    )
+    for profiles, expected in scenarios:
+        selected = tuple(option for profile in profiles for option in ("--profile", profile))
+        services = docker(*compose, *selected, "config", "--services").splitlines()
+        require(services == expected, f"Profiles {profiles or ('none',)} selected {services}")
+
+
+def remove_component(compose: tuple[str, ...], *services: str) -> None:
+    docker(*compose, "stop", *services)
+    docker(*compose, "rm", "-f", *services)
+
+
 def main() -> None:
     project = "nci-si-smoke-" + uuid.uuid4().hex[:10]
     compose = ("compose", "-f", COMPOSE, "-p", project)
     serving = project + "-serving"
     network = project + "-probe"
     try:
-        docker(*compose, "up", "-d")
+        verify_plans(compose)
+
+        docker(*compose, "--profile", "docs", "up", "-d")
         ready(8080)
-        ready(8081)
         require("National Cancer Institute" in request(8080, "/")[1], "Docs identity missing")
+        remove_component(compose, "documentation")
+
+        docker(*compose, "--profile", "companion", "up", "-d")
+        ready(8081)
         portal_styling(8081)
         admin = docker(*compose, "ps", "-q", "administration")
         inspect_boundary(admin)
@@ -213,10 +237,20 @@ def main() -> None:
         ready(port)
         blocked_connectivity(admin, address)
         benchmark(admin)
-        docker(*compose, "stop", "administration")
+        remove_component(compose, "admin-ingress", "administration")
         require(
             request(port, "/health")[0] == HTTPStatus.OK, "Stopping admin stopped the serving MCP"
         )
+
+        docker(*compose, "--profile", "docs", "--profile", "companion", "up", "-d")
+        ready(8080)
+        ready(8081)
+        remove_component(compose, "documentation")
+        require(request(8081, "/health")[0] == HTTPStatus.OK, "Stopping docs stopped companion")
+        docker(*compose, "--profile", "docs", "up", "-d", "documentation")
+        ready(8080)
+        remove_component(compose, "admin-ingress", "administration")
+        require(request(8080, "/health")[0] == HTTPStatus.OK, "Stopping companion stopped docs")
     finally:
         try:
             if sys.exception() is not None:
@@ -224,7 +258,7 @@ def main() -> None:
                 print(docker(*compose, "logs", "--no-color", "--tail", "30", check=False))
         finally:
             cleanup(compose, serving, network)
-    print("Companion health, isolation, fixture benchmark and independent shutdown passed")
+    print("Profile plans, health, isolation, fixture benchmark and independent shutdown passed")
 
 
 if __name__ == "__main__":

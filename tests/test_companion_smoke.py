@@ -124,13 +124,15 @@ class PortalStylingTest(unittest.TestCase):
             patch.object(companion_smoke, "_serving_probe", return_value=("10.0.0.2", 1)),
             patch.object(companion_smoke, "blocked_connectivity"),
             patch.object(companion_smoke, "benchmark"),
+            patch.object(companion_smoke, "verify_plans"),
+            patch.object(companion_smoke, "remove_component"),
             patch.object(companion_smoke, "cleanup"),
         ):
             companion_smoke.main()
         return asked
 
     def test_a_correctly_styled_portal_with_its_footer_passes(self):
-        self.assertEqual(self.smoke(), ["/", "/assets/ncids.css", "/assets/portal.css"])
+        self.assertEqual(self.smoke(), ["/", "/assets/ncids.css", "/assets/portal.css", "/health"])
 
     def test_a_contact_url_that_needs_escaping_still_passes_on_a_correct_page(self):
         footer = load_footer()._replace(contact_url='https://example.test/contact?a=1&b="2"')
@@ -138,7 +140,9 @@ class PortalStylingTest(unittest.TestCase):
             patch("scripts.portal_views.FOOTER", footer),
             patch.object(companion_smoke, "load_footer", return_value=footer),
         ):
-            self.assertEqual(self.smoke(), ["/", "/assets/ncids.css", "/assets/portal.css"])
+            self.assertEqual(
+                self.smoke(), ["/", "/assets/ncids.css", "/assets/portal.css", "/health"]
+            )
 
     def test_a_contact_url_present_only_as_text_is_not_a_footer_link(self):
         connection = HTTPConnection("127.0.0.1", self.server.server_port, timeout=3)

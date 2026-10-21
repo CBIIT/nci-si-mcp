@@ -27,7 +27,15 @@ npm run build --prefix docs/site-assets
 pdm run python -m scripts.companion_context
 docker build --platform linux/amd64 --load -t nci-si-docs:local tmp/companion-context/docs
 docker build --platform linux/amd64 --load -t nci-si-admin:local tmp/companion-context/admin
-docker compose -f container/compose.local.yaml up -d
+```
+
+Start only the component needed. Selecting neither profile starts nothing; selecting one never
+starts the other:
+
+```bash
+docker compose -f container/compose.local.yaml --profile docs up -d
+docker compose -f container/compose.local.yaml --profile companion up -d
+docker compose -f container/compose.local.yaml --profile docs --profile companion up -d
 ```
 
 To reuse an already browser-tested public site, pass `--site tmp/docs-site` to
@@ -113,11 +121,19 @@ These local images are not published as new GHCR packages. The hash-locked compa
 file is derived from `pdm.lock`; regenerate with `pdm run python -m scripts.companion_lock write`
 when the relevant lock groups change. Model and embedding runtimes are excluded.
 
+Stop and remove one component without changing the other component or its health:
+
 ```bash
-docker compose -f container/compose.local.yaml --profile mcp down
+docker compose -f container/compose.local.yaml stop documentation
+docker compose -f container/compose.local.yaml rm -f documentation
+docker compose -f container/compose.local.yaml stop admin-ingress administration
+docker compose -f container/compose.local.yaml rm -f admin-ingress administration
+docker compose -f container/compose.local.yaml stop mcp
+docker compose -f container/compose.local.yaml rm -f mcp
 ```
 
-This preserves evidence. Add `--volumes` only when deliberately deleting that local history.
+Removing the companion containers preserves evidence. Use a project-wide `down --volumes` only
+when deliberately removing every selected component and deleting that local history.
 Remove `tmp/companion-context` after image construction; a rebuild requires a fresh output
 directory (or `--output` with another path). Do not delete a directory someone else uses.
 

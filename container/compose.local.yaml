@@ -2,6 +2,7 @@
 name: nci-si-local
 services:
   documentation:
+    profiles: [docs]
     image: nci-si-docs:local
     platform: linux/amd64
     ports: ["127.0.0.1:8080:8080"]
@@ -15,6 +16,7 @@ services:
     cpus: 0.5
     tmpfs: ["/tmp:rw,noexec,nosuid,size=16m,mode=1777"]
   administration:
+    profiles: [companion]
     image: nci-si-admin:local
     platform: linux/amd64
     networks: [validation]
@@ -29,6 +31,7 @@ services:
     volumes: ["evidence:/state"]
     tmpfs: ["/tmp:rw,noexec,nosuid,size=256m,mode=1777"]
   admin-ingress:
+    profiles: [companion]
     image: nci-si-docs:local
     platform: linux/amd64
     entrypoint: ["python3.14", "-m", "scripts.companion_relay"]
