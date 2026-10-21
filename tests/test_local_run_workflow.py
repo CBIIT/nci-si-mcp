@@ -13,19 +13,20 @@ LOCAL_RUN = WORKFLOWS / "local-run.yml"
 
 MACOS = "runner.os == 'macOS'"
 LINUX = "runner.os == 'Linux'"
+PDM_ROWS = "matrix.server || matrix.host_docs"
 
 # Every step in order: its name and its condition.
 STEPS = [
-    ("Remove the runner's python.org Python (macOS)", MACOS),
-    ("Remove preinstalled Python and PDM (macOS)", MACOS),
-    ("Install Python and PDM (macOS)", MACOS),
-    ("Install uv (Linux)", LINUX),
-    ("Open a new shell (Linux)", LINUX),
-    ("Install Python and PDM (Linux)", LINUX),
-    ("Install the project", None),
-    ("Check that the documented Python and PDM are in use (macOS)", MACOS),
-    ("Check that the documented Python and PDM are in use (Linux)", LINUX),
-    ("Print the EVS release", None),
+    ("Remove the runner's python.org Python (macOS)", f"({PDM_ROWS}) && {MACOS}"),
+    ("Remove preinstalled Python and PDM (macOS)", f"({PDM_ROWS}) && {MACOS}"),
+    ("Install Python and PDM (macOS)", f"({PDM_ROWS}) && {MACOS}"),
+    ("Install uv (Linux)", f"({PDM_ROWS}) && {LINUX}"),
+    ("Open a new shell (Linux)", f"({PDM_ROWS}) && {LINUX}"),
+    ("Install Python and PDM (Linux)", f"({PDM_ROWS}) && {LINUX}"),
+    ("Install the project", PDM_ROWS),
+    ("Check that the documented Python and PDM are in use (macOS)", f"({PDM_ROWS}) && {MACOS}"),
+    ("Check that the documented Python and PDM are in use (Linux)", f"({PDM_ROWS}) && {LINUX}"),
+    ("Print the EVS release", "matrix.combination == 'server'"),
     ("Select the released index source (CI only)", "matrix.server || matrix.index"),
     ("Install the optional local index", "matrix.server || matrix.index"),
     ("Verify the local server lifecycle", "matrix.server"),
@@ -34,24 +35,28 @@ STEPS = [
     ("Serve over stdio and initialize (CI only)", "matrix.server"),
     ("Verify required-index HTTP and indexed search (CI only)", "matrix.index"),
     ("Verify server-only search without an index (CI only)", "matrix.index"),
-    ("Run the acceptance suite against the fixtures", None),
-    ("Compare the outcomes with the expected ones", None),
+    ("Run the acceptance suite against the fixtures", "matrix.combination == 'server'"),
+    ("Compare the outcomes with the expected ones", "matrix.combination == 'server'"),
     ("Remove a preinstalled Node.js (macOS)", "matrix.host_docs && runner.os == 'macOS'"),
     ("Install Node.js (macOS)", "matrix.host_docs && runner.os == 'macOS'"),
     (
         "Install nvm and Node.js (Linux)",
-        "(matrix.host_docs || matrix.compose_docs || matrix.compose_companion) && " + LINUX,
+        "matrix.host_docs && " + LINUX,
     ),
     (
         "Check that the documented Node.js is in use",
-        "matrix.host_docs || matrix.compose_docs || matrix.compose_companion",
+        "matrix.host_docs",
     ),
     (
         "Build the documentation site",
-        "matrix.host_docs || matrix.compose_docs || matrix.compose_companion",
+        "matrix.host_docs",
     ),
     ("Serve host documentation until ready (CI only)", "matrix.host_docs"),
     ("Serve the validation dashboard until ready (CI only)", "matrix.host_companion"),
+    (
+        "Download selected local container contexts (CI only)",
+        "matrix.compose_docs || matrix.compose_companion",
+    ),
     (
         "Build selected local container images",
         "matrix.compose_docs || matrix.compose_companion",
@@ -487,6 +492,10 @@ def steps():
     return [step for step in job()["steps"] if "name" in step]
 
 
+def run_by_name():
+    return {step["name"]: step["run"] for step in steps() if "run" in step}
+
+
 def documented_commands(document):
     """Commands a document gives: fenced block lines and table-row code spans, comments removed."""
 
@@ -541,6 +550,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
 
     def test_it_runs_on_exactly_the_two_platforms_with_a_bound(self):
         self.assertEqual(job()["name"], "local run (${{ matrix.os }}, ${{ matrix.combination }})")
+        self.assertEqual(job()["needs"], "prepare-containers")
         self.assertEqual(job()["runs-on"], "${{ matrix.os }}")
         self.assertEqual(
             job()["strategy"],
@@ -559,7 +569,45 @@ class LocalRunWorkflowTest(unittest.TestCase):
     def test_it_installs_by_the_documented_route_not_a_setup_action(self):
         self.assertEqual(
             [s["uses"] for s in job()["steps"] if "uses" in s],
-            ["actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"],
+            [
+                "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+            ],
+        )
+
+    def test_container_context_is_prepared_once_and_downloaded_only_by_compose_rows(self):
+        prepare = load(LOCAL_RUN)["jobs"]["prepare-containers"]
+        self.assertEqual(
+            {key: prepare[key] for key in ("name", "runs-on", "timeout-minutes")},
+            {
+                "name": "prepare local container contexts",
+                "runs-on": "ubuntu-24.04",
+                "timeout-minutes": 10,
+            },
+        )
+        self.assertEqual(prepare["steps"][1]["uses"], "$/.github/actions/setup")
+        self.assertEqual(prepare["steps"][2]["run"], "pdm run python -m scripts.companion_context")
+        self.assertEqual(
+            prepare["steps"][3]["with"],
+            {
+                "name": "local-companion-context-${{ github.sha }}",
+                "path": "tmp/companion-context/",
+                "if-no-files-found": "error",
+                "retention-days": 1,
+            },
+        )
+        download = next(
+            step
+            for step in steps()
+            if step["name"] == "Download selected local container contexts (CI only)"
+        )
+        self.assertEqual(download["if"], "matrix.compose_docs || matrix.compose_companion")
+        self.assertEqual(
+            download["with"],
+            {
+                "name": "local-companion-context-${{ github.sha }}",
+                "path": "tmp/companion-context",
+            },
         )
 
     def test_the_steps_are_exactly_these_in_order_each_on_its_platform(self):
@@ -567,12 +615,14 @@ class LocalRunWorkflowTest(unittest.TestCase):
 
     def test_every_command_is_copied_from_the_document_it_walks(self):
         for step in steps():
+            if "run" not in step:
+                continue
             with self.subTest(step=step["name"]):
                 self.assertEqual(undocumented_lines(step["name"], step["run"], DOCUMENTS), [])
 
     def test_every_step_keeps_the_order_of_its_document(self):
         for step in steps():
-            if step["name"] in DOCUMENTS and step["name"] not in CI_ONLY:
+            if "run" in step and step["name"] in DOCUMENTS and step["name"] not in CI_ONLY:
                 commands = documented_commands(DOCUMENTS[step["name"]])
                 found = [
                     commands.index(line) for line in command_lines(step["run"]) if line in commands
@@ -581,11 +631,11 @@ class LocalRunWorkflowTest(unittest.TestCase):
                     self.assertEqual(found, sorted(found))
 
     def test_the_stdio_initialize_round_trip_is_exactly_this(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         self.assertEqual(by_name["Serve over stdio and initialize (CI only)"], STDIO_INITIALIZE_RUN)
 
     def test_the_optional_index_uses_the_documented_release_extra_or_the_pr_checkout(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         self.assertIn(DOCUMENTED_INDEX_INSTALL, documented_commands("docs/local-guide.md"))
         self.assertIn(CI_INDEX_INSTALL, by_name["Install the optional local index"])
         self.assertIn(CI_SERVER_INSTALL, by_name["Install the optional local index"])
@@ -596,25 +646,25 @@ class LocalRunWorkflowTest(unittest.TestCase):
         )
 
     def test_required_index_readiness_and_search_are_exact(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         self.assertEqual(
             by_name["Verify required-index HTTP and indexed search (CI only)"],
             REQUIRED_INDEX_RUN,
         )
 
     def test_server_only_search_has_the_exact_no_index_error(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         self.assertEqual(
             by_name["Verify server-only search without an index (CI only)"], SERVER_ONLY_RUN
         )
 
     def test_the_ci_only_list_has_no_stale_entry(self):
-        lines = {line.strip() for step in steps() for line in step["run"].splitlines()}
+        lines = {line.strip() for run in run_by_name().values() for line in run.splitlines()}
         names = {step["name"] for step in steps()}
         self.assertEqual([key for key in CI_ONLY if key not in names | lines], [])
 
     def test_the_probe_steps_run_the_documented_server_commands(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         for name, (document, command, url) in PROBES.items():
             with self.subTest(step=name):
                 self.assertIn(command, documented_commands(document))
@@ -623,7 +673,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
                     self.assertEqual(by_name[name].strip(), probe_run(command, url))
 
     def test_the_in_use_checks_are_exactly_these(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         for name, run in IN_USE_CHECKS.items():
             with self.subTest(step=name):
                 self.assertEqual(by_name[name], run)
@@ -635,11 +685,11 @@ class LocalRunWorkflowTest(unittest.TestCase):
                 self.assertEqual(by_name[name]["timeout-minutes"], PROBE_TIMEOUT_MINUTES)
 
     def test_the_readiness_probe_is_exactly_this(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         self.assertEqual(by_name["Write the readiness probe (CI only)"], READY_PROBE_RUN)
 
     def test_the_runner_loses_its_python_org_builds_before_the_documented_install(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         self.assertEqual(
             by_name.get("Remove the runner's python.org Python (macOS)", "").splitlines(),
             [
@@ -649,7 +699,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
         )
 
     def test_a_failed_removal_of_a_preinstalled_formula_fails_the_job(self):
-        by_name = {step["name"]: step["run"] for step in steps()}
+        by_name = run_by_name()
         for name, formulae in REMOVALS.items():
             with self.subTest(step=name):
                 self.assertEqual(
@@ -666,7 +716,9 @@ class LocalRunWorkflowTest(unittest.TestCase):
         # line does, or keep a failed check from failing the job, with every run line unchanged.
         workflow = load(LOCAL_RUN)
         self.assertEqual(set(workflow), {"name", True, "permissions", "concurrency", "jobs"})
-        self.assertEqual(set(job()), {"name", "runs-on", "strategy", "timeout-minutes", "steps"})
+        self.assertEqual(
+            set(job()), {"name", "needs", "runs-on", "strategy", "timeout-minutes", "steps"}
+        )
         allowed = {"name", "if", "uses", "with", "shell", "timeout-minutes", "run"}
         extra = {
             step.get("name", step.get("uses")): sorted(set(step) - allowed)
