@@ -26,21 +26,44 @@ STEPS = [
     ("Check that the documented Python and PDM are in use (macOS)", MACOS),
     ("Check that the documented Python and PDM are in use (Linux)", LINUX),
     ("Print the EVS release", None),
-    ("Select the released index source (CI only)", None),
-    ("Install the optional local index", None),
-    ("Build and evaluate a small local index", None),
+    ("Select the released index source (CI only)", "matrix.server || matrix.index"),
+    ("Install the optional local index", "matrix.server || matrix.index"),
+    ("Verify the local server lifecycle", "matrix.server"),
+    ("Build and evaluate a small local index", "matrix.index"),
     ("Write the readiness probe (CI only)", None),
-    ("Serve over stdio and initialize (CI only)", None),
-    ("Verify required-index HTTP and indexed search (CI only)", None),
-    ("Verify server-only search without an index (CI only)", None),
+    ("Serve over stdio and initialize (CI only)", "matrix.server"),
+    ("Verify required-index HTTP and indexed search (CI only)", "matrix.index"),
+    ("Verify server-only search without an index (CI only)", "matrix.index"),
     ("Run the acceptance suite against the fixtures", None),
     ("Compare the outcomes with the expected ones", None),
-    ("Remove a preinstalled Node.js (macOS)", MACOS),
-    ("Install Node.js (macOS)", MACOS),
-    ("Install nvm and Node.js (Linux)", LINUX),
-    ("Check that the documented Node.js is in use", None),
-    ("Build the documentation site", None),
-    ("Serve the validation dashboard until ready (CI only)", None),
+    ("Remove a preinstalled Node.js (macOS)", "matrix.host_docs && runner.os == 'macOS'"),
+    ("Install Node.js (macOS)", "matrix.host_docs && runner.os == 'macOS'"),
+    (
+        "Install nvm and Node.js (Linux)",
+        "(matrix.host_docs || matrix.compose_docs || matrix.compose_companion) && " + LINUX,
+    ),
+    (
+        "Check that the documented Node.js is in use",
+        "matrix.host_docs || matrix.compose_docs || matrix.compose_companion",
+    ),
+    (
+        "Build the documentation site",
+        "matrix.host_docs || matrix.compose_docs || matrix.compose_companion",
+    ),
+    ("Serve host documentation until ready (CI only)", "matrix.host_docs"),
+    ("Serve the validation dashboard until ready (CI only)", "matrix.host_companion"),
+    (
+        "Build selected local container images",
+        "matrix.compose_docs || matrix.compose_companion",
+    ),
+    (
+        "Verify the selected Compose profiles (CI only)",
+        "matrix.compose_docs || matrix.compose_companion",
+    ),
+    (
+        "Verify every selected component together (CI only)",
+        "matrix.index && (matrix.host_docs || matrix.compose_docs || matrix.compose_companion)",
+    ),
 ]
 
 # The document that tells a developer to run each step's commands.
@@ -50,13 +73,15 @@ DOCUMENTS = {
     "Install Python and PDM (Linux)": "QUICKSTART.md",
     "Install the project": "QUICKSTART.md",
     "Print the EVS release": "QUICKSTART.md",
-    "Install the optional local index": "QUICKSTART.md",
-    "Build and evaluate a small local index": "QUICKSTART.md",
+    "Install the optional local index": "docs/local-guide.md",
+    "Verify the local server lifecycle": "docs/local-guide.md",
+    "Build and evaluate a small local index": "docs/local-guide.md",
     "Run the acceptance suite against the fixtures": "AGENTS.md",
     "Compare the outcomes with the expected ones": "acceptance/README.md",
     "Install Node.js (macOS)": "QUICKSTART.md",
     "Install nvm and Node.js (Linux)": "QUICKSTART.md",
-    "Build the documentation site": "docs/documentation-site.md",
+    "Build the documentation site": "docs/local-guide.md",
+    "Build selected local container images": "docs/local-guide.md",
 }
 
 CI_INDEX_INSTALL = (
@@ -89,10 +114,16 @@ CI_ONLY = {
     "under a readiness probe, then calls MCP and asserts the sampled concept and index provenance",
     "Verify server-only search without an index (CI only)": "calls a separate installed server "
     "through MCP and asserts the no-index error contract",
+    "Verify the selected Compose profiles (CI only)": "selects each row's exact profile set, "
+    "waits for real health endpoints and removes only selected services",
+    "Verify every selected component together (CI only)": "starts the exact process and port set "
+    "of each everything row, probes every socket and removes only owned processes and services",
     "Check that the documented Node.js is in use": "fails the job when a Node.js that the "
     "runner image ships takes over from the documented install",
     "Serve the validation dashboard until ready (CI only)": "the documented portal serve "
     "command, run by the probe, for the same reason",
+    "Serve host documentation until ready (CI only)": "the documented static-server command, "
+    "run by the probe so its foreground process can be stopped",
     '. "$HOME/.nvm/nvm.sh"': "the documents say 'in a new shell', where nvm is loaded",
     'dirname "$(command -v node)" >> "$GITHUB_PATH"': "puts the nvm Node.js on the "
     "path of the job's next steps, as a new shell would",
@@ -108,6 +139,17 @@ CI_ONLY = {
     "later steps",
     'echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"': "passes the isolated index "
     "data directory to later steps",
+    'if [ "${{ matrix.index }}" = "true" ]; then': "installs the optional index only in index rows",
+    'if [ "${{ matrix.compose_companion }}" = "true" ]; then': "builds the admin image only for "
+    "rows that select the companion",
+    "fi": "closes a matrix-selected workflow branch",
+    "set -euo pipefail": "makes a multi-command CI verification fail at its first failed command",
+    'STDIO_ROOT="$RUNNER_TEMP/guide-stdio"': "selects an isolated CI installer data directory",
+    'HTTP_ROOT="$RUNNER_TEMP/guide-http"': "selects an isolated CI installer data directory",
+    'mkdir -p "$STDIO_ROOT" "$HTTP_ROOT"': "creates the installer inputs the guide represents "
+    "as operator-selected paths",
+    "curl --fail --silent http://127.0.0.1:8000/ready": "verifies the guide's documented HTTP "
+    "readiness endpoint",
     "status=$?": "keeps the fixture run's exit status, which the next line judges",
     'export NCI_SI_DATA_DIR="$INDEX_DATA"': "uses the workflow's temporary index directory in "
     "place of the document's /path/to/data placeholder",
@@ -129,14 +171,20 @@ PROBES = {
         None,
     ),
     "Serve the validation dashboard until ready (CI only)": (
-        "docs/local-validation.md",
+        "docs/local-guide.md",
         "pdm run portal serve",
         "http://127.0.0.1:8081/health",
+    ),
+    "Serve host documentation until ready (CI only)": (
+        "docs/local-guide.md",
+        "pdm run python -m scripts.static_server --directory tmp/docs-site --port 8080",
+        "http://127.0.0.1:8080/health",
     ),
 }
 
 DOCUMENTED_INDEX_INSTALL = (
-    'pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"'
+    '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ '
+    'git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"'
 )
 REQUIRED_INDEX_RUN = r"""set -euo pipefail
 server=""
@@ -299,6 +347,7 @@ TRIGGERS = {
             "CONTRIBUTING.md",
             "acceptance/README.md",
             "docs/documentation-site.md",
+            "docs/local-guide.md",
             "docs/local-validation.md",
             "docs/installer-targets.md",
             "scripts/portal*.py",
@@ -496,7 +545,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
             job()["strategy"],
             {"fail-fast": False, "matrix": {"include": COMBINATIONS}},
         )
-        self.assertEqual(job()["timeout-minutes"], 40)
+        self.assertEqual(job()["timeout-minutes"], 60)
 
     def test_every_combination_has_exact_processes_ports_and_component_selection(self):
         self.assertEqual(job()["strategy"]["matrix"]["include"], COMBINATIONS)
@@ -536,7 +585,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
 
     def test_the_optional_index_uses_the_documented_release_extra_or_the_pr_checkout(self):
         by_name = {step["name"]: step["run"] for step in steps()}
-        self.assertIn(DOCUMENTED_INDEX_INSTALL, documented_commands("QUICKSTART.md"))
+        self.assertIn(DOCUMENTED_INDEX_INSTALL, documented_commands("docs/local-guide.md"))
         self.assertIn(CI_INDEX_INSTALL, by_name["Install the optional local index"])
         self.assertIn(CI_SERVER_INSTALL, by_name["Install the optional local index"])
         self.assertIn(

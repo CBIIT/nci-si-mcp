@@ -6,12 +6,9 @@ MCP server. Repository users need no account. UAT/PROD administration is disable
 
 ## Open and import
 
-With the [prerequisites](../QUICKSTART.md#platforms-and-prerequisites) installed:
-
-```bash
-pdm install
-pdm run portal serve
-```
+With the [prerequisites](../QUICKSTART.md#platforms-and-prerequisites) installed, use the
+[complete local guide](local-guide.md#host-documentation-and-companion) for the one authoritative
+host startup sequence.
 
 Open `http://127.0.0.1:8081/`; Ctrl+C closes the listener. `--port` changes the local port;
 there is no public bind option. Results have `no-store` responses, host checks and no external

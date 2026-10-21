@@ -24,6 +24,7 @@ on:
       - CONTRIBUTING.md
       - acceptance/README.md
       - docs/documentation-site.md
+      - docs/local-guide.md
       - docs/local-validation.md
       - docs/installer-targets.md
       - scripts/portal*.py
@@ -43,11 +44,18 @@ jobs:
   local-run:
     name: local run (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-24.04]
+        include:
+          - {os: ubuntu-24.04, combination: server, server: true, index: false, host_docs: false, host_companion: false, compose_docs: false, compose_companion: false, processes: "installer stdio, then installer HTTP", ports: "8000"}
+          - {os: ubuntu-24.04, combination: server-index, server: true, index: true, host_docs: false, host_companion: false, compose_docs: false, compose_companion: false, processes: "installer stopped, then required-index HTTP", ports: "8000"}
+          - {os: ubuntu-24.04, combination: docs, server: false, index: false, host_docs: false, host_companion: false, compose_docs: true, compose_companion: false, processes: "Compose documentation", ports: "8080"}
+          - {os: ubuntu-24.04, combination: companion, server: false, index: false, host_docs: false, host_companion: false, compose_docs: false, compose_companion: true, processes: "Compose administration and ingress", ports: "8081"}
+          - {os: ubuntu-24.04, combination: everything, server: true, index: true, host_docs: false, host_companion: false, compose_docs: true, compose_companion: true, processes: "required-index HTTP, Compose documentation, administration and ingress", ports: "8000,8080,8081"}
+          - {os: macos-latest, combination: server, server: true, index: false, host_docs: false, host_companion: false, compose_docs: false, compose_companion: false, processes: "installer stdio, then installer HTTP", ports: "8000"}
+          - {os: macos-latest, combination: everything-without-docker, server: true, index: true, host_docs: true, host_companion: true, compose_docs: false, compose_companion: false, processes: "required-index HTTP, host documentation and portal", ports: "8000,8080,8081"}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -116,6 +124,7 @@ jobs:
       - name: Print the EVS release
         run: pdm run nci-si-mcp release-info
       - name: Select the released index source (CI only)
+        if: matrix.server || matrix.index
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -127,17 +136,39 @@ jobs:
           fi
           echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
       - name: Install the optional local index
+        if: matrix.server || matrix.index
         run: |
           INDEX_VENV="$RUNNER_TEMP/index-venv"
           SERVER_VENV="$RUNNER_TEMP/server-venv"
-          python3.14 -m venv "$INDEX_VENV"
           python3.14 -m venv "$SERVER_VENV"
-          "$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
           "$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
-          echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"
           echo "SERVER_VENV=$SERVER_VENV" >> "$GITHUB_ENV"
+          if [ "${{ matrix.index }}" = "true" ]; then
+            python3.14 -m venv "$INDEX_VENV"
+            "$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+            echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"
+          fi
           echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"
+      - name: Verify the local server lifecycle
+        if: matrix.server
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          STDIO_ROOT="$RUNNER_TEMP/guide-stdio"
+          HTTP_ROOT="$RUNNER_TEMP/guide-http"
+          mkdir -p "$STDIO_ROOT" "$HTTP_ROOT"
+          "$SERVER_VENV/bin/nci-si-install" check --target local
+          "$SERVER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$STDIO_ROOT" --non-interactive
+          "$SERVER_VENV/bin/nci-si-install" status --target local --transport stdio --data-dir "$STDIO_ROOT"
+          "$SERVER_VENV/bin/nci-si-install" uninstall --target local --transport stdio --data-dir "$STDIO_ROOT"
+          "$SERVER_VENV/bin/nci-si-install" run --target local --transport http --data-dir "$HTTP_ROOT" --non-interactive
+          "$SERVER_VENV/bin/nci-si-install" status --target local --transport http --data-dir "$HTTP_ROOT"
+          "$SERVER_VENV/bin/nci-si-install" start --target local --transport http --data-dir "$HTTP_ROOT"
+          curl --fail --silent http://127.0.0.1:8000/ready
+          "$SERVER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT"
+          "$SERVER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT"
       - name: Build and evaluate a small local index
+        if: matrix.index
         run: |
           export NCI_SI_DATA_DIR="$INDEX_DATA"
           "$INDEX_VENV/bin/nci-si-mcp" index-sample C3262 C2991 C40704 C153397 C116938
@@ -187,6 +218,7 @@ jobs:
               sys.exit(f"the server stopped with status {status}")
           PY
       - name: Serve over stdio and initialize (CI only)
+        if: matrix.server
         timeout-minutes: 3
         run: |
           python3 - <<'PY'
@@ -208,6 +240,7 @@ jobs:
               server.wait(timeout=30)
           PY
       - name: Verify required-index HTTP and indexed search (CI only)
+        if: matrix.index
         timeout-minutes: 3
         run: |
           set -euo pipefail
@@ -242,6 +275,7 @@ jobs:
           asyncio.run(check())
           PY
       - name: Verify server-only search without an index (CI only)
+        if: matrix.index
         timeout-minutes: 3
         run: |
           export NCI_SI_DATA_DIR="$RUNNER_TEMP/server-only-data"
@@ -281,20 +315,21 @@ jobs:
 
       # QUICKSTART: Node.js 24 or newer, for the documentation site only.
       - name: Remove a preinstalled Node.js (macOS)
-        if: runner.os == 'macOS'
+        if: matrix.host_docs && runner.os == 'macOS'
         run: |
           if brew list --versions node >/dev/null; then brew uninstall --ignore-dependencies node; fi
       - name: Install Node.js (macOS)
-        if: runner.os == 'macOS'
+        if: matrix.host_docs && runner.os == 'macOS'
         run: brew install node
       - name: Install nvm and Node.js (Linux)
-        if: runner.os == 'Linux'
+        if: (matrix.host_docs || matrix.compose_docs || matrix.compose_companion) && runner.os == 'Linux'
         run: |
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | bash
           . "$HOME/.nvm/nvm.sh"
           nvm install 24
           dirname "$(command -v node)" >> "$GITHUB_PATH"
       - name: Check that the documented Node.js is in use
+        if: matrix.host_docs || matrix.compose_docs || matrix.compose_companion
         run: |
           fail() { echo "::error::$1"; exit 1; }
           case "$RUNNER_OS" in
@@ -307,6 +342,7 @@ jobs:
 
       # docs/documentation-site.md, "Build and preview", without the preview server.
       - name: Build the documentation site
+        if: matrix.host_docs || matrix.compose_docs || matrix.compose_companion
         run: |
           pdm install -G docs
           npm ci --prefix docs/site-assets --ignore-scripts
@@ -314,7 +350,67 @@ jobs:
           npm run build --prefix docs/site-assets
           pdm run docs-build
 
+      - name: Serve host documentation until ready (CI only)
+        if: matrix.host_docs
+        timeout-minutes: 3
+        run: python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health pdm run python -m scripts.static_server --directory tmp/docs-site --port 8080
+
       # docs/local-validation.md: the validation dashboard, until it answers.
       - name: Serve the validation dashboard until ready (CI only)
+        if: matrix.host_companion
         timeout-minutes: 3
         run: python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health pdm run portal serve
+
+      - name: Build selected local container images
+        if: matrix.compose_docs || matrix.compose_companion
+        timeout-minutes: 15
+        run: |
+          pdm run python -m scripts.companion_context --site tmp/docs-site
+          docker build --platform linux/amd64 --load -t nci-si-docs:local tmp/companion-context/docs
+          if [ "${{ matrix.compose_companion }}" = "true" ]; then
+            docker build --platform linux/amd64 --load -t nci-si-admin:local tmp/companion-context/admin
+          fi
+      - name: Verify the selected Compose profiles (CI only)
+        if: matrix.compose_docs || matrix.compose_companion
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          profiles=()
+          services=()
+          if [ "${{ matrix.compose_docs }}" = "true" ]; then profiles+=(--profile docs); services+=(documentation); fi
+          if [ "${{ matrix.compose_companion }}" = "true" ]; then profiles+=(--profile companion); services+=(admin-ingress administration); fi
+          cleanup() { docker compose -f container/compose.local.yaml stop "${services[@]}" || true; docker compose -f container/compose.local.yaml rm -f "${services[@]}" || true; }
+          trap cleanup EXIT
+          docker compose -f container/compose.local.yaml "${profiles[@]}" up -d
+          if [ "${{ matrix.compose_docs }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"; fi
+          if [ "${{ matrix.compose_companion }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"; fi
+
+      - name: Verify every selected component together (CI only)
+        if: matrix.index && (matrix.host_docs || matrix.compose_docs || matrix.compose_companion)
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          pids=()
+          services=()
+          cleanup() {
+            for pid in "${pids[@]}"; do kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; done
+            if [ "${#services[@]}" -gt 0 ]; then
+              docker compose -f container/compose.local.yaml stop "${services[@]}" || true
+              docker compose -f container/compose.local.yaml rm -f "${services[@]}" || true
+            fi
+          }
+          trap cleanup EXIT
+          NCI_SI_DATA_DIR="$INDEX_DATA" NCI_SI_HTTP_REQUIRE_INDEX=1 "$INDEX_VENV/bin/nci-si-mcp" serve --transport streamable-http &
+          pids+=("$!")
+          python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "${pids[0]}"
+          if [ "${{ matrix.host_docs }}" = "true" ]; then
+            pdm run python -m scripts.static_server --directory tmp/docs-site --port 8080 & pids+=("$!")
+            pdm run portal serve & pids+=("$!")
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "${pids[1]}"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "${pids[2]}"
+          else
+            docker compose -f container/compose.local.yaml --profile docs --profile companion up -d
+            services=(documentation admin-ingress administration)
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"
+            python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"
+          fi
