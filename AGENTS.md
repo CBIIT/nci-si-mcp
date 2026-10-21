@@ -226,6 +226,8 @@ adding exclusion pathspecs for generated files.
    fixture run and, where outcomes moved on purpose,
    `pdm run acceptance-expected update acceptance/fixture.json` and `pdm run acceptance-status`,
    so the ratchet file moves in the same pull request.
+   An issue that changes a workflow dispatches that workflow on the issue branch before the
+   `--no-ff` merge and links the green run in its completion comment. A red run blocks the merge.
 4. **Merge the issue branch into the milestone branch yourself** once the gates pass and the
    outcomes moved as the plan predicted: `git merge --no-ff issue/<branch>` on the milestone
    branch, then push, and delete the issue branch. There is no pull request per issue, no review
