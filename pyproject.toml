@@ -109,6 +109,8 @@ pytest = "pytest"
 # The fast check before a commit; the commit itself runs every hook.
 lint = { composite = ["ruff check .", "basedpyright"] }
 fmt = "ruff format ."
+# The rolling cutoff is computed from current UTC; no absolute selection date is committed.
+lock = "pdm lock --exclude-newer 5d"
 # The acceptance suite against the server (fixture mode unless NCI_SI_ACCEPTANCE_MODE says
 # otherwise), and the harness's own tests with its coverage minimum.
 acceptance = { cmd = "pytest", working_dir = "acceptance" }

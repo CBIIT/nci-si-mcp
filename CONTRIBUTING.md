@@ -28,6 +28,7 @@ about as long as that command.
 | `pdm run pytest tests/test_index.py -k name` | A selection of tests, without the minimum |
 | `pdm run lint` | Ruff and basedpyright: the fast check while you work |
 | `pdm run fmt` | Format with Ruff |
+| `pdm run lock` | Resolve every Python group while excluding releases less than five days old |
 | `pdm run pre-commit run --all-files` | Every hook, as the CI `quality` job runs them |
 | `pdm run acceptance` | The acceptance suite against the server ([acceptance/README.md](acceptance/README.md)) |
 | `pdm run acceptance-http` | Real HTTP fixture suite, managed restarts and explicit remote-contract skips ([transport details](docs/transport.md)) |
@@ -172,7 +173,7 @@ The tests also run in CI and with `pdm run test`. A gate that fails is fixed, no
 | Acceptance ratchet (CI) | Every test of the acceptance suite, in fixture mode, has the outcome in `acceptance/expected/fixture.json`. A change that moves an outcome on purpose updates that file in the same pull request, and the diff of the file is what the review reads: `pdm run acceptance-expected update acceptance/fixture.json` writes it from a fresh report, and `pdm run acceptance-status` the README table that follows |
 | Tests and coverage | The suite passes before each push and in CI; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
 | Local run (CI only) | The documented setup, walked literally on `macos-latest` and `ubuntu-24.04` (`.github/workflows/local-run.yml`, on pushes to `main`, weekly, by hand, and on pull requests that touch the install paths). Every command is copied from the document that gives it; the test of the workflow compares the two, so change a documented command and its workflow line together. Not a required check: it uses live EVS |
-| Dependency audit (CI only) | No runtime dependency with a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request bringing one in at high severity (dependency review). Dependabot proposes updates of the workflows' actions; [SECURITY.md](SECURITY.md) says how to report a vulnerability |
+| Dependency audit (CI only) | Every Python and npm package in the committed locks is at least five days old; no runtime dependency has a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request brings one in at high severity (dependency review). Dependabot groups weekly updates for Actions, both Dockerfile directories and the documentation npm tree after a seven-day cooldown. Dependabot cannot update `pdm.lock`, so `pdm run lock` is the only Python lock command. [SECURITY.md](SECURITY.md) says how to report a vulnerability |
 
 A finding is fixed in the code. Where a rule does not fit, it is suppressed as narrowly as
 possible (a line, then a file or a directory, then the project, in `pyproject.toml`), with the
