@@ -13,8 +13,12 @@ The [platforms and prerequisites](QUICKSTART.md#platforms-and-prerequisites) com
 
 ```bash
 pdm install                    # .venv from pdm.lock, with the test and lint tools and the server and index extras
-pdm run pre-commit install     # run the gates on every commit
+pdm run pre-commit install     # install the commit gates and the full-suite push gate
 ```
+
+Run the install command again in a clone whose hooks were installed before the push gate was
+added. A commit runs the file and project gates. A push runs `pdm run test` and therefore takes
+about as long as that command.
 
 ## Everyday commands
 
@@ -151,9 +155,10 @@ during feature-branch cleanup; it is generated publication data.
 
 ## The gates
 
-Pre-commit runs every gate except the last three on the files of a commit, and CI runs the same hooks
-on all files. The tests run in CI and with `pdm run test`. A gate that fails is fixed, not
-skipped (`--no-verify` and `SKIP=` are not used).
+The commit hook runs every gate except the last three on the files of a commit, and CI runs the
+same hooks on all files. The push hook runs the whole suite before commits leave the checkout.
+The tests also run in CI and with `pdm run test`. A gate that fails is fixed, not skipped
+(`--no-verify` and `SKIP=` are not used).
 
 | Gate | What it enforces |
 | --- | --- |
@@ -165,7 +170,7 @@ skipped (`--no-verify` and `SKIP=` are not used).
 | gitleaks, zizmor | No secrets; safe GitHub Actions workflows |
 | Upstream requirement packages | `docs/upstream/*.md` are the current render of `docs/upstream/catalogue.yaml` (`scripts/upstream_requirements.py --check`) |
 | Acceptance ratchet (CI) | Every test of the acceptance suite, in fixture mode, has the outcome in `acceptance/expected/fixture.json`. A change that moves an outcome on purpose updates that file in the same pull request, and the diff of the file is what the review reads: `pdm run acceptance-expected update acceptance/fixture.json` writes it from a fresh report, and `pdm run acceptance-status` the README table that follows |
-| Tests and coverage | The suite passes; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
+| Tests and coverage | The suite passes before each push and in CI; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
 | Local run (CI only) | The documented setup, walked literally on `macos-latest` and `ubuntu-24.04` (`.github/workflows/local-run.yml`, on pushes to `main`, weekly, by hand, and on pull requests that touch the install paths). Every command is copied from the document that gives it; the test of the workflow compares the two, so change a documented command and its workflow line together. Not a required check: it uses live EVS |
 | Dependency audit (CI only) | No runtime dependency with a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request bringing one in at high severity (dependency review). Dependabot proposes updates of the workflows' actions; [SECURITY.md](SECURITY.md) says how to report a vulnerability |
 

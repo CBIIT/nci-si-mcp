@@ -1,9 +1,10 @@
 ---
-# The hooks that run on the files of each commit, and in CI on all files.
+# The hooks that run on the files of each commit, before each push, and in CI.
 # CONTRIBUTING.md describes the gates.
 #
-# Install once:  pdm run pre-commit install
+# Install after cloning or after the hook types change:  pdm run pre-commit install
 exclude: ^tmp/
+default_install_hook_types: [pre-commit, pre-push]
 
 repos:
   # ---------------------------------------------------------------------------
@@ -122,3 +123,13 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+
+      # The commit hooks stay fast enough for each commit. The complete suite
+      # guards the branch at the point where commits leave the checkout.
+      - id: full-test-suite
+        name: whole test suite before push
+        entry: pdm run test
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
