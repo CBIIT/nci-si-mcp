@@ -49,7 +49,9 @@ class DependencyAgeTest(unittest.TestCase):
             root = Path(directory)
             (root / "pdm.lock").write_text(
                 '[[package]]\nname = "Shared_Name"\nversion = "1.0"\n'
-                '[[package]]\nname = "shared-name"\nversion = "1.0"\n',
+                '[[package]]\nname = "shared-name"\nversion = "1.0"\n'
+                '[[package]]\nname = "local-project"\nversion = "1.0"\n'
+                'editable = true\npath = "./local"\n',
                 encoding="utf-8",
             )
             container = root / "container"
