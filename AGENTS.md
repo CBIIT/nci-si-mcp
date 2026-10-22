@@ -91,7 +91,8 @@ pdm run quickstart-tools                  # regenerate the tool table of QUICKST
   so the project's environment and configuration apply.
 - The tests are unittest-style and offline. They import shared doubles with `from fakes import
   ...`; `tests/` is on the path through the pytest configuration.
-- Hooks are never skipped (`--no-verify`, `SKIP=`). A failing hook is fixed. Besides Ruff and
+- Hooks are never skipped (`--no-verify`, `SKIP=`). A failing hook is fixed. The pre-push hook
+  runs `pdm run test`. Besides Ruff and
   basedpyright (`src`, `scripts` and `acceptance/src`), the hooks run `scripts/validation/check_complexity.py`
   (every function below 8, nested ones and the tests included), `check_test_quality.py` (no test
   without a behaviour assertion; an assertion in a nested function or class that the test never
