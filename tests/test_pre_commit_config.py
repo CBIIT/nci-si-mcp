@@ -8,6 +8,8 @@ from tempfile import TemporaryDirectory
 
 import yaml
 from pre_commit.clientlib import load_config
+from pre_commit.repository import all_hooks
+from pre_commit.store import Store
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / ".pre-commit-config.yaml"
@@ -62,11 +64,7 @@ class PrePushTestHookTest(unittest.TestCase):
 
     def test_only_the_full_suite_hook_runs_before_push(self):
         config = load_config(CONFIG)
-        effective = {
-            hook["id"]: hook.get("stages") or config["default_stages"]
-            for repository in config["repos"]
-            for hook in repository["hooks"]
-        }
+        effective = {hook.id: hook.stages for hook in all_hooks(config, Store())}
 
         self.assertEqual(effective.pop("full-test-suite"), ["pre-push"])
         self.assertEqual(set(map(tuple, effective.values())), {("pre-commit",)})

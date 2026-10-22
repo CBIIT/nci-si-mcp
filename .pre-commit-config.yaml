@@ -16,9 +16,11 @@ repos:
     hooks:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
+        stages: [pre-commit]
         # Preserve vendored upstream licence bytes and their recorded source digests.
         exclude: ^docs/site-assets/fonts/.*-OFL\.txt$
       - id: end-of-file-fixer
+        stages: [pre-commit]
       - id: mixed-line-ending
         args: [--fix=lf]
 
@@ -51,9 +53,11 @@ repos:
       - id: check-docstring-first
       - id: check-symlinks
       - id: destroyed-symlinks
+        stages: [pre-commit]
       - id: detect-private-key
       - id: check-added-large-files
         args: [--maxkb=1000]
+        stages: [pre-commit]
         exclude: ^pdm\.lock$
       - id: name-tests-test
         args: [--pytest-test-first]
