@@ -7,6 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import yaml
+from pre_commit.clientlib import load_config
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / ".pre-commit-config.yaml"
@@ -60,9 +61,15 @@ class PrePushTestHookTest(unittest.TestCase):
         )
 
     def test_only_the_full_suite_hook_runs_before_push(self):
-        push_hooks = [hook["id"] for hook in hooks() if "pre-push" in hook.get("stages", [])]
+        config = load_config(CONFIG)
+        effective = {
+            hook["id"]: hook.get("stages") or config["default_stages"]
+            for repository in config["repos"]
+            for hook in repository["hooks"]
+        }
 
-        self.assertEqual(push_hooks, ["full-test-suite"])
+        self.assertEqual(effective.pop("full-test-suite"), ["pre-push"])
+        self.assertEqual(set(map(tuple, effective.values())), {("pre-commit",)})
 
     def test_real_install_creates_exactly_commit_and_push_hooks(self):
         with TemporaryDirectory() as directory:

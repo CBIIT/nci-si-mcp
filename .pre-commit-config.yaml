@@ -5,6 +5,7 @@
 # Install after cloning or after the hook types change:  pdm run pre-commit install
 exclude: ^tmp/
 default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
 
 repos:
   # ---------------------------------------------------------------------------
