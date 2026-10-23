@@ -155,7 +155,7 @@ repos:
       # guards the branch at the point where commits leave the checkout.
       - id: full-test-suite
         name: whole test suite before push
-        entry: env -u GIT_INDEX_FILE pdm run test
+        entry: pdm run test
         language: system
         stages: [pre-push]
         pass_filenames: false

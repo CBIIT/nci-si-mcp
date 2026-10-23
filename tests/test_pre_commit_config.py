@@ -22,6 +22,25 @@ def hooks():
     return [hook for repository in configuration()["repos"] for hook in repository["hooks"]]
 
 
+def install_hooks(repository, environment=None):
+    environment = environment or os.environ
+    clean = {name: value for name, value in environment.items() if not name.startswith("GIT_")}
+    subprocess.run(
+        ["git", "init", "--quiet"],  # noqa: S607 - Git is the developer boundary.
+        cwd=repository,
+        env=clean,
+        check=True,
+    )
+    subprocess.run(  # noqa: S603 - all arguments are fixed or repository-owned paths.
+        [sys.executable, "-m", "pre_commit", "install", "--config", str(CONFIG)],
+        cwd=repository,
+        env=clean,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 class RuffHooksTest(unittest.TestCase):
     def test_both_ruff_hooks_run_without_the_cache(self):
         entries = {
@@ -52,7 +71,7 @@ class PrePushTestHookTest(unittest.TestCase):
             {
                 "id": "full-test-suite",
                 "name": "whole test suite before push",
-                "entry": "env -u GIT_INDEX_FILE pdm run test",
+                "entry": "pdm run test",
                 "language": "system",
                 "stages": ["pre-push"],
                 "pass_filenames": False,
@@ -69,18 +88,7 @@ class PrePushTestHookTest(unittest.TestCase):
     def test_real_install_creates_exactly_commit_and_push_hooks(self):
         with TemporaryDirectory() as directory:
             repository = Path(directory)
-            subprocess.run(
-                ["git", "init", "--quiet"],  # noqa: S607 - Git is the developer boundary.
-                cwd=repository,
-                check=True,
-            )
-            subprocess.run(  # noqa: S603 - all arguments are fixed or repository-owned paths.
-                [sys.executable, "-m", "pre_commit", "install", "--config", str(CONFIG)],
-                cwd=repository,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
+            install_hooks(repository)
             installed = sorted(
                 path.name
                 for path in (repository / ".git" / "hooks").iterdir()
@@ -96,30 +104,13 @@ class PrePushTestHookTest(unittest.TestCase):
             target = root / "target"
             decoy.mkdir()
             target.mkdir()
-            subprocess.run(
-                ["git", "init", "--quiet"],  # noqa: S607
-                cwd=decoy,
-                check=True,
-            )
+            install_hooks(decoy)
             config = decoy / ".git" / "config"
             hooks = decoy / ".git" / "hooks"
             before = config.read_bytes(), sorted(path.name for path in hooks.iterdir())
             poisoned = os.environ | {"GIT_DIR": str(decoy / ".git")}
 
-            subprocess.run(
-                ["git", "init", "--quiet"],  # noqa: S607
-                cwd=target,
-                env=poisoned,
-                check=True,
-            )
-            subprocess.run(  # noqa: S603 - fixed interpreter and repository-owned config.
-                [sys.executable, "-m", "pre_commit", "install", "--config", str(CONFIG)],
-                cwd=target,
-                env=poisoned,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
+            install_hooks(target, poisoned)
 
             self.assertEqual(
                 (config.read_bytes(), sorted(path.name for path in hooks.iterdir())), before
