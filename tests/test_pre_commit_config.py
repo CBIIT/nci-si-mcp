@@ -1,5 +1,6 @@
 """Local hooks and CI run the exact gates assigned to their boundaries."""
 
+import os
 import subprocess
 import sys
 import unittest
@@ -7,9 +8,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import yaml
-from pre_commit.clientlib import load_config
-from pre_commit.repository import all_hooks
-from pre_commit.store import Store
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / ".pre-commit-config.yaml"
@@ -22,6 +20,25 @@ def configuration():
 
 def hooks():
     return [hook for repository in configuration()["repos"] for hook in repository["hooks"]]
+
+
+def install_hooks(repository, environment=None):
+    environment = environment or os.environ
+    clean = {name: value for name, value in environment.items() if not name.startswith("GIT_")}
+    subprocess.run(
+        ["git", "init", "--quiet"],  # noqa: S607 - Git is the developer boundary.
+        cwd=repository,
+        env=clean,
+        check=True,
+    )
+    subprocess.run(  # noqa: S603 - all arguments are fixed or repository-owned paths.
+        [sys.executable, "-m", "pre_commit", "install", "--config", str(CONFIG)],
+        cwd=repository,
+        env=clean,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 class RuffHooksTest(unittest.TestCase):
@@ -63,8 +80,7 @@ class PrePushTestHookTest(unittest.TestCase):
         )
 
     def test_only_the_full_suite_hook_runs_before_push(self):
-        config = load_config(CONFIG)
-        effective = {hook.id: hook.stages for hook in all_hooks(config, Store())}
+        effective = {hook["id"]: hook["stages"] for hook in hooks()}
 
         self.assertEqual(effective.pop("full-test-suite"), ["pre-push"])
         self.assertEqual(set(map(tuple, effective.values())), {("pre-commit",)})
@@ -72,18 +88,7 @@ class PrePushTestHookTest(unittest.TestCase):
     def test_real_install_creates_exactly_commit_and_push_hooks(self):
         with TemporaryDirectory() as directory:
             repository = Path(directory)
-            subprocess.run(
-                ["git", "init", "--quiet"],  # noqa: S607 - Git is the developer boundary.
-                cwd=repository,
-                check=True,
-            )
-            subprocess.run(  # noqa: S603 - all arguments are fixed or repository-owned paths.
-                [sys.executable, "-m", "pre_commit", "install", "--config", str(CONFIG)],
-                cwd=repository,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
+            install_hooks(repository)
             installed = sorted(
                 path.name
                 for path in (repository / ".git" / "hooks").iterdir()
@@ -91,6 +96,25 @@ class PrePushTestHookTest(unittest.TestCase):
             )
 
         self.assertEqual(installed, ["pre-commit", "pre-push"])
+
+    def test_real_install_cannot_modify_an_inherited_git_directory(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            decoy = root / "decoy"
+            target = root / "target"
+            decoy.mkdir()
+            target.mkdir()
+            install_hooks(decoy)
+            config = decoy / ".git" / "config"
+            hooks = decoy / ".git" / "hooks"
+            before = config.read_bytes(), sorted(path.name for path in hooks.iterdir())
+            poisoned = os.environ | {"GIT_DIR": str(decoy / ".git")}
+
+            install_hooks(target, poisoned)
+
+            self.assertEqual(
+                (config.read_bytes(), sorted(path.name for path in hooks.iterdir())), before
+            )
 
     def test_ci_runs_only_the_default_commit_stage(self):
         workflow = yaml.safe_load(CI.read_text())
