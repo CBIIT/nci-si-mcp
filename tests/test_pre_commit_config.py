@@ -1,5 +1,6 @@
 """Local hooks and CI run the exact gates assigned to their boundaries."""
 
+import os
 import subprocess
 import sys
 import unittest
@@ -87,6 +88,42 @@ class PrePushTestHookTest(unittest.TestCase):
             )
 
         self.assertEqual(installed, ["pre-commit", "pre-push"])
+
+    def test_real_install_cannot_modify_an_inherited_git_directory(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            decoy = root / "decoy"
+            target = root / "target"
+            decoy.mkdir()
+            target.mkdir()
+            subprocess.run(
+                ["git", "init", "--quiet"],  # noqa: S607
+                cwd=decoy,
+                check=True,
+            )
+            config = decoy / ".git" / "config"
+            hooks = decoy / ".git" / "hooks"
+            before = config.read_bytes(), sorted(path.name for path in hooks.iterdir())
+            poisoned = os.environ | {"GIT_DIR": str(decoy / ".git")}
+
+            subprocess.run(
+                ["git", "init", "--quiet"],  # noqa: S607
+                cwd=target,
+                env=poisoned,
+                check=True,
+            )
+            subprocess.run(  # noqa: S603 - fixed interpreter and repository-owned config.
+                [sys.executable, "-m", "pre_commit", "install", "--config", str(CONFIG)],
+                cwd=target,
+                env=poisoned,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(
+                (config.read_bytes(), sorted(path.name for path in hooks.iterdir())), before
+            )
 
     def test_ci_runs_only_the_default_commit_stage(self):
         workflow = yaml.safe_load(CI.read_text())
