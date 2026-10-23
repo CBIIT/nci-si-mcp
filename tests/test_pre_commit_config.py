@@ -51,7 +51,7 @@ class PrePushTestHookTest(unittest.TestCase):
             {
                 "id": "full-test-suite",
                 "name": "whole test suite before push",
-                "entry": "pdm run test",
+                "entry": "env -u GIT_INDEX_FILE pdm run test",
                 "language": "system",
                 "stages": ["pre-push"],
                 "pass_filenames": False,
