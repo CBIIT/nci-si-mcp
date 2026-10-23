@@ -23,6 +23,7 @@ repos:
         stages: [pre-commit]
       - id: mixed-line-ending
         args: [--fix=lf]
+        stages: [pre-commit]
 
   # Ruff and the other project tools run from the PDM environment, so pdm.lock is
   # the one place that says which version runs, here and in CI.
@@ -35,6 +36,7 @@ repos:
         entry: pdm run ruff format --no-cache --force-exclude
         language: system
         types_or: [python, pyi]
+        stages: [pre-commit]
 
   # ---------------------------------------------------------------------------
   # 2. Syntax, structure and security
@@ -43,18 +45,29 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-json
+        stages: [pre-commit]
       - id: check-yaml
+        stages: [pre-commit]
       - id: check-toml
+        stages: [pre-commit]
       - id: check-ast
+        stages: [pre-commit]
       - id: check-merge-conflict
+        stages: [pre-commit]
       - id: check-case-conflict
+        stages: [pre-commit]
       - id: debug-statements
+        stages: [pre-commit]
       - id: check-builtin-literals
+        stages: [pre-commit]
       - id: check-docstring-first
+        stages: [pre-commit]
       - id: check-symlinks
+        stages: [pre-commit]
       - id: destroyed-symlinks
         stages: [pre-commit]
       - id: detect-private-key
+        stages: [pre-commit]
       - id: check-added-large-files
         args: [--maxkb=1000]
         stages: [pre-commit]
@@ -62,12 +75,14 @@ repos:
       - id: name-tests-test
         args: [--pytest-test-first]
         exclude: ^tests/fakes\.py$
+        stages: [pre-commit]
 
   # Secrets
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
     hooks:
       - id: gitleaks
+        stages: [pre-commit]
 
   # GitHub Actions: unpinned actions, token permissions, injection. Offline, so
   # it needs no token; a justified finding is suppressed in the workflow file
@@ -77,6 +92,7 @@ repos:
     hooks:
       - id: zizmor
         args: [--offline]
+        stages: [pre-commit]
 
   # ---------------------------------------------------------------------------
   # 3. Python lint and types
@@ -89,6 +105,7 @@ repos:
         entry: pdm run ruff check --no-cache --fix --exit-non-zero-on-fix --force-exclude
         language: system
         types_or: [python, pyi]
+        stages: [pre-commit]
 
       # Every checked directory, not the staged files: a change to a model can
       # break a file that was not touched.
@@ -98,6 +115,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+        stages: [pre-commit]
 
       # -----------------------------------------------------------------------
       # 4. Project gates
@@ -108,6 +126,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+        stages: [pre-commit]
 
       - id: complexity
         name: cyclomatic complexity below 8
@@ -115,12 +134,14 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+        stages: [pre-commit]
 
       - id: test-quality
         name: tests that can catch a regression
         entry: pdm run python scripts/validation/check_test_quality.py
         language: system
         files: ^(tests|acceptance/(tests|selftests))/test_.*\.py$
+        stages: [pre-commit]
 
       - id: dead-code
         name: dead code
@@ -128,6 +149,7 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+        stages: [pre-commit]
 
       # The commit hooks stay fast enough for each commit. The complete suite
       # guards the branch at the point where commits leave the checkout.
