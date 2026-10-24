@@ -294,3 +294,60 @@ class DependencyAgeTest(unittest.TestCase):
                     reason = "is missing" if missing else "contains no registry releases"
                     self.assertEqual(errors.getvalue(), f"{name}: {reason}\n")
                     self.assertEqual(output.getvalue(), "")
+
+    def test_unmatched_exception_fails_with_removal_instruction(self):
+        module = checker()
+        output, errors = io.StringIO(), io.StringIO()
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            lock_fixture(root)
+            exceptions = {"certifi": module.SecurityException("different", "GHSA-6q48-6c7w-9gw2")}
+            with redirect_stdout(output), redirect_stderr(errors):
+                status = module.check(root, exceptions, NOW, lambda _: {})
+
+        self.assertEqual(status, 1)
+        self.assertEqual(
+            errors.getvalue(),
+            "certifi==different matches no locked PyPI release; remove this exception\n",
+        )
+        self.assertEqual(output.getvalue(), "")
+
+    def test_npm_release_cannot_use_a_python_security_exception(self):
+        module = checker()
+        package = module.Package("npm", "certifi", "2026.10.19")
+        self.assertEqual(
+            module.age_findings(
+                [package],
+                NOW,
+                lambda _: {"time": {package.version: NOW.isoformat()}},
+                security_exception(module),
+            ),
+            ["npm:certifi==2026.10.19 was uploaded inside the five-day window"],
+        )
+
+    def test_summary_matches_the_exact_exception_version(self):
+        module = checker()
+        self.assertEqual(
+            module._summary(
+                "pdm.lock",
+                [module.Package("pypi", "certifi", "other")],
+                security_exception(module),
+            ),
+            "pdm.lock: 1 releases checked, 0 exceptions",
+        )
+
+    def test_exception_names_are_normalized_and_versions_cannot_be_empty(self):
+        module = checker()
+        self.assertEqual(
+            module.parse_exceptions(
+                {"Opentelemetry_API": {"version": "1", "advisory": "CVE-2026-12345"}}
+            ),
+            {"opentelemetry-api": module.SecurityException("1", "CVE-2026-12345")},
+        )
+        with self.assertRaisesRegex(ValueError, "^demo exception needs a version$"):
+            module.parse_exceptions({"demo": {"version": "", "advisory": "CVE-2026-12345"}})
+
+    def test_registry_fetch_rejects_plain_http(self):
+        module = checker()
+        with self.assertRaisesRegex(ValueError, "^Registry metadata URL must use HTTPS$"):
+            module.fetch_json("http://example.invalid/metadata")

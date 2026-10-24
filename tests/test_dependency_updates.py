@@ -132,8 +132,10 @@ class DependencyAuditWorkflowTest(unittest.TestCase):
 
 class DependabotTest(unittest.TestCase):
     def test_new_compose_files_cannot_escape_registry_image_discovery(self):
-        with TemporaryDirectory() as directory:
+        with TemporaryDirectory(prefix="tmp") as directory:
             root = Path(directory)
+            root = root / "tmp"
+            root.mkdir()
             manifest = root / "compose.new.yml"
             manifest.write_text("services:\n  app:\n    image: nci-si-other:latest\n")
 
