@@ -75,17 +75,23 @@ class DependencyLockPolicyTest(unittest.TestCase):
             },
         )
         self.assertEqual(
-            lock_script().command(ROOT),
+            lock_script().command(ROOT, Path("reused-pins.txt")),
             [
                 "pdm",
                 "lock",
                 "--exclude-newer",
                 "5d",
                 "--update-reuse",
+                "--override",
+                "reused-pins.txt",
                 "--exclude-newer-override",
                 "certifi=false",
             ],
         )
+        constraints = lock_script().constraints(ROOT).splitlines()
+        self.assertIn("certifi==2026.10.19", constraints)
+        self.assertNotIn("nci-si-acceptance==0.1.0", constraints)
+        self.assertEqual(len(constraints), len(set(constraints)))
 
 
 class DependencyAuditWorkflowTest(unittest.TestCase):
