@@ -54,14 +54,13 @@ class CoveragePolicyTest(unittest.TestCase):
             },
         )
         self.assertEqual(
+            [step for step in jobs["selftest"]["steps"] if "SELFTEST_SHARD" in step.get("env", {})],
             [
-                step["run"]
-                for step in jobs["selftest"]["steps"]
-                if "SELFTEST_SHARD" in step.get("env", {})
-            ],
-            [
-                "pdm run acceptance-selftest --cov-fail-under=0 "
-                "--junitxml=tmp/test-results/selftest.xml",
+                {
+                    "run": "pdm run acceptance-selftest --cov-fail-under=0 "
+                    "--junitxml=tmp/test-results/selftest.xml",
+                    "env": {"SELFTEST_SHARD": "${{ matrix.shard }}"},
+                },
             ],
         )
 
