@@ -162,6 +162,13 @@ same hooks on all files. The push hook runs the whole suite before commits leave
 The tests also run in CI and with `pdm run test`. A gate that fails is fixed, not skipped
 (`--no-verify` and `SKIP=` are not used).
 
+Format, lint, security analysis and tests run in parallel for faster feedback, rather than as
+serial fail-fast stages. Each gate must pass before merge; parallel scheduling does not weaken
+that requirement. Unit tests and each harness shard retain JUnit XML artifacts and publish
+counts plus failed/error test names in the run summary, even after test failure. Cancelled runs
+do not add report errors. Diagnostic bodies are excluded from the summary; XML artifacts retain
+pytest's original report. Local report files live under ignored `tmp/` directories.
+
 | Gate | What it enforces |
 | --- | --- |
 | Ruff format and lint | Style, imports, likely bugs, security patterns, a bare `print` outside the gate scripts, a broad `except` that neither passes the exception on nor logs the traceback |
