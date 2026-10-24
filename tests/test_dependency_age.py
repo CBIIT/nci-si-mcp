@@ -50,6 +50,90 @@ def lock_fixture(root):
 
 
 class DependencyAgeTest(unittest.TestCase):
+    def test_direct_wheel_inventory_preserves_filename_url_and_hash(self):
+        module = checker()
+        wheels = [package for package in module.locked_packages() if package.ecosystem == "wheel"]
+        self.assertEqual([package.name for package in wheels], ["torch"])
+        self.assertEqual(
+            wheels,
+            [
+                module.Package(
+                    "wheel",
+                    "torch",
+                    "torch-2.14.1+cpu-cp314-cp314-manylinux_2_28_x86_64.whl",
+                    "https://download.pytorch.org/whl/cpu/"
+                    "torch-2.14.1%2Bcpu-cp314-cp314-manylinux_2_28_x86_64.whl",
+                    "35103e180214793207f95d7e12e100ecba3ace6f5fb37e1fcefbb07e096ed180",
+                )
+            ],
+        )
+
+    def test_direct_wheels_use_index_filename_hash_and_upload_time(self):
+        module = checker()
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            lock_fixture(root)
+            root.joinpath("container/requirements-amd64.txt").write_text(
+                "demo==1\ntorch @ https://download.example/whl/cpu/torch-1%2Bcpu.whl \\\n"
+                "    --hash=sha256:" + "a" * 64 + "\n"
+            )
+            (wheel,) = [
+                package for package in module.locked_packages(root) if package.ecosystem == "wheel"
+            ]
+        label = "wheel:torch-1+cpu.whl"
+        for uploaded, expected in (
+            (NOW - timedelta(days=5), []),
+            (
+                NOW - timedelta(days=5) + timedelta(microseconds=1),
+                [f"{label} was uploaded inside the five-day window"],
+            ),
+        ):
+            with self.subTest(uploaded=uploaded):
+                page = (
+                    '<a href="https://cdn.example/torch-1%2Bcpu.whl#sha256='
+                    + "a" * 64
+                    + f'" data-upload-time="{uploaded.isoformat()}">wheel</a>'
+                )
+                self.assertEqual(
+                    module.age_findings(
+                        [wheel],
+                        NOW,
+                        {"https://download.example/whl/cpu/torch/": page}.__getitem__,
+                        {"torch": module.SecurityException("torch-1+cpu.whl", "CVE-2026-12345")},
+                    ),
+                    expected,
+                )
+
+        cases = (
+            ("", "has no matching index filename"),
+            (
+                '<a href="other.whl#sha256=' + "a" * 64 + '">wheel</a>',
+                "has no matching index filename",
+            ),
+            (
+                '<a href="torch-1%2Bcpu.whl#sha256=' + "b" * 64 + '">wheel</a>',
+                "index sha256 differs from the lock",
+            ),
+            (
+                '<a href="torch-1%2Bcpu.whl#sha256=' + "a" * 64 + '">wheel</a>',
+                "has no distribution upload time",
+            ),
+        )
+        for page, reason in cases:
+            with self.subTest(reason=reason):
+                self.assertEqual(
+                    module.age_findings([wheel], NOW, lambda _, page=page: page),
+                    [f"{label} {reason}"],
+                )
+
+        def missing(_url):
+            raise OSError("not found")
+
+        self.assertEqual(
+            module.age_findings([wheel], NOW, missing),
+            [f"{label} metadata could not be verified (OSError)"],
+        )
+
     def test_five_day_boundary_is_inclusive(self):
         module = checker()
         packages = [module.Package("pypi", "old", "1"), module.Package("pypi", "new", "2")]
