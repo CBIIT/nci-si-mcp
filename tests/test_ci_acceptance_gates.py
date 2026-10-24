@@ -116,6 +116,7 @@ if sys.argv[1:3] == ["run", "acceptance"]:
         absent = "".join(f" {name}" for name in names if name not in expected) or " none"
         self.assertEqual(summary, f"- Credentials absent from the live run:{absent}\n")
         self.assertNotIn("PRIVATE-LIVE-", result.stdout + result.stderr + summary)
+        self.assertEqual(root.joinpath("acceptance/network.md").read_text(), summary)
 
     def test_the_weekly_fixture_run_runs_the_same_gates_as_ci(self):
         self.assertEqual(fixture_env("ci.yml", "acceptance"), FIXTURE_ENV)

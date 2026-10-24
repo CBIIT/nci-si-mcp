@@ -56,33 +56,44 @@ def _python_name(name: str) -> str:
 
 def _pdm_packages(path: Path) -> set[Package]:
     data = tomllib.loads(path.read_text(encoding="utf-8"))
+    for row in data["package"]:
+        if {"url", "git"}.intersection(row):
+            raise ValueError(f"{path}: unsupported dependency entry: {row.get('name', row)}")
     return {
         Package("pypi", _python_name(row["name"]), row["version"])
         for row in data["package"]
-        if "name" in row and "version" in row and not {"path", "url", "git"}.intersection(row)
+        if "name" in row and "version" in row and "path" not in row
     }
 
 
 def _requirements_packages(path: Path) -> set[Dependency]:
     packages: set[Dependency] = set()
     text = path.read_text(encoding="utf-8").replace("\\\n", " ")
-    for line in text.splitlines():
-        if match := PIN.match(line):
-            packages.add(Package("pypi", _python_name(match[1]), match[2]))
-        elif match := re.match(r"^([A-Za-z0-9_.-]+)\s+@\s+(https://\S+)", line):
-            digest = re.search(r"--hash=sha256:([a-f0-9]{64})", line)
-            if digest is None:
-                raise ValueError(f"{path}: {match[1]} direct URL needs a sha256 hash")
-            filename = unquote(urlsplit(match[2]).path.rsplit("/", 1)[-1])
-            index = match[2].rsplit("/", 1)[0] + "/" + quote(_python_name(match[1]), safe="") + "/"
-            packages.add(DirectWheel(filename, digest[1], index))
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith(("#", "-")):
+            continue
+        packages.add(_requirement_package(path, line))
     return packages
+
+
+def _requirement_package(path: Path, line: str) -> Dependency:
+    if match := PIN.match(line):
+        return Package("pypi", _python_name(match[1]), match[2])
+    if match := re.match(r"^([A-Za-z0-9_.-]+)\s+@\s+(https://\S+)", line):
+        digest = re.search(r"--hash=sha256:([a-f0-9]{64})", line)
+        if digest is None:
+            raise ValueError(f"{path}: {match[1]} direct URL needs a sha256 hash")
+        filename = unquote(urlsplit(match[2]).path.rsplit("/", 1)[-1])
+        index = match[2].rsplit("/", 1)[0] + "/" + quote(_python_name(match[1]), safe="") + "/"
+        return DirectWheel(filename, digest[1], index)
+    raise ValueError(f"{path}: unsupported dependency entry: {line}")
 
 
 def _npm_packages(path: Path) -> set[Package]:
     records = json.loads(path.read_text(encoding="utf-8"))["packages"]
     return {
-        Package("npm", key.rsplit("node_modules/", 1)[1], row["version"])
+        Package("npm", row.get("name", key.rsplit("node_modules/", 1)[1]), row["version"])
         for key, row in records.items()
         if "node_modules/" in key and "version" in row
     }

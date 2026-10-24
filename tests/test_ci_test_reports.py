@@ -28,6 +28,13 @@ def report_positions(steps):
 class TestReportWorkflowTest(unittest.TestCase):
     def test_report_steps_have_exact_paths_conditions_and_artifact_names(self):
         jobs = yaml.safe_load(ROOT.joinpath(".github/workflows/ci.yml").read_text())["jobs"]
+        self.assertEqual(
+            jobs["selftest"]["strategy"],
+            {
+                "fail-fast": False,
+                "matrix": {"shard": ["1/3", "2/3", "3/3"]},
+            },
+        )
         for job, path, artifact, title in (
             ("test", "tmp/test-results/unit.xml", "unit-test-results", "Unit tests"),
             (

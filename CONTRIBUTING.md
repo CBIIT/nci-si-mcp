@@ -30,7 +30,7 @@ about as long as that command.
 | `pdm run fmt` | Format with Ruff |
 | `pdm run lock` | Refresh every Python group to the newest version admitted by the five-day release-age policy |
 | `pdm run github-setup` | Create missing workflow credential names with safe placeholders; never overwrite existing names |
-| `pdm run pre-commit run --all-files` | Every hook, as the CI `quality` job runs them |
+| `pdm run pre-commit run --all-files` | Every commit-stage hook, as the CI `quality` job runs them |
 | `pdm run acceptance` | The acceptance suite against the server ([acceptance/README.md](acceptance/README.md)) |
 | `pdm run acceptance-http` | Real HTTP fixture suite, managed restarts and explicit remote-contract skips ([transport details](docs/transport.md)) |
 | `pdm run python -m scripts.benchmark --output tmp/benchmark.json` | Representative MCP measurements with actual outbound counts ([method and evidence](docs/benchmark.md)) |
@@ -162,8 +162,8 @@ same hooks on all files. The push hook runs the whole suite before commits leave
 The tests also run in CI and with `pdm run test`. A gate that fails is fixed, not skipped
 (`--no-verify` and `SKIP=` are not used).
 
-Format, lint, security analysis and tests run in parallel for faster feedback, rather than as
-serial fail-fast stages. Each gate must pass before merge; parallel scheduling does not weaken
+Quality, test and dependency-audit jobs run independently for faster feedback. Within the
+quality job, pre-commit runs its hooks sequentially. Each gate must pass before merge; scheduling does not weaken
 that requirement. Unit tests and each harness shard retain JUnit XML artifacts and publish
 counts plus failed/error test names in the run summary, even after test failure. Cancelled runs
 do not add report errors. Diagnostic bodies are excluded from the summary; XML artifacts retain

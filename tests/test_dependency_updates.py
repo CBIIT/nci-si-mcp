@@ -7,7 +7,7 @@ import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import yaml
 
@@ -113,10 +113,16 @@ class DependencyLockPolicyTest(unittest.TestCase):
     def test_lock_entry_point_preserves_resolver_failure_status(self):
         module = lock_script()
         with (
-            patch.object(module, "command", return_value=["pdm", "lock"]),
-            patch.object(module.subprocess, "run", return_value=subprocess.CompletedProcess([], 7)),
+            patch.object(module, "command", return_value=["pdm", "lock", "--exclude-newer", "5d"]),
+            patch.object(
+                module.subprocess, "run", return_value=subprocess.CompletedProcess([], 7)
+            ) as resolver,
         ):
             self.assertEqual(module.main(), 7)
+        self.assertEqual(
+            resolver.call_args,
+            call(["pdm", "lock", "--exclude-newer", "5d"], cwd=ROOT, check=False),
+        )
 
 
 class DependencyAuditWorkflowTest(unittest.TestCase):

@@ -58,8 +58,8 @@ jobs:
             exit 1
           fi
           pdm run python -m nci_si_acceptance.report acceptance/fixture.json --check-complete fixture
-      # The credentials reach only this step, and through it only the server under test (the
-      # suite hands a server nothing else of NCI_SI_*, and the credentials only in live mode).
+      # Credentials reach only this step, then the preparation command and server processes in
+      # live mode. The harness removes inherited NCI_SI_* settings before adding its own settings.
       # Empty and setup-placeholder values are unset before the suite sees them.
       # The summary names only absent credentials, never their values.
       - name: Run the suite against the live services
