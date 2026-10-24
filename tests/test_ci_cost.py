@@ -19,6 +19,17 @@ class CiCostTest(unittest.TestCase):
             {"push": {"branches": ["main"]}, "pull_request": None, "workflow_dispatch": None},
         )
 
+    def test_only_pull_request_runs_can_be_cancelled_by_newer_runs(self):
+        self.assertEqual(
+            CI["concurrency"],
+            {
+                "group": (
+                    "ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}"
+                ),
+                "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
+            },
+        )
+
     def test_every_workflow_job_has_its_exact_runner(self):
         runners = {
             path.name: {

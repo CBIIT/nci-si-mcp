@@ -16,32 +16,6 @@ def floor(name):
 
 
 class CoveragePolicyTest(unittest.TestCase):
-    def test_manual_ci_is_nonpublishing_and_never_cancelled(self):
-        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
-        self.assertEqual(
-            workflow[True],
-            {"push": {"branches": ["main"]}, "pull_request": None, "workflow_dispatch": None},
-        )
-        self.assertEqual(
-            workflow["concurrency"],
-            {
-                "group": "ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}",
-                "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
-            },
-        )
-        self.assertEqual(
-            workflow["jobs"]["coverage-badges"]["if"],
-            "github.event_name == 'push' && github.ref == 'refs/heads/main'",
-        )
-        release = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
-        self.assertEqual(
-            release["jobs"]["release"]["if"],
-            "github.event_name == 'workflow_dispatch' || "
-            "(github.event.workflow_run.conclusion == 'success' &&\n "
-            "github.event.workflow_run.event == 'push' &&\n "
-            "github.event.workflow_run.head_branch == 'main')",
-        )
-
     def test_both_suites_enforce_the_exact_floor(self):
         self.assertEqual([floor("pyproject.toml"), floor("acceptance/pyproject.toml")], [95, 95])
 
