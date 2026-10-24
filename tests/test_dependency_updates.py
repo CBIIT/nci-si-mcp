@@ -6,6 +6,8 @@ import subprocess
 import tomllib
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 import yaml
 
@@ -92,6 +94,32 @@ class DependencyLockPolicyTest(unittest.TestCase):
         self.assertIn("certifi==2026.10.19", constraints)
         self.assertNotIn("nci-si-acceptance==0.1.0", constraints)
         self.assertEqual(len(constraints), len(set(constraints)))
+
+    def test_successful_resolution_preserves_lock_bytes_when_registry_pins_do_not_move(self):
+        module = lock_script()
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            original = (
+                '[[package]]\nname = "demo"\nversion = "1"\nfiles = []\n'
+                '[[package]]\nname = "local"\nversion = "old"\npath = "."\n'
+            )
+            root.joinpath("pdm.lock").write_text(original, encoding="utf-8")
+            root.joinpath("pyproject.toml").write_text(
+                "[tool.nci-si.dependency-age.exceptions]\n", encoding="utf-8"
+            )
+
+            def resolve(*_args, **_kwargs):
+                root.joinpath("pdm.lock").write_text(
+                    '[[package]]\nname = "demo"\nversion = "1"\nfiles = []\n'
+                    '[[package]]\nname = "local"\nversion = "new"\npath = "."\n',
+                    encoding="utf-8",
+                )
+                return type("Result", (), {"returncode": 0})()
+
+            with patch.object(module.subprocess, "run", side_effect=resolve):
+                self.assertEqual(module.run(root), 0)
+
+            self.assertEqual(root.joinpath("pdm.lock").read_text(encoding="utf-8"), original)
 
 
 class DependencyAuditWorkflowTest(unittest.TestCase):
