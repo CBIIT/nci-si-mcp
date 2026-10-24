@@ -54,8 +54,14 @@ class CoveragePolicyTest(unittest.TestCase):
             },
         )
         self.assertEqual(
-            [step["run"] for step in jobs["selftest"]["steps"] if "run" in step],
-            ["pdm run acceptance-selftest --cov-fail-under=0"],
+            [step for step in jobs["selftest"]["steps"] if "SELFTEST_SHARD" in step.get("env", {})],
+            [
+                {
+                    "run": "pdm run acceptance-selftest --cov-fail-under=0 "
+                    "--junitxml=tmp/test-results/selftest.xml",
+                    "env": {"SELFTEST_SHARD": "${{ matrix.shard }}"},
+                },
+            ],
         )
 
     def test_documented_thresholds_match_the_gate(self):
