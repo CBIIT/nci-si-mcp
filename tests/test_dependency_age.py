@@ -324,6 +324,10 @@ class DependencyAgeTest(unittest.TestCase):
             ),
             ["npm:certifi==2026.10.19 was uploaded inside the five-day window"],
         )
+        self.assertEqual(
+            module._unmatched_exceptions([package], security_exception(module)),
+            ["certifi==2026.10.19 matches no locked PyPI release; remove this exception"],
+        )
 
     def test_summary_matches_the_exact_exception_version(self):
         module = checker()
