@@ -180,10 +180,39 @@ class LockedReleaseCliTest(unittest.TestCase):
             )
         output = result.stdout + result.stderr
         self.assertEqual(result.returncode, 0, output)
-        self.assertRegex(output, r"(?m)^\s+- python-semantic-release ")
-        self.assertNotRegex(
-            output,
-            r"(?m)^\s+- (?:mcp|numpy|pytest|sentence-transformers|nci-si-mcp|nci-si-acceptance) ",
+        self.assertEqual(
+            set(re.findall(r"(?m)^\s+- ([\w-]+) ", output)),
+            {
+                "annotated-types",
+                "certifi",
+                "charset-normalizer",
+                "click",
+                "click-option-group",
+                "deprecated",
+                "dotty-dict",
+                "gitdb",
+                "gitpython",
+                "idna",
+                "jinja2",
+                "markdown-it-py",
+                "markupsafe",
+                "mdurl",
+                "pydantic",
+                "pydantic-core",
+                "pygments",
+                "python-gitlab",
+                "python-semantic-release",
+                "requests",
+                "requests-toolbelt",
+                "rich",
+                "shellingham",
+                "smmap",
+                "tomlkit",
+                "typing-extensions",
+                "typing-inspection",
+                "urllib3",
+                "wrapt",
+            },
         )
 
     def test_titles_preserve_release_decisions_and_outputs(self):
