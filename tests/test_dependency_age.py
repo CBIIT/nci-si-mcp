@@ -4,7 +4,7 @@ import importlib.util
 import io
 import json
 import unittest
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -31,6 +31,22 @@ def pypi(uploaded):
 
 def security_exception(module, version="2026.10.19", advisory="GHSA-6q48-6c7w-9gw2"):
     return {"certifi": module.SecurityException(version, advisory)}
+
+
+def lock_fixture(root):
+    contents = {
+        "pdm.lock": '[[package]]\nname = "certifi"\nversion = "2026.10.19"\n',
+        "container/requirements-amd64.txt": "demo==1\n",
+        "container/companion-requirements.txt": "demo==1\n",
+        "docs/site-assets/package-lock.json": json.dumps(
+            {"packages": {"node_modules/tool": {"version": "1"}}}
+        ),
+    }
+    for name, text in contents.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    return contents
 
 
 class DependencyAgeTest(unittest.TestCase):
@@ -227,3 +243,54 @@ class DependencyAgeTest(unittest.TestCase):
 
         self.assertEqual(status, 1)
         self.assertEqual(output.getvalue(), "pypi:new==1 was uploaded inside the five-day window\n")
+
+    def test_each_lock_reports_checked_releases_and_exact_exceptions(self):
+        module = checker()
+        output, errors = io.StringIO(), io.StringIO()
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            lock_fixture(root)
+
+            def fetch(url):
+                if "registry.npmjs.org" in url:
+                    return {"time": {"1": "2026-10-01T00:00:00Z"}}
+                return pypi("2026-10-21T00:00:00Z" if "certifi" in url else "2026-10-01T00:00:00Z")
+
+            with redirect_stdout(output), redirect_stderr(errors):
+                status = module.check(root, security_exception(module), NOW, fetch)
+
+        self.assertEqual(status, 0)
+        self.assertEqual(errors.getvalue(), "")
+        self.assertEqual(
+            output.getvalue(),
+            "pdm.lock: 1 releases checked, 1 exceptions (certifi 2026.10.19, GHSA-6q48-6c7w-9gw2)\n"
+            "container/requirements-amd64.txt: 1 releases checked, 0 exceptions\n"
+            "container/companion-requirements.txt: 1 releases checked, 0 exceptions\n"
+            "docs/site-assets/package-lock.json: 1 releases checked, 0 exceptions\n",
+        )
+
+    def test_each_missing_or_empty_required_lock_fails_with_its_path(self):
+        module = checker()
+        empty = {
+            "pdm.lock": "package = []\n",
+            "container/requirements-amd64.txt": "# no releases\n",
+            "container/companion-requirements.txt": "# no releases\n",
+            "docs/site-assets/package-lock.json": '{"packages": {}}',
+        }
+        for name, contents in empty.items():
+            for missing in (False, True):
+                with self.subTest(name=name, missing=missing), TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    lock_fixture(root)
+                    path = root / name
+                    if missing:
+                        path.unlink()
+                    else:
+                        path.write_text(contents, encoding="utf-8")
+                    output, errors = io.StringIO(), io.StringIO()
+                    with redirect_stdout(output), redirect_stderr(errors):
+                        status = module.check(root, {}, NOW, lambda _: pypi(NOW.isoformat()))
+                    self.assertEqual(status, 1)
+                    reason = "is missing" if missing else "contains no registry releases"
+                    self.assertEqual(errors.getvalue(), f"{name}: {reason}\n")
+                    self.assertEqual(output.getvalue(), "")
