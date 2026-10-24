@@ -23,5 +23,5 @@ runs:
     - if: inputs.release-only == 'true'
       run: |
         pdm lock --check
-        pdm sync --no-default --no-self -G release
+        pdm sync --no-default --no-self -G release --without server --without index
       shell: bash

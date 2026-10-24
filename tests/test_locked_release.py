@@ -20,7 +20,10 @@ CLI = (
     "pdm run semantic-release -v version --no-commit --tag --push "
     "--no-changelog --vcs-release --skip-build"
 )
-INSTALL = "pdm lock --check\npdm sync --no-default --no-self -G release\n"
+INSTALL = (
+    "pdm lock --check\n"
+    "pdm sync --no-default --no-self -G release --without server --without index\n"
+)
 
 
 def workflow():
