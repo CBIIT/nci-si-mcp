@@ -1,4 +1,4 @@
-"""Every registry package in every committed lock has cleared the rolling age window."""
+"""Committed locks enforce rolling dependency ages and temporary security exceptions."""
 
 import importlib.util
 import io

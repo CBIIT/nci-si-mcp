@@ -63,7 +63,13 @@ class AcceptanceGateWorkflowTest(unittest.TestCase):
                 "CREDENTIAL_PLACEHOLDER": module.PLACEHOLDER,
             },
         )
-        for supplied in ("", module.PLACEHOLDER, "PRIVATE-LIVE-CANARY"):
+        for supplied in (
+            ("", ""),
+            (module.PLACEHOLDER, module.PLACEHOLDER),
+            ("PRIVATE-LIVE-EVS-CANARY", "PRIVATE-LIVE-CADSR-CANARY"),
+            (module.PLACEHOLDER, "PRIVATE-LIVE-CADSR-CANARY"),
+            ("PRIVATE-LIVE-EVS-CANARY", module.PLACEHOLDER),
+        ):
             with self.subTest(supplied=supplied), TemporaryDirectory() as directory:
                 self.assert_live_environment(Path(directory), live, supplied)
 
@@ -86,8 +92,8 @@ if sys.argv[1:3] == ["run", "acceptance"]:
             "PATH": str(root) + os.pathsep + os.environ["PATH"],
             "GITHUB_STEP_SUMMARY": str(root / "summary"),
             "CREDENTIAL_PLACEHOLDER": live["env"]["CREDENTIAL_PLACEHOLDER"],
-            "NCI_SI_EVS_LICENSE_KEY": supplied,
-            "NCI_SI_CADSR_CREDENTIAL": supplied,
+            "NCI_SI_EVS_LICENSE_KEY": supplied[0],
+            "NCI_SI_CADSR_CREDENTIAL": supplied[1],
         }
         result = subprocess.run(  # noqa: S603 - repository step with an owned fake acceptance CLI.
             ["bash", "-c", live["run"]],  # noqa: S607
@@ -99,19 +105,17 @@ if sys.argv[1:3] == ["run", "acceptance"]:
             timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        expected = (
-            {}
-            if supplied in ("", environment["CREDENTIAL_PLACEHOLDER"])
-            else {
-                "NCI_SI_EVS_LICENSE_KEY": supplied,
-                "NCI_SI_CADSR_CREDENTIAL": supplied,
-            }
-        )
+        names = ("NCI_SI_EVS_LICENSE_KEY", "NCI_SI_CADSR_CREDENTIAL")
+        expected = {
+            name: value
+            for name, value in zip(names, supplied, strict=True)
+            if value not in ("", module.PLACEHOLDER)
+        }
         self.assertEqual(json.loads(root.joinpath("seen.json").read_text()), expected)
         summary = root.joinpath("summary").read_text()
-        absent = " NCI_SI_EVS_LICENSE_KEY NCI_SI_CADSR_CREDENTIAL" if not expected else " none"
+        absent = "".join(f" {name}" for name in names if name not in expected) or " none"
         self.assertEqual(summary, f"- Credentials absent from the live run:{absent}\n")
-        self.assertNotIn("PRIVATE-LIVE-CANARY", result.stdout + result.stderr + summary)
+        self.assertNotIn("PRIVATE-LIVE-", result.stdout + result.stderr + summary)
 
     def test_the_weekly_fixture_run_runs_the_same_gates_as_ci(self):
         self.assertEqual(fixture_env("ci.yml", "acceptance"), FIXTURE_ENV)

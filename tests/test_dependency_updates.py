@@ -7,6 +7,7 @@ import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 import yaml
 
@@ -83,7 +84,12 @@ class DependencyLockPolicyTest(unittest.TestCase):
 
         def metadata(url):
             uploaded = "2026-10-20T19:01:00Z" if "setuptools" in url else "2026-10-20T02:24:00Z"
-            return {"urls": [{"upload_time_iso_8601": uploaded}]}
+            return {
+                "urls": [
+                    {"upload_time_iso_8601": "2026-10-19T00:00:00Z"},
+                    {"upload_time_iso_8601": uploaded},
+                ]
+            }
 
         self.assertEqual(
             lock_script().command(ROOT, metadata),
@@ -103,6 +109,14 @@ class DependencyLockPolicyTest(unittest.TestCase):
         module = lock_script()
         with self.assertRaisesRegex(ValueError, "certifi.*upload time"):
             module.command(ROOT, lambda _: {"urls": []})
+
+    def test_lock_entry_point_preserves_resolver_failure_status(self):
+        module = lock_script()
+        with (
+            patch.object(module, "command", return_value=["pdm", "lock"]),
+            patch.object(module.subprocess, "run", return_value=subprocess.CompletedProcess([], 7)),
+        ):
+            self.assertEqual(module.main(), 7)
 
 
 class DependencyAuditWorkflowTest(unittest.TestCase):

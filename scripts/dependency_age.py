@@ -1,4 +1,4 @@
-"""Fail when a committed registry dependency is less than five days old."""
+"""Enforce dependency ages, temporary exact-version security exceptions and their removal."""
 
 import json
 import re
@@ -192,7 +192,7 @@ def age_findings(
     fetch: MetadataFetch,
     exceptions: dict[str, SecurityException] | None = None,
 ) -> list[str]:
-    """Explain every release whose age cannot be proved to meet the minimum."""
+    """Explain unverified or too-young dependencies and expired security exceptions."""
 
     findings = []
     cutoff = now - MINIMUM_AGE

@@ -9,6 +9,22 @@ ROOT = Path(__file__).resolve().parents[1]
 UPLOAD = "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9"
 
 
+def report_positions(steps):
+    setup = next(
+        index for index, step in enumerate(steps) if step.get("uses") == "$/.github/actions/setup"
+    )
+    producer = next(
+        index for index, step in enumerate(steps) if "--junitxml=" in step.get("run", "")
+    )
+    names = [step.get("name") for step in steps]
+    return (
+        setup,
+        producer,
+        names.index("Summarize test results"),
+        names.index("Upload test results"),
+    )
+
+
 class TestReportWorkflowTest(unittest.TestCase):
     def test_report_steps_have_exact_paths_conditions_and_artifact_names(self):
         jobs = yaml.safe_load(ROOT.joinpath(".github/workflows/ci.yml").read_text())["jobs"]
@@ -22,6 +38,10 @@ class TestReportWorkflowTest(unittest.TestCase):
             ),
         ):
             with self.subTest(job=job):
+                steps = jobs[job]["steps"]
+                setup, producer, summary, upload = report_positions(steps)
+                self.assertLess(setup, producer)
+                self.assertEqual((summary, upload), (producer + 1, producer + 2))
                 reports = [
                     step
                     for step in jobs[job]["steps"]
