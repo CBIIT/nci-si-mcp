@@ -18,10 +18,7 @@ CLI = (
     "pdm run semantic-release -v version --no-commit --tag --push "
     "--no-changelog --vcs-release --skip-build"
 )
-INSTALL = (
-    "pdm lock --check\n"
-    "pdm sync --no-default --no-self -G release --without server --without index\n"
-)
+INSTALL = "pdm lock --check\npdm sync --no-default --no-self -G release\n"
 
 
 def workflow():
@@ -76,13 +73,8 @@ class ReleaseWorkflowTest(unittest.TestCase):
                 {
                     "name": "Set up release tooling",
                     "if": "steps.guard.outputs.skip == 'false'",
-                    "uses": "pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37",
-                    "with": {"python-version": "3.14", "version": "2.29.2"},
-                },
-                {
-                    "name": "Install locked release group",
-                    "if": "steps.guard.outputs.skip == 'false'",
-                    "run": INSTALL,
+                    "uses": "$/.github/actions/setup",
+                    "with": {"release-only": "true"},
                 },
                 {
                     "name": "Semantic release",
@@ -99,7 +91,6 @@ class ReleaseWorkflowTest(unittest.TestCase):
                 "Check out main",
                 "Decide whether this commit is released",
                 "Set up release tooling",
-                "Install locked release group",
                 "Semantic release",
                 "Summary",
                 "Select the exact released commit for image publication",
@@ -108,6 +99,41 @@ class ReleaseWorkflowTest(unittest.TestCase):
         project = tomllib.loads((ROOT / "pyproject.toml").read_text())
         self.assertEqual(
             project["dependency-groups"]["release"], ["python-semantic-release==10.7.0"]
+        )
+
+    def test_setup_composite_isolates_release_installation_and_cache(self):
+        setup = yaml.safe_load((ROOT / ".github/actions/setup/action.yml").read_text())
+        self.assertEqual(
+            setup["inputs"],
+            {
+                "release-only": {
+                    "description": "Install only locked release tooling, without the project",
+                    "default": "false",
+                }
+            },
+        )
+        self.assertEqual(
+            setup["runs"],
+            {
+                "using": "composite",
+                "steps": [
+                    {
+                        "uses": "pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37",
+                        "with": {
+                            "python-version": "3.14",
+                            "version": "2.29.2",
+                            "cache": "${{ inputs.release-only != 'true' }}",
+                            "cache-restore-exact-match": True,
+                        },
+                    },
+                    {
+                        "if": "inputs.release-only != 'true'",
+                        "run": "pdm install --check",
+                        "shell": "bash",
+                    },
+                    {"if": "inputs.release-only == 'true'", "run": INSTALL, "shell": "bash"},
+                ],
+            },
         )
 
     def test_external_actions_are_approved_and_immutable(self):
