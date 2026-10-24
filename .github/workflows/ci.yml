@@ -173,9 +173,9 @@ jobs:
       - name: Report coverage against the aim
         run: |
           total="$(pdm run coverage report --format=total)"
-          echo "Coverage ${total}% (the aim is above 95%)" >> "$GITHUB_STEP_SUMMARY"
-          if awk -v total="$total" 'BEGIN { exit !(total <= 95) }'; then
-            echo "::warning title=Coverage is not above 95%::${total}%. Cover the untested behaviour; do not pad."
+          echo "Coverage ${total}% (the aim is above 97%)" >> "$GITHUB_STEP_SUMMARY"
+          if awk -v total="$total" 'BEGIN { exit !(total <= 97) }'; then
+            echo "::warning title=Coverage is not above 97%::${total}%. Cover the untested behaviour; do not pad."
           fi
       - name: Export measured server coverage
         run: pdm run coverage json -o tmp/coverage/server.json
@@ -321,9 +321,9 @@ jobs:
           pdm run coverage combine --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest selftest-coverage/*/.coverage
           pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest
           total="$(pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --format=total)"
-          echo "Self-test coverage ${total}% (the aim is above 95%)" >> "$GITHUB_STEP_SUMMARY"
-          if awk -v total="$total" 'BEGIN { exit !(total <= 95) }'; then
-            echo "::warning title=Self-test coverage is not above 95%::${total}%. Cover the untested behaviour; do not pad."
+          echo "Self-test coverage ${total}% (the aim is above 97%)" >> "$GITHUB_STEP_SUMMARY"
+          if awk -v total="$total" 'BEGIN { exit !(total <= 97) }'; then
+            echo "::warning title=Self-test coverage is not above 97%::${total}%. Cover the untested behaviour; do not pad."
           fi
       - name: Export measured harness coverage
         run: pdm run coverage json --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest -o tmp/coverage/harness.json
