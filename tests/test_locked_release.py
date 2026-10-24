@@ -183,35 +183,9 @@ class LockedReleaseCliTest(unittest.TestCase):
         self.assertEqual(
             set(re.findall(r"(?m)^\s+- ([\w-]+) ", output)),
             {
-                "annotated-types",
-                "certifi",
-                "charset-normalizer",
-                "click",
-                "click-option-group",
-                "deprecated",
-                "dotty-dict",
-                "gitdb",
-                "gitpython",
-                "idna",
-                "jinja2",
-                "markdown-it-py",
-                "markupsafe",
-                "mdurl",
-                "pydantic",
-                "pydantic-core",
-                "pygments",
-                "python-gitlab",
-                "python-semantic-release",
-                "requests",
-                "requests-toolbelt",
-                "rich",
-                "shellingham",
-                "smmap",
-                "tomlkit",
-                "typing-extensions",
-                "typing-inspection",
-                "urllib3",
-                "wrapt",
+                package["name"]
+                for package in tomllib.loads((ROOT / "pdm.lock").read_text())["package"]
+                if "release" in package["groups"]
             },
         )
 
