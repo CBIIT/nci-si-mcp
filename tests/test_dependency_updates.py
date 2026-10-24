@@ -1,5 +1,6 @@
 """Dependency selection and update automation cover every committed ecosystem."""
 
+import importlib.util
 import re
 import subprocess
 import tomllib
@@ -9,6 +10,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+LOCK_SCRIPT = ROOT / "scripts" / "dependency_lock.py"
 
 
 def read_yaml(name):
@@ -26,12 +28,64 @@ def tracked(pattern):
     return [ROOT / name for name in result.stdout.splitlines()]
 
 
+def lock_script():
+    if not LOCK_SCRIPT.is_file():
+        raise AssertionError("scripts/dependency_lock.py must own the lock command")
+    spec = importlib.util.spec_from_file_location("dependency_lock", LOCK_SCRIPT)
+    if spec is None or spec.loader is None:
+        raise AssertionError("scripts/dependency_lock.py must be loadable")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def compose_manifests():
+    patterns = ("**/*compose*.yaml", "**/*compose*.yml")
+    ignored = {".git", ".venv", "tmp"}
+    return {
+        path
+        for pattern in patterns
+        for path in ROOT.glob(pattern)
+        if not ignored.intersection(path.parts)
+    }
+
+
+def registry_images(path):
+    compose = yaml.safe_load(path.read_text(encoding="utf-8"))
+    images = {
+        service["image"] for service in compose.get("services", {}).values() if "image" in service
+    }
+    return {image for image in images if not image.startswith("nci-si-")}
+
+
 class DependencyLockPolicyTest(unittest.TestCase):
     def test_lock_command_uses_only_the_relative_five_day_cutoff(self):
-        scripts = tomllib.loads((ROOT / "pyproject.toml").read_text())["tool"]["pdm"]["scripts"]
+        project = tomllib.loads((ROOT / "pyproject.toml").read_text())
+        scripts = project["tool"]["pdm"]["scripts"]
 
-        self.assertEqual(scripts["lock"], "pdm lock --exclude-newer 5d")
+        self.assertEqual(scripts["lock"], "python -m scripts.dependency_lock")
         self.assertIsNone(re.search(r"20\d\d-\d\d-\d\d|T\d\d:", scripts["lock"]))
+        self.assertEqual(
+            project["tool"]["nci-si"]["dependency-age"]["exceptions"],
+            {
+                "certifi": {
+                    "version": "2026.10.19",
+                    "advisory": "GHSA-6q48-6c7w-9gw2",
+                }
+            },
+        )
+        self.assertEqual(
+            lock_script().command(ROOT),
+            [
+                "pdm",
+                "lock",
+                "--exclude-newer",
+                "5d",
+                "--update-reuse",
+                "--exclude-newer-override",
+                "certifi=false",
+            ],
+        )
 
 
 class DependencyAuditWorkflowTest(unittest.TestCase):
@@ -110,12 +164,18 @@ class DependabotTest(unittest.TestCase):
             {directory for kind, directory in entries if kind == "npm"},
         )
 
-    def test_compose_uses_only_images_built_in_this_repository(self):
-        compose = read_yaml("container/compose.local.yaml")
-        images = {service["image"] for service in compose["services"].values()}
-
-        self.assertEqual(images, {"nci-si-admin:local", "nci-si-docs:local", "nci-si-mcp:verified"})
-        self.assertNotIn("docker-compose", {entry["package-ecosystem"] for entry in self.entries()})
+    def test_every_compose_manifest_is_local_or_covered(self):
+        entries = {(row["package-ecosystem"], row["directory"]) for row in self.entries()}
+        manifests = compose_manifests()
+        self.assertTrue(manifests)
+        for path in manifests:
+            with self.subTest(path=path.relative_to(ROOT)):
+                images = registry_images(path)
+                directory = "/" + str(path.parent.relative_to(ROOT))
+                self.assertTrue(
+                    not images or ("docker-compose", directory) in entries,
+                    f"{path.relative_to(ROOT)} registry images: {sorted(images)}",
+                )
 
     def test_python_uses_the_age_checked_pdm_path(self):
         text = (ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8")
