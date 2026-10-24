@@ -1,6 +1,6 @@
 {
-  "commit": "569c34546d08398a3d38badc096e854840a7339d",
-  "run": "https://github.com/CBIIT/nci-si-mcp/actions/runs/39669976034",
+  "commit": "d23124d693dec889b2a1ff9c6b1dd64b3e487293",
+  "run": "https://github.com/CBIIT/nci-si-mcp/actions/runs/40061151357",
   "totals": {
     "server": {
       "covered_lines": 11022,
