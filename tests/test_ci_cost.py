@@ -14,7 +14,10 @@ CI = yaml.safe_load(Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
 class CiCostTest(unittest.TestCase):
     def test_ci_starts_on_the_same_events(self):
-        self.assertEqual(CI[True], {"push": {"branches": ["main"]}, "pull_request": None})
+        self.assertEqual(
+            CI[True],
+            {"push": {"branches": ["main"]}, "pull_request": None, "workflow_dispatch": None},
+        )
 
     def test_every_workflow_job_has_its_exact_runner(self):
         runners = {
