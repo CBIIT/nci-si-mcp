@@ -37,6 +37,8 @@ A plain `pdm run acceptance` skips the prepared and secured cases; the
 [prepared fixture run](acceptance/README.md) (`NCI_SI_ACCEPTANCE_PREPARE`) runs all of them.
 
 [QUICKSTART.md](QUICKSTART.md) has the rest: connecting a client, settings, tools and errors.
+Protected live workflow checks need issued [workflow credentials](CONTRIBUTING.md#workflow-credentials);
+fixture CI and anonymous live checks do not.
 
 ## How the pieces fit
 

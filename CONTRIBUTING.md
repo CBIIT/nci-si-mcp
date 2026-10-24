@@ -29,6 +29,7 @@ about as long as that command.
 | `pdm run lint` | Ruff and basedpyright: the fast check while you work |
 | `pdm run fmt` | Format with Ruff |
 | `pdm run lock` | Refresh every Python group to the newest version admitted by the five-day release-age policy |
+| `pdm run github-setup` | Create missing workflow credential names with safe placeholders; never overwrite existing names |
 | `pdm run pre-commit run --all-files` | Every hook, as the CI `quality` job runs them |
 | `pdm run acceptance` | The acceptance suite against the server ([acceptance/README.md](acceptance/README.md)) |
 | `pdm run acceptance-http` | Real HTTP fixture suite, managed restarts and explicit remote-contract skips ([transport details](docs/transport.md)) |
@@ -187,6 +188,28 @@ refresh with an old → new version table in its PR, never as a side effect of f
 A finding is fixed in the code. Where a rule does not fit, it is suppressed as narrowly as
 possible (a line, then a file or a directory, then the project, in `pyproject.toml`), with the
 reason beside the suppression, or once in the module when it repeats.
+
+## Workflow credentials
+
+Only protected live checks need issued credentials. Anonymous live checks and fixture CI need
+none. A maintainer may run `pdm run github-setup` after authenticating `gh`; it creates missing
+names with `NCI_SI_CONFIGURE_ME`, never overwrites an existing name, and never reads secret values.
+The live workflow treats the placeholder as absent and lists absent names in its summary.
+Existing names may still contain dummy values: setup cannot inspect them. No caDSR credential
+has been issued; the owner removes the existing dummy before the maintainer runs setup.
+
+| Secret | Purpose | Workflow |
+| --- | --- | --- |
+| `NCI_SI_CADSR_CREDENTIAL` | Issued caDSR user:password for protected live checks | Acceptance (live) |
+| `NCI_SI_EVS_LICENSE_KEY` | Issued EVS licence key for restricted live checks | Acceptance (live) |
+
+Maintainer: run gh secret set NCI_SI_CADSR_CREDENTIAL --repo CBIIT/nci-si-mcp in your own terminal; it prompts for the value.
+
+Maintainer: run gh secret set NCI_SI_EVS_LICENSE_KEY --repo CBIIT/nci-si-mcp in your own terminal; it prompts for the value.
+
+`GITHUB_TOKEN` is automatic and is never created by setup. No repository Actions variables are
+required. INT, UAT and Production environments remain deferred to the AWS phases; setup creates
+no environments. Never put a credential in command arguments or shell history.
 
 ## Pull requests and releases
 
