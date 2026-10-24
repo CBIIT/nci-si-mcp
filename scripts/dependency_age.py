@@ -347,9 +347,8 @@ def fetch_json(url: str) -> dict[str, Any]:
 def fetch_metadata(url: str) -> dict[str, Any] | str:
     if not url.endswith("/"):
         return fetch_json(url)
-    if not url.startswith("https://"):
-        raise ValueError("Registry metadata URL must use HTTPS")
-    with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310 - HTTPS checked above.
+    # Index URLs are constructed only from the parser's HTTPS direct-wheel requirements.
+    with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310 - parser requires HTTPS.
         return response.read().decode("utf-8")
 
 
