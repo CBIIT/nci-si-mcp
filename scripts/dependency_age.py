@@ -71,7 +71,7 @@ def _requirements_packages(path: Path) -> set[Dependency]:
     text = path.read_text(encoding="utf-8").replace("\\\n", " ")
     for raw_line in text.splitlines():
         line = raw_line.strip()
-        if not line or line.startswith(("#", "-")):
+        if not line or line.startswith("#"):
             continue
         packages.add(_requirement_package(path, line))
     return packages
@@ -93,10 +93,17 @@ def _requirement_package(path: Path, line: str) -> Dependency:
 def _npm_packages(path: Path) -> set[Package]:
     records = json.loads(path.read_text(encoding="utf-8"))["packages"]
     return {
-        Package("npm", row.get("name", key.rsplit("node_modules/", 1)[1]), row["version"])
+        _npm_package(path, key, row)
         for key, row in records.items()
         if "node_modules/" in key and "version" in row
     }
+
+
+def _npm_package(path: Path, key: str, row: dict[str, Any]) -> Package:
+    resolved = urlsplit(row.get("resolved", ""))
+    if resolved.scheme != "https" or resolved.netloc != "registry.npmjs.org":
+        raise ValueError(f"{path}: unsupported dependency entry: {key}")
+    return Package("npm", row.get("name", key.rsplit("node_modules/", 1)[1]), row["version"])
 
 
 def locked_packages(root: Path = ROOT) -> list[Dependency]:

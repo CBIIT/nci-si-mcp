@@ -39,7 +39,14 @@ def lock_fixture(root):
         "container/requirements-amd64.txt": "demo==1\n",
         "container/companion-requirements.txt": "demo==1\n",
         "docs/site-assets/package-lock.json": json.dumps(
-            {"packages": {"node_modules/tool": {"version": "1"}}}
+            {
+                "packages": {
+                    "node_modules/tool": {
+                        "version": "1",
+                        "resolved": "https://registry.npmjs.org/tool/-/tool-1.tgz",
+                    }
+                }
+            }
         ),
     }
     for name, text in contents.items():
@@ -182,7 +189,10 @@ class DependencyAgeTest(unittest.TestCase):
                     {
                         "packages": {
                             "": {"name": "root"},
-                            "node_modules/@scope/tool": {"version": "3.0"},
+                            "node_modules/@scope/tool": {
+                                "version": "3.0",
+                                "resolved": "https://registry.npmjs.org/@scope/tool/-/tool-3.tgz",
+                            },
                         }
                     }
                 ),
@@ -225,7 +235,15 @@ class DependencyAgeTest(unittest.TestCase):
             lock_fixture(root)
             root.joinpath("docs/site-assets/package-lock.json").write_text(
                 json.dumps(
-                    {"packages": {"node_modules/alias": {"name": "real-package", "version": "2.0"}}}
+                    {
+                        "packages": {
+                            "node_modules/alias": {
+                                "name": "real-package",
+                                "version": "2.0",
+                                "resolved": "https://registry.npmjs.org/real-package/-/real-package-2.tgz",
+                            }
+                        }
+                    }
                 )
             )
             self.assertEqual(
@@ -413,21 +431,35 @@ class DependencyAgeTest(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertEqual(output.getvalue(), "pypi:new==1 was uploaded inside the five-day window\n")
 
+        for young in ("certifi", "server", "companion", "tool"):
+            with self.subTest(young=young):
+                self.assert_young_lock_fails(module, young)
+
+    def assert_young_lock_fails(self, module, young):
         output, errors = io.StringIO(), io.StringIO()
         with TemporaryDirectory() as directory:
             root = Path(directory)
             lock_fixture(root)
+            root.joinpath("container/requirements-amd64.txt").write_text("server==1\n")
+            root.joinpath("container/companion-requirements.txt").write_text("companion==1\n")
 
             def fetch(url):
+                uploaded = NOW.isoformat() if young in url else "2026-10-01T00:00:00Z"
                 if "registry.npmjs.org" in url:
-                    return {"time": {"1": "2026-10-01T00:00:00Z"}}
-                return pypi(NOW.isoformat() if "certifi" in url else "2026-10-01T00:00:00Z")
+                    return {"time": {"1": uploaded}}
+                return pypi(uploaded)
 
             with redirect_stdout(output), redirect_stderr(errors):
                 status = module.check(root, {}, NOW, fetch)
         self.assertEqual(status, 1)
+        ecosystem, version = (
+            ("npm", "1")
+            if young == "tool"
+            else ("pypi", "2026.10.19" if young == "certifi" else "1")
+        )
         self.assertEqual(
-            errors.getvalue(), "pypi:certifi==2026.10.19 was uploaded inside the five-day window\n"
+            errors.getvalue(),
+            f"{ecosystem}:{young}=={version} was uploaded inside the five-day window\n",
         )
         self.assertEqual(
             output.getvalue(),

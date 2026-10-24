@@ -67,6 +67,7 @@ class DependencyLockPolicyTest(unittest.TestCase):
         scripts = project["tool"]["pdm"]["scripts"]
 
         self.assertEqual(scripts["lock"], "python -m scripts.dependency_lock")
+        self.assertEqual(project["tool"]["pdm"]["options"]["lock"], ["-G", ":all"])
         self.assertIsNone(re.search(r"20\d\d-\d\d-\d\d|T\d\d:", scripts["lock"]))
         self.assertEqual(
             project["tool"]["nci-si"]["dependency-age"]["exceptions"],
@@ -127,7 +128,17 @@ class DependencyLockPolicyTest(unittest.TestCase):
 
 class DependencyAuditWorkflowTest(unittest.TestCase):
     def test_audit_checks_age_then_vulnerabilities(self):
-        steps = read_yaml(".github/workflows/audit.yml")["jobs"]["pip-audit"]["steps"]
+        workflow = read_yaml(".github/workflows/audit.yml")
+        self.assertEqual(
+            workflow[True],
+            {
+                "workflow_dispatch": None,
+                "pull_request": None,
+                "push": {"branches": ["main"]},
+                "schedule": [{"cron": "17 6 * * 1"}],
+            },
+        )
+        steps = workflow["jobs"]["pip-audit"]["steps"]
         runs = [step for step in steps if "run" in step]
 
         self.assertEqual(
