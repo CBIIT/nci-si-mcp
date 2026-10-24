@@ -71,11 +71,25 @@ def _npm_packages(path: Path) -> set[Package]:
 def locked_packages(root: Path = ROOT) -> list[Package]:
     """Unique registry name/version pairs in every committed dependency lock."""
 
-    packages = _pdm_packages(root / "pdm.lock")
-    for path in PYTHON_LOCKS:
-        packages.update(_requirements_packages(root / path))
-    packages.update(_npm_packages(root / NPM_LOCK))
-    return sorted(packages)
+    return sorted({package for packages in inventories(root).values() for package in packages})
+
+
+def inventories(root: Path) -> dict[str, list[Package]]:
+    parsers = {
+        Path("pdm.lock"): _pdm_packages,
+        **dict.fromkeys(PYTHON_LOCKS, _requirements_packages),
+        NPM_LOCK: _npm_packages,
+    }
+    result = {}
+    for relative, parser in parsers.items():
+        path = root / relative
+        if not path.is_file():
+            raise ValueError(f"{relative}: is missing")
+        packages = sorted(parser(path))
+        if not packages:
+            raise ValueError(f"{relative}: contains no registry releases")
+        result[str(relative)] = packages
+    return result
 
 
 def parse_exceptions(records: object) -> dict[str, SecurityException]:
@@ -241,7 +255,37 @@ def run(
 
 
 def main() -> int:
-    return run(locked_packages(), read_exceptions(), datetime.now(UTC), fetch_json)
+    return check(ROOT, read_exceptions(), datetime.now(UTC), fetch_json)
+
+
+def check(
+    root: Path,
+    exceptions: dict[str, SecurityException],
+    now: datetime,
+    fetch: Fetch,
+) -> int:
+    try:
+        locks = inventories(root)
+    except (ValueError, OSError) as error:
+        print(str(error), file=sys.stderr)
+        return 1
+    packages = sorted({package for rows in locks.values() for package in rows})
+    status = run(packages, exceptions, now, fetch)
+    for name, rows in locks.items():
+        print(_summary(name, rows, exceptions))
+    return status
+
+
+def _summary(name: str, packages: list[Package], exceptions: dict[str, SecurityException]) -> str:
+    matched = [
+        f"{package.name} {package.version}, {exceptions[package.name].advisory}"
+        for package in packages
+        if package.ecosystem == "pypi"
+        and package.name in exceptions
+        and package.version == exceptions[package.name].version
+    ]
+    suffix = f" ({'; '.join(matched)})" if matched else ""
+    return f"{name}: {len(packages)} releases checked, {len(matched)} exceptions{suffix}"
 
 
 if __name__ == "__main__":
