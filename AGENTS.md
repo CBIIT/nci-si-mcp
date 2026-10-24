@@ -136,6 +136,7 @@ last two and the suite's CI; each family below is operational, and what depends 
 | Shared process helpers | `processes.py` | imported by the acceptance, container, companion, operator and benchmark scripts | every script that owns or waits for a process |
 | Shared formats, vocabularies, lock lines and files | `formats.py`, `vocabulary.py`, `requirements_lock.py`, `operator_files.py` | imported by the evidence, portal, docs, operator, benchmark and lock scripts | every script that checks a hash, job id or release tag, every run and job stop reason and state, both requirement locks, and every atomic JSON write |
 | README badges | `coverage_badges.py` | the CI `coverage-badges` job | the README |
+| Workflow setup | `github_setup.py` | `pdm run github-setup` | repository maintainers; the live workflow's credential inventory |
 
 A script that served an ephemeral purpose and is no longer needed to operate or maintain the
 server, the suite or the site is removed with its tests, after verifying that nothing depends on

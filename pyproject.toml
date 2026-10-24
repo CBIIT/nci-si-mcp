@@ -140,6 +140,7 @@ acceptance-index-codes = "python -m nci_si_acceptance.suite"
 spec-render = "python -m nci_si_acceptance.document"
 docs-build = "python -m scripts.docs_site"
 portal = "python -m scripts.portal"
+github-setup = "python -m scripts.github_setup"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
