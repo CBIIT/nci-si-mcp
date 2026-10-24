@@ -193,6 +193,7 @@ class LockedReleaseCliTest(unittest.TestCase):
         for title, tag, released in (
             ("fix: repair behavior", "v0.23.2", "true"),
             ("feat: add behavior", "v0.24.0", "true"),
+            ("fix!: change the client contract", "v0.24.0", "true"),
             ("docs: clarify behavior", "v0.23.1", "false"),
         ):
             with self.subTest(title=title), TemporaryDirectory() as directory:

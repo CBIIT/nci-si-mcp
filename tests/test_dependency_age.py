@@ -293,7 +293,12 @@ class DependencyAgeTest(unittest.TestCase):
                 )
                 self.assertEqual(output.getvalue(), "")
 
-        for resolved in (None, "git+https://example/repo", "https://example/package.tgz"):
+        for resolved in (
+            None,
+            "git+https://example/repo",
+            "https://example/package.tgz",
+            "http://registry.npmjs.org/package/-/package-1.tgz",
+        ):
             with self.subTest(resolved=resolved), TemporaryDirectory() as directory:
                 root = Path(directory)
                 lock_fixture(root)
