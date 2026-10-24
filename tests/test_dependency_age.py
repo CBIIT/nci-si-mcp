@@ -263,7 +263,7 @@ class DependencyAgeTest(unittest.TestCase):
         self.assertEqual(errors.getvalue(), "")
         self.assertEqual(
             output.getvalue(),
-            "pdm.lock: 1 releases checked, 1 exceptions (certifi 2026.10.19, GHSA-6q48-6c7w-9gw2)\n"
+            "pdm.lock: 1 releases checked, 1 exception (certifi 2026.10.19, GHSA-6q48-6c7w-9gw2)\n"
             "container/requirements-amd64.txt: 1 releases checked, 0 exceptions\n"
             "container/companion-requirements.txt: 1 releases checked, 0 exceptions\n"
             "docs/site-assets/package-lock.json: 1 releases checked, 0 exceptions\n",

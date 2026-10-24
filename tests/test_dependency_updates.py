@@ -47,7 +47,7 @@ def compose_manifests(root=ROOT):
         path
         for pattern in patterns
         for path in root.glob(pattern)
-        if not ignored.intersection(path.parts)
+        if not ignored.intersection(path.relative_to(root).parts)
     }
 
 

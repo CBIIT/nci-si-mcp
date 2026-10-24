@@ -270,10 +270,27 @@ def check(
         print(str(error), file=sys.stderr)
         return 1
     packages = sorted({package for rows in locks.values() for package in rows})
+    if unmatched := _unmatched_exceptions(packages, exceptions):
+        for finding in unmatched:
+            print(finding, file=sys.stderr)
+        return 1
     status = run(packages, exceptions, now, fetch)
     for name, rows in locks.items():
         print(_summary(name, rows, exceptions))
     return status
+
+
+def _unmatched_exceptions(
+    packages: list[Package], exceptions: dict[str, SecurityException]
+) -> list[str]:
+    locked = {
+        (package.name, package.version) for package in packages if package.ecosystem == "pypi"
+    }
+    return [
+        f"{name}=={exception.version} matches no locked PyPI release; remove this exception"
+        for name, exception in sorted(exceptions.items())
+        if (name, exception.version) not in locked
+    ]
 
 
 def _summary(name: str, packages: list[Package], exceptions: dict[str, SecurityException]) -> str:
@@ -285,7 +302,8 @@ def _summary(name: str, packages: list[Package], exceptions: dict[str, SecurityE
         and package.version == exceptions[package.name].version
     ]
     suffix = f" ({'; '.join(matched)})" if matched else ""
-    return f"{name}: {len(packages)} releases checked, {len(matched)} exceptions{suffix}"
+    noun = "exception" if len(matched) == 1 else "exceptions"
+    return f"{name}: {len(packages)} releases checked, {len(matched)} {noun}{suffix}"
 
 
 if __name__ == "__main__":
