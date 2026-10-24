@@ -73,12 +73,20 @@ class DependencyLockPolicyTest(unittest.TestCase):
                 "certifi": {
                     "version": "2026.10.19",
                     "advisory": "GHSA-6q48-6c7w-9gw2",
-                }
+                },
+                "setuptools": {
+                    "version": "84.2.1",
+                    "advisory": "GHSA-xmj3-9gf7-h52w",
+                },
             },
         )
-        metadata = {"urls": [{"upload_time_iso_8601": "2026-10-20T02:24:00Z"}]}
+
+        def metadata(url):
+            uploaded = "2026-10-20T19:01:00Z" if "setuptools" in url else "2026-10-20T02:24:00Z"
+            return {"urls": [{"upload_time_iso_8601": uploaded}]}
+
         self.assertEqual(
-            lock_script().command(ROOT, lambda _: metadata),
+            lock_script().command(ROOT, metadata),
             [
                 "pdm",
                 "lock",
@@ -86,6 +94,8 @@ class DependencyLockPolicyTest(unittest.TestCase):
                 "5d",
                 "--exclude-newer-override",
                 "certifi=2026-10-20T02:24:00+00:00",
+                "--exclude-newer-override",
+                "setuptools=2026-10-20T19:01:00+00:00",
             ],
         )
 
