@@ -194,6 +194,7 @@ class DependencyAgeTest(unittest.TestCase):
     def test_malformed_and_naive_registry_metadata_fail_closed(self):
         module = checker()
         cases = (
+            ([], "has malformed registry metadata"),
             ({"urls": "not-a-list"}, "has malformed registry metadata"),
             ({"urls": ["not-an-object"]}, "has malformed registry metadata"),
             (
@@ -203,6 +204,7 @@ class DependencyAgeTest(unittest.TestCase):
             ({"time": []}, "has malformed registry metadata"),
         )
         packages = (
+            module.Package("pypi", "bad-body", "1"),
             module.Package("pypi", "bad-list", "1"),
             module.Package("pypi", "bad-row", "1"),
             module.Package("pypi", "naive", "1"),

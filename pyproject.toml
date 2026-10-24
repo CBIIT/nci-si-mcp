@@ -77,6 +77,11 @@ lock = ["-G", ":all"]
 source = "scm"
 fallback_version = "0.0.0"
 
+# A known-vulnerability fix may bypass the rolling age cutoff only at this exact version.
+# The online audit fails once the release is five days old, requiring removal of the exception.
+[tool.nci-si.dependency-age.exceptions]
+certifi = { version = "2026.10.19", advisory = "GHSA-6q48-6c7w-9gw2" }
+
 # The release workflow computes the next version from the commit subjects on main
 # since the last tag, which are pull request titles (CONTRIBUTING.md). Below 1.0 a
 # breaking change releases a minor version; 1.0.0 is tagged by hand.
@@ -109,8 +114,8 @@ pytest = "pytest"
 # The fast check before a commit; the commit itself runs every hook.
 lint = { composite = ["ruff check .", "basedpyright"] }
 fmt = "ruff format ."
-# The rolling cutoff is computed from current UTC; no absolute selection date is committed.
-lock = "pdm lock --exclude-newer 5d"
+# The rolling cutoff and temporary security exceptions are owned by one entry point.
+lock = "python -m scripts.dependency_lock"
 # The acceptance suite against the server (fixture mode unless NCI_SI_ACCEPTANCE_MODE says
 # otherwise), and the harness's own tests with its coverage minimum.
 acceptance = { cmd = "pytest", working_dir = "acceptance" }

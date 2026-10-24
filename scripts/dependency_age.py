@@ -21,6 +21,7 @@ PYTHON_LOCKS = (
 NPM_LOCK = Path("docs/site-assets/package-lock.json")
 NORMALISE_PYTHON_NAME = re.compile(r"[-_.]+")
 PIN = re.compile(r"^([A-Za-z0-9_.-]+)==([^\s\\]+)")
+ADVISORY = re.compile(r"^(?:GHSA-[a-z0-9]{4}(?:-[a-z0-9]{4}){2}|CVE-\d{4}-\d{4,}|PYSEC-\d{4}-\d+)$")
 type Fetch = Callable[[str], dict[str, Any]]
 
 
@@ -29,6 +30,12 @@ class Package:
     ecosystem: str
     name: str
     version: str
+
+
+@dataclass(frozen=True)
+class SecurityException:
+    version: str
+    advisory: str
 
 
 def _python_name(name: str) -> str:
@@ -40,7 +47,7 @@ def _pdm_packages(path: Path) -> set[Package]:
     return {
         Package("pypi", _python_name(row["name"]), row["version"])
         for row in data["package"]
-        if "name" in row and "version" in row
+        if "name" in row and "version" in row and not {"path", "url", "git"}.intersection(row)
     }
 
 
@@ -71,6 +78,33 @@ def locked_packages(root: Path = ROOT) -> list[Package]:
     return sorted(packages)
 
 
+def parse_exceptions(records: object) -> dict[str, SecurityException]:
+    """Validate the temporary security-fix exceptions from project configuration."""
+
+    if not isinstance(records, dict):
+        raise ValueError("Dependency age exceptions must be a table")
+    return dict(_parse_exception(name, record) for name, record in records.items())
+
+
+def _parse_exception(raw_name: object, record: object) -> tuple[str, SecurityException]:
+    if not isinstance(raw_name, str) or not isinstance(record, dict):
+        raise ValueError("Each dependency age exception must be a package table")
+    version, advisory = record.get("version"), record.get("advisory")
+    if not isinstance(version, str) or not version:
+        raise ValueError(f"{raw_name} exception needs a version")
+    if not isinstance(advisory, str) or ADVISORY.fullmatch(advisory) is None:
+        raise ValueError(f"{raw_name} exception needs a valid advisory")
+    return _python_name(raw_name), SecurityException(version, advisory)
+
+
+def read_exceptions(root: Path = ROOT) -> dict[str, SecurityException]:
+    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    records = (
+        project.get("tool", {}).get("nci-si", {}).get("dependency-age", {}).get("exceptions", {})
+    )
+    return parse_exceptions(records)
+
+
 def _timestamp(value: object) -> datetime | None:
     if not isinstance(value, str):
         return None
@@ -91,12 +125,18 @@ def _checked_times(values: list[object], missing: str) -> tuple[list[datetime], 
 
 
 def _pypi_times(package: Package, metadata: dict[str, Any]) -> tuple[list[datetime], str]:
-    values = [row.get("upload_time_iso_8601") for row in metadata.get("urls", [])]
+    rows = metadata.get("urls", [])
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        return [], "has malformed registry metadata"
+    values = [row.get("upload_time_iso_8601") for row in rows]
     return _checked_times(values, "has no distribution upload time")
 
 
 def _npm_times(package: Package, metadata: dict[str, Any]) -> tuple[list[datetime], str]:
-    value = metadata.get("time", {}).get(package.version)
+    times = metadata.get("time", {})
+    if not isinstance(times, dict):
+        return [], "has malformed registry metadata"
+    value = times.get(package.version)
     return _checked_times([] if value is None else [value], "has no release upload time")
 
 
@@ -107,28 +147,71 @@ def _metadata_url(package: Package) -> str:
     return f"https://registry.npmjs.org/{encoded}"
 
 
-def age_findings(packages: list[Package], now: datetime, fetch: Fetch) -> list[str]:
+def age_findings(
+    packages: list[Package],
+    now: datetime,
+    fetch: Fetch,
+    exceptions: dict[str, SecurityException] | None = None,
+) -> list[str]:
     """Explain every release whose age cannot be proved to meet the minimum."""
 
     findings = []
     cutoff = now - MINIMUM_AGE
+    exceptions = exceptions or {}
     for package in dict.fromkeys(packages):
-        label = f"{package.ecosystem}:{package.name}=={package.version}"
-        try:
-            metadata = fetch(_metadata_url(package))
-        except (OSError, ValueError, json.JSONDecodeError) as error:
-            findings.append(f"{label} metadata could not be verified ({type(error).__name__})")
-            continue
-        times, error = (
-            _pypi_times(package, metadata)
-            if package.ecosystem == "pypi"
-            else _npm_times(package, metadata)
-        )
-        if error:
-            findings.append(f"{label} {error}")
-        elif any(uploaded > cutoff for uploaded in times):
-            findings.append(f"{label} was uploaded inside the five-day window")
+        if finding := _age_finding(package, cutoff, fetch, exceptions.get(package.name)):
+            findings.append(finding)
     return findings
+
+
+def _age_finding(
+    package: Package,
+    cutoff: datetime,
+    fetch: Fetch,
+    exception: SecurityException | None,
+) -> str:
+    label = f"{package.ecosystem}:{package.name}=={package.version}"
+    times, error = _release_times(package, fetch)
+    if error:
+        return f"{label} {error}"
+    if exception and package.ecosystem == "pypi" and package.version == exception.version:
+        return _exception_finding(label, times, cutoff)
+    return (
+        f"{label} was uploaded inside the five-day window"
+        if any(uploaded > cutoff for uploaded in times)
+        else ""
+    )
+
+
+def _exception_finding(label: str, times: list[datetime], cutoff: datetime) -> str:
+    return (
+        f"{label} is five days old; remove this exception"
+        if all(uploaded <= cutoff for uploaded in times)
+        else ""
+    )
+
+
+def _release_times(package: Package, fetch: Fetch) -> tuple[list[datetime], str]:
+    try:
+        metadata = fetch(_metadata_url(package))
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        return [], f"metadata could not be verified ({type(error).__name__})"
+    if not isinstance(metadata, dict):
+        return [], "has malformed registry metadata"
+    return (
+        _pypi_times(package, metadata)
+        if package.ecosystem == "pypi"
+        else _npm_times(package, metadata)
+    )
+
+
+def release_upload_time(package: Package, fetch: Fetch) -> datetime:
+    """Newest verified artifact upload time for an exact registry release."""
+
+    times, error = _release_times(package, fetch)
+    if error:
+        raise ValueError(f"{package.name} upload time could not be read: {error}")
+    return max(times)
 
 
 def fetch_json(url: str) -> dict[str, Any]:
@@ -145,11 +228,20 @@ def fetch_json(url: str) -> dict[str, Any]:
         return json.load(response)
 
 
-def main() -> int:
-    findings = age_findings(locked_packages(), datetime.now(UTC), fetch_json)
+def run(
+    packages: list[Package],
+    exceptions: dict[str, SecurityException],
+    now: datetime,
+    fetch: Fetch,
+) -> int:
+    findings = age_findings(packages, now, fetch, exceptions)
     for finding in findings:
         print(finding, file=sys.stderr)
-    return bool(findings)
+    return int(bool(findings))
+
+
+def main() -> int:
+    return run(locked_packages(), read_exceptions(), datetime.now(UTC), fetch_json)
 
 
 if __name__ == "__main__":

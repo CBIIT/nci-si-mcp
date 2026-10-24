@@ -7,7 +7,6 @@ import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
 
 import yaml
 
@@ -41,13 +40,13 @@ def lock_script():
     return module
 
 
-def compose_manifests():
+def compose_manifests(root=ROOT):
     patterns = ("**/*compose*.yaml", "**/*compose*.yml")
     ignored = {".git", ".venv", "tmp"}
     return {
         path
         for pattern in patterns
-        for path in ROOT.glob(pattern)
+        for path in root.glob(pattern)
         if not ignored.intersection(path.parts)
     }
 
@@ -57,7 +56,8 @@ def registry_images(path):
     images = {
         service["image"] for service in compose.get("services", {}).values() if "image" in service
     }
-    return {image for image in images if not image.startswith("nci-si-")}
+    local = {"nci-si-admin:local", "nci-si-docs:local", "nci-si-mcp:verified"}
+    return images - local
 
 
 class DependencyLockPolicyTest(unittest.TestCase):
@@ -76,50 +76,23 @@ class DependencyLockPolicyTest(unittest.TestCase):
                 }
             },
         )
+        metadata = {"urls": [{"upload_time_iso_8601": "2026-10-20T02:24:00Z"}]}
         self.assertEqual(
-            lock_script().command(ROOT, Path("reused-pins.txt")),
+            lock_script().command(ROOT, lambda _: metadata),
             [
                 "pdm",
                 "lock",
                 "--exclude-newer",
                 "5d",
-                "--update-reuse",
-                "--override",
-                "reused-pins.txt",
                 "--exclude-newer-override",
-                "certifi=false",
+                "certifi=2026-10-20T02:24:00+00:00",
             ],
         )
-        constraints = lock_script().constraints(ROOT).splitlines()
-        self.assertIn("certifi==2026.10.19", constraints)
-        self.assertNotIn("nci-si-acceptance==0.1.0", constraints)
-        self.assertEqual(len(constraints), len(set(constraints)))
 
-    def test_successful_resolution_preserves_lock_bytes_when_registry_pins_do_not_move(self):
+    def test_lock_refuses_unverifiable_exception_upload_times(self):
         module = lock_script()
-        with TemporaryDirectory() as directory:
-            root = Path(directory)
-            original = (
-                '[[package]]\nname = "demo"\nversion = "1"\nfiles = []\n'
-                '[[package]]\nname = "local"\nversion = "old"\npath = "."\n'
-            )
-            root.joinpath("pdm.lock").write_text(original, encoding="utf-8")
-            root.joinpath("pyproject.toml").write_text(
-                "[tool.nci-si.dependency-age.exceptions]\n", encoding="utf-8"
-            )
-
-            def resolve(*_args, **_kwargs):
-                root.joinpath("pdm.lock").write_text(
-                    '[[package]]\nname = "demo"\nversion = "1"\nfiles = []\n'
-                    '[[package]]\nname = "local"\nversion = "new"\npath = "."\n',
-                    encoding="utf-8",
-                )
-                return type("Result", (), {"returncode": 0})()
-
-            with patch.object(module.subprocess, "run", side_effect=resolve):
-                self.assertEqual(module.run(root), 0)
-
-            self.assertEqual(root.joinpath("pdm.lock").read_text(encoding="utf-8"), original)
+        with self.assertRaisesRegex(ValueError, "certifi.*upload time"):
+            module.command(ROOT, lambda _: {"urls": []})
 
 
 class DependencyAuditWorkflowTest(unittest.TestCase):
@@ -148,6 +121,15 @@ class DependencyAuditWorkflowTest(unittest.TestCase):
 
 
 class DependabotTest(unittest.TestCase):
+    def test_new_compose_files_cannot_escape_registry_image_discovery(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / "compose.new.yml"
+            manifest.write_text("services:\n  app:\n    image: nci-si-other:latest\n")
+
+            self.assertEqual(compose_manifests(root), {manifest})
+            self.assertEqual(registry_images(manifest), {"nci-si-other:latest"})
+
     def entries(self):
         return read_yaml(".github/dependabot.yml")["updates"]
 
