@@ -140,7 +140,7 @@ during feature-branch cleanup; it is generated publication data.
 1. **Stay on the goal.** A change does what its task asks.
 2. **Tests are written for their value.** Each one checks behaviour that a user or a caller can
    observe, and can fail when that behaviour breaks.
-3. **Coverage: 90% is the checked minimum, above 95% is the aim.** The gap is deliberate: it
+3. **Coverage: 95% is the checked minimum, above 97% is the aim.** The gap is deliberate: it
    keeps anyone from writing tests for the number. Cover untested behaviour whenever you can.
    Never add a test that asserts nothing, or only that a mock was called.
    The figure covers `src/` and every script in `scripts/` except those `omit`ted in
