@@ -2,10 +2,12 @@
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tomllib
 import unittest
+import venv
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -150,6 +152,37 @@ class ReleaseWorkflowTest(unittest.TestCase):
 
 
 class LockedReleaseCliTest(unittest.TestCase):
+    def test_release_sync_selects_no_project_or_unrelated_groups(self):
+        setup = yaml.safe_load((ROOT / ".github/actions/setup/action.yml").read_text())
+        command = setup["runs"]["steps"][-1]["run"].splitlines()[-1].split()
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ("pyproject.toml", "pdm.lock"):
+                shutil.copyfile(ROOT / name, root / name)
+            environment = root / ".venv"
+            venv.EnvBuilder().create(environment)
+            result = subprocess.run(  # noqa: S603 - repository-owned dry-run installation command.
+                [*command, "--dry-run"],
+                cwd=root,
+                env=os.environ
+                | {
+                    "PDM_PYTHON": str(environment / "bin/python"),
+                    "PDM_IGNORE_ACTIVE_VENV": "1",
+                    "PDM_CHECK_UPDATE": "false",
+                },
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=60,
+            )
+        output = result.stdout + result.stderr
+        self.assertEqual(result.returncode, 0, output)
+        self.assertRegex(output, r"(?m)^\s+- python-semantic-release ")
+        self.assertNotRegex(
+            output,
+            r"(?m)^\s+- (?:mcp|numpy|pytest|sentence-transformers|nci-si-mcp|nci-si-acceptance) ",
+        )
+
     def test_titles_preserve_release_decisions_and_outputs(self):
         for title, tag, released in (
             ("fix: repair behavior", "v0.23.2", "true"),
