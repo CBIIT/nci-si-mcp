@@ -77,18 +77,25 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Set up release tooling
+        if: steps.guard.outputs.skip == 'false'
+        uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
+        with:
+          python-version: "3.14"
+          version: "2.29.2"
+
+      - name: Install locked release group
+        if: steps.guard.outputs.skip == 'false'
+        run: |
+          pdm lock --check
+          pdm sync --no-default --no-self -G release --without server --without index
+
       - name: Semantic release
         id: release
         if: steps.guard.outputs.skip == 'false'
-        uses: python-semantic-release/python-semantic-release@b700dbeb1f431a0fcc30a79f3f0869407fe07278  # v10.7.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          commit: false
-          tag: true
-          push: true
-          changelog: false
-          vcs_release: true
-          build: false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pdm run semantic-release -v version --no-commit --tag --push --no-changelog --vcs-release --skip-build
 
       - name: Summary
         if: ${{ !cancelled() }}

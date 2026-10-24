@@ -209,7 +209,9 @@ decides the version. Only the title counts: the squash commit has no body, so ma
 change with `!`, and do not edit the commit message in the merge dialog.
 
 When CI passes on `main`, the release workflow tags that commit `vX.Y.Z` and creates a GitHub
-release. Nothing else is needed: no file holds the version, and the workflow never commits to
+release using semantic-release from the hash-locked `release` dependency group, not a third-party
+action. The release job installs only that group, without the project. No file holds the version,
+and the workflow never commits to
 `main`. If a release is missing although `main` is green, start the Release workflow by hand
 (`gh workflow run release.yml`). Version 1.0.0 is tagged by hand.
 

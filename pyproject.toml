@@ -51,6 +51,9 @@ audit = [
 docs = [
     "zensical==0.0.68",
 ]
+release = [
+    "python-semantic-release==10.7.0",
+]
 
 [tool.pdm]
 distribution = true
