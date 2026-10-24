@@ -1,6 +1,5 @@
 """Repository setup creates missing names without replacing values or exposing credentials."""
 
-import importlib
 import json
 import os
 import re
@@ -9,6 +8,8 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
+from scripts import github_setup as module
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/github_setup.py"
@@ -25,12 +26,6 @@ if os.environ.get("GH_FAIL"):
 if args[1] == "list":
     print(json.dumps([{"name": "NCI_SI_CADSR_CREDENTIAL"}] if args[0] == "secret" else []))
 """
-
-
-def setup_cli():
-    if not SCRIPT.is_file():
-        raise AssertionError("GitHub setup CLI must exist")
-    return importlib.import_module("scripts.github_setup")
 
 
 class GitHubSetupTest(unittest.TestCase):
@@ -59,7 +54,6 @@ class GitHubSetupTest(unittest.TestCase):
             return result, commands
 
     def test_only_missing_names_are_created_with_interactive_replacement_instructions(self):
-        module = setup_cli()
         result, commands = self.invoke()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
@@ -84,7 +78,6 @@ class GitHubSetupTest(unittest.TestCase):
         )
 
     def test_gh_failure_is_nonzero_without_repeating_its_output(self):
-        setup_cli()
         result, commands = self.invoke(fail=True)
         self.assertEqual(result.returncode, 7)
         self.assertEqual(len(commands), 1)
@@ -96,7 +89,6 @@ class GitHubSetupTest(unittest.TestCase):
         self.assertNotIn("PRIVATE-CREDENTIAL-CANARY", result.stdout + result.stderr)
 
     def test_workflow_names_match_inventory_and_documentation(self):
-        module = setup_cli()
         names = {"secrets": set(), "vars": set()}
         paths = [*ROOT.glob(".github/workflows/*.yml"), *ROOT.glob(".github/actions/**/action.yml")]
         for path in paths:

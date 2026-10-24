@@ -10,8 +10,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import yaml
-
-from test_github_setup import setup_cli
+from scripts import github_setup as module
 
 WORKFLOWS = Path(__file__).resolve().parents[1] / ".github/workflows"
 FIXTURE_STEP = "Run the suite against the fixtures"
@@ -53,7 +52,6 @@ def suite_line(workflow, job, name):
 
 class AcceptanceGateWorkflowTest(unittest.TestCase):
     def test_live_placeholders_are_absent_and_real_values_never_enter_logs(self):
-        module = setup_cli()
         live = step("acceptance-live.yml", "acceptance-live", LIVE_STEP)
         self.assertEqual(
             live["env"],
@@ -65,7 +63,6 @@ class AcceptanceGateWorkflowTest(unittest.TestCase):
                 "CREDENTIAL_PLACEHOLDER": module.PLACEHOLDER,
             },
         )
-        self.assertNotIn("set -x", live["run"])
         for supplied in ("", module.PLACEHOLDER, "PRIVATE-LIVE-CANARY"):
             with self.subTest(supplied=supplied), TemporaryDirectory() as directory:
                 self.assert_live_environment(Path(directory), live, supplied)

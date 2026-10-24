@@ -196,7 +196,7 @@ none. A maintainer may run `pdm run github-setup` after authenticating `gh`; it 
 names with `NCI_SI_CONFIGURE_ME`, never overwrites an existing name, and never reads secret values.
 The live workflow treats the placeholder as absent and lists absent names in its summary.
 Existing names may still contain dummy values: setup cannot inspect them. No caDSR credential
-has been issued; the owner removes the existing dummy before the maintainer runs setup.
+has been issued. The owner deleted the dummy on 24 October; setup can create its placeholder.
 
 | Secret | Purpose | Workflow |
 | --- | --- | --- |
