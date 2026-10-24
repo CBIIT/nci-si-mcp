@@ -8,9 +8,10 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote, unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 MINIMUM_AGE = timedelta(days=5)
@@ -23,6 +24,7 @@ NORMALISE_PYTHON_NAME = re.compile(r"[-_.]+")
 PIN = re.compile(r"^([A-Za-z0-9_.-]+)==([^\s\\]+)")
 ADVISORY = re.compile(r"^(?:GHSA-[a-z0-9]{4}(?:-[a-z0-9]{4}){2}|CVE-\d{4}-\d{4,}|PYSEC-\d{4}-\d+)$")
 type Fetch = Callable[[str], dict[str, Any]]
+type MetadataFetch = Callable[[str], dict[str, Any] | str]
 
 
 @dataclass(frozen=True, order=True)
@@ -30,6 +32,16 @@ class Package:
     ecosystem: str
     name: str
     version: str
+
+
+@dataclass(frozen=True)
+class DirectWheel:
+    filename: str
+    sha256: str
+    index_url: str
+
+
+type Dependency = Package | DirectWheel
 
 
 @dataclass(frozen=True)
@@ -51,11 +63,19 @@ def _pdm_packages(path: Path) -> set[Package]:
     }
 
 
-def _requirements_packages(path: Path) -> set[Package]:
-    packages = set()
-    for line in path.read_text(encoding="utf-8").splitlines():
+def _requirements_packages(path: Path) -> set[Dependency]:
+    packages: set[Dependency] = set()
+    text = path.read_text(encoding="utf-8").replace("\\\n", " ")
+    for line in text.splitlines():
         if match := PIN.match(line):
             packages.add(Package("pypi", _python_name(match[1]), match[2]))
+        elif match := re.match(r"^([A-Za-z0-9_.-]+)\s+@\s+(https://\S+)", line):
+            digest = re.search(r"--hash=sha256:([a-f0-9]{64})", line)
+            if digest is None:
+                raise ValueError(f"{path}: {match[1]} direct URL needs a sha256 hash")
+            filename = unquote(urlsplit(match[2]).path.rsplit("/", 1)[-1])
+            index = match[2].rsplit("/", 1)[0] + "/" + quote(_python_name(match[1]), safe="") + "/"
+            packages.add(DirectWheel(filename, digest[1], index))
     return packages
 
 
@@ -68,13 +88,16 @@ def _npm_packages(path: Path) -> set[Package]:
     }
 
 
-def locked_packages(root: Path = ROOT) -> list[Package]:
+def locked_packages(root: Path = ROOT) -> list[Dependency]:
     """Unique registry name/version pairs in every committed dependency lock."""
 
-    return sorted({package for packages in inventories(root).values() for package in packages})
+    return sorted(
+        {package for packages in inventories(root).values() for package in packages},
+        key=_package_label,
+    )
 
 
-def inventories(root: Path) -> dict[str, list[Package]]:
+def inventories(root: Path) -> dict[str, list[Dependency]]:
     parsers = {
         Path("pdm.lock"): _pdm_packages,
         **dict.fromkeys(PYTHON_LOCKS, _requirements_packages),
@@ -85,7 +108,7 @@ def inventories(root: Path) -> dict[str, list[Package]]:
         path = root / relative
         if not path.is_file():
             raise ValueError(f"{relative}: is missing")
-        packages = sorted(parser(path))
+        packages = sorted(parser(path), key=_package_label)
         if not packages:
             raise ValueError(f"{relative}: contains no registry releases")
         result[str(relative)] = packages
@@ -154,7 +177,9 @@ def _npm_times(package: Package, metadata: dict[str, Any]) -> tuple[list[datetim
     return _checked_times([] if value is None else [value], "has no release upload time")
 
 
-def _metadata_url(package: Package) -> str:
+def _metadata_url(package: Dependency) -> str:
+    if isinstance(package, DirectWheel):
+        return package.index_url
     encoded = quote(package.name, safe="")
     if package.ecosystem == "pypi":
         return f"https://pypi.org/pypi/{encoded}/{quote(package.version, safe='')}/json"
@@ -162,9 +187,9 @@ def _metadata_url(package: Package) -> str:
 
 
 def age_findings(
-    packages: list[Package],
+    packages: list[Dependency],
     now: datetime,
-    fetch: Fetch,
+    fetch: MetadataFetch,
     exceptions: dict[str, SecurityException] | None = None,
 ) -> list[str]:
     """Explain every release whose age cannot be proved to meet the minimum."""
@@ -173,27 +198,45 @@ def age_findings(
     cutoff = now - MINIMUM_AGE
     exceptions = exceptions or {}
     for package in dict.fromkeys(packages):
-        if finding := _age_finding(package, cutoff, fetch, exceptions.get(package.name)):
+        exception = exceptions.get(package.name) if isinstance(package, Package) else None
+        if finding := _age_finding(package, cutoff, fetch, exception):
             findings.append(finding)
     return findings
 
 
 def _age_finding(
-    package: Package,
+    package: Dependency,
     cutoff: datetime,
-    fetch: Fetch,
+    fetch: MetadataFetch,
     exception: SecurityException | None,
 ) -> str:
-    label = f"{package.ecosystem}:{package.name}=={package.version}"
+    label = _package_label(package)
     times, error = _release_times(package, fetch)
     if error:
         return f"{label} {error}"
-    if exception and package.ecosystem == "pypi" and package.version == exception.version:
+    if _matches_exception(package, exception):
         return _exception_finding(label, times, cutoff)
     return (
         f"{label} was uploaded inside the five-day window"
         if any(uploaded > cutoff for uploaded in times)
         else ""
+    )
+
+
+def _package_label(package: Dependency) -> str:
+    return (
+        f"wheel:{package.filename}"
+        if isinstance(package, DirectWheel)
+        else f"{package.ecosystem}:{package.name}=={package.version}"
+    )
+
+
+def _matches_exception(package: Dependency, exception: SecurityException | None) -> bool:
+    return (
+        isinstance(package, Package)
+        and package.ecosystem == "pypi"
+        and exception is not None
+        and package.version == exception.version
     )
 
 
@@ -205,11 +248,52 @@ def _exception_finding(label: str, times: list[datetime], cutoff: datetime) -> s
     )
 
 
-def _release_times(package: Package, fetch: Fetch) -> tuple[list[datetime], str]:
+class _WheelLinks(HTMLParser):
+    def __init__(self, filename: str) -> None:
+        super().__init__()
+        self.filename = filename
+        self.matches: list[dict[str, str | None]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag != "a":
+            return
+        values = dict(attrs)
+        href = urlsplit(values.get("href") or "")
+        if unquote(href.path.rsplit("/", 1)[-1]) == self.filename:
+            self.matches.append(values)
+
+
+def _wheel_times(package: DirectWheel, metadata: object) -> tuple[list[datetime], str]:
+    if not isinstance(metadata, str):
+        return [], "has malformed index metadata"
+    links = _WheelLinks(package.filename)
+    links.feed(metadata)
+    if not links.matches:
+        return [], "has no matching index filename"
+    if any(_wheel_hash(row) != package.sha256 for row in links.matches):
+        return [], "index sha256 differs from the lock"
+    return _wheel_upload_times(links.matches)
+
+
+def _wheel_upload_times(matches: list[dict[str, str | None]]) -> tuple[list[datetime], str]:
+    values: list[object] = [row.get("data-upload-time") for row in matches]
+    if any(value is None for value in values):
+        return [], "has no distribution upload time"
+    return _checked_times(values, "has no distribution upload time")
+
+
+def _wheel_hash(row: dict[str, str | None]) -> str:
+    fragment = urlsplit(row.get("href") or "").fragment
+    return parse_qs(fragment).get("sha256", [""])[0]
+
+
+def _release_times(package: Dependency, fetch: MetadataFetch) -> tuple[list[datetime], str]:
     try:
         metadata = fetch(_metadata_url(package))
     except (OSError, ValueError, json.JSONDecodeError) as error:
         return [], f"metadata could not be verified ({type(error).__name__})"
+    if isinstance(package, DirectWheel):
+        return _wheel_times(package, metadata)
     if not isinstance(metadata, dict):
         return [], "has malformed registry metadata"
     return (
@@ -242,11 +326,20 @@ def fetch_json(url: str) -> dict[str, Any]:
         return json.load(response)
 
 
+def fetch_metadata(url: str) -> dict[str, Any] | str:
+    if not url.endswith("/"):
+        return fetch_json(url)
+    if not url.startswith("https://"):
+        raise ValueError("Registry metadata URL must use HTTPS")
+    with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310 - HTTPS checked above.
+        return response.read().decode("utf-8")
+
+
 def run(
-    packages: list[Package],
+    packages: list[Dependency],
     exceptions: dict[str, SecurityException],
     now: datetime,
-    fetch: Fetch,
+    fetch: MetadataFetch,
 ) -> int:
     findings = age_findings(packages, now, fetch, exceptions)
     for finding in findings:
@@ -255,21 +348,21 @@ def run(
 
 
 def main() -> int:
-    return check(ROOT, read_exceptions(), datetime.now(UTC), fetch_json)
+    return check(ROOT, read_exceptions(), datetime.now(UTC), fetch_metadata)
 
 
 def check(
     root: Path,
     exceptions: dict[str, SecurityException],
     now: datetime,
-    fetch: Fetch,
+    fetch: MetadataFetch,
 ) -> int:
     try:
         locks = inventories(root)
     except (ValueError, OSError) as error:
         print(str(error), file=sys.stderr)
         return 1
-    packages = sorted({package for rows in locks.values() for package in rows})
+    packages = sorted({package for rows in locks.values() for package in rows}, key=_package_label)
     if unmatched := _unmatched_exceptions(packages, exceptions):
         for finding in unmatched:
             print(finding, file=sys.stderr)
@@ -281,10 +374,12 @@ def check(
 
 
 def _unmatched_exceptions(
-    packages: list[Package], exceptions: dict[str, SecurityException]
+    packages: list[Dependency], exceptions: dict[str, SecurityException]
 ) -> list[str]:
     locked = {
-        (package.name, package.version) for package in packages if package.ecosystem == "pypi"
+        (package.name, package.version)
+        for package in packages
+        if isinstance(package, Package) and package.ecosystem == "pypi"
     }
     return [
         f"{name}=={exception.version} matches no locked PyPI release; remove this exception"
@@ -293,13 +388,14 @@ def _unmatched_exceptions(
     ]
 
 
-def _summary(name: str, packages: list[Package], exceptions: dict[str, SecurityException]) -> str:
+def _summary(
+    name: str, packages: list[Dependency], exceptions: dict[str, SecurityException]
+) -> str:
     matched = [
         f"{package.name} {package.version}, {exceptions[package.name].advisory}"
         for package in packages
-        if package.ecosystem == "pypi"
-        and package.name in exceptions
-        and package.version == exceptions[package.name].version
+        if isinstance(package, Package)
+        and _matches_exception(package, exceptions.get(package.name))
     ]
     suffix = f" ({'; '.join(matched)})" if matched else ""
     noun = "exception" if len(matched) == 1 else "exceptions"

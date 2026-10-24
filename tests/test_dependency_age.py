@@ -52,18 +52,18 @@ def lock_fixture(root):
 class DependencyAgeTest(unittest.TestCase):
     def test_direct_wheel_inventory_preserves_filename_url_and_hash(self):
         module = checker()
-        wheels = [package for package in module.locked_packages() if package.ecosystem == "wheel"]
-        self.assertEqual([package.name for package in wheels], ["torch"])
+        wheels = [
+            package
+            for package in module.locked_packages()
+            if isinstance(package, module.DirectWheel)
+        ]
         self.assertEqual(
             wheels,
             [
-                module.Package(
-                    "wheel",
-                    "torch",
+                module.DirectWheel(
                     "torch-2.14.1+cpu-cp314-cp314-manylinux_2_28_x86_64.whl",
-                    "https://download.pytorch.org/whl/cpu/"
-                    "torch-2.14.1%2Bcpu-cp314-cp314-manylinux_2_28_x86_64.whl",
                     "35103e180214793207f95d7e12e100ecba3ace6f5fb37e1fcefbb07e096ed180",
+                    "https://download.pytorch.org/whl/cpu/torch/",
                 )
             ],
         )
@@ -78,7 +78,9 @@ class DependencyAgeTest(unittest.TestCase):
                 "    --hash=sha256:" + "a" * 64 + "\n"
             )
             (wheel,) = [
-                package for package in module.locked_packages(root) if package.ecosystem == "wheel"
+                package
+                for package in module.locked_packages(root)
+                if isinstance(package, module.DirectWheel)
             ]
         label = "wheel:torch-1+cpu.whl"
         for uploaded, expected in (

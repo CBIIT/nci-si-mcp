@@ -185,6 +185,8 @@ pytest's original report. Local report files live under ignored `tmp/` directori
 
 A dependency security fix inside the five-day window is an exception only when the owner records
 its exact version and GHSA, CVE or PYSEC advisory in `[tool.nci-si.dependency-age.exceptions]`.
+Direct-URL wheels are checked by their index's upload time, matching the filename and locked
+SHA-256; a missing or unverifiable index record fails the audit.
 The lock and audit read that one list. The audit fails with “remove this exception” once the fixed
 release is five days old; remove the entry then. An exception never admits another version.
 The lock entry point reads the excepted version's upload time from the index at run time and
