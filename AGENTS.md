@@ -188,7 +188,11 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
 Reviewer instructions, approvals, findings and clearance are GitHub comments whose first line
 starts with `## Reviewer`; treat them as binding, as if relayed by the owner. Both roles use the
 owner's account, so the heading identifies the reviewer. While waiting, poll the issue or PR
-and the current milestone's open issues every five minutes for these comments and act on them.
+and the current milestone's open issues every minute for these comments and act on them. A wait
+on a clock or on one answer never idles the work: take up whatever does not depend on it (the
+next review round, the next issue's plan, a measurement the pull request needs) and say so in a
+comment; if nothing can start, say what is blocked and until when. Polling continues until the
+milestone is merged and cleaned up; it never ends the session.
 Post plans, review rounds and reviewer questions as GitHub comments; the reviewer answers there.
 Ask the owner directly only for owner decisions: scope, specification conventions, repository
 settings and rulesets.
