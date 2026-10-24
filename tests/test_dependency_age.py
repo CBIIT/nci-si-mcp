@@ -275,6 +275,27 @@ class DependencyAgeTest(unittest.TestCase):
                 )
                 self.assertEqual(output.getvalue(), "")
 
+        for resolved in (None, "git+https://example/repo", "https://example/package.tgz"):
+            with self.subTest(resolved=resolved), TemporaryDirectory() as directory:
+                root = Path(directory)
+                lock_fixture(root)
+                path = root / "docs/site-assets/package-lock.json"
+                row = {"version": "1"}
+                if resolved is not None:
+                    row["resolved"] = resolved
+                path.write_text(json.dumps({"packages": {"node_modules/external": row}}))
+                output, errors = io.StringIO(), io.StringIO()
+                with redirect_stdout(output), redirect_stderr(errors):
+                    status = module.check(
+                        root, {}, NOW, lambda _: {"time": {"1": "2026-10-01T00:00:00Z"}}
+                    )
+                self.assertEqual(status, 1)
+                self.assertEqual(
+                    errors.getvalue(),
+                    f"{path}: unsupported dependency entry: node_modules/external\n",
+                )
+                self.assertEqual(output.getvalue(), "")
+
     def test_unverifiable_release_fails_closed(self):
         module = checker()
         cases = (
