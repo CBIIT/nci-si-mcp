@@ -79,16 +79,9 @@ jobs:
 
       - name: Set up release tooling
         if: steps.guard.outputs.skip == 'false'
-        uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
+        uses: $/.github/actions/setup
         with:
-          python-version: "3.14"
-          version: "2.29.2"
-
-      - name: Install locked release group
-        if: steps.guard.outputs.skip == 'false'
-        run: |
-          pdm lock --check
-          pdm sync --no-default --no-self -G release --without server --without index
+          release-only: "true"
 
       - name: Semantic release
         id: release
