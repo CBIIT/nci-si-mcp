@@ -82,6 +82,14 @@ class DependencyAgeTest(unittest.TestCase):
                 for package in module.locked_packages(root)
                 if isinstance(package, module.DirectWheel)
             ]
+            path = root / "container/requirements-amd64.txt"
+            path.write_text("demo==1\ntorch @ https://download.example/torch.whl\n")
+            output, errors = io.StringIO(), io.StringIO()
+            with redirect_stdout(output), redirect_stderr(errors):
+                status = module.check(root, {}, NOW, lambda _: pypi(NOW.isoformat()))
+            self.assertEqual(status, 1)
+            self.assertEqual(errors.getvalue(), f"{path}: torch direct URL needs a sha256 hash\n")
+            self.assertEqual(output.getvalue(), "")
         label = "wheel:torch-1+cpu.whl"
         for uploaded, expected in (
             (NOW - timedelta(days=5), []),

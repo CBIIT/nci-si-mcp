@@ -89,7 +89,7 @@ def _npm_packages(path: Path) -> set[Package]:
 
 
 def locked_packages(root: Path = ROOT) -> list[Dependency]:
-    """Unique registry name/version pairs in every committed dependency lock."""
+    """Unique registry releases and direct wheels in every committed dependency lock."""
 
     return sorted(
         {package for packages in inventories(root).values() for package in packages},
