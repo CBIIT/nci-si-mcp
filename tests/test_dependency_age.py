@@ -220,6 +220,54 @@ class DependencyAgeTest(unittest.TestCase):
                 "https://registry.npmjs.org/%40scope%2Ftool",
             ],
         )
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            lock_fixture(root)
+            root.joinpath("docs/site-assets/package-lock.json").write_text(
+                json.dumps(
+                    {"packages": {"node_modules/alias": {"name": "real-package", "version": "2.0"}}}
+                )
+            )
+            self.assertEqual(
+                module.inventories(root)["docs/site-assets/package-lock.json"],
+                [module.Package("npm", "real-package", "2.0")],
+            )
+
+    def test_unsupported_external_lock_entries_fail_instead_of_disappearing(self):
+        module = checker()
+        for filename, text, offending in (
+            (
+                "pdm.lock",
+                '[[package]]\nname="external"\nversion="1"\nurl="https://example/wheel.whl"\n',
+                "external",
+            ),
+            (
+                "pdm.lock",
+                '[[package]]\nname="external"\nversion="1"\ngit="https://example/repo"\n',
+                "external",
+            ),
+            (
+                "container/requirements-amd64.txt",
+                "demo==1\nnew-package[extra]==2\n",
+                "new-package[extra]==2",
+            ),
+        ):
+            with (
+                self.subTest(filename=filename, offending=offending),
+                TemporaryDirectory() as directory,
+            ):
+                root = Path(directory)
+                lock_fixture(root)
+                path = root / filename
+                path.write_text(text)
+                output, errors = io.StringIO(), io.StringIO()
+                with redirect_stdout(output), redirect_stderr(errors):
+                    status = module.check(root, {}, NOW, lambda _: pypi("2026-10-01T00:00:00Z"))
+                self.assertEqual(status, 1)
+                self.assertEqual(
+                    errors.getvalue(), f"{path}: unsupported dependency entry: {offending}\n"
+                )
+                self.assertEqual(output.getvalue(), "")
 
     def test_unverifiable_release_fails_closed(self):
         module = checker()
@@ -337,6 +385,30 @@ class DependencyAgeTest(unittest.TestCase):
 
         self.assertEqual(status, 1)
         self.assertEqual(output.getvalue(), "pypi:new==1 was uploaded inside the five-day window\n")
+
+        output, errors = io.StringIO(), io.StringIO()
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            lock_fixture(root)
+
+            def fetch(url):
+                if "registry.npmjs.org" in url:
+                    return {"time": {"1": "2026-10-01T00:00:00Z"}}
+                return pypi(NOW.isoformat() if "certifi" in url else "2026-10-01T00:00:00Z")
+
+            with redirect_stdout(output), redirect_stderr(errors):
+                status = module.check(root, {}, NOW, fetch)
+        self.assertEqual(status, 1)
+        self.assertEqual(
+            errors.getvalue(), "pypi:certifi==2026.10.19 was uploaded inside the five-day window\n"
+        )
+        self.assertEqual(
+            output.getvalue(),
+            "pdm.lock: 1 releases checked, 0 exceptions\n"
+            "container/requirements-amd64.txt: 1 releases checked, 0 exceptions\n"
+            "container/companion-requirements.txt: 1 releases checked, 0 exceptions\n"
+            "docs/site-assets/package-lock.json: 1 releases checked, 0 exceptions\n",
+        )
 
     def test_each_lock_reports_checked_releases_and_exact_exceptions(self):
         module = checker()
