@@ -1,10 +1,12 @@
 """Dependency selection and update automation cover every committed ecosystem."""
 
 import importlib.util
+import io
 import re
 import subprocess
 import tomllib
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import call, patch
@@ -67,7 +69,14 @@ class DependencyLockPolicyTest(unittest.TestCase):
         scripts = project["tool"]["pdm"]["scripts"]
 
         self.assertEqual(scripts["lock"], "python -m scripts.dependency_lock")
-        self.assertEqual(project["tool"]["pdm"]["options"]["lock"], ["-G", ":all"])
+        self.assertEqual(
+            project["tool"]["pdm"]["options"],
+            {
+                "install": ["-G", "server", "-G", "index"],
+                "sync": ["-G", "server", "-G", "index"],
+                "lock": ["-G", ":all"],
+            },
+        )
         self.assertIsNone(re.search(r"20\d\d-\d\d-\d\d|T\d\d:", scripts["lock"]))
         self.assertEqual(
             project["tool"]["nci-si"]["dependency-age"]["exceptions"],
@@ -108,7 +117,9 @@ class DependencyLockPolicyTest(unittest.TestCase):
 
     def test_lock_refuses_unverifiable_exception_upload_times(self):
         module = lock_script()
-        with self.assertRaisesRegex(ValueError, "certifi.*upload time"):
+        with self.assertRaisesRegex(
+            ValueError, "^certifi upload time could not be read: has no distribution upload time$"
+        ):
             module.command(ROOT, lambda _: {"urls": []})
 
     def test_lock_entry_point_preserves_resolver_failure_status(self):
@@ -124,6 +135,20 @@ class DependencyLockPolicyTest(unittest.TestCase):
             resolver.call_args,
             call(["pdm", "lock", "--exclude-newer", "5d"], cwd=ROOT, check=False),
         )
+        output, errors = io.StringIO(), io.StringIO()
+        with (
+            patch.object(
+                module,
+                "command",
+                side_effect=ValueError("Dependency age exceptions must be a table"),
+            ),
+            redirect_stdout(output),
+            redirect_stderr(errors),
+        ):
+            status = module.main()
+        self.assertEqual(status, 1)
+        self.assertEqual(errors.getvalue(), "Dependency age exceptions must be a table\n")
+        self.assertEqual(output.getvalue(), "")
 
 
 class DependencyAuditWorkflowTest(unittest.TestCase):

@@ -89,6 +89,11 @@ class DeveloperEnvironmentTest(unittest.TestCase):
             environment = os.environ | {
                 "GIT_DIR": str(git_dir),
                 "GIT_INDEX_FILE": str(git_dir / "index"),
+                "GIT_WORK_TREE": str(decoy),
+                "GIT_COMMON_DIR": str(git_dir),
+                "GIT_CONFIG_COUNT": "1",
+                "GIT_CONFIG_KEY_0": "core.bare",
+                "GIT_CONFIG_VALUE_0": "true",
             }
             run = subprocess.run(
                 [

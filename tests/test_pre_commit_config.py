@@ -85,6 +85,85 @@ class PrePushTestHookTest(unittest.TestCase):
         self.assertEqual(effective.pop("full-test-suite"), ["pre-push"])
         self.assertEqual(set(map(tuple, effective.values())), {("pre-commit",)})
 
+    def test_commit_stage_configuration_preserves_every_local_gate(self):
+        self.assertEqual(configuration()["default_stages"], ["pre-commit"])
+        self.assertEqual(configuration()["exclude"], "^tmp/")
+        self.assertEqual(
+            next(hook for hook in hooks() if hook["id"] == "zizmor"),
+            {
+                "id": "zizmor",
+                "args": ["--offline"],
+                "stages": ["pre-commit"],
+            },
+        )
+        local = [
+            hook
+            for repo in configuration()["repos"]
+            if repo["repo"] == "local"
+            for hook in repo["hooks"]
+            if hook["id"] != "full-test-suite"
+        ]
+        common = {"language": "system", "stages": ["pre-commit"]}
+        self.assertEqual(
+            local,
+            [
+                common
+                | {
+                    "id": "ruff-format",
+                    "name": "ruff format",
+                    "entry": "pdm run ruff format --no-cache --force-exclude",
+                    "types_or": ["python", "pyi"],
+                },
+                common
+                | {
+                    "id": "ruff-check",
+                    "name": "ruff check",
+                    "entry": "pdm run ruff check --no-cache --fix "
+                    "--exit-non-zero-on-fix --force-exclude",
+                    "types_or": ["python", "pyi"],
+                },
+                common
+                | {
+                    "id": "basedpyright",
+                    "name": "basedpyright",
+                    "entry": "pdm run basedpyright",
+                    "pass_filenames": False,
+                    "always_run": True,
+                },
+                common
+                | {
+                    "id": "upstream-requirements",
+                    "name": "upstream requirements packages are current",
+                    "entry": "pdm run python scripts/upstream_requirements.py --check",
+                    "pass_filenames": False,
+                    "always_run": True,
+                },
+                common
+                | {
+                    "id": "complexity",
+                    "name": "cyclomatic complexity below 8",
+                    "entry": "pdm run python scripts/validation/check_complexity.py",
+                    "types": ["python"],
+                    "pass_filenames": False,
+                },
+                common
+                | {
+                    "id": "test-quality",
+                    "name": "tests that can catch a regression",
+                    "entry": "pdm run python scripts/validation/check_test_quality.py",
+                    "files": "^(tests|acceptance/(tests|selftests))/test_.*\\.py$",
+                },
+                common
+                | {
+                    "id": "dead-code",
+                    "name": "dead code",
+                    "entry": "pdm run vulture",
+                    "types": ["python"],
+                    "pass_filenames": False,
+                },
+            ],
+        )
+
     def test_real_install_creates_exactly_commit_and_push_hooks(self):
         with TemporaryDirectory() as directory:
             repository = Path(directory)

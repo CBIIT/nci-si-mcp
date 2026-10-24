@@ -18,6 +18,46 @@ def floor(name):
 class CoveragePolicyTest(unittest.TestCase):
     def test_both_suites_enforce_the_exact_floor(self):
         self.assertEqual([floor("pyproject.toml"), floor("acceptance/pyproject.toml")], [95, 95])
+        project = tomllib.loads(ROOT.joinpath("pyproject.toml").read_text())["tool"]
+        harness = tomllib.loads(ROOT.joinpath("acceptance/pyproject.toml").read_text())["tool"]
+        self.assertEqual(
+            project["coverage"],
+            {
+                "run": {
+                    "branch": True,
+                    "source": ["nci_si_mcp", "ncit_index", "scripts"],
+                    "omit": ["*/scripts/companion_entry.py"],
+                    "patch": ["subprocess"],
+                },
+                "report": {
+                    "fail_under": 95,
+                    "precision": 2,
+                    "show_missing": True,
+                    "exclude_also": ["if __name__ == .__main__.:"],
+                },
+            },
+        )
+        self.assertEqual(
+            harness["coverage"],
+            {
+                "run": {"branch": True, "source": ["nci_si_acceptance"], "patch": ["subprocess"]},
+                "report": {"fail_under": 95, "precision": 2, "show_missing": True},
+            },
+        )
+        self.assertEqual(
+            {
+                name: project["pdm"]["scripts"][name]
+                for name in ("test", "acceptance-selftest", "github-setup")
+            },
+            {
+                "test": "pytest --cov --cov-report=term-missing",
+                "acceptance-selftest": {
+                    "cmd": "pytest selftests -n 4 --dist worksteal --cov --cov-report=term-missing",
+                    "working_dir": "acceptance",
+                },
+                "github-setup": "python -m scripts.github_setup",
+            },
+        )
 
     def test_ci_reports_the_exact_warning_aim_without_changing_measurement(self):
         jobs = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())["jobs"]

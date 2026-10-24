@@ -3,11 +3,13 @@
 import importlib.util
 import io
 import json
+import re
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "dependency_age.py"
@@ -189,7 +191,7 @@ class DependencyAgeTest(unittest.TestCase):
                     {
                         "packages": {
                             "": {"name": "root"},
-                            "node_modules/@scope/tool": {
+                            "node_modules/a/node_modules/@scope/tool": {
                                 "version": "3.0",
                                 "resolved": "https://registry.npmjs.org/@scope/tool/-/tool-3.tgz",
                             },
@@ -358,6 +360,11 @@ class DependencyAgeTest(unittest.TestCase):
             module.age_findings([module.Package("pypi", "demo", "1")], NOW, lambda _: metadata),
             ["pypi:demo==1 was uploaded inside the five-day window"],
         )
+        metadata["urls"].append({"upload_time_iso_8601": "invalid"})
+        self.assertEqual(
+            module.age_findings([module.Package("pypi", "demo", "1")], NOW, lambda _: metadata),
+            ["pypi:demo==1 has an invalid upload time"],
+        )
 
     def test_security_exception_is_exact_and_expires_itself(self):
         module = checker()
@@ -373,6 +380,10 @@ class DependencyAgeTest(unittest.TestCase):
             module.age_findings([package], NOW, lambda _: old, security_exception(module)),
             ["pypi:certifi==2026.10.19 is five days old; remove this exception"],
         )
+        mixed = {"urls": old["urls"] + recent["urls"]}
+        self.assertEqual(
+            module.age_findings([package], NOW, lambda _: mixed, security_exception(module)), []
+        )
         self.assertEqual(
             module.age_findings(
                 [module.Package("pypi", "certifi", "2026.10.20")],
@@ -385,6 +396,23 @@ class DependencyAgeTest(unittest.TestCase):
 
     def test_exception_advisory_is_required_and_closed(self):
         module = checker()
+        for records, message in (
+            ([], "Dependency age exceptions must be a table"),
+            ({"requests": "1.0"}, "Each dependency age exception must be a package table"),
+            (
+                {"demo": {"version": 1, "advisory": "CVE-2026-12345"}},
+                "demo exception needs a version",
+            ),
+            (
+                {"demo": {"version": "1", "advisory": "CVE-2024-123"}},
+                "demo exception needs a valid advisory",
+            ),
+        ):
+            with (
+                self.subTest(records=records),
+                self.assertRaisesRegex(ValueError, "^" + re.escape(message) + "$"),
+            ):
+                module.parse_exceptions(records)
         for record in (
             {"version": "1"},
             {"version": "1", "advisory": "issue-1"},
@@ -481,7 +509,19 @@ class DependencyAgeTest(unittest.TestCase):
             root = Path(directory)
             lock_fixture(root)
 
+            root.joinpath("container/requirements-amd64.txt").write_text(
+                "demo==1\ntorch @ https://download.example/torch-1.whl \\\n    --hash=sha256:"
+                + "a" * 64
+                + "\n"
+            )
+
             def fetch(url):
+                if url == "https://download.example/torch/":
+                    return (
+                        '<a href="torch-1.whl#sha256='
+                        + "a" * 64
+                        + '" data-upload-time="2026-10-01T00:00:00Z">wheel</a>'
+                    )
                 if "registry.npmjs.org" in url:
                     return {"time": {"1": "2026-10-01T00:00:00Z"}}
                 return pypi("2026-10-21T00:00:00Z" if "certifi" in url else "2026-10-01T00:00:00Z")
@@ -494,7 +534,7 @@ class DependencyAgeTest(unittest.TestCase):
         self.assertEqual(
             output.getvalue(),
             "pdm.lock: 1 releases checked, 1 exception (certifi 2026.10.19, GHSA-6q48-6c7w-9gw2)\n"
-            "container/requirements-amd64.txt: 1 releases checked, 0 exceptions\n"
+            "container/requirements-amd64.txt: 2 releases checked, 0 exceptions\n"
             "container/companion-requirements.txt: 1 releases checked, 0 exceptions\n"
             "docs/site-assets/package-lock.json: 1 releases checked, 0 exceptions\n",
         )
@@ -524,6 +564,26 @@ class DependencyAgeTest(unittest.TestCase):
                     reason = "is missing" if missing else "contains no registry releases"
                     self.assertEqual(errors.getvalue(), f"{name}: {reason}\n")
                     self.assertEqual(output.getvalue(), "")
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            lock_fixture(root)
+            path = root / "pdm.lock"
+            path.unlink()
+            path.mkdir()
+            errors = io.StringIO()
+            with redirect_stderr(errors):
+                status = module.check(root, {}, NOW, lambda _: {})
+            self.assertEqual(status, 1)
+            self.assertEqual(errors.getvalue(), "pdm.lock: is missing\n")
+            errors = io.StringIO()
+            with (
+                patch.object(module, "inventories", side_effect=OSError("lock unreadable")),
+                redirect_stderr(errors),
+            ):
+                status = module.check(root, {}, NOW, lambda _: {})
+            self.assertEqual(status, 1)
+            self.assertEqual(errors.getvalue(), "lock unreadable\n")
 
     def test_unmatched_exception_fails_with_removal_instruction(self):
         module = checker()
