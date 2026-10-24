@@ -251,6 +251,12 @@ class DependencyAgeTest(unittest.TestCase):
                 "demo==1\nnew-package[extra]==2\n",
                 "new-package[extra]==2",
             ),
+            (
+                "container/requirements-amd64.txt",
+                "demo==1\n-e git+https://example/repo#egg=y\n",
+                "-e git+https://example/repo#egg=y",
+            ),
+            ("container/requirements-amd64.txt", "demo==1\n-r other.txt\n", "-r other.txt"),
         ):
             with (
                 self.subTest(filename=filename, offending=offending),
