@@ -81,6 +81,34 @@ class SSISContractCommandTest(ServerTestCase):
         self.assertEqual(json.loads(result.stdout), passed())
         self.assertEqual([path for path, _ in server.seen], ["/sparql"] * 6)
 
+    def test_unselected_binding_and_third_graph_fail_the_exact_family(self):
+        for index, key, term, error in (
+            (
+                1,
+                "unselected",
+                {"type": "literal", "value": "extra"},
+                "binding has unselected variables",
+            ),
+            (
+                0,
+                "graph",
+                {"type": "uri", "value": "https://example.test/third-graph"},
+                "graph: unexpected identity",
+            ),
+        ):
+            with self.subTest(error=error):
+                payloads = bodies()
+                rows = payloads[index]["results"]["bindings"]
+                if index == 0:
+                    rows.append(copy.deepcopy(rows[0]))
+                rows[-1][key] = term
+                result, server = self.command(payloads)
+                expected = passed()
+                expected[index] = {"id": IDS[index], "status": "fail", "error": error}
+                self.assertEqual(json.loads(result.stdout), expected)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(len(server.bodies), 6)
+
     def test_empty_and_changed_content_counts_and_releases_pass(self):
         payloads = bodies()
         payloads[0]["results"]["bindings"][0]["version"]["value"] = "future-release"
