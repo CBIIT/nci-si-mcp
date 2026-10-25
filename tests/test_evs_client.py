@@ -160,7 +160,10 @@ class EVSClientTest(unittest.TestCase):
 
         self.assertEqual(urlopen.call_count, 4)
         self.assertEqual([call.args[0] for call in sleep.call_args_list], [0.25, 0.5, 1.0])
-        self.assertIn("still down", str(raised.exception))
+        self.assertEqual(
+            str(raised.exception),
+            "EVS request failed for /api/v1/version: transport failure",
+        )
 
     def test_a_request_that_only_timed_out_is_a_timeout_with_what_was_waited(self, urlopen, sleep):
         for label, failure in {
@@ -332,15 +335,17 @@ class EVSClientTest(unittest.TestCase):
         self.assertEqual(result, {"version": "test"})
         sleep.assert_not_called()
 
-    def test_not_found_is_distinct_and_carries_the_reason_evs_gives(self, urlopen, sleep):
+    def test_not_found_is_distinct_with_server_owned_wording(self, urlopen, sleep):
         urlopen.side_effect = http_error(404, b'{"status": 404, "message": "C999 not found"}')
 
         with self.assertRaises(EVSNotFoundError) as raised:
             self.client().get_concept("C999", release=release())
 
         self.assertEqual(urlopen.call_count, 1)
-        self.assertIn("HTTP 404", str(raised.exception))
-        self.assertIn("C999 not found", str(raised.exception))
+        self.assertEqual(
+            str(raised.exception),
+            "EVS request failed for /api/v1/concept/ncit_26.06e/C999: HTTP 404 Not Found",
+        )
 
     def test_one_attempt_means_no_retry(self, urlopen, sleep):
         urlopen.side_effect = URLError("down")
@@ -493,17 +498,17 @@ class EVSClientTest(unittest.TestCase):
         self.assertEqual(result, {"a": 1})
         self.assertEqual(urlopen.call_count, 2)
 
-    def test_a_404_from_a_metadata_request_keeps_what_evs_said(self, urlopen, sleep):
+    def test_a_404_from_a_metadata_request_names_the_endpoint_and_next_step(self, urlopen, sleep):
         urlopen.side_effect = http_error(404, b'{"message": "No static resource"}')
 
         with self.assertRaises(EVSResponseError) as raised:
             self.client().get_terminologies()
 
-        message = str(raised.exception)
-        self.assertIn("/api/v1/metadata/terminologies", message)
-        self.assertIn("HTTP 404", message)
-        self.assertIn("No static resource", message)
-        self.assertIn("NCI_SI_EVS_BASE_URL", message)
+        self.assertEqual(
+            str(raised.exception),
+            "EVS request failed for /api/v1/metadata/terminologies: HTTP 404 Not Found; "
+            "EVS does not serve this endpoint or release, check NCI_SI_EVS_BASE_URL",
+        )
 
     def test_an_empty_body_with_an_ignored_length_is_invalid_not_retried(self, urlopen, sleep):
         for label, headers in {

@@ -677,6 +677,46 @@ ones while a test selects it. A recorded fixture is what the service answers tod
 stands in for a case the service does not produce on demand, under the requirement it names, and
 answers the ordinary forms above.
 
+### `injection/evs`
+
+Hostile C4817 definition remains decoded source text. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/cadsr`
+
+Hostile 2200604 definition remains decoded source text. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/cross-domain`
+
+Hostile C17357 data element name remains decoded source text. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/workflow`
+
+Hostile C4817 permissible value remains decoded source text. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/evs-error`
+
+HTTP 400 with hostile text in the EVS message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/cadsr-error`
+
+HTTP 400 with hostile text in the caDSR message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/cross-domain-error`
+
+HTTP 400 with hostile text in the cross-domain message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/workflow-error`
+
+HTTP 400 with hostile text in the workflow message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/webmethods-error`
+
+HTTP 200 with hostile text in apiResponse.message. Crafted, 1 fixture, for X-29: masked failure prose never becomes server-authored instructions.
+
+### `injection/fhir-error`
+
+HTTP 200 with hostile FHIR issue diagnostics and details text. Crafted, 1 fixture, for X-29: masked failure prose never becomes server-authored instructions.
+
 ### `release/unknown`
 
 Every content path of `ncit_99.99z` answers 404. Recorded.

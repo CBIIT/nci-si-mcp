@@ -59,22 +59,26 @@ jobs:
             exit 1
           fi
           pdm run python -m nci_si_acceptance.report acceptance/fixture.json --check-complete fixture
-      # The credentials reach only this step, and through it only the server under test (the
-      # suite hands a server nothing else of NCI_SI_*, and the credentials only in live mode).
-      # A secret that is not set arrives as an empty variable, which the suite would take as
-      # given; it is unset. Nothing here echoes a value, and a value is masked in the log.
+      # Credentials reach only this step, then the preparation command and server processes in
+      # live mode. The harness removes inherited NCI_SI_* settings before adding its own settings.
+      # Empty and setup-placeholder values are unset before the suite sees them.
+      # The summary names only absent credentials, never their values.
       - name: Run the suite against the live services
         env:
           NCI_SI_ACCEPTANCE_MODE: live
           NCI_SI_ACCEPTANCE_PREPARE: 'nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")'
           NCI_SI_EVS_LICENSE_KEY: ${{ secrets.NCI_SI_EVS_LICENSE_KEY }}
           NCI_SI_CADSR_CREDENTIAL: ${{ secrets.NCI_SI_CADSR_CREDENTIAL }}
+          CREDENTIAL_PLACEHOLDER: NCI_SI_CONFIGURE_ME
         run: |
-          given=""
+          absent=""
           for name in NCI_SI_EVS_LICENSE_KEY NCI_SI_CADSR_CREDENTIAL; do
-            if [ -n "${!name}" ]; then given="$given $name"; else unset "$name"; fi
+            if [ -z "${!name}" ] || [ "${!name}" = "$CREDENTIAL_PLACEHOLDER" ]; then
+              absent="$absent $name"
+              unset "$name"
+            fi
           done
-          echo "- Credentials given to the live run:${given:- none}" | tee -a acceptance/network.md >> "$GITHUB_STEP_SUMMARY"
+          echo "- Credentials absent from the live run:${absent:- none}" | tee -a acceptance/network.md >> "$GITHUB_STEP_SUMMARY"
           status=0
           pdm run acceptance -n 4 --dist worksteal --report=live.json || status=$?
           if [ "$status" -gt 1 ] || [ ! -s acceptance/live.json ]; then
@@ -89,6 +93,14 @@ jobs:
           status=0
           pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json --drift > acceptance/drift.md || status=$?
           { echo "### Upstream drift"; echo; cat acceptance/drift.md; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - name: Check every anonymous Shared SI query contract
+        if: ${{ !cancelled() }}
+        env: {}
+        run: |
+          status=0
+          pdm run python -m scripts.ssis_contracts > acceptance/ssis-contracts.json || status=$?
+          { echo '### Shared SI query contracts'; echo; cat acceptance/ssis-contracts.json; } >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
       - name: Render the combined per-tool report
         if: always()
@@ -109,5 +121,6 @@ jobs:
             acceptance/report.md
             acceptance/network.md
             acceptance/drift.md
+            acceptance/ssis-contracts.json
           if-no-files-found: warn
           retention-days: 30

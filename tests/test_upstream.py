@@ -42,10 +42,14 @@ class ParseUpstreamJsonTest(unittest.TestCase):
             with self.subTest(payload=payload):
                 self.assertIn("invalid JSON", self.failure(payload))
 
-    def test_a_webmethods_error_envelope_names_its_reason(self):
+    def test_a_webmethods_error_envelope_uses_server_owned_wording(self):
         envelope = {"DataElement": None, "apiResponse": {"type": "E", "message": "bad id"}}
 
-        self.assertIn("webMethods error envelope (bad id)", self.failure(body(envelope)))
+        self.assertEqual(
+            self.failure(body(envelope)),
+            "EVS /api/v1/version answered with a webMethods error envelope in a success response. "
+            "Retry later; if it persists, check that the platform's base URL is the right one.",
+        )
         self.assertEqual(self.details(body(envelope)), {"surface": "evs"})
 
     def test_a_webmethods_envelope_that_is_not_an_error_is_content(self):

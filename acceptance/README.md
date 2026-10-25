@@ -258,10 +258,12 @@ combined report into the job summary and uploads
 operating system, architecture and name, and whether EVS answers over IPv4 and over IPv6
 (`curl -4` and `curl -6`, 10 seconds each; a failure is recorded and does not fail the job). The
 repository secrets `NCI_SI_EVS_LICENSE_KEY` and `NCI_SI_CADSR_CREDENTIAL` are optional and reach
-only the step that runs the live suite, and through it only the server under test: the harness
-gives a server no other `NCI_SI_*` setting, and the credentials only in live mode. A secret that
-is not set is unset in that step, not passed empty. A credential appears in no log, error or
-result (requirement A7.5); `network.md` names which credentials were given, never a value.
+only the step that runs the live suite, then the preparation command and server processes in
+live mode. The harness removes inherited `NCI_SI_*` settings before adding its own settings and
+live credentials. An empty or
+setup-placeholder secret is unset in that step, never passed as a credential. A credential
+appears in no log, error or result (requirement A7.5); `network.md` names the credentials that
+are absent, never a value.
 
 ### README live evidence (local rendering)
 
