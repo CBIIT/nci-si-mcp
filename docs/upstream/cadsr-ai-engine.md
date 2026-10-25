@@ -14,7 +14,7 @@ No paired case comparison was run; retrieval quality and latency remain unmeasur
   That report supplies neither an endpoint nor a schema. The production date is a
   forecast; neither environment's current availability was independently verified.
 - **Observed, 25 October 2026:** the public [NCI API Portal menu][portal] lists
-  CDE Match among seven current APIs, linking to the [Match 2.0 documentation][match-page].
+  CDE Match, linking to the [Match 2.0 documentation][match-page].
   It has no separately named CDE AI Engine entry. The [linked Match JSON contract][match-json]
   is anonymously readable, identifies version `2.0`, host `cadsrapi.cancer.gov`,
   and the operation below. Reading that contract does not demonstrate anonymous
@@ -23,10 +23,6 @@ No paired case comparison was run; retrieval quality and latency remain unmeasur
   [recorded Match contract](../../acceptance/fixtures/recorded/cadsr-contracts/cde-match.json)
   and [anonymous refusal](../../acceptance/fixtures/recorded/cadsr/cde-match-refused-object.json)
   underpin the current adapter; the latter records HTTP 401, not a new measurement.
-  The adjacent `../mcp/conformance-suite/capabilities.yaml`, CAP-M5 (lines 353–372),
-  leaves external availability of a SapBERT index unresolved. That undated historical
-  catalogue is context only: it is neither an AI Engine contract nor authority over
-  this repository's `spec/`. No deployment or access conclusion follows from it.
 
 ## Contract and status comparison
 
