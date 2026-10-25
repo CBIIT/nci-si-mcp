@@ -60,6 +60,14 @@ ones while a test selects it. A recorded fixture is what the service answers tod
 stands in for a case the service does not produce on demand, under the requirement it names, and
 answers the ordinary forms above.
 
+### `injection/cadsr`
+
+Hostile 2200604 definition remains decoded source text. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/cadsr-error`
+
+HTTP 400 with the hostile caDSR content body. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
 ### `upstream/unavailable`
 
 Every upstream request, whatever its surface and path, gets a closed connection, then 503, then no answer within the timeout. Crafted, 7 fixtures, for A2.5, A5.3: bounded retries, counted, then a structured error.
