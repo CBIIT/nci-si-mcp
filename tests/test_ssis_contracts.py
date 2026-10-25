@@ -134,6 +134,29 @@ class SSISContractCommandTest(ServerTestCase):
         self.assertEqual(json.loads(result.stdout), passed())
         self.assertEqual([path for path, _ in server.seen], ["/sparql"] * 6)
 
+    def test_both_graph_identities_are_required_but_content_families_may_be_empty(self):
+        # Given empty content families and zero, one or both graph identities, when
+        # the CLI runs, then only a missing required identity fails the graph family.
+        for retained in ((), (0,), (1,), (0, 1)):
+            with self.subTest(retained=retained):
+                payloads = bodies()
+                rows = payloads[0]["results"]["bindings"]
+                payloads[0]["results"]["bindings"] = [rows[index] for index in retained]
+                for payload in payloads[1:]:
+                    payload["results"]["bindings"] = []
+                result, server = self.command(payloads)
+                expected = passed()
+                missing = retained != (0, 1)
+                if missing:
+                    expected[0] = {
+                        "id": "graph-identities",
+                        "status": "fail",
+                        "error": "graph: required identity missing",
+                    }
+                self.assertEqual(json.loads(result.stdout), expected)
+                self.assertEqual(result.returncode, int(missing), result.stderr)
+                self.assertEqual(len(server.bodies), 6)
+
     def test_unselected_binding_and_third_graph_fail_the_exact_family(self):
         for index, key, term, error in (
             (
