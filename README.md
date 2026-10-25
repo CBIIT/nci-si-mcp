@@ -43,7 +43,9 @@ The client model holds the conversation and selects tool calls; the prompts guid
 The tools are deterministic; the server runs no LLM.
 Workflow tools also bundle their own upstream calls deterministically, with provenance.
 [Domain-user stories and UAT plan](docs/user-acceptance.md) describe four proposed journeys;
-the NCI client decision is blocked and UAT has not run.
+NCI/NIH users have Claude Code (desktop), ChatGPT (Codex) and GitHub Copilot, all supporting
+local stdio MCP. NCI permission for local MCP use and the model, version and provider remain
+unconfirmed per client; UAT has not run.
 
 ## How the pieces fit
 

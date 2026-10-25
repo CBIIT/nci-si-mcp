@@ -9,14 +9,19 @@ Delivering this plan does not establish user acceptance.
 
 ## Client and readiness
 
-Client: BLOCKED — NCI availability and approval are unknown; there is no default.
+Owner decision, 25 October 2026: NCI/NIH users have access to Claude Code (desktop),
+ChatGPT (Codex) and GitHub Copilot. All three can host a local stdio MCP server.
 Decision owner: NCI client/platform owner.
-The QUICKSTART Claude Desktop example is not NCI approval.
 
-Before scheduling UAT, that owner must identify an available, approved MCP host and model,
-their versions, permitted input data and the transport users can access, with a decision link.
-The facilitator records that decision and recruits the confirming roles below; no participants
-or signoffs are recorded yet. If the client is unavailable, record blocked, not a substitute client.
+Before each client's session, record NCI's permission to connect a local MCP server and
+the model, version and provider. These remain unconfirmed per client; if any is missing,
+record that client as blocked. Never substitute another client.
+The facilitator retains the permission decision link and recruits the confirming roles below;
+no participants or signoffs are recorded yet.
+
+The owner also confirms access to AWS Bedrock models through Cloud One. Bedrock is a model
+provider, not an MCP client. Record the client separately from its provider: direct or Bedrock
+via Cloud One. Each client/provider pairing is a separate acceptance configuration.
 
 Use the unified profile: all four [specified prompts](../spec/prompts.yaml) need EVS and caDSR.
 Each prompt starts with `resolve_release`; retain its NCIt release for later calls and leave
@@ -127,7 +132,7 @@ Evidence: single-dictionary operation checks support, but do not execute, this c
 
 ## UAT session and decision
 
-After the client blocker is resolved, the facilitator and each confirming role agree realistic
+After that client's readiness is confirmed, the facilitator and each confirming role agree realistic
 permitted inputs for that story and its variants, then run the named prompt in the approved
 client. Capture the first attempt before any correction, retry or changed input. Keep later
 attempts separately linked, with their reason; a corrected answer does not erase the original.
@@ -135,15 +140,19 @@ The participant reviews the transcript against every pass criterion and records 
 or blocked with reasons and defects. The facilitator records evidence, not inferred signoff.
 Acceptance of one story is not acceptance of the other three. Automated fixture passes and
 assisted-task evaluation are supporting evidence, not NCI user confirmation or completed UAT.
+A story is accepted only for the client, model, version and provider in its recorded run.
+Results do not establish acceptance for another client or provider configuration.
 
 ## Evidence record
 
-Keep one record per story, participant and attempt, with references to the retained artifacts:
+Keep one record per story, client/provider configuration, participant and attempt, with references
+to the retained artifacts:
 
 - `story`: prompt name, scenario/variant, agreed inputs and expected pass criteria.
 - `participant`: confirming role, session date and explicit confirmation record; no assumed signoff.
-- `environment`: client/model names and versions, NCI availability/approval decision link,
-  transport, profile, server version and commit SHA.
+- `environment`: client name and version, model name and version, model provider (direct or
+  Bedrock via Cloud One), NCI local-MCP permission decision link, transport, profile, server
+  version and commit SHA.
 - `content`: NCIt release, caDSR registry state/date, live or fixture mode, index build if used.
 - `conversation`: submitted prompt arguments and complete conversation, including model choices.
 - `trace`: ordered tool names, arguments, results, provenance/correlation IDs, errors, truncation,
