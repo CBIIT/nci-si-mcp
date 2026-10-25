@@ -28,6 +28,51 @@ from test_server import ServerFixture
 
 @patch("nci_si_mcp.server.configure_logging")
 class CaDSRProtocolTest(ServerFixture):
+    def test_numeric_item_versions_preserve_upstream_spelling(self, _):
+        # Given caDSR formats a numeric version differently, an explicit MCP read still
+        # returns that item and its original version in both content and provenance.
+        for tool, factory, requested, returned in (
+            ("get_data_element", data_element, "4.0", "4"),
+            ("get_form", form, "1", "1.0"),
+            ("get_form", form, "1.0", "1.0"),
+        ):
+            with (
+                self.subTest(tool=tool, requested=requested),
+                patch.object(self.context.cadsr, tool, return_value=factory(version=returned)),
+            ):
+                result = self.session(
+                    lambda client, tool=tool, requested=requested: client.call_tool(
+                        tool, {"publicId": "123", "version": requested}
+                    )
+                )
+                self.assertFalse(result.is_error)
+                self.assertEqual(result.structured_content["version"], returned)
+                self.assertEqual(
+                    result.structured_content["provenance"]["upstream"]["version"], returned
+                )
+
+    def test_distinct_item_versions_fail_closed_without_float_approximation(self, _):
+        for requested, returned in (
+            ("4", "3"),
+            ("1.00000000000000000000000000001", "1.00000000000000000000000000002"),
+        ):
+            with (
+                self.subTest(requested=requested),
+                patch.object(
+                    self.context.cadsr,
+                    "get_data_element",
+                    return_value=data_element(version=returned),
+                ),
+            ):
+                result = self.session(
+                    lambda client, requested=requested: client.call_tool(
+                        "get_data_element", {"publicId": "123", "version": requested}
+                    )
+                )
+                self.assertTrue(result.is_error)
+                self.assertEqual(result.structured_content["error"]["code"], "upstream_unavailable")
+                self.assertNotIn("publicId", result.structured_content)
+
     def test_cadsr_licence_text_is_preserved_or_rejected_before_mcp_serialization(self, _):
         for licence in ("", "Upstream attribution", 7, {"unexpected": "object"}):
             with (
