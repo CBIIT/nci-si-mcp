@@ -72,7 +72,7 @@ Platform requirement/operation: **C-6; OP-M01**.
 Specification requirements: `match_data_elements-1`.
 Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42).
 
-**Observation.** The published matching contract does not take the requested modelVariant and similarityThreshold controls.
+**Observation.** The published matching contract does not take the requested modelVariant and similarityThreshold controls. The [CDE AI Engine evaluation dated 25 October 2026](cadsr-ai-engine.md) records the team's retrieval/reranking report separately from the unknown Engine contract fields and recommends waiting for contract and comparison evidence.
 
 **Reproduction.** Compare the contract's declared headers/body with those two caller parameters; fixture tests assert rejection, not upstream support.
 
@@ -100,7 +100,7 @@ Platform requirement/operation: **C-6; OP-M01; OP-C13**.
 Specification requirements: `match_data_elements-1`, `list_contexts-1`, `harmonize_data_dictionary-1`.
 Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-5966334217).
 
-**Observation.** Anonymous calls are recorded 401. No credentials have been issued; credentialed fixture answers follow published contracts and are crafted. Live matching and harmonization measurements returned upstream errors.
+**Observation.** Anonymous calls are recorded 401. No credentials have been issued; credentialed fixture answers follow published contracts and are crafted. Live matching and harmonization measurements returned upstream errors. The [CDE AI Engine evaluation dated 25 October 2026](cadsr-ai-engine.md) found no Engine contract or documented anonymous Stage endpoint in the reviewed sources; its access policy is unknown, not inferred from Match 2.0.
 
 **Reproduction.** Repeat the recorded anonymous requests; after access is provided, re-record with an environment-supplied credential and never write its value to evidence.
 
@@ -181,7 +181,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/cadsr/vm-match-male.json](../../acceptance/fixtures/recorded/cadsr/vm-match-male.json) — recorded on 2026-10-03; POST cadsr /vmMatch/v1/vmMatch; SHA-256 `739daa720101c52a2d6749e112dd98ec2097a8faa5b97c46d40d74824403502e`.
-- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `aef3118f3087e0e38bdb2eaeaa5b77770f83770f2e631ef19edca5e6902cd431`.
+- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `b3456d55174193b81384a0040bdf28a0663babcce5c7f7af857085a4ab05b246`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -273,7 +273,7 @@ Evidence (linked request/response files retain their original form):
 - [acceptance/fixtures/recorded/cadsr/permissible-values.json](../../acceptance/fixtures/recorded/cadsr/permissible-values.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/DataElement/2200604/permissibleValues; SHA-256 `997cf0b7cd6993fbb17387defd88d5cebcecef3376d2215001bfadb018a7037c`.
 - [acceptance/fixtures/recorded/cadsr/permissible-value-9192925.json](../../acceptance/fixtures/recorded/cadsr/permissible-value-9192925.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/permissibleValues/9192925; SHA-256 `1926a89787f0f0f5d2f2d4446622056cbf2e07812938993bb29d25d207981b06`.
 - [acceptance/fixtures/recorded/cadsr/classification-3685569.json](../../acceptance/fixtures/recorded/cadsr/classification-3685569.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/DataElements/Classification; SHA-256 `3b53e54ff1f9f6ef5a1ccd80e1df43bcce7a4ca3903e046f2534e5f10d746d19`.
-- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `aef3118f3087e0e38bdb2eaeaa5b77770f83770f2e631ef19edca5e6902cd431`.
+- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `b3456d55174193b81384a0040bdf28a0663babcce5c7f7af857085a4ab05b246`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|

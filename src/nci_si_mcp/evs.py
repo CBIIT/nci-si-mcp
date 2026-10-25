@@ -114,7 +114,7 @@ def verify_release(concepts: Iterable[dict[str, Any]], release_version: str) -> 
     if other:
         served = sorted(other)
         raise EVSReleaseMismatchError(
-            f"EVS served release {', '.join(served)} for a request pinned to {release_version}",
+            "EVS served content of another release than the one requested",
             requested=release_version,
             served=served,
             source="evs",
@@ -268,7 +268,7 @@ class EVSClient:
         except UpstreamRejectedError as exc:
             if exc.details.get("status") != HTTPStatus.NOT_FOUND:
                 raise
-            unknown = _UNKNOWN_TERMINOLOGY.search(str(exc))
+            unknown = _UNKNOWN_TERMINOLOGY.search(exc.body_message)
             if unknown:
                 raise EVSReleaseNotFoundError(str(exc), requested=unknown[1], source="evs") from exc
             raise EVSNotFoundError(str(exc), **exc.details) from exc

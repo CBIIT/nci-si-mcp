@@ -51,6 +51,55 @@ def suite_line(workflow, job, name):
 
 
 class AcceptanceGateWorkflowTest(unittest.TestCase):
+    def test_anonymous_ssis_contract_step_always_attempts_and_preserves_failure(self):
+        uploads = [
+            step
+            for step in jobs("acceptance-live.yml")["acceptance-live"]["steps"]
+            if step.get("uses", "").startswith("actions/upload-artifact@")
+        ]
+        self.assertEqual(
+            uploads,
+            [
+                {
+                    "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+                    "if": "always()",
+                    "with": {
+                        "name": "acceptance-live",
+                        "path": "acceptance/fixture.json\nacceptance/live.json\n"
+                        "acceptance/report.md\nacceptance/network.md\n"
+                        "acceptance/drift.md\nacceptance/ssis-contracts.json\n",
+                        "if-no-files-found": "warn",
+                        "retention-days": 30,
+                    },
+                }
+            ],
+        )
+        workflow = yaml.safe_load((WORKFLOWS / "acceptance-live.yml").read_text())
+        job = workflow["jobs"]["acceptance-live"]
+        self.assertEqual(workflow["permissions"], {"contents": "read"})
+        self.assertEqual(job.get("permissions"), None)
+        self.assertEqual(job.get("env", {}), {})
+        self.assertEqual(job.get("if"), None)
+        self.assertEqual(job.get("needs"), None)
+        self.assertEqual(
+            step(
+                "acceptance-live.yml",
+                "acceptance-live",
+                "Check every anonymous Shared SI query contract",
+            ),
+            {
+                "name": "Check every anonymous Shared SI query contract",
+                "if": "${{ !cancelled() }}",
+                "env": {},
+                "run": "status=0\n"
+                "pdm run python -m scripts.ssis_contracts > "
+                "acceptance/ssis-contracts.json || status=$?\n"
+                "{ echo '### Shared SI query contracts'; echo; "
+                "cat acceptance/ssis-contracts.json; } "
+                '>> "$GITHUB_STEP_SUMMARY"\nexit "$status"\n',
+            },
+        )
+
     def test_live_placeholders_are_absent_and_real_values_never_enter_logs(self):
         live = step("acceptance-live.yml", "acceptance-live", LIVE_STEP)
         self.assertEqual(

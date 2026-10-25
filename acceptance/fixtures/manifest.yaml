@@ -50,6 +50,16 @@ surfaces:
 # What each scenario provokes, in the order the register lists
 # them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.
 scenarios:
+  injection/evs: Hostile C4817 definition remains decoded source text
+  injection/cadsr: Hostile 2200604 definition remains decoded source text
+  injection/cross-domain: Hostile C17357 data element name remains decoded source text
+  injection/workflow: Hostile C4817 permissible value remains decoded source text
+  injection/evs-error: HTTP 400 with hostile text in the EVS message field
+  injection/cadsr-error: HTTP 400 with hostile text in the caDSR message field
+  injection/cross-domain-error: HTTP 400 with hostile text in the cross-domain message field
+  injection/workflow-error: HTTP 400 with hostile text in the workflow message field
+  injection/webmethods-error: HTTP 200 with hostile text in apiResponse.message
+  injection/fhir-error: HTTP 200 with hostile FHIR issue diagnostics and details text
   release/unknown: Every content path of `ncit_99.99z` answers 404
   release/mismatch: >-
     Every payload that reports the pinned release names 26.08e instead, the unpinned forms
@@ -1278,4 +1288,4 @@ record:
 # The fixtures craft.py makes are built in memory when the set loads; this is the digest
 # of what it makes now. `pdm run acceptance-craft` writes it, `--out DIR` writes the
 # fixtures to read (fixtures/README.md).
-crafted: sha256:80a80e43b182563781a0bb9ac26f9738fd86cd4caad6415c51720f74d04d5822
+crafted: sha256:e6103af2316d0a1e5b1aa5680ffd8c1258f16929ffffd90c26bb4d2e9a630d32

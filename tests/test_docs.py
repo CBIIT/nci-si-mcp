@@ -13,6 +13,7 @@ import subprocess
 import tempfile
 import tomllib
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from typing import get_args
 from unittest.mock import patch
@@ -20,12 +21,17 @@ from unittest.mock import patch
 import yaml
 from mcp.client import Client
 
+from nci_si_mcp.audit import Audit
 from nci_si_mcp.cli import build_parser
 from nci_si_mcp.config import DEFAULT_EXCLUSION_ROLE_CODES, Settings
-from nci_si_mcp.errors import ErrorCode
+from nci_si_mcp.context import Context
+from nci_si_mcp.errors import ErrorCode, correlated
 from nci_si_mcp.evs import LICENSE_KEY_HEADER
 from nci_si_mcp.http_client import MAX_RETRY_DELAY_SECONDS
+from nci_si_mcp.models import IndexManifest
+from nci_si_mcp.registry import SPECS
 from nci_si_mcp.server import create_mcp
+from nci_si_mcp.transport import create_http_app
 from nci_si_mcp.validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
 
 ROOT = Path(__file__).parent.parent
@@ -148,6 +154,127 @@ def shell_lines(name):
             fence = None if fence is not None else text[3:]
         elif fence in ("", "bash", "sh", "console"):
             yield number, text
+
+
+def operations_rows(document, heading):
+    """Bounded two-value contract columns; the remaining column explains their meaning."""
+    text = document.partition(f"\n## {heading}\n")[2].split("\n## ", 1)[0]
+    return [
+        tuple(cell.strip().strip("`") for cell in line.split("|")[1:3])
+        for line in text.splitlines()
+        if line.startswith("| `")
+    ]
+
+
+def operations_endpoints(settings):
+    """The installed health/readiness routes and their available/unavailable responses."""
+    app = create_http_app(settings, context=Context(settings))
+    endpoints = {
+        route.path: route.endpoint for route in app.routes if route.path in {"/health", "/ready"}
+    }
+    health = endpoints["/health"](None)
+    ready = asyncio.run(endpoints["/ready"](None))
+    required = create_http_app(replace(settings, http_require_index=True))
+    blocked_endpoint = next(route.endpoint for route in required.routes if route.path == "/ready")
+    with patch("nci_si_mcp.transport.emit") as transition:
+        blocked = asyncio.run(blocked_endpoint(None))
+    return {
+        **{
+            path: [response.status_code, json.loads(response.body)]
+            for path, response in (
+                ("/health", health),
+                ("/ready", ready),
+                ("/ready:unavailable", blocked),
+            )
+        },
+        transition.call_args.args[2]: sorted(transition.call_args.kwargs),
+    }
+
+
+def operations_signals(settings):
+    """Resolve the document's inventory through the interfaces that own the signals."""
+    with patch("nci_si_mcp.audit.emit") as completion:
+        Audit("doc-contract", {}, {}, (), result={}).finish()
+    manifest = IndexManifest("ncit", "test", None, "hashing", "hashing", 0, "test", "test")
+    with correlated():
+        manifest_fields = sorted(manifest.to_result())
+    return {
+        **operations_endpoints(settings),
+        completion.call_args.args[2]: sorted(completion.call_args.kwargs),
+        "ErrorCode": sorted(get_args(ErrorCode)),
+        next(spec.uri for spec in SPECS if spec.operation == "index_resource"): manifest_fields,
+    }
+
+
+class OperationsDocumentationTest(unittest.TestCase):
+    def assert_signals(self, document, available):
+        rows = operations_rows(document, "Available signals")
+        self.assertEqual(len(rows), 7, "operations signal inventory must describe seven interfaces")
+        self.assertEqual({name for name, _ in rows}, set(available))
+        for name, encoded in rows:
+            self.assertIn(name, available)
+            if name == "ErrorCode":
+                self.assertLessEqual(set(json.loads(encoded)), set(available[name]))
+            else:
+                self.assertEqual(json.loads(encoded), available[name])
+
+    def assert_settings(self, document):
+        rows = operations_rows(document, "Operational settings")
+        self.assertGreater(len(rows), 0, "operations settings inventory must not be empty")
+        self.assertEqual({name for name, _ in rows}, set(re.findall(r"NCI_SI_[A-Z_]+", document)))
+        with patch.dict(os.environ, clear=True):
+            defaults = Settings.from_env()
+        for name, encoded in rows:
+            attribute = name.removeprefix("NCI_SI_").lower()
+            self.assertTrue(hasattr(defaults, attribute), name)
+            self.assertEqual(json.loads(encoded), getattr(defaults, attribute), name)
+
+    def test_governance_states_the_exact_sponsor_approval_path(self):
+        expected = (
+            "The government sponsor approves changes; the NCI SI MCP project coordinator "
+            "relays that approval, and the reviewer acts for the coordinator."
+        )
+        for name in ("AGENTS.md", "CONTRIBUTING.md"):
+            paragraphs = [" ".join(p.split()) for p in read(name).split("\n\n")]
+            found = [p for p in paragraphs if p.startswith("The government sponsor")]
+            self.assertEqual(found, [expected], name)
+
+    def test_operations_signals_and_settings_match_their_runtime_owners(self):
+        path = ROOT / "docs/operations.md"
+        document = path.read_text() if path.exists() else ""
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("nci_si_mcp.server.configure_logging"),
+        ):
+            available = operations_signals(Settings(data_dir=Path(directory)))
+        self.assert_signals(document, available)
+        self.assert_settings(document)
+
+    def test_invented_operations_claims_fail_the_same_document_comparisons(self):
+        document = read("docs/operations.md")
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("nci_si_mcp.server.configure_logging"),
+        ):
+            available = operations_signals(Settings(data_dir=Path(directory)))
+        mutations = (
+            ("/ready`", "/invented`", self.assert_signals),
+            ("elapsedMs", "inventedField", self.assert_signals),
+            ("builtAt", "inventedDate", self.assert_signals),
+            ("NCI_SI_LOG_LEVEL", "NCI_SI_INVENTED", self.assert_settings),
+            ('`"INFO"`', '`"DEBUG"`', self.assert_settings),
+            (
+                "## Operational settings",
+                "NCI_SI_UNLISTED\n\n## Operational settings",
+                self.assert_settings,
+            ),
+        )
+        for old, new, compare in mutations:
+            with self.subTest(old=old):
+                self.assertIn(old, document)
+                arguments = (available,) if compare == self.assert_signals else ()
+                with self.assertRaises(AssertionError):
+                    compare(document.replace(old, new), *arguments)
 
 
 class DocumentationTest(unittest.TestCase):

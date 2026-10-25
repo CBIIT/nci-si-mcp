@@ -128,7 +128,7 @@ last two and the suite's CI; each family below is operational, and what depends 
 | Family | Scripts | Entry point | Depended on by |
 |---|---|---|---|
 | Gates | `validation/check_complexity.py`, `validation/check_test_quality.py`, `dependency_age.py`, `dependency_lock.py` | pre-commit hooks; the `audit` job; `pdm run lock` | every commit, the CI `quality` job; every committed dependency lock; reviewed dependency refreshes |
-| Acceptance in CI | `acceptance_http.py`, `permissions_fixture.py`, `upstream_requirements.py` | `pdm run acceptance-http`; the `acceptance` job's environment; a pre-commit hook | the `acceptance` and `acceptance-http` jobs, `docs/upstream/` |
+| Acceptance in CI | `acceptance_http.py`, `permissions_fixture.py`, `upstream_requirements.py`, `ssis_contracts.py` | `pdm run acceptance-http`; the `acceptance` job's environment; a pre-commit hook; `pdm run python -m scripts.ssis_contracts` | the `acceptance` and `acceptance-http` jobs, weekly `Acceptance (live)` Shared SI contracts, `docs/upstream/` |
 | Server container | `container_lock.py`, `container_smoke.py`, `image_scan.py`, `image_publish.py`, `Dockerfile` | the CI `image` job, the Release workflow | the published image |
 | Documentation site | `docs_site.py`, `docs_links.py`, `docs_stories.py`, `site_assets.py`, `static_server.py`, `companion_context.py`, `companion_lock.py`, `container/Docs.Dockerfile` | `pdm run docs-build`; the `documentation` and `companions` jobs | the hosted site |
 | Validation companion | `portal*.py`, `operator_*.py`, `evidence_*.py`, `companion_entry.py`, `companion_relay.py`, `companion_smoke.py`, `container/Admin.Dockerfile`, `container/compose.local.yaml` | `pdm run portal`, `pdm run operator-worker`; the `companions` job | `docs/local-validation.md`, `docs/companion-containers.md` |
@@ -280,6 +280,10 @@ adding exclusion pathspecs for generated files.
    the surviving mutants; close each real gap with a test that fails without the fix, and say
    which you judged equivalent and why. The fixes are pushed to the milestone branch after the
    pull request exists, and their rounds are posted as comments, as in step 5.
+
+The government sponsor approves changes; the NCI SI MCP project coordinator relays that approval,
+and the reviewer acts for the coordinator.
+
 8. **Merge only on the reviewer's clearance,** given as a PR comment that names the head commit,
    with `gh pr merge N --squash --subject "<title>" --body "" --delete-branch --match-head-commit
    <sha>`. A push after the clearance needs a new one. Wait for every workflow the pull request

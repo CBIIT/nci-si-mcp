@@ -281,7 +281,10 @@ class CaDSRClientTest(ServerTestCase):
         output = repr((str(raised.exception), raised.exception.details, records, logs.output))
         for secret in (credential, credential.split(":")[1], token):
             self.assertNotIn(secret, output)
-        self.assertIn("[redacted]", output)
+        self.assertEqual(
+            str(raised.exception),
+            "CADSR request failed for /NCILovAPI/1.0/api/getContextNames: HTTP 401 Unauthorized",
+        )
 
     def test_published_registry_release_uses_its_own_date_without_reading_export(self):
         row = {"identifier": "fixture-1", "generatedAt": "2026-08-01T12:30Z", "latest": True}
@@ -383,7 +386,10 @@ class ClientBoundaryTest(ServerTestCase):
         output = repr((str(raised.exception), raised.exception.details, records, logs.output))
         for secret in secrets:
             self.assertNotIn(secret, output)
-        self.assertIn("[redacted]", output)
+        self.assertEqual(
+            str(raised.exception),
+            "CADSR request failed for /vmMatch/v1/vmMatch: HTTP 401 Unauthorized",
+        )
 
     def test_value_matching_and_exports_use_their_configured_timeouts(self):
         client = self.cadsr(self.serve(), timeout_seconds=17, match_timeout_seconds=43)

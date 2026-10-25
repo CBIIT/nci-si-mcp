@@ -93,6 +93,14 @@ jobs:
           pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json --drift > acceptance/drift.md || status=$?
           { echo "### Upstream drift"; echo; cat acceptance/drift.md; } >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
+      - name: Check every anonymous Shared SI query contract
+        if: ${{ !cancelled() }}
+        env: {}
+        run: |
+          status=0
+          pdm run python -m scripts.ssis_contracts > acceptance/ssis-contracts.json || status=$?
+          { echo '### Shared SI query contracts'; echo; cat acceptance/ssis-contracts.json; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
       - name: Render the combined per-tool report
         if: always()
         run: |
@@ -112,5 +120,6 @@ jobs:
             acceptance/report.md
             acceptance/network.md
             acceptance/drift.md
+            acceptance/ssis-contracts.json
           if-no-files-found: warn
           retention-days: 30

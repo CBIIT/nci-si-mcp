@@ -403,6 +403,15 @@ def test_a_prompt_returns_messages_naming_the_tools_it_states_and_only_tools_of_
     # A prompt the specification does not furnish is the listing's finding, not this test's.
     furnished = {name: found for name, found in named.items() if name in PROMPTS}
     assert furnished == {name: PROMPTS[name]["tools"] for name in furnished}
+    assert {name: texts[name] for name in furnished} == {
+        name: PROMPTS[name]["template"].format(
+            **{
+                a["name"]: f"sample {a['name']}" if a["required"] else ""
+                for a in PROMPTS[name]["arguments"]
+            }
+        )
+        for name in furnished
+    }
 
 
 @pytest.mark.gate

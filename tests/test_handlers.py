@@ -221,7 +221,11 @@ class LookupTest(HandlerTestCase):
             result["error"]["details"],
             {"requested": "26.06e", "served": ["26.07a"], "source": "evs"},
         )
-        self.assertIn("26.07a", result["error"]["message"])
+        self.assertEqual(
+            result["error"]["message"],
+            "EVS served content of another release than the one requested. "
+            "Retry later; no content of another release is used.",
+        )
 
     def test_invalid_code_is_rejected_before_any_request(self):
         for code in ("not-a-code", "C12/children", "", None):
@@ -570,7 +574,7 @@ class StatusTest(HandlerTestCase):
         self.assertFalse(is_error_record(result), result)
         self.assert_error(result["evs_api"], "upstream_unavailable")
         self.assert_error(result["selected_release"], "release_not_available")
-        self.assertIn("2 ncit monthly", result["selected_release"]["error"]["message"])
+        self.assertIn("2 releases as latest", result["selected_release"]["error"]["message"])
         self.assertEqual(result["active_index"]["version"], "26.06e")
 
     def test_evaluate_scores_every_mode_and_names_gold_concepts_that_are_not_indexed(self):
@@ -860,10 +864,14 @@ class ErrorModelTest(HandlerTestCase):
     def test_ambiguous_monthly_releases_are_listed_in_the_error(self):
         self.evs.rows = TWO_LATEST
 
-        message = invoke(self.context, "lookup", "C3262")["error"]["message"]
+        error = invoke(self.context, "lookup", "C3262")["error"]
 
-        self.assertIn("26.06e", message)
-        self.assertIn("26.07a", message)
+        self.assertEqual(error["details"]["found"], ["26.06e", "26.07a"])
+        self.assertEqual(
+            error["message"],
+            "EVS lists 2 releases as latest, not exactly one. "
+            "Retry later, or set NCI_SI_RELEASE_CHANNEL to the other channel (monthly or weekly)",
+        )
 
 
 class OperatorErrorRemedyTest(ServerFixture):

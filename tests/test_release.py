@@ -127,8 +127,13 @@ class ResolveEvsReleaseTest(unittest.TestCase):
             if found:
                 details["found"] = found
             self.assertEqual(serialise(error)["error"]["details"], details)
-            self.assertIn(", ".join(found) or "none", error.message)
-            self.assertIn("NCI_SI_RELEASE_CHANNEL", error.message)
+            count = 2 if found else 0
+            self.assertEqual(
+                error.message,
+                f"EVS lists {count} releases as latest, not exactly one. "
+                "Retry later, or set NCI_SI_RELEASE_CHANNEL "
+                "to the other channel (monthly or weekly)",
+            )
 
     def test_a_row_without_a_version_is_not_a_release(self):
         absent = {key: value for key, value in MONTHLY.items() if key != "version"}
@@ -201,8 +206,21 @@ class UnknownReleaseTest(HandlerTestCase):
 
         self.assertEqual(result["error"]["code"], "release_not_available")
         self.assertEqual(result["error"]["details"], {"requested": "ncit_26.09d", "source": "evs"})
-        self.assertIn("Retry later", result["error"]["message"])
-        self.assertIn("no longer serves", result["error"]["message"])
+        self.assertEqual(
+            result["error"]["message"],
+            "EVS request failed for /api/v1/concept/ncit_26.09d/C4817: HTTP 404 Not Found. "
+            "Retry later: EVS no longer serves the release the request was pinned to.",
+        )
+
+    def test_prose_before_the_unknown_terminology_still_classifies_a_release_failure(self):
+        # Given a prefixed EVS message, when a concept is read, then the release
+        # failure names the upstream requested terminology rather than a missing concept.
+        client = EVSClient("https://example.invalid", max_attempts=1)
+        with self.answer_404("Error: Terminology not found = ncit_x"):
+            result = call("get_concept", lambda: client.get_concept("C4817", release=release()))
+
+        self.assertEqual(result["error"]["code"], "release_not_available")
+        self.assertEqual(result["error"]["details"], {"requested": "ncit_x", "source": "evs"})
 
 
 class ServiceReleaseTest(HandlerTestCase):

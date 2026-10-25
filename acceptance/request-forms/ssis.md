@@ -578,6 +578,22 @@ ones while a test selects it. A recorded fixture is what the service answers tod
 stands in for a case the service does not produce on demand, under the requirement it names, and
 answers the ordinary forms above.
 
+### `injection/cross-domain`
+
+Hostile C17357 data element name remains decoded source text. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/workflow`
+
+Hostile C4817 permissible value remains decoded source text. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/cross-domain-error`
+
+HTTP 400 with hostile text in the cross-domain message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/workflow-error`
+
+HTTP 400 with hostile text in the workflow message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
 ### `release/mismatch`
 
 Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 184 fixtures, for A3.4: the content served names another release than the one requested.
