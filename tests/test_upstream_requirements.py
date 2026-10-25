@@ -199,6 +199,9 @@ class PackageTests(unittest.TestCase):
         (root / "spec/requirements.yaml").write_text("X-1: {}\n")
         (root / "fixture.json").write_text('{"kind":"crafted"}')
         (root / packages.DIRECTORY / "catalogue.yaml").write_text(yaml.safe_dump(catalogue()))
+        (root / packages.DIRECTORY / "ssis-queries.yaml").write_text(
+            (packages.ROOT / packages.DIRECTORY / "ssis-queries.yaml").read_text()
+        )
         for mode in ("fixture", "live"):
             (root / packages.EVIDENCE / f"acceptance-{mode}.json").write_text(
                 json.dumps(report(mode))

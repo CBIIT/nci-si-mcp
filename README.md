@@ -81,6 +81,12 @@ trusted-local, and UAT/PROD administration is disabled
 protocol coverage and representative live measurements; caDSR
 credentialed content remains contract-fixture evidence until credentials are issued.
 
+Cross-domain joins and `ground_value` depend on Shared SI. The team's
+[8 October 2026 response](docs/upstream/team-responses-2026-10-08.md) reports maintenance
+mode without funding for new API development or maintenance. The project coordinator owns
+this [dependency risk and weekly query-contract register](docs/upstream/ssis-dependencies.md);
+EVS SPARQL and caDSR APIs are candidate alternatives, with no alternate-upstream fallback.
+
 The delivered phases are recorded, with their dates, in the
 [implementation plan](docs/implementation-plan.md) (Phases 0 to 6), the
 [Phase 6 assurance matrix](docs/phase-6-assurance.md), the

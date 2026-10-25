@@ -45,6 +45,7 @@ nav = [
     { "EVS" = "docs/upstream/evs.md" },
     { "caDSR" = "docs/upstream/cadsr.md" },
     { "Shared SI" = "docs/upstream/ssis.md" },
+    { "Shared SI query dependencies" = "docs/upstream/ssis-dependencies.md" },
   ] },
 ]
 

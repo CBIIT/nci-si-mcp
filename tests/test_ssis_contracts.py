@@ -1,11 +1,20 @@
 """The weekly command reports every family, including structural drift, offline."""
 
+import ast
 import copy
+import inspect
 import json
+import re
 import subprocess
 import sys
+import unittest
 from pathlib import Path
 
+import yaml
+from scripts.ssis_contracts import REGISTER, request, validate
+
+from nci_si_mcp.registry import SPECS
+from nci_si_mcp.ssis import SSISClient
 from test_http_client import Reply, ServerTestCase
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -94,3 +103,140 @@ class SSISContractCommandTest(ServerTestCase):
                 result, _ = self.command(payloads)
                 self.assertEqual(result.returncode, 1, result.stderr)
                 self.assertEqual([row["status"] for row in json.loads(result.stdout)], ["fail"] * 6)
+
+    def test_http_failure_is_reported_and_does_not_stop_later_queries(self):
+        server = self.serve(Reply(403), *[Reply(body=json.dumps(b).encode()) for b in bodies()[1:]])
+        result = subprocess.run(  # noqa: S603 - fixed CLI and local fixture URL
+            [sys.executable, "-m", "scripts.ssis_contracts", "--url", server.url],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        expected = passed()
+        expected[0] = {"id": "graph-identities", "status": "fail", "error": "UpstreamRejectedError"}
+        self.assertEqual(json.loads(result.stdout), expected)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len(server.bodies), 6)
+
+
+def normalized(query):
+    query = re.sub(r"ncit:C[1-9][0-9]*", "ncit:CODE", query)
+    query = re.sub(r'cadsr:publicId "[1-9][0-9]*"', 'cadsr:publicId "ID"', query)
+    return re.sub(r"LIMIT [0-9]+", "LIMIT BOUND", " ".join(query.split()))
+
+
+def query_operations():
+    tree = ast.parse(inspect.getsource(SSISClient))
+    return {
+        node.name
+        for node in tree.body[0].body
+        if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
+    }
+
+
+class SSISRegisterTest(unittest.TestCase):
+    def test_every_required_variable_is_required_even_when_other_terms_are_valid(self):
+        entries = yaml.safe_load(REGISTER.read_text())["queries"]
+        for entry, original in zip(entries, bodies(), strict=True):
+            for key in entry["required"]:
+                with self.subTest(family=entry["id"], missing=key):
+                    payload = copy.deepcopy(original)
+                    del payload["results"]["bindings"][0][key]
+                    with self.assertRaisesRegex(ValueError, "binding missing required variables"):
+                        validate(payload, entry)
+
+    def test_register_references_real_spec_requirements_and_tools(self):
+        requirements = yaml.safe_load((ROOT / "spec/requirements.yaml").read_text())
+        tools = {spec.name for spec in SPECS}
+        for entry in yaml.safe_load(REGISTER.read_text())["queries"]:
+            with self.subTest(family=entry["id"]):
+                self.assertLessEqual(set(entry["requirements"]), requirements.keys())
+                self.assertLessEqual(set(entry["consumers"]), tools)
+
+    def test_register_covers_every_query_operation_and_expansion_variant_exactly(self):
+        register = yaml.safe_load(REGISTER.read_text())
+        operations = query_operations()
+        entries = register["queries"]
+        self.assertEqual({entry["operation"] for entry in entries}, operations)
+        self.assertEqual(tuple(entry["id"] for entry in entries), IDS)
+        for operation in operations:
+            signature = inspect.signature(getattr(SSISClient, operation))
+            expected = [False, True] if "expand_descendants" in signature.parameters else [None]
+            actual = [
+                e["kwargs"].get("expand_descendants")
+                for e in entries
+                if e["operation"] == operation
+            ]
+            self.assertEqual(actual, expected)
+
+    def test_real_client_requests_match_independent_evidence_only_parameters_vary(self):
+        register = yaml.safe_load(REGISTER.read_text())
+        for entry in register["queries"]:
+            with self.subTest(family=entry["id"]):
+                fixture = json.loads((ROOT / "acceptance/fixtures" / entry["evidence"]).read_text())
+                captured = request(entry)
+                expected = fixture["request"]
+                self.assertEqual(
+                    register["transport"],
+                    {
+                        "method": expected["method"],
+                        "path": expected["path"],
+                        "accept": expected["headers"]["Accept"],
+                        "form": "query",
+                    },
+                )
+                self.assertEqual(
+                    (captured.path, captured.accept),
+                    (expected["path"], expected["headers"]["Accept"]),
+                )
+                self.assertEqual(set(captured.fields), {"query"})
+                self.assertEqual(
+                    normalized(captured.fields["query"]), normalized(expected["form"]["query"])
+                )
+                self.assertEqual(
+                    captured.fields["query"].split()[-2:], ["LIMIT", str(entry["limit"])]
+                )
+                if entry["args"]:
+                    varied = copy.deepcopy(entry)
+                    varied["args"] = ["123" if entry["id"] == "values-by-public-id" else "C4817"]
+                    varied["kwargs"]["maximum"] = 2
+                    changed = request(varied).fields["query"]
+                    self.assertEqual(normalized(changed), normalized(expected["form"]["query"]))
+                    self.assertEqual(changed.split()[-2:], ["LIMIT", "3"])
+
+    def test_structural_boundaries_and_semantic_identifiers_are_checked(self):
+        entry = yaml.safe_load(REGISTER.read_text())["queries"][1]
+        original = bodies()[1]
+        cases = [
+            (None, "response must be an object"),
+            ({"head": original["head"]}, "results.bindings must be a list"),
+        ]
+        for key, term, error in (
+            ("id", {"type": "literal", "value": "007"}, "id: invalid public identifier"),
+            ("version", {"type": "literal", "value": ""}, "version: must not be blank"),
+            ("name", {"type": "literal", "value": 3}, "name: term value must be a string"),
+        ):
+            payload = copy.deepcopy(original)
+            payload["results"]["bindings"][0][key] = term
+            cases.append((payload, error))
+        for payload, error in cases:
+            with self.subTest(error=error), self.assertRaises(ValueError) as raised:
+                validate(payload, entry)
+            self.assertEqual(str(raised.exception), error)
+
+    def test_optional_combinations_and_query_limit_are_not_silently_accepted(self):
+        entry = yaml.safe_load(REGISTER.read_text())["queries"][5]
+        original = bodies()[5]
+        payload = copy.deepcopy(original)
+        payload["results"]["bindings"] = [
+            {
+                "version": {"type": "literal", "value": "1"},
+                "concept": {"type": "uri", "value": "http://example.test/C1"},
+            }
+        ]
+        with self.assertRaisesRegex(ValueError, "inconsistent OPTIONAL"):
+            validate(payload, entry)
+        payload["results"]["bindings"] = original["results"]["bindings"][:1] * 1002
+        with self.assertRaisesRegex(ValueError, "exceed requested LIMIT"):
+            validate(payload, entry)

@@ -1,0 +1,71 @@
+# Current client families only; request text remains in independent fixture evidence.
+transport:
+  method: POST
+  path: /sparql
+  accept: application/sparql-results+json
+  form: query
+owner: NCI SI MCP project coordinator
+fallback: upstream_unavailable; graph comparison may return release_not_available or release_mismatch
+weekly: Acceptance (live), anonymous structural check for every family
+queries:
+  - id: graph-identities
+    operation: get_graph_identities
+    args: []
+    kwargs: {}
+    evidence: crafted/ssis-sparql/graph-identities-bounded.json
+    selected: [graph, version, date]
+    required: [graph, date]
+    limit: 3
+    consumers: [find_data_elements_for_concept, get_concept_for_permissible_value, get_release_alignment, ground_value]
+    requirements: [X-1, X-2, X-3, get_release_alignment-1]
+  - id: elements-exact
+    operation: find_data_elements
+    args: [C17357]
+    kwargs: {expand_descendants: false, maximum: 1000}
+    evidence: recorded/ssis-sparql/data-elements-c17357.json
+    selected: [id, version, name]
+    required: [id, version, name]
+    limit: 1001
+    consumers: [find_data_elements_for_concept, ground_value]
+    requirements: [find_data_elements_for_concept-1, ground_value-1]
+  - id: elements-descendants
+    operation: find_data_elements
+    args: [C17357]
+    kwargs: {expand_descendants: true, maximum: 1000}
+    evidence: recorded/ssis-sparql/data-elements-c17357-descendants.json
+    selected: [id, version, name]
+    required: [id, version, name]
+    limit: 1001
+    consumers: [find_data_elements_for_concept]
+    requirements: [find_data_elements_for_concept-1]
+  - id: values-exact
+    operation: find_permissible_values
+    args: [C20197]
+    kwargs: {expand_descendants: false, maximum: 1000}
+    evidence: recorded/ssis-sparql/values-c20197.json
+    selected: [id, version, value, concept]
+    required: [id, version, value, concept]
+    limit: 1001
+    consumers: [find_data_elements_for_concept, ground_value]
+    requirements: [find_data_elements_for_concept-1, ground_value-1]
+  - id: values-descendants
+    operation: find_permissible_values
+    args: [C17357]
+    kwargs: {expand_descendants: true, maximum: 1000}
+    evidence: recorded/ssis-sparql/values-c17357-descendants.json
+    selected: [id, version, value, concept]
+    required: [id, version, value, concept]
+    limit: 1001
+    consumers: [find_data_elements_for_concept]
+    requirements: [find_data_elements_for_concept-1]
+  - id: values-by-public-id
+    operation: get_permissible_values
+    args: ['2200604']
+    kwargs: {maximum: 1000}
+    evidence: crafted/ssis-sparql/values-of-2200604-optional.json
+    selected: [version, value, concept, role]
+    required: [version]
+    optional_groups: [[], [value], [value, concept, role]]
+    limit: 1001
+    consumers: [get_concept_for_permissible_value]
+    requirements: [get_concept_for_permissible_value-1]
