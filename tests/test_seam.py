@@ -180,13 +180,17 @@ class SeamTest(unittest.TestCase):
         self.ssis.graphs[0]["version"] = "26.05d"
         result = self.call(conceptCode="C1", release="26.06e", expandDescendants=True)
         self.assertEqual(result["error"]["code"], "release_mismatch")
-        self.assertEqual(result["error"]["details"]["source"], NCIT_GRAPH)
+        self.assertEqual(
+            result["error"]["details"],
+            {"requested": "26.06e", "served": ["26.05d"], "source": NCIT_GRAPH},
+        )
         self.assertEqual(self.ssis.calls, [("identities",)])
 
     def test_missing_graph_version_is_release_not_available(self):
         del self.ssis.graphs[0]["version"]
         result = self.call(conceptCode="C1", release="26.06e", expandDescendants=True)
         self.assertEqual(result["error"]["code"], "release_not_available")
+        self.assertEqual(result["error"]["details"], {"requested": "26.06e", "source": NCIT_GRAPH})
         self.assertEqual(self.ssis.calls, [("identities",)])
 
     def test_one_stream_pages_elements_then_values_with_both_arrays_present(self):
