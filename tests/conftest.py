@@ -13,3 +13,7 @@ def _clean_settings_environment(monkeypatch):
     """
     for name in [name for name in os.environ if name.startswith("NCI_SI_")]:
         monkeypatch.delenv(name)
+    # Git hooks export repository-local paths. Tests that create their own repositories must
+    # not redirect `git init`, commits, refs or installed hooks into the caller's checkout.
+    for name in [name for name in os.environ if name.startswith("GIT_")]:
+        monkeypatch.delenv(name)

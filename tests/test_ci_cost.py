@@ -14,7 +14,21 @@ CI = yaml.safe_load(Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
 class CiCostTest(unittest.TestCase):
     def test_ci_starts_on_the_same_events(self):
-        self.assertEqual(CI[True], {"push": {"branches": ["main"]}, "pull_request": None})
+        self.assertEqual(
+            CI[True],
+            {"push": {"branches": ["main"]}, "pull_request": None, "workflow_dispatch": None},
+        )
+
+    def test_only_pull_request_runs_can_be_cancelled_by_newer_runs(self):
+        self.assertEqual(
+            CI["concurrency"],
+            {
+                "group": (
+                    "ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}"
+                ),
+                "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
+            },
+        )
 
     def test_every_workflow_job_has_its_exact_runner(self):
         runners = {

@@ -48,10 +48,10 @@ These are the owner's rules. They apply to every change.
   could observe and must be able to fail on a regression. A test of a workflow or other
   configuration file asserts the exact value of each property it protects (a job's condition,
   permissions, dependencies, environment and commands), never a substring or one member of a list.
-- **Coverage: the checked minimum is 90%, the aim is above 95%.** The gap exists so that nobody
+- **Coverage: the checked minimum is 95%, the aim is above 97%.** The gap exists so that nobody
   pads coverage to pass a threshold. Take every real opportunity to cover untested behaviour;
   never write a test whose purpose is the number (no assertion-free tests, no tests that only
-  check that a mock was called). CI fails below 90% and warns at or below 95%.
+  check that a mock was called). CI fails below 95% and warns at or below 97%.
 - **Design: KISS and DRY.** The simplest structure that does the job, one place for each fact,
   and the established architecture (thin adapters over the registry, one error path, closed value
   sets in `validation.py`). No abstraction for a single use.
@@ -72,12 +72,12 @@ The project is managed with PDM (Python 3.14 or newer); `pdm install` builds `.v
 `pdm.lock` with the test and lint tools and the `server` and `index` extras.
 
 ```bash
-pdm run test                              # whole suite, with the 90% coverage floor
+pdm run test                              # whole suite, with the 95% coverage floor
 pdm run pytest tests/test_index.py        # one file, no coverage floor
 pdm run pytest tests/test_handlers.py -k LookupTest
 pdm run lint                              # ruff check + basedpyright, the fast check
 pdm run fmt                               # ruff format
-pdm run pre-commit run --all-files        # every hook, as the CI quality job runs them
+pdm run pre-commit run --all-files        # every commit-stage hook, as the CI quality job runs them
 NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py' NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --dist worksteal --report=fixture.json  # fixture mode, prepared as in CI
 pdm run acceptance-expected check acceptance/fixture.json    # the report against the expected outcomes
 pdm run acceptance-expected update acceptance/fixture.json   # rewrite the expected outcomes
@@ -91,7 +91,8 @@ pdm run quickstart-tools                  # regenerate the tool table of QUICKST
   so the project's environment and configuration apply.
 - The tests are unittest-style and offline. They import shared doubles with `from fakes import
   ...`; `tests/` is on the path through the pytest configuration.
-- Hooks are never skipped (`--no-verify`, `SKIP=`). A failing hook is fixed. Besides Ruff and
+- Hooks are never skipped (`--no-verify`, `SKIP=`). A failing hook is fixed. The pre-push hook
+  runs `pdm run test`. Besides Ruff and
   basedpyright (`src`, `scripts` and `acceptance/src`), the hooks run `scripts/validation/check_complexity.py`
   (every function below 8, nested ones and the tests included), `check_test_quality.py` (no test
   without a behaviour assertion; an assertion in a nested function or class that the test never
@@ -126,7 +127,7 @@ last two and the suite's CI; each family below is operational, and what depends 
 
 | Family | Scripts | Entry point | Depended on by |
 |---|---|---|---|
-| Gates | `validation/check_complexity.py`, `validation/check_test_quality.py` | pre-commit hooks | every commit, the CI `quality` job |
+| Gates | `validation/check_complexity.py`, `validation/check_test_quality.py`, `dependency_age.py`, `dependency_lock.py` | pre-commit hooks; the `audit` job; `pdm run lock` | every commit, the CI `quality` job; every committed dependency lock; reviewed dependency refreshes |
 | Acceptance in CI | `acceptance_http.py`, `permissions_fixture.py`, `upstream_requirements.py` | `pdm run acceptance-http`; the `acceptance` job's environment; a pre-commit hook | the `acceptance` and `acceptance-http` jobs, `docs/upstream/` |
 | Server container | `container_lock.py`, `container_smoke.py`, `image_scan.py`, `image_publish.py`, `Dockerfile` | the CI `image` job, the Release workflow | the published image |
 | Documentation site | `docs_site.py`, `docs_links.py`, `docs_stories.py`, `site_assets.py`, `static_server.py`, `companion_context.py`, `companion_lock.py`, `container/Docs.Dockerfile` | `pdm run docs-build`; the `documentation` and `companions` jobs | the hosted site |
@@ -135,6 +136,8 @@ last two and the suite's CI; each family below is operational, and what depends 
 | Shared process helpers | `processes.py` | imported by the acceptance, container, companion, operator and benchmark scripts | every script that owns or waits for a process |
 | Shared formats, vocabularies, lock lines and files | `formats.py`, `vocabulary.py`, `requirements_lock.py`, `operator_files.py` | imported by the evidence, portal, docs, operator, benchmark and lock scripts | every script that checks a hash, job id or release tag, every run and job stop reason and state, both requirement locks, and every atomic JSON write |
 | README badges | `coverage_badges.py` | the CI `coverage-badges` job | the README |
+| Test reports | `junit_summary.py` | CI unit and self-test report steps | per-run summaries and JUnit artifacts |
+| Workflow setup | `github_setup.py` | `pdm run github-setup` | repository maintainers; the live workflow's credential inventory |
 
 A script that served an ephemeral purpose and is no longer needed to operate or maintain the
 server, the suite or the site is removed with its tests, after verifying that nothing depends on
@@ -185,7 +188,11 @@ The reviewer is the NCI SI MCP project coordinator, or the reviewer acting for t
 Reviewer instructions, approvals, findings and clearance are GitHub comments whose first line
 starts with `## Reviewer`; treat them as binding, as if relayed by the owner. Both roles use the
 owner's account, so the heading identifies the reviewer. While waiting, poll the issue or PR
-and the current milestone's open issues every five minutes for these comments and act on them.
+and the current milestone's open issues every minute for these comments and act on them. A wait
+on a clock or on one answer never idles the work: take up whatever does not depend on it (the
+next review round, the next issue's plan, a measurement the pull request needs) and say so in a
+comment; if nothing can start, say what is blocked and until when. Polling continues until the
+milestone is merged and cleaned up; it never ends the session.
 Post plans, review rounds and reviewer questions as GitHub comments; the reviewer answers there.
 Ask the owner directly only for owner decisions: scope, specification conventions, repository
 settings and rulesets.
