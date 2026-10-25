@@ -92,6 +92,12 @@ class PromptStepsTest(ServerFixture):
 
         self.assertIn("leave registryRelease unset", text)
         self.assertIn("(C-1)", text)
+        self.assertIn(
+            "For each candidate, call get_data_element with its publicId and include "
+            "permissibleValues, and compare its context, workflow status, registration status "
+            "and permissible values.",
+            text,
+        )
         self.assertIn("If the protocol already names a form, call get_form with its publicId", text)
 
     def test_crdc_alignment_pages_the_code_maps_of_the_commons_and_picks_the_field(self):
