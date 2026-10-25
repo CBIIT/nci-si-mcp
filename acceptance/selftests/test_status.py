@@ -248,6 +248,21 @@ def test_exact_live_table_with_scenario_and_credential_precedence(monkeypatch):
         },
     )
     report = live_rows()
+    report["tests"] |= {
+        "foreign::not_implemented": {
+            "tool": "list_classification_schemes",
+            "gate": False,
+            "outcome": "not_implemented",
+            "unmatched": [],
+        },
+        "foreign::skipped": {
+            "tool": "resolve_release",
+            "gate": False,
+            "outcome": "skipped",
+            "unmatched": [],
+        },
+    }
+    report["run"] |= {"selected": 11, "finished": 11}
     metadata = provenance(json.dumps(report).encode())
     rendered = status.render_live(report, metadata, status.skip_contexts())
     assert rendered == (
@@ -262,12 +277,14 @@ def test_exact_live_table_with_scenario_and_credential_precedence(monkeypatch):
         "| `match_data_elements` | 1 / 0 / 3 | 1 crafted scenario (fixture-only); "
         "1 credentials not issued ([cadsr-access](docs/upstream/cadsr.md#cadsr-access)); "
         "1 unrecorded |\n"
-        "| `list_classification_schemes` | 0 / 0 / 1 | 1 upstream capability gap "
-        "([cadsr-discovery](docs/upstream/cadsr.md#cadsr-discovery)) |\n"
-        "| `resolve_release` | 0 / 1 / 1 | 1 not yet probed by this live acceptance run |\n"
+        "| `list_classification_schemes` | 0 / 0 / 2 | 1 upstream capability gap "
+        "([cadsr-discovery](docs/upstream/cadsr.md#cadsr-discovery)); "
+        "1 other skip (not not_live) |\n"
+        "| `resolve_release` | 0 / 1 / 2 | 1 not yet probed by this live acceptance run; "
+        "1 other skip (not not_live) |\n"
         "| Unattributed gates | 1 / 0 / 1 | 1 crafted scenario (fixture-only) |\n"
-        "| **Total** | **2 / 1 / 6** | |\n\n"
-        "2 passed / 1 failed / 6 skipped. Skipped includes `not_live`, `not_implemented` and "
+        "| **Total** | **2 / 1 / 8** | |\n\n"
+        "2 passed / 1 failed / 8 skipped. Skipped includes `not_live`, `not_implemented` and "
         "ordinary skips; only `not_live` has the reason contexts above. "
         "Passed validation/refusal tests do not establish live content retrieval. "
         "Unrecorded reasons are never inferred from current test markers."
@@ -292,6 +309,26 @@ def test_provenance_rejects_wrong_origin_or_hash(tmp_path, field, value):
     (tmp_path / "latest.yaml").write_text(yaml.safe_dump(provenance(raw) | {field: value}))
     with pytest.raises(ValueError, match="provenance"):
         status.load_live(tmp_path)
+
+
+def test_check_rejects_fixture_evidence_with_valid_scheduled_main_provenance_without_writing(
+    tmp_path,
+):
+    raw = json.dumps(live_rows() | {"mode": "fixture"}).encode()
+    report = tmp_path / "latest.json"
+    metadata = tmp_path / "latest.yaml"
+    readme = tmp_path / "README.md"
+    report.write_bytes(raw)
+    metadata.write_text(yaml.safe_dump(provenance(raw)))
+    readme.write_text(f"before\n{BEGIN}\nold status\n{END}\nafter\n")
+    before = {path.name: path.read_bytes() for path in tmp_path.iterdir()}
+
+    ran = run_status("--check", "--readme", str(readme), "--live-dir", str(tmp_path))
+
+    assert ran.returncode == 1
+    assert "ValueError: Live evidence must contain a live report" in ran.stderr
+    assert ran.stdout == ""
+    assert {path.name: path.read_bytes() for path in tmp_path.iterdir()} == before
 
 
 @pytest.mark.parametrize("change", ["report", "provenance"])

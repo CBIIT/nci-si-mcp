@@ -150,6 +150,25 @@ def test_only_the_winning_phase_owns_the_skip_reason(later):
     }
 
 
+def test_teardown_error_drops_the_live_skip_reason_carried_by_every_item_phase():
+    phases = [phase("setup", "passed"), phase("call", "skipped"), phase("teardown", "failed")]
+    for report in phases:
+        report.user_properties.extend([(SKIP, LIVE), ("not_live_reason", "scenario")])
+
+    report = collected(*((item, "get_form", False) for item in phases)) | {
+        "mode": "live",
+        "suite": SUITE,
+    }
+
+    assert report["tests"]["t.py::test_a"] == {
+        "tool": "get_form",
+        "gate": False,
+        "outcome": "failed",
+        "unmatched": [],
+    }
+    assert NativeReport.from_dict(json.loads(json.dumps(report))).to_dict() == report
+
+
 def test_a_tool_row_holds_its_verdict_and_counts_and_no_alias_of_the_name():
     report = collected((phase("call", "passed"), "get_concept", False))
 
