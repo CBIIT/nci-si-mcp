@@ -51,6 +51,7 @@ def require(condition: bool, message: str) -> None:
 
 
 def term_value(key: str, term: Any) -> str:
+    """Check consumed fields only; ignore unused datatype and xml:lang metadata."""
     require(isinstance(term, dict), f"{key}: term must be an object")
     require(term.get("type") in ("uri", "literal", "typed-literal"), f"{key}: invalid term type")
     value = term.get("value")
