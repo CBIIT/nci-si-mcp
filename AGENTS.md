@@ -273,6 +273,10 @@ adding exclusion pathspecs for generated files.
    the surviving mutants; close each real gap with a test that fails without the fix, and say
    which you judged equivalent and why. The fixes are pushed to the milestone branch after the
    pull request exists, and their rounds are posted as comments, as in step 5.
+
+The government sponsor approves changes; the NCI SI MCP project coordinator relays that approval,
+and the reviewer acts for the coordinator.
+
 8. **Merge only on the reviewer's clearance,** given as a PR comment that names the head commit,
    with `gh pr merge N --squash --subject "<title>" --body "" --delete-branch --match-head-commit
    <sha>`. A push after the clearance needs a new one. Wait for every workflow the pull request

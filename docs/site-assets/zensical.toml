@@ -15,6 +15,7 @@ nav = [
     { "Architecture" = "ARCHITECTURE.md" },
     { "Content-injection threat model" = "docs/threat-model.md" },
     { "Local and cloud deployment" = "docs/deployment.md" },
+    { "Operations and authorization evidence" = "docs/operations.md" },
     { "HTTP transport" = "docs/transport.md" },
     { "Container operations" = "docs/container.md" },
     { "Local companion containers" = "docs/companion-containers.md" },
