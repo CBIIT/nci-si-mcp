@@ -8,6 +8,7 @@ the error and handed to the request-log hook. A response is classified before it
 failure masked as a success is an `upstream_unavailable` error (`upstream.parse_upstream_json`).
 A credential is sent only to the platform the client was made for, and appears in no log record,
 hook record, error message or error detail (A7.5).
+HTTP protocol failures use server-owned wording, never the upstream status line or exception text.
 """
 
 from __future__ import annotations
@@ -432,7 +433,13 @@ class HttpClient:
         except HTTPError as exc:
             attempt.status, attempt.failure = exc.code, "http_status"
             failure = self._http_failure(exc, path, attempt)
-        except (OSError, HTTPException) as exc:
+        except HTTPException as exc:
+            attempt.failure = _transport_failure(exc)
+            failure = _Transient(
+                self._redact(f"{self.label} request failed for {path}: invalid HTTP response"),
+                timed_out=_timed_out(exc),
+            )
+        except OSError as exc:
             attempt.failure = _transport_failure(exc)
             reason = getattr(exc, "reason", None) or exc
             failure = _Transient(
