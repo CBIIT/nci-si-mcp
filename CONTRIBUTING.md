@@ -175,6 +175,14 @@ reason beside the suppression, or once in the module when it repeats.
 
 ## Pull requests and releases
 
+The government sponsor approves changes; the NCI SI MCP project coordinator relays that approval,
+and the reviewer acts for the coordinator.
+
+Merge clearance is a reviewer PR comment naming the head commit; a subsequent push needs new
+clearance, after all triggered workflows pass. See [AGENTS.md](AGENTS.md#the-milestone-once-all-its-issues-are-merged)
+for the milestone process and [operations](docs/operations.md) for available signals, ATO
+evidence inputs and open hosting responsibilities.
+
 Every change reaches `main` through a pull request that is squash-merged. The pull request
 title becomes the commit subject, and the next version is computed from it, so the title is a
 [Conventional Commit](https://www.conventionalcommits.org) subject. A check on the pull request

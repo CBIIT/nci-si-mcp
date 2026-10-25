@@ -41,6 +41,7 @@ remains pending. The [caller-permission flow](docs/caller-permissions.md) shows 
 | [Index lifecycle](#index-lifecycle) | When can a build serve requests, and how does rollback work? |
 | [Persistence schema](#persistence-schema) | How are concepts, fields and vectors related? |
 | [Local and cloud deployment](docs/deployment.md) | Which processes, assets and network boundaries does an operator need? |
+| [Operations and authorization evidence](docs/operations.md) | Which signals exist, and which monitoring, retention and control obligations belong to the platform? |
 | [HTTP session routing](docs/transport.md#session-routing-sequence) | What happens when a known session reaches another replica? |
 | [Release pipeline](docs/container.md#release-pipeline) | How does a tested commit become a verified image? |
 | [Validation evidence](docs/evidence-contract.md#evidence-flow) | How are results bound to their original run without inventing completeness or trust? |
