@@ -169,10 +169,17 @@ class SSISContractCommandTest(ServerTestCase):
         self.assertEqual(len(server.bodies), 6)
 
     def test_recorded_and_approved_optional_contracts_pass(self):
+        # Given valid responses, when the CLI checks every family, then the wire
+        # path and Accept match the real SSIS client's planned request for each.
         result, server = self.command(bodies())
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout), passed())
-        self.assertEqual([path for path, _ in server.seen], ["/sparql"] * 6)
+        entries = yaml.safe_load(REGISTER.read_text())["queries"]
+        planned = [request(entry) for entry in entries]
+        self.assertEqual(
+            [(path, headers["accept"]) for path, headers in server.seen],
+            [(item.path, item.accept) for item in planned],
+        )
 
     def test_both_graph_identities_are_required_but_content_families_may_be_empty(self):
         # Given empty content families and zero, one or both graph identities, when
@@ -197,8 +204,11 @@ class SSISContractCommandTest(ServerTestCase):
                 self.assertEqual(result.returncode, int(missing), result.stderr)
                 self.assertEqual(len(server.bodies), 6)
 
-    def test_unselected_binding_and_third_graph_fail_the_exact_family(self):
+    def test_invalid_binding_and_third_graph_fail_the_exact_family(self):
+        # Given one malformed row, when the CLI runs, then that family's exact
+        # failure is reported and every other family still passes.
         for index, key, term, error in (
+            (1, None, "x", "binding must be an object"),
             (
                 1,
                 "unselected",
@@ -217,7 +227,10 @@ class SSISContractCommandTest(ServerTestCase):
                 rows = payloads[index]["results"]["bindings"]
                 if index == 0:
                     rows.append(copy.deepcopy(rows[0]))
-                rows[-1][key] = term
+                if key is None:
+                    rows[-1] = term
+                else:
+                    rows[-1][key] = term
                 result, server = self.command(payloads)
                 expected = passed()
                 expected[index] = {"id": IDS[index], "status": "fail", "error": error}
@@ -319,7 +332,9 @@ class SSISRegisterTest(unittest.TestCase):
                         validate(payload, entry)
                     self.assertEqual(str(raised.exception), "concept: expected NCIt concept URI")
 
-    def test_valid_item_versions_and_opaque_graph_versions_pass(self):
+    def test_valid_item_versions_and_nonblank_opaque_graph_versions(self):
+        # Given an opaque graph version, when it is checked, then arbitrary
+        # release strings pass but empty and whitespace-only strings fail.
         entries = yaml.safe_load(REGISTER.read_text())["queries"]
         for entry, original in zip(entries, bodies(), strict=True):
             versions = (
@@ -335,6 +350,13 @@ class SSISRegisterTest(unittest.TestCase):
                         "value": version,
                     }
                     self.assertIsNone(validate(payload, entry))
+        for version in ("", "  "):
+            with self.subTest(family=IDS[0], version=version):
+                payload = bodies()[0]
+                payload["results"]["bindings"][0]["version"]["value"] = version
+                with self.assertRaises(ValueError) as raised:
+                    validate(payload, entries[0])
+                self.assertEqual(str(raised.exception), "version: must not be blank")
 
     def test_every_required_variable_is_required_even_when_other_terms_are_valid(self):
         entries = yaml.safe_load(REGISTER.read_text())["queries"]
@@ -489,10 +511,24 @@ class SSISRegisterTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "exceed requested LIMIT"):
             validate(payload, entry)
 
-    def test_concept_and_role_require_absolute_uris_and_role_must_be_main(self):
-        entry = yaml.safe_load(REGISTER.read_text())["queries"][5]
-        original = bodies()[5]
+    def test_graph_concept_and_role_require_absolute_uris_and_role_must_be_main(self):
+        # Given the correct graph URI with a literal term type, when validated,
+        # then it fails the URI contract just like non-URI concept and role terms.
+        entries = yaml.safe_load(REGISTER.read_text())["queries"]
+        originals = bodies()
         cases = (
+            (
+                "graph",
+                "literal",
+                "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf",
+                "graph: expected absolute URI",
+            ),
+            (
+                "graph",
+                "typed-literal",
+                "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf",
+                "graph: expected absolute URI",
+            ),
             ("concept", "literal", "http://example.test/C1", "concept: expected absolute URI"),
             (
                 "role",
@@ -511,8 +547,9 @@ class SSISRegisterTest(unittest.TestCase):
         )
         for key, kind, value, error in cases:
             with self.subTest(key=key, kind=kind, value=value):
-                payload = copy.deepcopy(original)
+                index = 0 if key == "graph" else 5
+                payload = copy.deepcopy(originals[index])
                 payload["results"]["bindings"][0][key] = {"type": kind, "value": value}
                 with self.assertRaises(ValueError) as raised:
-                    validate(payload, entry)
+                    validate(payload, entries[index])
                 self.assertEqual(str(raised.exception), error)
