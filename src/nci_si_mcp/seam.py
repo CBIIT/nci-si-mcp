@@ -7,6 +7,7 @@ import json
 import re
 from collections.abc import Iterator
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Annotated, Any, NoReturn
 
 from . import cadsr_content, content
@@ -69,10 +70,9 @@ def _identifier(value: Any, pattern: str, field: str, surface: str = "ssis") -> 
     return value
 
 
-def _version(value: Any) -> tuple[int, int]:
+def _version(value: Any) -> Decimal:
     value = _identifier(value, ITEM_VERSION_FORM, "data-element version")
-    major, _, minor = value.partition(".")
-    return int(major), int(minor or "0")
+    return Decimal(value)
 
 
 def _date(value: Any, surface: str) -> str:
@@ -404,7 +404,7 @@ def get_concept_for_permissible_value(
     permissibleValueId is capability_unavailable until caDSR serves it (OP-C10).
 
     Returns the value's main concept from the data element's latest item version (numerically:
-    2.10 follows 2.9), with provenance naming both content states. The value is compared
+    2.9 follows 2.10), with provenance naming both content states. The value is compared
     exactly, without trimming or case folding; minor concepts are only qualifiers.
 
     not_found when the latest version has no such value; upstream_unavailable naming the

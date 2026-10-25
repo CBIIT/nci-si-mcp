@@ -214,7 +214,8 @@ get_data_element:
     selects; without include, the record's own fields. questionText finds it by its preferred
     question text, an invalid request naming the candidates where several have it and not_found
     where none has; longName is capability_unavailable until the platform serves that lookup
-    (OP-C02).
+    (OP-C02). Item versions compare by exact numeric value (4 equals 4.0); request spelling
+    and the upstream version string in content and provenance are preserved.
 search_data_elements:
   title: Data element search
   group: cadsr
@@ -277,7 +278,8 @@ get_form:
     A form or case report form by public id, with its definition, type, dates, instructions and
     classification schemes as the platform gives them, and its modules and questions; a keyword
     is an invalid request saying the platform needs an identifier (Form/query takes a public or
-    protocol id only).
+    protocol id only). Item versions compare by exact numeric value (1 equals 1.0); request
+    spelling and the upstream version string in content and provenance are preserved.
 get_permissible_value:
   title: Permissible value details
   group: cadsr

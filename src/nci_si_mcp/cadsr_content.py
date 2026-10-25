@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from decimal import Decimal
 from typing import Annotated, Any, NoReturn, get_args
 
 from . import cursor as cursors
@@ -357,7 +358,8 @@ def get_data_element(
     permissible values and schemes carry provenance. Its conceptAssociations section lists the
     concepts behind the element. referenceDocuments returns all upstream rows, including
     question texts, references and templates. Scalar metadata is null when the producing
-    answer supplies none; no other operation is queried to fill it.
+    answer supplies none; no other operation is queried to fill it. Item versions compare
+    numerically (4 equals 4.0); request and upstream version spellings are preserved.
 
     not_found when no element has that publicId and version or that question text;
     invalid_request naming the candidates when several have the text. longName is not served by
@@ -390,9 +392,10 @@ def get_data_element(
 
 
 def _verify_item(raw: dict[str, Any], identifier: str, version: str | None) -> None:
+    _validate_key(raw)
     if raw.get("publicId") != identifier:
         _malformed("data element identity (different from the public id requested)")
-    if version is not None and raw.get("version") != version:
+    if version is not None and Decimal(raw["version"]) != Decimal(version):
         _malformed("data element version (different from the item version requested)")
 
 
@@ -695,7 +698,8 @@ def get_form(
 
     Returns the form with its statuses unchanged (a retired form stays retired), its definition,
     type, dates, instructions and classification schemes as the platform gives them, and, unless
-    left out, modules and questions in platform order, with provenance.
+    left out, modules and questions in platform order, with provenance. Item versions compare
+    numerically (1 equals 1.0); request and upstream version spellings are preserved.
 
     not_found when the platform reports an unknown form; invalid_request for a keyword or a bad
     id; capability_unavailable for a published registry pin until C-1 defines how forms are

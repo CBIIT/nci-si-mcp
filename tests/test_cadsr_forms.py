@@ -245,11 +245,11 @@ class FormsTest(CaDSRFixture):
 class FormAndCodeMapBoundaryTest(CaDSRFixture):
     def test_form_provenance_uri_keeps_version(self):
         server = self.serve(reply({"form": form()}))
-        result = self.call(server, "get_form", publicId="123", version="2")
+        result = self.call(server, "get_form", publicId="123", version="2.00")
         self.assertEqual(result["provenance"]["source"], "cadsr_rest")
         self.assertEqual(result["provenance"]["sourceUri"], server.url + server.seen[0][0])
         self.assertEqual(
-            parse_qs(urlsplit(result["provenance"]["sourceUri"]).query), {"version": ["2"]}
+            parse_qs(urlsplit(result["provenance"]["sourceUri"]).query), {"version": ["2.00"]}
         )
 
     def test_code_map_single_unmapped_value_has_zero_coverage(self):

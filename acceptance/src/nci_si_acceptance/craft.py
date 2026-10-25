@@ -1093,6 +1093,25 @@ def cadsr_over_cap(_: Recorded) -> Documents:
     }
 
 
+def cadsr_numeric_versions(recorded: Recorded) -> Documents:
+    """Exact version queries reuse recorded bodies, with their original version spelling."""
+    documents = {}
+    for name, source, version in (
+        ("element-4.0", "data-element-2200604", "4.0"),
+        ("form-1", "form-5406471", "1"),
+        ("form-1.0", "form-5406471", "1.0"),
+    ):
+        origin = f"recorded/cadsr/{source}.json"
+        document = recorded(origin)
+        request = document["request"] | {"params": {"version": [version]}}
+        documents[f"crafted/cadsr/numeric-version-{name}.json"] = crafted(
+            "get_data_element-1, get_form-1: exact numeric item-version identity",
+            request,
+            response=document["response"],
+        ) | {"derived_from": origin}
+    return documents
+
+
 SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     release_session,
     release_mismatch,
@@ -1115,6 +1134,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     cadsr_credentialed,
     cadsr_match_timeout,
     cadsr_over_cap,
+    cadsr_numeric_versions,
     cadsr_html_for_json,
     cadsr_match_without_a_concept,
     upstream_masked_error,

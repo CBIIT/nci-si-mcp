@@ -285,10 +285,10 @@ class SeamTest(unittest.TestCase):
         result = self.call(
             "get_concept_for_permissible_value", dataElementId="123", value="Male", release="26.06e"
         )
-        self.assertEqual(result["code"], "C2")
+        self.assertEqual(result["code"], "C1")
         self.assertEqual(
             result["permissibleValue"],
-            {"dataElement": {"publicId": "123", "version": "2.10"}, "value": "Male"},
+            {"dataElement": {"publicId": "123", "version": "2.9"}, "value": "Male"},
         )
         # The concept read and the graphs queried are both the call's origin.
         self.assertEqual(
@@ -299,9 +299,9 @@ class SeamTest(unittest.TestCase):
 
     def test_older_values_and_inexact_spelling_are_not_candidates(self):
         self.ssis.element_values = [
-            value_row(version="2.9"),
-            value_row(value="Other", version="2.10"),
-            value_row(value="Female", version="2.10"),
+            value_row(version="2.10"),
+            value_row(value="Other", version="2.9"),
+            value_row(value="Female", version="2.9"),
         ]
         for text in ("Male", "male", "female", " Female", "Female "):
             with self.subTest(text=text):
@@ -325,6 +325,10 @@ class SeamTest(unittest.TestCase):
             ([value_row(code="C1"), value_row(code="C2")], ["C1", "C2"]),
             ([value_row(code=None)], []),
             ([value_row(code=None), value_row()], ["C1"]),
+            (
+                [value_row(code="C1", version="1.1"), value_row(code="C2", version="1.10")],
+                ["C1", "C2"],
+            ),
         ):
             with self.subTest(candidates=candidates):
                 self.ssis.element_values = rows
@@ -342,14 +346,15 @@ class SeamTest(unittest.TestCase):
                 self.assertNotIn("retry", result["error"]["message"].lower())
 
     def test_identical_main_rows_do_not_create_ambiguity(self):
-        self.ssis.element_values = [value_row(), value_row()]
+        self.ssis.element_values = [value_row(version="1.10"), value_row(version="1.1")]
         result = self.call(
             "get_concept_for_permissible_value", dataElementId="123", value="Male", release="26.06e"
         )
         self.assertEqual(result["code"], "C1")
+        self.assertEqual(result["permissibleValue"]["dataElement"]["version"], "1.10")
 
     def test_latest_version_without_values_never_falls_back_to_an_older_one(self):
-        self.ssis.element_values = [value_row(version="2.9"), {"version": "2.10"}]
+        self.ssis.element_values = [value_row(version="2.10"), {"version": "2.9"}]
         result = self.call("get_concept_for_permissible_value", dataElementId="123", value="Male")
         self.assertEqual(result["error"]["code"], "not_found")
 
