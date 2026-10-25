@@ -352,6 +352,8 @@ class PermissibleValueIdentity(TypedDict):
 
 
 class PermissibleValueConcept(Concept):
+    """Pinned EVS concept; upstream.cadsr retains the producing API item's provenance."""
+
     permissibleValue: PermissibleValueIdentity
 
 

@@ -57,7 +57,6 @@ class FakeSSIS(SSISClient):
         ]
         self.elements = []
         self.values = []
-        self.element_values = []
         self.calls = []
 
     def get_graph_identities(self):
@@ -71,10 +70,6 @@ class FakeSSIS(SSISClient):
     def find_permissible_values(self, concept_code, *, expand_descendants=False, maximum=1000):
         self.calls.append(("values", concept_code, expand_descendants, maximum))
         return deepcopy(self.values[: maximum + 1])
-
-    def get_permissible_values(self, public_id, *, maximum=1000):
-        self.calls.append(("element_values", public_id, maximum))
-        return deepcopy(self.element_values[: maximum + 1])
 
 
 def catalogue_rows(kind, version="26.06e", terminology="ncit"):

@@ -104,7 +104,7 @@ def test_the_items_of_a_result_are_where_the_tool_says(tool, result, items):
         # An alternative of several parameters, in braces.
         (
             "get_concept_for_permissible_value",
-            {"permissibleValueId", "dataElementId", "value", "release"},
+            {"permissibleValueId", "dataElementId", "value", "release", "version"},
             set(),
         ),
         # A list of objects is one parameter; its fields are not.

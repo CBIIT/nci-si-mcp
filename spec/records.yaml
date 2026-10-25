@@ -73,7 +73,11 @@ provenance:
         item's terminology and version; from EVS FHIR the
         value set's url and version; from caDSR the item's public id and version, as each API
         names them (publicId, the Form API's publicID, the CRDC list's CDE Public ID and Version,
-        vmMatch's itemId); from the Shared SI Service the identity and date of each graph
+        vmMatch's itemId); from the Shared SI Service the identity and date of each graph.
+        For get_concept_for_permissible_value, EVS origin fields remain here and cadsr holds
+        the producing data element's origin provenance (sourceUri, registry release form and
+        supplied item origin fields), excluding per-call retrievedAt and correlationId, which
+        the enclosing provenance supplies. No graph provenance appears because that tool reads no graph
       optional: true
       of: A4.3
 traversal:

@@ -338,34 +338,28 @@ def _value_options(
     return element, value
 
 
-def _latest_value(rows: list[dict[str, str]], value: str) -> tuple[str, str]:
-    if len(rows) > MAX_RESULTS:
-        raise PlatformError(
-            "upstream_unavailable",
-            "The data element has more value rows than the bound. "
-            "Ask the provider for a bounded latest-version lookup.",
-            surface="ssis",
-        )
-    latest = max((_version(row["version"]) for row in rows), default=None)
-    candidates = [
-        row for row in rows if _version(row["version"]) == latest and row.get("value") == value
-    ]
-    if not candidates:
+def _meaning_primaries(meaning: dict[str, Any]) -> set[str]:
+    return {concept["conceptCode"] for concept in meaning["concepts"] if concept["primary"]}
+
+
+def _primary_code(rows: list[dict[str, Any]], value: str) -> str:
+    meanings = [row["valueMeaning"] for row in rows if row["value"] == value]
+    if not meanings:
         raise PlatformError(
             "not_found",
-            "The latest data element has no such exact permissible value. Check its spelling.",
+            "The data element has no such exact permissible value. Check its spelling or version.",
         )
-    return candidates[0]["version"], _main_code(candidates)
+    return _one_primary([_meaning_primaries(meaning) for meaning in meanings])
 
 
-def _main_code(rows: list[dict[str, str]]) -> str:
-    codes = {_concept_code(row["concept"]) for row in rows if "concept" in row}
-    if len(codes) != 1 or any("concept" not in row for row in rows):
+def _one_primary(primaries: list[set[str]]) -> str:
+    codes = set().union(*primaries)
+    if {len(primary) for primary in primaries} != {1} or len(codes) != 1:
         raise PlatformError(
             "upstream_unavailable",
             "Registry data is ambiguous for that value. "
-            "Ask the provider to correct its main concept.",
-            surface="ssis",
+            "Ask the provider to correct its primary concept.",
+            surface="cadsr",
             candidates=sorted(codes),
         )
     return next(iter(codes))
@@ -398,26 +392,40 @@ def get_concept_for_permissible_value(
         ),
     ] = None,
     release: NcitRelease = None,
+    version: Annotated[
+        str | None,
+        Described(
+            "caDSR data element item version, for example 1.0. Leave unset for the API's latest.",
+            pattern=ITEM_VERSION_FORM,
+        ),
+    ] = None,
 ) -> dict[str, Any]:
     """Find the NCIt concept that a permissible value of a data element stands for.
 
     permissibleValueId is capability_unavailable until caDSR serves it (OP-C10).
 
-    Returns the value's main concept from the data element's latest item version (numerically:
-    2.9 follows 2.10), with provenance naming both content states. The value is compared
-    exactly, without trimming or case folding; minor concepts are only qualifiers.
+    Returns the value meaning's explicitly flagged primary concept from the caDSR API,
+    at version or the API's latest item version. release selects the pinned NCIt concept,
+    not the caDSR item version. Provenance names the caDSR and EVS reads, without Shared SI
+    graphs. The value is compared exactly, without trimming or case folding; neither array
+    order nor display order supplies a missing primary flag.
 
-    not_found when the latest version has no such value; upstream_unavailable naming the
-    candidates when the main concept is missing or conflicting (ambiguous registry data to
-    report to the provider); capability_unavailable for permissibleValueId (OP-C10).
+    not_found when the selected version has no such value; upstream_unavailable when primary
+    evidence is missing, invalid or conflicting; identical primary assertions may collapse.
+    capability_unavailable for permissibleValueId (OP-C10). Secured callers need both
+    data-element and concept child permissions before any reads.
     """
     element, value = _value_options(permissibleValueId, dataElementId, value, release)
+    if version is not None:
+        validate_identifier(version, ITEM_VERSION_FORM, "version")
     require_operation("get_concept_for_permissible_value", {})
     with budgeted(current_budget() or Budget()):
         selected = _selected(context, release)
-        graphs = context.ssis.get_graph_identities()
-        _verify_graph_release(graphs, selected)
-        version, code = _latest_value(context.ssis.get_permissible_values(element), value)
+        require("get_data_element")
+        data = cadsr_content.get_data_element(
+            context, publicId=element, version=version, include=["permissibleValues"]
+        )
+        code = _primary_code(data["permissibleValues"], value)
         require("get_concept")
         raw = context.evs.get_concept(code, release=selected, include="minimal")
         if raw.get("code") != code:
@@ -425,12 +433,18 @@ def get_concept_for_permissible_value(
         result = content.project_concept(context, selected, raw, [])
         provenance = result["provenance"]
         result["provenance"] = provenance | {
-            "registry": {"registry": "cadsr"},
-            "graphs": _provenance(context, selected, graphs)["graphs"],
-            "upstream": provenance.get("upstream", {}) | {"graphs": graphs},
+            "registry": data["provenance"]["release"],
+            "upstream": provenance.get("upstream", {})
+            | {
+                "cadsr": {
+                    key: origin
+                    for key, origin in data["provenance"].items()
+                    if key not in ("retrievedAt", "correlationId")
+                }
+            },
         }
         result["permissibleValue"] = {
-            "dataElement": {"publicId": element, "version": version},
+            "dataElement": {"publicId": element, "version": data["version"]},
             "value": value,
         }
     _mixed_cache()

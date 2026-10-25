@@ -37,7 +37,7 @@ dependencies are checked before the first read, and reused producers check again
 | `ground_value` | `get_concept`, `find_data_elements_for_concept`; `search_concepts` when `text` is supplied; `resolve_stored_value` when `commons` is supplied; `get_code_map` for a commons other than GDC |
 | `expand_cohort` | `get_concept_hierarchy`, `get_concept_neighborhood` |
 | `harmonize_data_dictionary` | `match_data_elements`; `match_value_meanings` when nonempty sample values are supplied |
-| `get_concept_for_permissible_value` | `get_concept` |
+| `get_concept_for_permissible_value` | `get_data_element`, `get_concept` |
 | `resolve_stored_value` | `get_code_map` for a commons other than GDC; GDC mapping reads are intrinsic to this operation |
 | Other tools | No additional permissions |
 

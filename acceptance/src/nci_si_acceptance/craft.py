@@ -1112,6 +1112,71 @@ def cadsr_numeric_versions(recorded: Recorded) -> Documents:
     return documents
 
 
+def cadsr_primary_inversion(recorded: Recorded) -> Documents:
+    """Crafted from #367's 2178439 observation; metadata and EVS names are synthetic."""
+    scenario = "cadsr/primary-inversion"
+    requirement = (
+        "get_concept_for_permissible_value-1: #367 observed API primary C25332, graph main C49508"
+    )
+    raw = {
+        "publicId": "2178439",
+        "version": "2",
+        "longName": "Crafted inversion fixture",
+        "workflowStatus": "Crafted",
+        "registrationStatus": "Crafted",
+        "ValueDomain": {
+            "PermissibleValues": [
+                {
+                    "publicId": "99000001",
+                    "value": "To a large extent",
+                    "ValueMeaning": {
+                        "publicId": "99000002",
+                        "version": "1",
+                        "longName": "Crafted meaning",
+                        "Concepts": [
+                            {"conceptCode": "C49508", "primaryIndicator": "No", "displayOrder": 1},
+                            {"conceptCode": "C25332", "primaryIndicator": "Yes", "displayOrder": 0},
+                            {"conceptCode": "C65107", "primaryIndicator": "No", "displayOrder": 2},
+                        ],
+                    },
+                }
+            ]
+        },
+    }
+    request = {
+        "surface": "cadsr",
+        "method": "GET",
+        "path": "/NCIAPI/1.0/api/DataElement/2178439",
+        "headers": {"Accept": "application/json"},
+    }
+    documents = {
+        f"scenarios/{scenario}/element.json": crafted(
+            requirement, request, response={"status": 200, "body": {"DataElement": raw}}
+        )
+    }
+    for code in ("C25332", "C49508"):
+        documents |= recording(scenario, requirement, concept(code, f"Crafted {code}"))
+    graph = recorded("crafted/ssis-sparql/values-of-2200604-optional.json")
+    graph_request = graph["request"] | {
+        "form": {"query": graph["request"]["form"]["query"].replace("2200604", "2178439")}
+    }
+    row = {
+        key: {"type": "literal", "value": value}
+        for key, value in {
+            "version": "2",
+            "value": "To a large extent",
+            "concept": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C49508",
+            "role": "http://cbiit.nci.nih.gov/caDSR#main_concept",
+        }.items()
+    }
+    documents[f"scenarios/{scenario}/graph.json"] = crafted(
+        requirement,
+        graph_request,
+        response={"status": 200, "body": {"results": {"bindings": [row]}}},
+    )
+    return documents
+
+
 SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     release_session,
     release_mismatch,
@@ -1135,6 +1200,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     cadsr_match_timeout,
     cadsr_over_cap,
     cadsr_numeric_versions,
+    cadsr_primary_inversion,
     cadsr_html_for_json,
     cadsr_match_without_a_concept,
     upstream_masked_error,
