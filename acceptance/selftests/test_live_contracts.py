@@ -192,13 +192,19 @@ def cde_replies():
         reply(
             "get_data_element",
             {"publicId": "2200604"},
-            ELEMENT,
+            ELEMENT | {"provenance": REGISTRY | {"upstream": {"version": "99"}}},
             "element",
         ),
         reply(
             "get_data_element",
             {"publicId": "2200604", "version": "1"},
-            ELEMENT | {"version": "1"},
+            ELEMENT | {"version": "1", "provenance": REGISTRY | {"upstream": {"version": "1"}}},
+            "element",
+        ),
+        reply(
+            "get_data_element",
+            {"publicId": "2200604", "version": "4.0"},
+            ELEMENT | {"version": "4", "provenance": REGISTRY | {"upstream": {"version": "4"}}},
             "element",
         ),
     ]
