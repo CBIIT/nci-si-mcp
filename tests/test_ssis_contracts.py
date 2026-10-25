@@ -49,7 +49,12 @@ def passed():
 
 class SSISContractCommandTest(ServerTestCase):
     def command(self, payloads):
-        server = self.serve(*[Reply(body=json.dumps(body).encode()) for body in payloads])
+        server = self.serve(
+            *[
+                Reply(body=body if isinstance(body, bytes) else json.dumps(body).encode())
+                for body in payloads
+            ]
+        )
         result = subprocess.run(  # noqa: S603 - fixed module and local fixture server
             [sys.executable, "-m", "scripts.ssis_contracts", "--url", server.url],
             cwd=ROOT,
@@ -58,6 +63,54 @@ class SSISContractCommandTest(ServerTestCase):
             check=False,
         )
         return result, server
+
+    def test_bad_success_body_reports_all_families_without_upstream_prose(self):
+        # Given a bad first HTTP 200 and five valid responses, when the real CLI runs,
+        # then it reports the failure safely and still checks every remaining family.
+        for bad in (
+            b"<html>private-upstream-prose</html>",
+            b"private-upstream-prose: not JSON",
+            b'{"apiResponse":{"type":"E","message":"private-upstream-prose"}}',
+        ):
+            with self.subTest(body=bad):
+                payloads = bodies()
+                payloads[0] = bad
+                result, server = self.command(payloads)
+                expected = passed()
+                expected[0] = {
+                    "id": "graph-identities",
+                    "status": "fail",
+                    "error": "upstream_unavailable",
+                }
+                self.assertEqual(result.stdout, json.dumps(expected, indent=2) + "\n")
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(len(server.bodies), 6)
+                self.assertEqual(result.stderr, "")
+
+    def test_graph_dates_reject_invalid_values_and_accept_runtime_date_forms(self):
+        # Given graph metadata, when the CLI checks its date, then runtime-supported
+        # ISO and English dates pass while impossible or arbitrary dates fail.
+        for date, valid in (
+            ("not-a-date", False),
+            ("2026-02-30", False),
+            ("", False),
+            ("2026-10-08", True),
+            ("October 08, 2026", True),
+        ):
+            with self.subTest(date=date):
+                payloads = bodies()
+                payloads[0]["results"]["bindings"][0]["date"]["value"] = date
+                result, server = self.command(payloads)
+                expected = passed()
+                if not valid:
+                    expected[0] = {
+                        "id": "graph-identities",
+                        "status": "fail",
+                        "error": "date: invalid graph date",
+                    }
+                self.assertEqual(json.loads(result.stdout), expected)
+                self.assertEqual(result.returncode, int(not valid), result.stderr)
+                self.assertEqual(len(server.bodies), 6)
 
     def test_missing_head_variable_fails_exact_family_and_still_reports_all_six(self):
         # Given recorded rows intact but SELECT metadata missing name, when the weekly
