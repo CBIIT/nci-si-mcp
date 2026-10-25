@@ -145,6 +145,7 @@ def run_suite(
         "NCI_SI_ACCEPTANCE_URL": f"http://127.0.0.1:{port}/mcp",
         "NCI_SI_ACCEPTANCE_MODE": "fixture",
         "NCI_SI_ACCEPTANCE_PREPARED": "1",
+        "NCI_SI_ACCEPTANCE_REGISTRY_RELEASE": "required",
         "NCI_SI_ACCEPTANCE_SECURITY_SERVER": shlex.join(
             [sys.executable, str(ROOT / "scripts/permissions_fixture.py")]
         ),
