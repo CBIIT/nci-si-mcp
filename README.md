@@ -42,10 +42,8 @@ adapter and `NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=required` to run all cases.
 The client model holds the conversation and selects tool calls; the prompts guide it.
 The tools are deterministic; the server runs no LLM.
 Workflow tools also bundle their own upstream calls deterministically, with provenance.
-[Domain-user stories and UAT plan](docs/user-acceptance.md) describe four proposed journeys;
-NCI/NIH users have Claude Code (desktop), ChatGPT (Codex) and GitHub Copilot, all supporting
-local stdio MCP. NCI permission for local MCP use and the model, version and provider remain
-unconfirmed per client; UAT has not run.
+[Domain-user stories and UAT plan](docs/user-acceptance.md) describe four proposed journeys.
+UAT runs in any MCP-capable client that uses an NCI-approved model provider; none has run yet.
 
 ## How the pieces fit
 

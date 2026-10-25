@@ -181,36 +181,43 @@ class DocumentationTest(unittest.TestCase):
                 ):
                     self.assertRegex(story, rf"(?m)^{label}: .+\S")
 
-    def test_uat_records_per_client_readiness_and_trace_fields_without_claiming_execution(self):
+    def test_uat_records_provider_approval_and_configuration_without_claiming_execution(self):
         document = read("docs/user-acceptance.md")
         for statement in (
             "Status: planned; UAT has not run.",
-            "Owner decision, 25 October 2026: NCI/NIH users have access to Claude Code (desktop),\n"
-            "ChatGPT (Codex) and GitHub Copilot. All three can host a local stdio MCP server.",
-            "Decision owner: NCI client/platform owner.",
-            "Before each client's session, record NCI's permission to connect "
-            "a local MCP server and\n"
-            "the model, version and provider. These remain unconfirmed per client; "
-            "if any is missing,\n"
-            "record that client as blocked. Never substitute another client.",
-            "The owner also confirms access to AWS Bedrock models through Cloud One. "
-            "Bedrock is a model\n"
-            "provider, not an MCP client. Record the client separately from its provider: "
-            "direct or Bedrock\n"
-            "via Cloud One. Each client/provider pairing is a separate acceptance configuration.",
-            "A story is accepted only for the client, model, version and provider "
-            "in its recorded run.\n"
-            "Results do not establish acceptance for another client or provider configuration.",
-            "Keep one record per story, client/provider configuration, participant and attempt, "
-            "with references\n"
-            "to the retained artifacts:",
+            "Owner clarification, 25 October 2026: NCI/NIH approves model providers. "
+            "Any MCP-capable client\n"
+            "using an NCI-approved model provider is a valid UAT environment.",
+            "Decision owner: NCI model-provider/platform owner.",
+            "Known examples include Claude Code (desktop), ChatGPT (Codex) and GitHub Copilot, "
+            "which can\n"
+            "host a local stdio MCP server, and access to AWS Bedrock models through Cloud One. "
+            "These are\n"
+            "examples, not a closed list. Bedrock through Cloud One is a model source, "
+            "not an MCP client;\n"
+            "record the client separately from its provider and model.",
+            "Before each session, confirm and record that the model provider is NCI-approved, "
+            "the model\n"
+            "name and version, the client name and version, and the transport. "
+            "An unapproved provider is\n"
+            "not a valid UAT environment; missing confirmation or configuration details "
+            "block the session.",
+            "A story is accepted only for the client, provider and model configuration "
+            "in its recorded run,\n"
+            "including the client and model versions. Results do not establish acceptance "
+            "for another\n"
+            "client, provider or model configuration.",
+            "Keep one record per story, client/provider/model configuration, participant "
+            "and attempt, with\n"
+            "references to the retained artifacts:",
             "- `environment`: client name and version, model name and version, "
-            "model provider (direct or\n"
-            "  Bedrock via Cloud One), NCI local-MCP permission decision link, "
-            "transport, profile, server\n"
-            "  version and commit SHA.",
+            "model provider and NCI\n"
+            "  provider approval reference, model source (such as Bedrock via Cloud One), "
+            "transport, profile,\n"
+            "  server version and commit SHA.",
         ):
             self.assertIn(statement, document)
+        self.assertNotRegex(document, r"(?i)permission|approved\s+client")
         self.assertEqual(
             bullet_names(section(document, "Evidence record")),
             [
@@ -232,11 +239,8 @@ class DocumentationTest(unittest.TestCase):
             "Workflow tools also bundle their own upstream calls deterministically, "
             "with provenance.",
             "[Domain-user stories and UAT plan](docs/user-acceptance.md)",
-            "NCI/NIH users have Claude Code (desktop), ChatGPT (Codex) and GitHub Copilot, "
-            "all supporting\n"
-            "local stdio MCP. NCI permission for local MCP use and the model, version "
-            "and provider remain\n"
-            "unconfirmed per client; UAT has not run.",
+            "UAT runs in any MCP-capable client that uses an NCI-approved model provider; "
+            "none has run yet.",
         ):
             self.assertIn(statement, readme)
 

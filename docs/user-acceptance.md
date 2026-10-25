@@ -9,19 +9,20 @@ Delivering this plan does not establish user acceptance.
 
 ## Client and readiness
 
-Owner decision, 25 October 2026: NCI/NIH users have access to Claude Code (desktop),
-ChatGPT (Codex) and GitHub Copilot. All three can host a local stdio MCP server.
-Decision owner: NCI client/platform owner.
+Owner clarification, 25 October 2026: NCI/NIH approves model providers. Any MCP-capable client
+using an NCI-approved model provider is a valid UAT environment.
+Decision owner: NCI model-provider/platform owner.
 
-Before each client's session, record NCI's permission to connect a local MCP server and
-the model, version and provider. These remain unconfirmed per client; if any is missing,
-record that client as blocked. Never substitute another client.
-The facilitator retains the permission decision link and recruits the confirming roles below;
+Known examples include Claude Code (desktop), ChatGPT (Codex) and GitHub Copilot, which can
+host a local stdio MCP server, and access to AWS Bedrock models through Cloud One. These are
+examples, not a closed list. Bedrock through Cloud One is a model source, not an MCP client;
+record the client separately from its provider and model.
+
+Before each session, confirm and record that the model provider is NCI-approved, the model
+name and version, the client name and version, and the transport. An unapproved provider is
+not a valid UAT environment; missing confirmation or configuration details block the session.
+The facilitator retains the provider approval reference and recruits the confirming roles below;
 no participants or signoffs are recorded yet.
-
-The owner also confirms access to AWS Bedrock models through Cloud One. Bedrock is a model
-provider, not an MCP client. Record the client separately from its provider: direct or Bedrock
-via Cloud One. Each client/provider pairing is a separate acceptance configuration.
 
 Use the unified profile: all four [specified prompts](../spec/prompts.yaml) need EVS and caDSR.
 Each prompt starts with `resolve_release`; retain its NCIt release for later calls and leave
@@ -132,27 +133,29 @@ Evidence: single-dictionary operation checks support, but do not execute, this c
 
 ## UAT session and decision
 
-After that client's readiness is confirmed, the facilitator and each confirming role agree realistic
-permitted inputs for that story and its variants, then run the named prompt in the approved
-client. Capture the first attempt before any correction, retry or changed input. Keep later
-attempts separately linked, with their reason; a corrected answer does not erase the original.
+After the configuration's readiness is confirmed, the facilitator and each confirming role agree
+realistic permitted inputs for that story and its variants, then run the named prompt in the
+MCP-capable client using the NCI-approved provider. Capture the first attempt before any
+correction, retry or changed input. Keep later attempts separately linked, with their reason;
+a corrected answer does not erase the original.
 The participant reviews the transcript against every pass criterion and records accept, reject
 or blocked with reasons and defects. The facilitator records evidence, not inferred signoff.
 Acceptance of one story is not acceptance of the other three. Automated fixture passes and
 assisted-task evaluation are supporting evidence, not NCI user confirmation or completed UAT.
-A story is accepted only for the client, model, version and provider in its recorded run.
-Results do not establish acceptance for another client or provider configuration.
+A story is accepted only for the client, provider and model configuration in its recorded run,
+including the client and model versions. Results do not establish acceptance for another
+client, provider or model configuration.
 
 ## Evidence record
 
-Keep one record per story, client/provider configuration, participant and attempt, with references
-to the retained artifacts:
+Keep one record per story, client/provider/model configuration, participant and attempt, with
+references to the retained artifacts:
 
 - `story`: prompt name, scenario/variant, agreed inputs and expected pass criteria.
 - `participant`: confirming role, session date and explicit confirmation record; no assumed signoff.
-- `environment`: client name and version, model name and version, model provider (direct or
-  Bedrock via Cloud One), NCI local-MCP permission decision link, transport, profile, server
-  version and commit SHA.
+- `environment`: client name and version, model name and version, model provider and NCI
+  provider approval reference, model source (such as Bedrock via Cloud One), transport, profile,
+  server version and commit SHA.
 - `content`: NCIt release, caDSR registry state/date, live or fixture mode, index build if used.
 - `conversation`: submitted prompt arguments and complete conversation, including model choices.
 - `trace`: ordered tool names, arguments, results, provenance/correlation IDs, errors, truncation,
