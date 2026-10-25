@@ -57,7 +57,18 @@ def test_a_live_run_skips_every_test_not_marked_live_capable_and_every_scenario(
     assert scenario.get_closest_marker("skip").kwargs == {"reason": "fixture mode only"}
     # The report reads why from the property, never from the reason (#265).
     assert live.user_properties == []
-    assert fixture_only.user_properties == scenario.user_properties == [(SKIP, "not_live")]
+    assert fixture_only.user_properties == [
+        (SKIP, "not_live"),
+        ("not_live_reason", "not_live_capable"),
+    ]
+    assert scenario.user_properties == [(SKIP, "not_live"), ("not_live_reason", "scenario")]
+
+
+def test_scenario_reason_precedes_missing_live_capability_but_empty_marker_is_not_a_scenario():
+    scenario, empty = Item(pytest.mark.scenario("fault")), Item(pytest.mark.scenario())
+    skip_fixture_only([scenario, empty])
+    assert dict(scenario.user_properties)["not_live_reason"] == "scenario"
+    assert dict(empty.user_properties)["not_live_reason"] == "not_live_capable"
 
 
 def test_a_test_selects_the_scenarios_of_all_its_markers():
