@@ -56,13 +56,16 @@ Every setting named on this page appears in this table.
 | `NCI_SI_LOG_LEVEL` | `"INFO"` | Diagnostic verbosity; required completion audit remains enabled. |
 | `NCI_SI_TIMEOUT_SECONDS` | `30.0` | General upstream request timeout. |
 | `NCI_SI_MATCH_TIMEOUT_SECONDS` | `45.0` | Match request timeout. |
-| `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Maximum upstream attempts under the shared HTTP client policy. |
-| `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | Retry backoff base; the shared client caps the wait. |
-| `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Upstream response size bound. |
+| `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Maximum EVS REST/FHIR attempts. |
+| `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | EVS REST/FHIR retry backoff base; the shared client caps the wait. |
+| `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | EVS REST/FHIR response size bound. |
 | `NCI_SI_HTTP_REQUIRE_INDEX` | `false` | Whether readiness requires an active local index. |
 | `NCI_SI_HTTP_MAX_REQUEST_BYTES` | `4194304` | HTTP request body size bound. |
 | `NCI_SI_HTTP_AUTH_MODE` | `"trusted-local"` | Local trust default; hosted identity integration must select an approved mode. |
 | `NCI_SI_HTTP_AUTH_FACTORY` | `null` | Installed provider integration, unset by default; required mode fails closed without one. |
+
+caDSR and Shared SI use fixed policies: three attempts, 0.25-second backoff and a 10 MiB
+response bound. The EVS-specific settings above do not change those clients.
 
 ## Deployment-derived alerts and service objectives
 
@@ -75,7 +78,7 @@ for #292, not currently installed alarms or approved thresholds.
 | Process/readiness loss | Health/readiness status and transition warning above | Configure probes, restart/routing policy and alert evaluation window. Readiness must not stand in for an upstream probe. |
 | Upstream unavailable | Completion response code and outbound attempt count | Group by operation/release and distinguish service failures from deployment network failures; approve rate/window and escalation. |
 | Timeouts | Completion timeout code and duration | Track frequency and duration distribution; approve latency objective and timeout alert window. |
-| Bounds reached | Completion bound-exceeded code or non-null truncation | Separate refused requests from successful partial results; approve which bounds warrant an alert. |
+| Bounds reached | Completion `responseCode == "bound_exceeded"` or `truncation.occurred == true` | Separate refused requests from successful partial results; approve which bounds warrant an alert. |
 | Caller error rate | Completion status and response code | Separate invalid input, permissions, upstream and internal failures; approve denominator, exclusions, minimum traffic and threshold. |
 | Index age | Manifest build time, release and deployment clock | Compute age externally, verify expected release separately; approve freshness policy, clock source and alarm threshold. |
 | Collection loss | Collector delivery and storage acknowledgments | Platform monitors pipeline failure; stderr emission alone proves neither delivery nor retention. |
@@ -123,7 +126,7 @@ no claim that a family or individual control is satisfied.
 ## Change approval and handoff
 
 The approval path and head-specific merge clearance are recorded in
-[AGENTS](../AGENTS.md#the-milestone-once-all-its-issues-are-merged) and
+[AGENTS](../AGENTS.md#how-work-is-done-issues-into-a-milestone-branch-one-reviewed-milestone-into-main) and
 [CONTRIBUTING](../CONTRIBUTING.md#pull-requests-and-releases). This is a human governance
 record, not a claim that GitHub automatically verifies sponsor approval. Specification
 change control remains separate.

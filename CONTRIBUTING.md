@@ -179,7 +179,7 @@ The government sponsor approves changes; the NCI SI MCP project coordinator rela
 and the reviewer acts for the coordinator.
 
 Merge clearance is a reviewer PR comment naming the head commit; a subsequent push needs new
-clearance, after all triggered workflows pass. See [AGENTS.md](AGENTS.md#the-milestone-once-all-its-issues-are-merged)
+clearance, after all triggered workflows pass. See [AGENTS.md](AGENTS.md#how-work-is-done-issues-into-a-milestone-branch-one-reviewed-milestone-into-main)
 for the milestone process and [operations](docs/operations.md) for available signals, ATO
 evidence inputs and open hosting responsibilities.
 
