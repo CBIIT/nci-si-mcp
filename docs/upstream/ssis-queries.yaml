@@ -22,9 +22,9 @@ queries:
     operation: find_data_elements
     args: [C17357]
     kwargs: {expand_descendants: false, maximum: 1000}
-    evidence: recorded/ssis-sparql/data-elements-c17357.json
-    selected: [id, version, name]
-    required: [id, version, name]
+    evidence: crafted/ssis-public-id/data-elements-c17357.json
+    selected: [id, name]
+    required: [id, name]
     limit: 1001
     consumers: [find_data_elements_for_concept, ground_value]
     requirements: [find_data_elements_for_concept-1, ground_value-2]
@@ -32,9 +32,9 @@ queries:
     operation: find_data_elements
     args: [C17357]
     kwargs: {expand_descendants: true, maximum: 1000}
-    evidence: recorded/ssis-sparql/data-elements-c17357-descendants.json
-    selected: [id, version, name]
-    required: [id, version, name]
+    evidence: crafted/ssis-public-id/data-elements-c17357-descendants.json
+    selected: [id, name]
+    required: [id, name]
     limit: 1001
     consumers: [find_data_elements_for_concept]
     requirements: [find_data_elements_for_concept-1]
@@ -42,9 +42,9 @@ queries:
     operation: find_permissible_values
     args: [C20197]
     kwargs: {expand_descendants: false, maximum: 1000}
-    evidence: recorded/ssis-sparql/values-c20197.json
-    selected: [id, version, value, concept]
-    required: [id, version, value, concept]
+    evidence: crafted/ssis-public-id/values-c20197.json
+    selected: [id, value, concept]
+    required: [id, value, concept]
     limit: 1001
     consumers: [find_data_elements_for_concept, ground_value]
     requirements: [find_data_elements_for_concept-2, ground_value-2]
@@ -52,9 +52,9 @@ queries:
     operation: find_permissible_values
     args: [C17357]
     kwargs: {expand_descendants: true, maximum: 1000}
-    evidence: recorded/ssis-sparql/values-c17357-descendants.json
-    selected: [id, version, value, concept]
-    required: [id, version, value, concept]
+    evidence: crafted/ssis-public-id/values-c17357-descendants.json
+    selected: [id, value, concept]
+    required: [id, value, concept]
     limit: 1001
     consumers: [find_data_elements_for_concept]
     requirements: [find_data_elements_for_concept-2]

@@ -259,16 +259,23 @@ def ssis_dependencies(root: Path) -> str:
         "|---|---|---|---|---|",
     ]
     for entry in register["queries"]:
+        evidence = (
+            "../../acceptance/src/nci_si_acceptance/craft.py"
+            if entry["evidence"].startswith("crafted/ssis-public-id/")
+            else f"../../acceptance/fixtures/{entry['evidence']}"
+        )
         lines.append(
             f"| `{entry['id']}` | `{entry['operation']}` | "
             f"{', '.join(entry['consumers'])} | {', '.join(entry['requirements'])} | "
-            f"[{entry['evidence']}](../../acceptance/fixtures/{entry['evidence']}) |"
+            f"[{entry['evidence']}]({evidence}) |"
         )
     lines += [
         "",
         (
             "The bounded identity request is crafted from "
-            "recorded evidence, not a new live recording. Identifier and remaining-budget "
+            "recorded evidence, not a new live recording. Public-ID content projections "
+            "are crafted in memory from historical captures by the linked generator; "
+            "they are not complete current answers. Identifier and remaining-budget "
             "LIMIT instances are parameters of these families. Historical REST façade, "
             "unbounded identity and values-by-public-id forms in the "
             "[request history](../../acceptance/request-forms/ssis.md) are inactive. "

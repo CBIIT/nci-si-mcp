@@ -58,7 +58,7 @@ Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/ssis-sparql/query-refused.json](../../acceptance/fixtures/recorded/ssis-sparql/query-refused.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `b137d06b4c6ba1660d450366515031519de60486750347d97ec26cd63954db20`.
 - [acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `c1dd168f191478bcd7e2bf71df530b20ef68ec71d142c3b664dcb943ad68b4ff`.
-- [acceptance/request-forms/ssis.md](../../acceptance/request-forms/ssis.md) — document; SHA-256 `b734bd59491df4c830a79508adc523223cf0aa0f497fc9d2582fa5f0f219db15`.
+- [acceptance/request-forms/ssis.md](../../acceptance/request-forms/ssis.md) — document; SHA-256 `2208d1de2a2c7232c9f05f51648f75b9ad61f9caa5da8c55679504ad08d0a74b`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -87,9 +87,41 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/ssis-sparql/graph-identities.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `1766c631d26999e22a5062f00c9fd4c83ddb3ec8150cc02128af1986bb4b84c6`.
-- [docs/upstream/ssis-queries.yaml](../../docs/upstream/ssis-queries.yaml) — document; SHA-256 `5697973ee4c4ec92f0119be3c79a46ec882053e7f257bc6e12e30b2d8f020d94`.
+- [docs/upstream/ssis-queries.yaml](../../docs/upstream/ssis-queries.yaml) — document; SHA-256 `b170d8ab6cdbd5f47daf9ecfa6f545e487521bc7aafad65727621f1f00cd0de2`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
 | `acceptance/tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states` | 1 passed | 1 not_live |
 | `acceptance/tests/test_cross_domain.py::test_every_dataset_is_dated_with_the_largest_interval_and_a_warning_above_the_threshold` | 2 passed | 2 not_live |
+
+## ssis-public-id-associations
+
+**Clarify merged CDE versions and value concept roles**
+
+Platform requirement/operation: **S-3; S-5**.
+Specification requirements: `find_data_elements_for_concept-1`, `find_data_elements_for_concept-2`, `find_data_elements_for_concept-5`, `ground_value-2`.
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/367).
+
+**Observation.** Reported live on 25 October 2026 in issue 367, not retained as a new recording: cadsr:DE2008092 merges CDE versions, associating Tis, TX and T0 with version 1 although only version 2 lists them. Value-node main/minor roles can invert the API's primary concept; display_order is a string with a leading space. The retained bounded Disease captures contain 1001 rows but only 981 exact-code or 998 descendant public IDs, not complete distinct answers. The recorded graph dates differ by 89 days, not evidence of current lag.
+
+**Reproduction.** Inspect all version assertions and permissible values on DE2008092 against the API's individual versions; compare value meaning primaryIndicator with main/minor and the raw display_order datatype. Inspect the retained queries and both graph metadata rows separately.
+
+**Expected.** Confirm the merge model and whether per-version publication is planned; explain the value main/minor inversion, refresh cadence and graph lag, and string display_order semantics or publish numeric order.
+
+**Impact.** A merged graph cannot establish a CDE version or assign a value to one; version duplicates consume a row cap before distinct public-ID associations are counted.
+
+**Workaround.** Find and grounding use public-ID associations, grouping elements by publicId and distinct values by publicId/value/concept before the sentinel limit. API records keep versions and primary flags; no display_order consumer exists, so no ordering parser is introduced.
+
+**Acceptance criteria.** Graph associations make no version claim; distinct keys precede maximum-plus-one LIMIT and omissions remain lower bounds. Original recordings and requests remain unchanged; new derived projections and synthetic cap cases are explicitly crafted.
+
+Evidence (linked request/response files retain their original form):
+
+- [acceptance/fixtures/recorded/ssis-sparql/data-elements-c2991.json](../../acceptance/fixtures/recorded/ssis-sparql/data-elements-c2991.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `d3553e88a67afb26e248a53b92b2a9ff7f6c987e512c5d90468726bcf043f156`.
+- [acceptance/fixtures/recorded/ssis-sparql/data-elements-c2991-descendants.json](../../acceptance/fixtures/recorded/ssis-sparql/data-elements-c2991-descendants.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `fa026931a2054ac8018e45fa5eafdae976f278d1a9dd73b8ea5c7e64b3d15241`.
+- [acceptance/fixtures/recorded/ssis-sparql/values-of-2200604.json](../../acceptance/fixtures/recorded/ssis-sparql/values-of-2200604.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `b38e92731c54266d78d7673711ee83e5ae02e94a409d26a88e562b5af3b9667d`.
+- [acceptance/fixtures/recorded/ssis-sparql/graph-identities.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `1766c631d26999e22a5062f00c9fd4c83ddb3ec8150cc02128af1986bb4b84c6`.
+
+| Affected test function | Fixture | Live |
+|---|---|---|
+| `acceptance/tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too` | 2 passed | 2 not_live |
+| `acceptance/tests/test_workflow.py::test_each_hop_is_what_its_surface_answers_for_the_concept` | 1 passed | 1 not_live |

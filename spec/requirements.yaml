@@ -297,7 +297,7 @@ find_data_elements_for_concept-4:
   statement: Only with expandDescendants is the effective release checked against the NCIt graph's, release_mismatch on a difference and release_not_available when its optional version is absent. Exact-code answers preserve both actual graph identities and dates without comparing or backfilling the optional version; missing or malformed required identities remain upstream failures. A terminology other than ncit is an invalid request.
   basis: [find_data_elements_for_concept, A3.4, A3.7]
 find_data_elements_for_concept-5:
-  statement: Data elements beyond the tool's maximum are left out, with the truncation record saying how many at least.
+  statement: Distinct associations (publicId for elements; publicId, value, concept for values) are counted before the maximum-plus-one bound. Associations beyond the maximum are left out, with truncation saying how many at least; a sentinel alone does not establish an exact total.
   basis: [find_data_elements_for_concept, truncation, A5.4]
 get_concept_for_permissible_value-1:
   statement: A data element and exact value resolve only to the primaryIndicator Yes concept of the caDSR API's requested or latest item version, as the pinned EVS concept; missing, invalid or conflicting primary evidence is upstream_unavailable, identical assertions may collapse. Provenance names caDSR and EVS, with registry state and no Shared SI graphs.

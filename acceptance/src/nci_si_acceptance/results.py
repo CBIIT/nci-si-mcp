@@ -216,19 +216,18 @@ def bare_code(iri: str) -> str:
     return iri.rpartition("#")[2]
 
 
-def element_ids(uses: list[dict[str, Any]]) -> set[tuple[str, str]]:
-    """The data elements of data element uses, by public id and version."""
+def element_ids(uses: list[dict[str, Any]]) -> set[str]:
+    """Graph associations identify data elements by public ID only."""
 
-    return {(use["dataElement"]["publicId"], use["dataElement"]["version"]) for use in uses}
+    return {use["dataElement"]["publicId"] for use in uses}
 
 
-def value_ids(uses: list[dict[str, Any]]) -> set[tuple[str, str, str, str]]:
+def value_ids(uses: list[dict[str, Any]]) -> set[tuple[str, str, str]]:
     """Permissible value uses by data element, value and the concept it stands for."""
 
     return {
         (
             use["dataElement"]["publicId"],
-            use["dataElement"]["version"],
             use["value"],
             use["conceptCode"],
         )
