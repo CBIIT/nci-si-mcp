@@ -227,23 +227,13 @@ def test_descendants_beyond_the_tool_s_maximum_are_truncated_with_how_much_was_l
     assert "nextCursor" not in content
 
 
-# The data element and value the tool is asked about, and the surfaces that can answer: the
-# Shared SI Service's permissible values of the data element, asked by its id, or caDSR REST's
-# data element with its value meanings, the concept record from EVS.
+# The API's data element and exact value; EVS supplies the pinned concept record.
 ELEMENT, VALUE = "2200604", "Male"
 CADSR_ELEMENT = f"recorded/cadsr/data-element-{ELEMENT}.json"
 
 
-def _value_concept(recorded, source):
-    """The concept VALUE of ELEMENT stands for, and the data element's version, as the surface
-    a result's provenance names answers them."""
-
-    if source == "ssis_sparql":
-        rows = _rows(recorded, f"values-of-{ELEMENT}")
-        (row,) = [
-            row for row in rows if row["value"] == VALUE and row["role"].endswith("main_concept")
-        ]
-        return bare_code(row["concept"]), row["version"]
+def _value_concept(recorded):
+    """The API's primary and item version, never the graph's main concept."""
     element = recorded(CADSR_ELEMENT)["response"]["body"]["DataElement"]
     (code,) = _primary_concepts(element)
     return code, element["version"]
@@ -275,8 +265,8 @@ def test_a_value_resolves_to_the_concept_it_stands_for_naming_both_content_state
     content = _ok(_permissible(tools, pinned))
 
     provenance = content["provenance"]
-    assert provenance["source"] in {"ssis_sparql", "cadsr_rest", "evs_rest"}
-    code, version = _value_concept(recorded, provenance["source"])
+    assert provenance["source"] == "evs_rest"
+    code, version = _value_concept(recorded)
     concept = recorded(f"recorded/evs/concepts/{code}.json")["response"]["body"]
     assert (content["code"], content["name"]) == (concept["code"], concept["name"])
     assert (provenance["release"]["terminology"], provenance["release"]["identifier"]) == (
@@ -284,9 +274,58 @@ def test_a_value_resolves_to_the_concept_it_stands_for_naming_both_content_state
         pinned["release"],
     )
     assert provenance["registry"] == {"registry": "cadsr"}
+    assert "graphs" not in provenance
+    assert "graphs" not in provenance["upstream"]
+    assert provenance["upstream"]["cadsr"]["source"] == "cadsr_rest"
     assert content["permissibleValue"] == {
         "dataElement": {"publicId": ELEMENT, "version": version},
         "value": VALUE,
+    }
+
+
+@pytest.mark.tool(PERMISSIBLE)
+@pytest.mark.requirement("get_concept_for_permissible_value-1")
+@pytest.mark.scenario("cadsr/primary-inversion")
+def test_the_api_primary_is_not_the_graphs_main_qualifier(tools, pinned):
+    content = _ok(
+        tools.call(
+            PERMISSIBLE,
+            {
+                "dataElementId": "2178439",
+                "value": "To a large extent",
+                "release": pinned["release"],
+            },
+        )
+    )
+    assert content["code"] == "C25332"
+    assert content["permissibleValue"]["dataElement"] == {"publicId": "2178439", "version": "2"}
+    assert "graphs" not in content["provenance"]
+
+
+@pytest.mark.tool(PERMISSIBLE)
+@pytest.mark.requirement("get_concept_for_permissible_value-1")
+@pytest.mark.parametrize("version", ["1", "4.0"])
+def test_a_requested_api_item_version_keeps_its_own_values_and_spelling(
+    tools, pinned, recorded, version
+):
+    filename = "data-element-2200604-version-1" if version == "1" else "data-element-2200604"
+    raw = recorded(f"recorded/cadsr/{filename}.json")["response"]["body"]["DataElement"]
+    (code,) = _primary_concepts(raw)
+    content = _ok(
+        tools.call(
+            PERMISSIBLE,
+            {
+                "dataElementId": ELEMENT,
+                "value": VALUE,
+                "version": version,
+                "release": pinned["release"],
+            },
+        )
+    )
+    assert content["code"] == code
+    assert content["permissibleValue"]["dataElement"] == {
+        "publicId": ELEMENT,
+        "version": raw["version"],
     }
 
 

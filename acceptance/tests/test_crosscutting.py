@@ -898,6 +898,10 @@ FORMED = {
     | {"version": CALLS["get_form"]["upstream"]["version"]},
     ("expand_value_set", "code"): {"code": CALLS["expand_value_set"]["arguments"]["valueSet"]},
     ("get_concept_for_permissible_value", "permissibleValueId"): {"permissibleValueId": "9192925"},
+    ("get_concept_for_permissible_value", "version"): CALLS["get_concept_for_permissible_value"][
+        "arguments"
+    ]
+    | {"version": "4.0"},
     ("resolve_stored_value", "dataElementId"): CALLS["resolve_stored_value"]["arguments"]
     | {"dataElementId": CALLS["get_concept_for_permissible_value"]["arguments"]["dataElementId"]},
     # The workflow tools have no call yet: their concept is the one resolve_stored_value asks.

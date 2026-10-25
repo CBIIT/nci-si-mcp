@@ -58,7 +58,7 @@ Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/ssis-sparql/query-refused.json](../../acceptance/fixtures/recorded/ssis-sparql/query-refused.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `b137d06b4c6ba1660d450366515031519de60486750347d97ec26cd63954db20`.
 - [acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `c1dd168f191478bcd7e2bf71df530b20ef68ec71d142c3b664dcb943ad68b4ff`.
-- [acceptance/request-forms/ssis.md](../../acceptance/request-forms/ssis.md) — document; SHA-256 `2aecf26be587838c0b118f3954b521e3d4b4133cd28200824cf865b8c89279ad`.
+- [acceptance/request-forms/ssis.md](../../acceptance/request-forms/ssis.md) — document; SHA-256 `d07d4a02b3aa4371fef2ca288218bfc939540bcdc07de565270e4929b0c94cf7`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|

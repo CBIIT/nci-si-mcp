@@ -16,7 +16,6 @@ from .errors import InputValidationError, PlatformError
 from .http_client import HttpClient
 from .validation import (
     NCIT_CODE_FORM,
-    REGISTRY_ID_FORM,
     bounded,
     validate_identifier,
 )
@@ -113,16 +112,6 @@ def _binding(row: dict[str, Any], required: tuple[str, ...]) -> dict[str, str]:
     return {key: _term(value) for key, value in row.items()}
 
 
-def _value_binding(row: dict[str, str]) -> dict[str, str]:
-    # The nested OPTIONAL groups bind a value before its main concept and role.
-    fields = row.keys() & {"value", "concept", "role"}
-    if fields not in (set(), {"value"}, {"value", "concept", "role"}):
-        raise _malformed()
-    if "role" in row and row["role"] != CADSR_GRAPH + "#main_concept":
-        raise _malformed()
-    return row
-
-
 def _concept_clause(code: str, expand: bool) -> str:
     validate_identifier(code, NCIT_CODE_FORM, "conceptCode")
     if type(expand) is not bool:
@@ -208,33 +197,3 @@ class SSISClient:
         return self._query(
             query + f"LIMIT {maximum + 1}", ("id", "version", "value", "concept"), maximum + 1
         )
-
-    def get_permissible_values(
-        self, public_id: str, *, maximum: int = MAXIMUM
-    ) -> list[dict[str, str]]:
-        """Read all versions for the identifier; the tool selects version/value locally.
-
-        A SPARQL 1.1 plain quoted string is an xsd:string literal. No caller value or
-        version text is interpolated; the recorded query retrieves both as variables.
-        """
-        validate_identifier(public_id, REGISTRY_ID_FORM, "publicId")
-        maximum = bounded(maximum, MAXIMUM, "maximum")
-        query = f"""SELECT DISTINCT ?version ?value ?concept ?role
-WHERE {{
-  GRAPH <{CADSR_GRAPH}> {{
-    ?element cadsr:publicId "{public_id}" ;
-      mdr:version ?version .
-    OPTIONAL {{
-      ?element mdr:permitted_value ?pv .
-      ?pv mdr:value ?value .
-      OPTIONAL {{
-        VALUES ?role {{ cadsr:main_concept }}
-        ?pv cadsr:has_concept ?node .
-        ?node ?role ?concept .
-      }}
-    }}
-  }}
-}}
-ORDER BY ?version ?value ?role ?concept
-LIMIT {maximum + 1}"""
-        return [_value_binding(row) for row in self._query(query, ("version",), maximum + 1)]

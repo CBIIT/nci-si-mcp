@@ -344,15 +344,23 @@ find_data_elements_for_concept:
 get_concept_for_permissible_value:
   title: Concept for a permissible value
   group: cross-domain
-  inputs: "(permissibleValueId | { dataElementId, value }, release?)"
-  patterns: {release: *release, dataElementId: *registry_id, permissibleValueId: *registry_id}
+  inputs: "(permissibleValueId | { dataElementId, value }, release?, version?)"
+  patterns: {release: *release, version: *registry_version, dataElementId: *registry_id, permissibleValueId: *registry_id}
   returns: "concept, with permissibleValue { dataElement { publicId, version }, value }"
   items: ["."]
   summary: >-
     The concept a permissible value stands for, named by its data element and value, as the
     concept record of the release pinned, its provenance naming both content states (release
     and registry); the caller may name a release or use implicit NCIt resolution (X-22). The
-    data element is asked for by its id, and the value is compared locally with its permissible
+    data element is read from the caDSR API at version, or the API's latest when omitted;
+    version uses the existing numeric item-version form and comparison, preserving upstream
+    spelling. Only primaryIndicator Yes identifies the value meaning's primary concept;
+    missing, invalid or conflicting evidence is upstream_unavailable, identical primary
+    assertions may collapse. Neither array order, display order nor graph main/minor decides.
+    Provenance includes the caDSR read under upstream.cadsr and the pinned EVS origin, with
+    registry state but no Shared SI graphs or graph reads. Secured callers need get_data_element
+    and get_concept child permissions before any reads; expiry after caDSR blocks EVS.
+    The value is compared locally with the API's permissible
     values by exact, case-sensitive equality (no trimming, no case-folding), never sent upstream
     (A7.7); a value it does not have is not_found. By permissibleValueId, capability_unavailable
     until the platform retrieves a value by it (OP-C10).

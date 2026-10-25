@@ -300,7 +300,7 @@ find_data_elements_for_concept-5:
   statement: Data elements beyond the tool's maximum are left out, with the truncation record saying how many at least.
   basis: [find_data_elements_for_concept, truncation, A5.4]
 get_concept_for_permissible_value-1:
-  statement: A data element and value resolve to the concept its value meaning stands for, as the concept record of the release the call pins (explicitly named or resolved under X-22), its provenance naming both content states.
+  statement: A data element and exact value resolve only to the primaryIndicator Yes concept of the caDSR API's requested or latest item version, as the pinned EVS concept; missing, invalid or conflicting primary evidence is upstream_unavailable, identical assertions may collapse. Provenance names caDSR and EVS, with registry state and no Shared SI graphs.
   basis: [get_concept_for_permissible_value, provenance, A1.5]
 get_concept_for_permissible_value-2:
   statement: By permissibleValueId the tool is capability_unavailable (OP-C10), never not_found or empty.

@@ -210,6 +210,7 @@ SPECS = (
         audit={
             "permissibleValueId": "plain",
             "dataElementId": "plain",
+            "version": "plain",
             "value": "hash",
             "release": "plain",
         },

@@ -50,6 +50,10 @@ surfaces:
 # What each scenario provokes, in the order the register lists
 # them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.
 scenarios:
+  cadsr/primary-inversion: >-
+    Crafted from issue #367's live observation of CDE 2178439: To a large extent has
+    API primary C25332 while the graph calls qualifier C49508 main. Other metadata and
+    EVS names are synthetic; this is not a recording.
   release/unknown: Every content path of `ncit_99.99z` answers 404
   release/mismatch: >-
     Every payload that reports the pinned release names 26.08e instead, the unpinned forms
@@ -1279,4 +1283,4 @@ record:
 # The fixtures craft.py makes are built in memory when the set loads; this is the digest
 # of what it makes now. `pdm run acceptance-craft` writes it, `--out DIR` writes the
 # fixtures to read (fixtures/README.md).
-crafted: sha256:e94a06e714162e3d02361a1e4bdf00ffd506d2f53d99ec288a4ea4a2b507bb5b
+crafted: sha256:efc8916d8617c736b76018786fc9fbc52c23239a003b6b0be464b0d22b98ef8f

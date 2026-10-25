@@ -667,6 +667,7 @@ class CrossDomainAuditPrivacyTest(ServerFixture):
                     "dataElementId": "123",
                     "value": "value-canary",
                     "release": "26.06e",
+                    "version": "4.0",
                 },
                 {"value"},
             ),

@@ -20,16 +20,13 @@ from nci_si_mcp.registry import invoke
 from nci_si_mcp.release_selection import SessionRelease, session_scope
 from nci_si_mcp.ssis import CADSR_GRAPH, NCIT_GRAPH, SSISClient
 from test_evs_client import FakeResponse
+from test_primary_api import primary_element
 
 NCIT = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#"
 
 
 def element(identifier, version="1"):
     return {"id": str(identifier), "version": version, "name": f"Element {identifier}"}
-
-
-def value_row(value="Male", code="C1", version="1"):
-    return {"version": version, "value": value} | ({"concept": NCIT + code} if code else {})
 
 
 def gdc_map(code="C1", version="26.06e"):
@@ -276,94 +273,6 @@ class SeamTest(unittest.TestCase):
         self.ssis.elements[1]["name"] = "Changed"
         result = self.call(conceptCode="C1", release="26.06e", limit=1, cursor=first["nextCursor"])
         self.assertEqual(result["error"]["code"], "cursor_expired")
-
-    def test_value_uses_latest_numeric_version_before_matching_text(self):
-        self.ssis.element_values = [
-            value_row(code="C1", version="2.9"),
-            value_row(code="C2", version="2.10"),
-        ]
-        result = self.call(
-            "get_concept_for_permissible_value", dataElementId="123", value="Male", release="26.06e"
-        )
-        self.assertEqual(result["code"], "C1")
-        self.assertEqual(
-            result["permissibleValue"],
-            {"dataElement": {"publicId": "123", "version": "2.9"}, "value": "Male"},
-        )
-        # The concept read and the graphs queried are both the call's origin.
-        self.assertEqual(
-            result["provenance"]["upstream"],
-            {"terminology": "ncit", "version": "26.06e", "graphs": self.ssis.graphs},
-        )
-        self.assertEqual(result["provenance"]["registry"], {"registry": "cadsr"})
-
-    def test_older_values_and_inexact_spelling_are_not_candidates(self):
-        self.ssis.element_values = [
-            value_row(version="2.10"),
-            value_row(value="Other", version="2.9"),
-            value_row(value="Female", version="2.9"),
-        ]
-        for text in ("Male", "male", "female", " Female", "Female "):
-            with self.subTest(text=text):
-                result = self.call(
-                    "get_concept_for_permissible_value",
-                    dataElementId="123",
-                    value=text,
-                    release="26.06e",
-                )
-                self.assertEqual(result["error"]["code"], "not_found")
-        exact = self.call(
-            "get_concept_for_permissible_value",
-            dataElementId="123",
-            value="Female",
-            release="26.06e",
-        )
-        self.assertEqual(exact["permissibleValue"]["value"], "Female")
-
-    def test_conflicting_or_missing_main_concepts_name_ambiguous_registry_data(self):
-        for rows, candidates in (
-            ([value_row(code="C1"), value_row(code="C2")], ["C1", "C2"]),
-            ([value_row(code=None)], []),
-            ([value_row(code=None), value_row()], ["C1"]),
-            (
-                [value_row(code="C1", version="1.1"), value_row(code="C2", version="1.10")],
-                ["C1", "C2"],
-            ),
-        ):
-            with self.subTest(candidates=candidates):
-                self.ssis.element_values = rows
-                result = self.call(
-                    "get_concept_for_permissible_value",
-                    dataElementId="123",
-                    value="Male",
-                    release="26.06e",
-                )
-                self.assertEqual(result["error"]["code"], "upstream_unavailable")
-                self.assertEqual(
-                    result["error"]["details"], {"surface": "ssis", "candidates": candidates}
-                )
-                self.assertIn("ambiguous", result["error"]["message"])
-                self.assertNotIn("retry", result["error"]["message"].lower())
-
-    def test_identical_main_rows_do_not_create_ambiguity(self):
-        self.ssis.element_values = [value_row(version="1.10"), value_row(version="1.1")]
-        result = self.call(
-            "get_concept_for_permissible_value", dataElementId="123", value="Male", release="26.06e"
-        )
-        self.assertEqual(result["code"], "C1")
-        self.assertEqual(result["permissibleValue"]["dataElement"]["version"], "1.10")
-
-    def test_latest_version_without_values_never_falls_back_to_an_older_one(self):
-        self.ssis.element_values = [value_row(version="2.10"), {"version": "2.9"}]
-        result = self.call("get_concept_for_permissible_value", dataElementId="123", value="Male")
-        self.assertEqual(result["error"]["code"], "not_found")
-
-    def test_cut_value_list_never_selects_a_latest_version_from_partial_rows(self):
-        self.ssis.element_values = [value_row(version="2.9")] * 1001
-        result = self.call("get_concept_for_permissible_value", dataElementId="123", value="Male")
-        self.assertEqual(result["error"]["code"], "upstream_unavailable")
-        self.assertEqual(result["error"]["details"]["surface"], "ssis")
-        self.assertIn("more value rows than the bound", result["error"]["message"])
 
     def test_permissible_value_identifier_is_explicitly_unsupported(self):
         result = self.call(
@@ -729,10 +638,11 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
         return result
 
     def resolve(self, **arguments):
-        return self.call(
-            "get_concept_for_permissible_value",
-            **({"dataElementId": "123", "value": "Male", "release": "26.06e"} | arguments),
-        )
+        with patch.object(self.context.cadsr, "get_data_element", return_value=self.api_element):
+            return self.call(
+                "get_concept_for_permissible_value",
+                **({"dataElementId": "123", "value": "Male", "release": "26.06e"} | arguments),
+            )
 
     def test_descendant_option_reaches_both_queries_and_binds_the_cursor(self):
         client = SSISClient(self.context.settings)
@@ -853,59 +763,35 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
             result["permissibleValues"][0]["provenance"]["upstream"]["graphs"], self.ssis.graphs
         )
 
-    def test_pv_graph_release_mismatch_names_requested_and_served_before_reading_values(self):
-        self.ssis.graphs[0]["version"] = "26.05d"
-        result = self.resolve()
-        self.assertEqual(result["error"]["code"], "release_mismatch")
-        self.assertEqual(
-            result["error"]["details"],
-            {"requested": "26.06e", "served": ["26.05d"], "source": NCIT_GRAPH},
-        )
-        self.assertEqual(self.ssis.calls, [("identities",)])
-
-    def test_pv_missing_graph_version_fails_closed(self):
-        del self.ssis.graphs[0]["version"]
-        result = self.resolve()
-        self.assertEqual(result["error"]["code"], "release_not_available")
-        self.assertEqual(result["error"]["details"], {"requested": "26.06e", "source": NCIT_GRAPH})
-        self.assertEqual(self.ssis.calls, [("identities",)])
-
     def test_pv_preserves_whitespace_in_an_exactly_matching_value(self):
-        self.ssis.element_values = [value_row(value=" Male ")]
+        self.api_element = primary_element(
+            publicId="123", value=" Male ", codes=[{"conceptCode": "C1", "primaryIndicator": "Yes"}]
+        )
         result = self.resolve(value=" Male ")
         self.assertEqual(result["code"], "C1")
         self.assertEqual(result["permissibleValue"]["value"], " Male ")
 
-    def test_pv_exactly_thousand_rows_is_not_a_cut(self):
-        self.ssis.element_values = [value_row(value=f"Value {i}") for i in range(999)] + [
-            value_row()
-        ]
-        result = self.resolve()
-        self.assertEqual(result["code"], "C1")
-        self.assertEqual(result["permissibleValue"]["value"], "Male")
-
     def test_pv_empty_data_element_has_no_matching_value(self):
+        self.api_element = primary_element(publicId="123")
+        self.api_element["ValueDomain"]["PermissibleValues"] = []
         result = self.resolve()
         self.assertEqual(result["error"]["code"], "not_found")
 
     def test_pv_wrong_evs_concept_identity_is_an_evs_failure(self):
-        self.ssis.element_values = [value_row()]
+        self.api_element = primary_element(
+            publicId="123", value="Male", codes=[{"conceptCode": "C1", "primaryIndicator": "Yes"}]
+        )
         with patch.object(self.evs, "get_concept", return_value=concept("C2", active=True)):
             result = self.resolve()
         self.assertEqual(result["error"]["code"], "upstream_unavailable")
         self.assertEqual(result["error"]["details"], {"surface": "evs"})
 
-    def test_pv_preserves_raw_graphs_and_normalizes_dates_with_explicit_cache_hint(self):
-        self.ssis.element_values = [value_row()]
-        result = self.resolve()
-        self.assertEqual(result["provenance"]["upstream"]["graphs"], self.ssis.graphs)
-        self.assertEqual(
-            result["provenance"]["graphs"],
-            [
-                {"graph": NCIT_GRAPH, "version": "26.06e", "date": "2026-06-29"},
-                {"graph": CADSR_GRAPH, "date": "2026-06-01"},
-            ],
+    def test_pv_explicit_release_keeps_public_cache_hint(self):
+        self.api_element = primary_element(
+            publicId="123", value="Male", codes=[{"conceptCode": "C1", "primaryIndicator": "Yes"}]
         )
+        result = self.resolve()
+        self.assertEqual(result["code"], "C1")
         self.assertEqual(self.hint, {"ttlMs": 3_600_000, "cacheScope": "public"})
 
     def test_pv_identifier_rejects_either_other_selector_before_upstream(self):
@@ -922,26 +808,25 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
         self.assertEqual(self.ssis.calls, [])
         self.assertEqual(self.evs.calls, [])
 
-    def test_pv_major_version_precedes_minor_when_selecting_latest(self):
-        self.ssis.element_values = [
-            value_row(code="C1", version="1.9"),
-            value_row(code="C2", version="2.0"),
-        ]
-        result = self.resolve()
-        self.assertEqual(result["code"], "C2")
-        self.assertEqual(result["permissibleValue"]["dataElement"]["version"], "2.0")
-
     def test_pv_malformed_version_is_a_structured_upstream_failure(self):
-        self.ssis.element_values = [value_row(version="1.2.3")]
+        self.api_element = primary_element(publicId="123", version="1.2.3")
         result = self.resolve()
         self.assertEqual(result["error"]["code"], "upstream_unavailable")
-        self.assertEqual(result["error"]["details"], {"surface": "ssis"})
+        self.assertEqual(result["error"]["details"], {"surface": "cadsr"})
 
     def test_ambiguous_candidates_are_listed_in_sorted_order(self):
-        self.ssis.element_values = [value_row(code=code) for code in ("C9", "C2", "C10", "C1")]
+        self.api_element = primary_element(
+            publicId="123",
+            value="Male",
+            codes=[
+                {"conceptCode": code, "primaryIndicator": "Yes"}
+                for code in ("C9", "C2", "C10", "C1")
+            ],
+        )
         result = self.resolve()
         self.assertEqual(
-            result["error"]["details"], {"surface": "ssis", "candidates": ["C1", "C10", "C2", "C9"]}
+            result["error"]["details"],
+            {"surface": "cadsr", "candidates": ["C1", "C10", "C2", "C9"]},
         )
 
 
