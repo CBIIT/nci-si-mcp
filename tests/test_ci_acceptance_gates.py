@@ -47,6 +47,28 @@ def suite_line(workflow, job, name):
 
 class AcceptanceGateWorkflowTest(unittest.TestCase):
     def test_anonymous_ssis_contract_step_always_attempts_and_preserves_failure(self):
+        uploads = [
+            step
+            for step in jobs("acceptance-live.yml")["acceptance-live"]["steps"]
+            if step.get("uses", "").startswith("actions/upload-artifact@")
+        ]
+        self.assertEqual(
+            uploads,
+            [
+                {
+                    "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+                    "if": "always()",
+                    "with": {
+                        "name": "acceptance-live",
+                        "path": "acceptance/fixture.json\nacceptance/live.json\n"
+                        "acceptance/report.md\nacceptance/network.md\n"
+                        "acceptance/drift.md\nacceptance/ssis-contracts.json\n",
+                        "if-no-files-found": "warn",
+                        "retention-days": 30,
+                    },
+                }
+            ],
+        )
         workflow = yaml.safe_load((WORKFLOWS / "acceptance-live.yml").read_text())
         job = workflow["jobs"]["acceptance-live"]
         self.assertEqual(workflow["permissions"], {"contents": "read"})

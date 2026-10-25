@@ -71,7 +71,7 @@ class UpstreamRejectedError(UpstreamError):
     ) -> None:
         super().__init__(message, **details)
         self.empty_body = empty_body
-        # For domain classification only; never serialised as message or error details.
+        # Full body prose stays out of public wording; EVS may extract a requested identifier.
         self.body_message = body_message
 
 

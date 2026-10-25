@@ -192,6 +192,12 @@ class SSISContractCommandTest(ServerTestCase):
         payloads[2]["results"]["bindings"] = payloads[2]["results"]["bindings"][:1]
         payloads[2]["results"]["bindings"][0]["name"]["value"] = "Changed upstream label"
         payloads[5]["results"]["bindings"] = [{"version": {"type": "literal", "value": "9"}}]
+        payloads[5]["results"]["bindings"].append(
+            {
+                "version": {"type": "literal", "value": "10"},
+                "value": {"type": "literal", "value": "unmapped"},
+            }
+        )
         result, _ = self.command(payloads)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout), passed())
@@ -332,6 +338,37 @@ class SSISRegisterTest(unittest.TestCase):
     def test_optional_combinations_and_query_limit_are_not_silently_accepted(self):
         entry = yaml.safe_load(REGISTER.read_text())["queries"][5]
         original = bodies()[5]
+        row = original["results"]["bindings"][0]
+        for selected in (
+            (),
+            ("value",),
+            ("concept",),
+            ("role",),
+            ("value", "concept"),
+            ("value", "role"),
+            ("concept", "role"),
+            ("value", "concept", "role"),
+        ):
+            with self.subTest(selected=selected):
+                candidate = copy.deepcopy(original)
+                candidate["results"]["bindings"] = [
+                    {
+                        key: value
+                        for key, value in row.items()
+                        if key == "version" or key in selected
+                    }
+                ]
+                if selected in ((), ("value",), ("value", "concept", "role")):
+                    validate(candidate, entry)
+                    self.assertEqual(
+                        set(candidate["results"]["bindings"][0]), {"version", *selected}
+                    )
+                else:
+                    with self.assertRaises(ValueError) as raised:
+                        validate(candidate, entry)
+                    self.assertEqual(
+                        str(raised.exception), "binding has inconsistent OPTIONAL variables"
+                    )
         payload = copy.deepcopy(original)
         payload["results"]["bindings"] = [
             {
