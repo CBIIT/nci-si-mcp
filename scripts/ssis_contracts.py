@@ -11,8 +11,9 @@ from typing import Any
 import yaml
 
 from nci_si_mcp.config import Settings
+from nci_si_mcp.errors import PlatformError
 from nci_si_mcp.http_client import HttpClient, UpstreamError
-from nci_si_mcp.ssis import CADSR_GRAPH, NCIT_GRAPH, SSISClient
+from nci_si_mcp.ssis import CADSR_GRAPH, NCIT_GRAPH, SSISClient, _valid_date
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTER = ROOT / "docs/upstream/ssis-queries.yaml"
@@ -67,6 +68,8 @@ def semantics(values: dict[str, str]) -> None:
         require(bool(values["version"].strip()), "version: must not be blank")
     if "graph" in values:
         require(values["graph"] in (NCIT_GRAPH, CADSR_GRAPH), "graph: unexpected identity")
+    if "date" in values:
+        require(_valid_date(values["date"]), "date: invalid graph date")
     if "role" in values:
         require(values["role"] == CADSR_GRAPH + "#main_concept", "role: expected main concept")
 
@@ -112,6 +115,10 @@ def check(entry: dict[str, Any], http: HttpClient) -> dict[str, str]:
     except UpstreamError as exc:
         # Upstream bodies/exception messages are not report content.
         result.update(status="fail", error=type(exc).__name__)
+    except PlatformError as exc:
+        if exc.code != "upstream_unavailable":
+            raise
+        result.update(status="fail", error=exc.code)
     return result
 
 
