@@ -130,7 +130,7 @@ class ResolveEvsReleaseTest(unittest.TestCase):
             count = 2 if found else 0
             self.assertEqual(
                 error.message,
-                f"EVS lists {count} ncit monthly releases as latest, not exactly one. "
+                f"EVS lists {count} releases as latest, not exactly one. "
                 "Retry later, or set NCI_SI_RELEASE_CHANNEL "
                 "to the other channel (monthly or weekly)",
             )

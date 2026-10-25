@@ -71,7 +71,7 @@ class ContentInjectionErrorTest(ServerFixture):
         )
         self.assertEqual(
             error["message"],
-            "EVS lists 2 ncit monthly releases as latest, not exactly one. "
+            "EVS lists 2 releases as latest, not exactly one. "
             "Retry later, or set NCI_SI_RELEASE_CHANNEL to the other channel (monthly or weekly)",
         )
         self.assertNotIn("X29-", error["message"])

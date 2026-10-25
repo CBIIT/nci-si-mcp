@@ -574,7 +574,7 @@ class StatusTest(HandlerTestCase):
         self.assertFalse(is_error_record(result), result)
         self.assert_error(result["evs_api"], "upstream_unavailable")
         self.assert_error(result["selected_release"], "release_not_available")
-        self.assertIn("2 ncit monthly", result["selected_release"]["error"]["message"])
+        self.assertIn("2 releases as latest", result["selected_release"]["error"]["message"])
         self.assertEqual(result["active_index"]["version"], "26.06e")
 
     def test_evaluate_scores_every_mode_and_names_gold_concepts_that_are_not_indexed(self):
@@ -869,7 +869,7 @@ class ErrorModelTest(HandlerTestCase):
         self.assertEqual(error["details"]["found"], ["26.06e", "26.07a"])
         self.assertEqual(
             error["message"],
-            "EVS lists 2 ncit monthly releases as latest, not exactly one. "
+            "EVS lists 2 releases as latest, not exactly one. "
             "Retry later, or set NCI_SI_RELEASE_CHANNEL to the other channel (monthly or weekly)",
         )
 

@@ -77,6 +77,8 @@ def semantics(values: dict[str, str]) -> None:
 
 
 def content_semantics(values: dict[str, str]) -> None:
+    if "name" in values:
+        require(bool(values["name"].strip()), "name: must not be blank")
     if "version" in values:
         require(
             bool(re.fullmatch(ITEM_VERSION_FORM, values["version"])),
