@@ -36,7 +36,11 @@ class SeamProtocolTest(ServerFixture):
                 self.assertEqual(use["dataElement"]["publicId"], "123")
                 provenance = use["provenance"]
                 self.assertEqual(provenance["release"]["identifier"], "26.06e")
-                self.assertEqual(provenance["graphs"], self.context.ssis.graphs)
+                expected = [
+                    self.context.ssis.graphs[0] | {"date": "2026-06-29"},
+                    self.context.ssis.graphs[1],
+                ]
+                self.assertEqual(provenance["graphs"], expected)
                 self.assertEqual(provenance["upstream"]["graphs"], self.context.ssis.graphs)
 
     def test_all_four_tools_serialize_their_real_records_and_cache_policies(self, _):
