@@ -458,7 +458,7 @@ class MessagesTest(ServerTestCase):
         response = f"HTTP/1.1 502 {canary}\r\nContent-Length: 0\r\n\r\n".encode()
         proxy = self.serve(*[Reply(raw_response=response)] * 3)
         client = self.client(proxy)
-        client.base_url = "https://upstream.invalid"
+        client.base_url = "https://upstream.invalid:443"
         opener = build_opener(ProxyHandler({"https": proxy.url}))
         records = []
         client.on_request = records.append
@@ -526,13 +526,13 @@ class MessagesTest(ServerTestCase):
                 error = self.failure(self.client(server, max_attempts=1))
                 self.assertEqual(str(error), f"EVS request failed for /x: {expected}")
 
-    def test_a_connection_failure_is_worded_with_its_reason(self):
+    def test_a_connection_failure_uses_server_owned_wording(self):
         client = self.client(self.serve(), max_attempts=1)
 
         with patch("nci_si_mcp.http_client._open", side_effect=ConnectionResetError("reset")):
             error = self.failure(client)
 
-        self.assertEqual(str(error), "EVS request failed for /x: reset")
+        self.assertEqual(str(error), "EVS request failed for /x: transport failure")
 
     def test_a_parameter_of_zero_is_sent(self):
         server = self.serve()

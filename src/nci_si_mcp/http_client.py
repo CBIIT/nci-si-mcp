@@ -8,7 +8,7 @@ the error and handed to the request-log hook. A response is classified before it
 failure masked as a success is an `upstream_unavailable` error (`upstream.parse_upstream_json`).
 A credential is sent only to the platform the client was made for, and appears in no log record,
 hook record, error message or error detail (A7.5).
-HTTP protocol failures use server-owned wording, never the upstream status line or exception text.
+HTTP protocol and transport failures use server-owned wording, never upstream exception text.
 """
 
 from __future__ import annotations
@@ -441,9 +441,8 @@ class HttpClient:
             )
         except OSError as exc:
             attempt.failure = _transport_failure(exc)
-            reason = getattr(exc, "reason", None) or exc
             failure = _Transient(
-                self._redact(f"{self.label} request failed for {path}: {reason}"),
+                self._redact(f"{self.label} request failed for {path}: transport failure"),
                 timed_out=_timed_out(exc),
             )
         # Raised outside the handlers, so that no chain carries the failure as it came: an

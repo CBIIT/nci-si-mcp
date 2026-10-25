@@ -160,7 +160,10 @@ class EVSClientTest(unittest.TestCase):
 
         self.assertEqual(urlopen.call_count, 4)
         self.assertEqual([call.args[0] for call in sleep.call_args_list], [0.25, 0.5, 1.0])
-        self.assertIn("still down", str(raised.exception))
+        self.assertEqual(
+            str(raised.exception),
+            "EVS request failed for /api/v1/version: transport failure",
+        )
 
     def test_a_request_that_only_timed_out_is_a_timeout_with_what_was_waited(self, urlopen, sleep):
         for label, failure in {
