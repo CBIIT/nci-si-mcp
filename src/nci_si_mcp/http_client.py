@@ -71,7 +71,8 @@ class UpstreamRejectedError(UpstreamError):
     ) -> None:
         super().__init__(message, **details)
         self.empty_body = empty_body
-        # Full body prose stays out of public wording; EVS may extract a requested identifier.
+        # Full body prose stays internal; EVS may extract the caller's requested identifier
+        # into the existing structured error details, never the full prose into public wording.
         self.body_message = body_message
 
 

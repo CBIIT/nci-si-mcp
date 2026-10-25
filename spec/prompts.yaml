@@ -31,7 +31,7 @@ protocol_authoring:
 
     1. Call resolve_release for the terminology ncit and keep the version it returns. Pass it as release to every later call that takes one, and leave registryRelease unset: caDSR publishes no registry release yet (C-1).
     2. For each concept, call find_data_elements_for_concept with that release. Set expandDescendants when the protocol speaks of a class of concepts rather than of one.
-    3. Several data elements may capture the same concept. For each candidate, call get_data_element with its publicId and compare its context, workflow status, registration status and permissible values. Choose the one the protocol should reuse, preferring a released, standard and current one, and say why. Keep the candidates you rejected, with their reasons.
+    3. Several data elements may capture the same concept. For each candidate, call get_data_element with its publicId and include permissibleValues, and compare its context, workflow status, registration status and permissible values. Choose the one the protocol should reuse, preferring a released, standard and current one, and say why. Keep the candidates you rejected, with their reasons.
     4. If the protocol already names a form, call get_form with its publicId and reuse its question wording and module order.
 
     Report, for each concept, the data element chosen, the candidates rejected and why, and the release every answer carries.
