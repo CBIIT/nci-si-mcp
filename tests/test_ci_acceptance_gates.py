@@ -2,10 +2,15 @@
 parallel run steals work."""
 
 import json
+import os
+import subprocess
+import sys
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import yaml
+from scripts import github_setup as module
 
 WORKFLOWS = Path(__file__).resolve().parents[1] / ".github/workflows"
 FIXTURE_STEP = "Run the suite against the fixtures"
@@ -94,6 +99,100 @@ class AcceptanceGateWorkflowTest(unittest.TestCase):
                 '>> "$GITHUB_STEP_SUMMARY"\nexit "$status"\n',
             },
         )
+
+    def test_live_placeholders_are_absent_and_real_values_never_enter_logs(self):
+        live = step("acceptance-live.yml", "acceptance-live", LIVE_STEP)
+        self.assertEqual(
+            live["env"],
+            {
+                "NCI_SI_ACCEPTANCE_MODE": "live",
+                "NCI_SI_ACCEPTANCE_PREPARE": FIXTURE_ENV["NCI_SI_ACCEPTANCE_PREPARE"],
+                "NCI_SI_EVS_LICENSE_KEY": "${{ secrets.NCI_SI_EVS_LICENSE_KEY }}",
+                "NCI_SI_CADSR_CREDENTIAL": "${{ secrets.NCI_SI_CADSR_CREDENTIAL }}",
+                "CREDENTIAL_PLACEHOLDER": module.PLACEHOLDER,
+            },
+        )
+        self.assertEqual(
+            live,
+            {
+                "name": LIVE_STEP,
+                "env": {
+                    "NCI_SI_ACCEPTANCE_MODE": "live",
+                    "NCI_SI_ACCEPTANCE_PREPARE": FIXTURE_ENV["NCI_SI_ACCEPTANCE_PREPARE"],
+                    "NCI_SI_EVS_LICENSE_KEY": "${{ secrets.NCI_SI_EVS_LICENSE_KEY }}",
+                    "NCI_SI_CADSR_CREDENTIAL": "${{ secrets.NCI_SI_CADSR_CREDENTIAL }}",
+                    "CREDENTIAL_PLACEHOLDER": "NCI_SI_CONFIGURE_ME",
+                },
+                "run": 'absent=""\n'
+                "for name in NCI_SI_EVS_LICENSE_KEY NCI_SI_CADSR_CREDENTIAL; do\n"
+                '  if [ -z "${!name}" ] || [ "${!name}" = "$CREDENTIAL_PLACEHOLDER" ]; then\n'
+                '    absent="$absent $name"\n    unset "$name"\n  fi\ndone\n'
+                'echo "- Credentials absent from the live run:${absent:- none}" '
+                '| tee -a acceptance/network.md >> "$GITHUB_STEP_SUMMARY"\n'
+                "status=0\npdm run acceptance -n 4 --dist worksteal "
+                "--report=live.json || status=$?\n"
+                'if [ "$status" -gt 1 ] || [ ! -s acceptance/live.json ]; then\n'
+                '  echo "::error title=The live run did not finish::'
+                'exit status ${status}, or no report."\n'
+                "  exit 1\nfi\n"
+                "pdm run python -m nci_si_acceptance.report acceptance/live.json "
+                "--check-complete live\n",
+            },
+        )
+        for supplied in (
+            ("", ""),
+            (module.PLACEHOLDER, module.PLACEHOLDER),
+            ("PRIVATE-LIVE-EVS-CANARY", "PRIVATE-LIVE-CADSR-CANARY"),
+            (module.PLACEHOLDER, "PRIVATE-LIVE-CADSR-CANARY"),
+            ("PRIVATE-LIVE-EVS-CANARY", module.PLACEHOLDER),
+        ):
+            with self.subTest(supplied=supplied), TemporaryDirectory() as directory:
+                self.assert_live_environment(Path(directory), live, supplied)
+
+    def assert_live_environment(self, root, live, supplied):
+        root.joinpath("acceptance").mkdir()
+        executable = root / "pdm"
+        executable.write_text(
+            f"#!{sys.executable}\n"
+            + """
+import json, os, sys
+from pathlib import Path
+if sys.argv[1:3] == ["run", "acceptance"]:
+    Path("seen.json").write_text(json.dumps({k:v for k,v in os.environ.items() if k in
+        ("NCI_SI_EVS_LICENSE_KEY", "NCI_SI_CADSR_CREDENTIAL")}))
+    Path("acceptance/live.json").write_text("{}")
+"""
+        )
+        executable.chmod(0o700)
+        environment = os.environ | {
+            "PATH": str(root) + os.pathsep + os.environ["PATH"],
+            "GITHUB_STEP_SUMMARY": str(root / "summary"),
+            "CREDENTIAL_PLACEHOLDER": live["env"]["CREDENTIAL_PLACEHOLDER"],
+            "NCI_SI_EVS_LICENSE_KEY": supplied[0],
+            "NCI_SI_CADSR_CREDENTIAL": supplied[1],
+        }
+        result = subprocess.run(  # noqa: S603 - repository step with an owned fake acceptance CLI.
+            ["bash", "-c", live["run"]],  # noqa: S607
+            cwd=root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        names = ("NCI_SI_EVS_LICENSE_KEY", "NCI_SI_CADSR_CREDENTIAL")
+        expected = {
+            name: value
+            for name, value in zip(names, supplied, strict=True)
+            if value not in ("", module.PLACEHOLDER)
+        }
+        self.assertEqual(json.loads(root.joinpath("seen.json").read_text()), expected)
+        summary = root.joinpath("summary").read_text()
+        absent = "".join(f" {name}" for name in names if name not in expected) or " none"
+        self.assertEqual(summary, f"- Credentials absent from the live run:{absent}\n")
+        self.assertNotIn("PRIVATE-LIVE-", result.stdout + result.stderr + summary)
+        self.assertEqual(root.joinpath("acceptance/network.md").read_text(), summary)
 
     def test_the_weekly_fixture_run_runs_the_same_gates_as_ci(self):
         self.assertEqual(fixture_env("ci.yml", "acceptance"), FIXTURE_ENV)

@@ -51,6 +51,9 @@ audit = [
 docs = [
     "zensical==0.0.68",
 ]
+release = [
+    "python-semantic-release==10.7.0",
+]
 
 [tool.pdm]
 distribution = true
@@ -109,6 +112,8 @@ pytest = "pytest"
 # The fast check before a commit; the commit itself runs every hook.
 lint = { composite = ["ruff check .", "basedpyright"] }
 fmt = "ruff format ."
+# The rolling cutoff and temporary security exceptions are owned by one entry point.
+lock = "python -m scripts.dependency_lock"
 # The acceptance suite against the server (fixture mode unless NCI_SI_ACCEPTANCE_MODE says
 # otherwise), and the harness's own tests with its coverage minimum.
 acceptance = { cmd = "pytest", working_dir = "acceptance" }
@@ -129,6 +134,7 @@ acceptance-index-codes = "python -m nci_si_acceptance.suite"
 spec-render = "python -m nci_si_acceptance.document"
 docs-build = "python -m scripts.docs_site"
 portal = "python -m scripts.portal"
+github-setup = "python -m scripts.github_setup"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -149,7 +155,7 @@ patch = ["subprocess"]
 
 # The checked minimum; standard 3 in CONTRIBUTING.md gives the aim and the reason for the gap.
 [tool.coverage.report]
-fail_under = 90
+fail_under = 95
 precision = 2
 show_missing = true
 exclude_also = ["if __name__ == .__main__.:"]

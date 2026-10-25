@@ -77,18 +77,18 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Set up release tooling
+        if: steps.guard.outputs.skip == 'false'
+        uses: $/.github/actions/setup
+        with:
+          release-only: "true"
+
       - name: Semantic release
         id: release
         if: steps.guard.outputs.skip == 'false'
-        uses: python-semantic-release/python-semantic-release@b700dbeb1f431a0fcc30a79f3f0869407fe07278  # v10.7.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          commit: false
-          tag: true
-          push: true
-          changelog: false
-          vcs_release: true
-          build: false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pdm run semantic-release -v version --no-commit --tag --push --no-changelog --vcs-release --skip-build
 
       - name: Summary
         if: ${{ !cancelled() }}
