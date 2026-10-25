@@ -1,15 +1,27 @@
 """Public documentation is assembled from reviewed sources, never a results directory."""
 
 import json
+import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from scripts.docs_site import build_identity, stage_pages
+from scripts.docs_site import build_identity, navigation_pages, stage_pages
 
 
 class SiteStagingTest(unittest.TestCase):
+    def test_domain_user_plan_is_published_from_reviewed_navigation(self):
+        root = Path(__file__).resolve().parents[1]
+        config = tomllib.loads((root / "docs/site-assets/zensical.toml").read_text())
+        pages = navigation_pages(config["project"]["nav"])
+        self.assertEqual(pages.count("docs/user-acceptance.md"), 1)
+        stage_pages(root, self.destination, pages)
+        self.assertEqual(
+            (self.destination / "docs/user-acceptance.md").read_text(),
+            (root / "docs/user-acceptance.md").read_text(),
+        )
+
     def setUp(self):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)

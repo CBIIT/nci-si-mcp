@@ -38,6 +38,12 @@ A plain `pdm run acceptance` skips the prepared and secured cases; the
 
 [QUICKSTART.md](QUICKSTART.md) has the rest: connecting a client, settings, tools and errors.
 
+The client model holds the conversation and selects tool calls; the prompts guide it.
+The tools are deterministic; the server runs no LLM.
+Workflow tools also bundle their own upstream calls deterministically, with provenance.
+[Domain-user stories and UAT plan](docs/user-acceptance.md) describe four proposed journeys;
+the NCI client decision is blocked and UAT has not run.
+
 ## How the pieces fit
 
 ```mermaid

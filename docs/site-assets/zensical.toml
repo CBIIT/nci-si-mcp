@@ -9,6 +9,7 @@ nav = [
   { "Start here" = [
     { "Overview" = "README.md" },
     { "Quickstart" = "QUICKSTART.md" },
+    { "Domain users and UAT" = "docs/user-acceptance.md" },
     { "Behavioral stories" = "docs/behavioural-tests.md" },
   ] },
   { "Architecture and deployment" = [
