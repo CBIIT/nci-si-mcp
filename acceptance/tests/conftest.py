@@ -56,6 +56,7 @@ from nci_si_acceptance.suite import (
     index_set,
     order_for_state_changes,
     scenarios_of,
+    select_registry_checks,
     skip_fixture_only,
     skip_remote_own_servers,
     skip_unprepared,
@@ -86,12 +87,13 @@ def pytest_configure(config: pytest.Config) -> None:
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     target = config.stash[TARGET]
+    active = select_registry_checks(items, target.registry_release == "required")
     if target.mode == "live":
-        skip_fixture_only(items)
+        skip_fixture_only(active)
     if not target.has_index:
-        skip_unprepared(items, NOT_DECLARED_PREPARED if target.url else NOT_PREPARED)
+        skip_unprepared(active, NOT_DECLARED_PREPARED if target.url else NOT_PREPARED)
     if target.url and target.mode == "fixture":
-        skip_remote_own_servers(items, target.state_hook is not None)
+        skip_remote_own_servers(active, target.state_hook is not None)
         if target.state_hook:
             order_for_state_changes(items)
 

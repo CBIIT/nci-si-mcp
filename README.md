@@ -74,7 +74,7 @@ Fixture-mode outcome of each tool, from the expected outcomes of the 966 tests o
 | Group | Tools | Outcome of each tool |
 |---|---|---|
 | EVS tools | 12 | PASS: `resolve_release`, `get_concept`, `get_concepts`, `search_concepts`, `get_concept_hierarchy`, `expand_value_set`, `get_concept_neighborhood`, `get_concept_subsets`, `get_concept_mappings`, `resolve_retired_code`, `list_relationships`, `list_terminologies` |
-| caDSR tools | 10 | PASS: `resolve_registry_release`, `get_data_element`, `search_data_elements`, `match_data_elements`, `match_value_meanings`, `get_form`, `get_permissible_value`, `get_code_map`, `list_contexts`, `list_classification_schemes` |
+| caDSR tools | 10 | PASS: `search_data_elements`, `match_data_elements`, `match_value_meanings`, `get_form`, `get_permissible_value`, `list_contexts`, `list_classification_schemes`<br>INCOMPLETE: `get_data_element`, `get_code_map`<br>NOT RUN: `resolve_registry_release` |
 | Cross-domain tools | 4 | PASS: `find_data_elements_for_concept`, `get_concept_for_permissible_value`, `resolve_stored_value`, `get_release_alignment` |
 | Workflow tools | 3 | PASS: `ground_value`, `expand_cohort`, `harmonize_data_dictionary` |
 
@@ -117,6 +117,12 @@ Report SHA-256: `8a6ae3a9a2050838e9d1096f687e2cc1fe50fb4886be407e7628aadcb725447
 
 46 passed / 0 failed / 920 skipped. Skipped includes `not_live`, `not_implemented` and ordinary skips; only `not_live` has the reason contexts above. Passed validation/refusal tests do not establish live content retrieval. Unrecorded reasons are never inferred from current test markers.
 <!-- acceptance-status:end -->
+
+**Registry-release decision pending:** acceptance defaults to `optional`, suspending five
+registry discovery/published-pin/cursor checks with explicit skip reasons. `required` retains
+their assertions; both modes run in the harness self-tests. Unpinned caDSR content already
+works, and measured newly unblocked live tests are **none**. See the
+[interim scope and sponsor proposals](docs/specification.md#interim-registry-release-selection).
 
 [Caller permissions](docs/caller-permissions.md) and the
 [required-auth HTTP entry point](docs/governed-http.md) are available; the default stays

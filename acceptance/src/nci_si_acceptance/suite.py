@@ -38,6 +38,11 @@ NOT_DECLARED_PREPARED = "NOT RUN: the server is not declared prepared (NCI_SI_AC
 # hook, and one without the index at all.
 NEEDS_STATE_HOOK = "needs a server of its own (NCI_SI_ACCEPTANCE_STATE_HOOK)"
 CANNOT_UNPREPARE = "needs a server without the index, which a remote server cannot be made"
+REGISTRY_RELEASE = "registry_release"
+REGISTRY_SUSPENDED = (
+    "registry-release requirement suspended pending sponsor decision "
+    "(NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=optional)"
+)
 
 
 class UnmatchedUpstream(pytest.fail.Exception):
@@ -56,6 +61,19 @@ def scenarios_of(item: pytest.Item) -> tuple[str, ...]:
     """The scenarios a test selects, over all its `scenario` markers."""
 
     return tuple(name for marker in item.iter_markers(SCENARIO) for name in marker.args)
+
+
+def select_registry_checks(items: list[pytest.Item], required: bool) -> list[pytest.Item]:
+    """Suspend only marked registry requirements; keep them out of later live selection."""
+    if required:
+        return items
+    active = []
+    for item in items:
+        if item.get_closest_marker(REGISTRY_RELEASE) is not None:
+            item.add_marker(pytest.mark.skip(reason=REGISTRY_SUSPENDED))
+        else:
+            active.append(item)
+    return active
 
 
 def skip_fixture_only(items: Iterable[pytest.Item]) -> None:

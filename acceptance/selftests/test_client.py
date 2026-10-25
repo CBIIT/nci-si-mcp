@@ -16,6 +16,7 @@ from nci_si_acceptance.client import (
     PREPARE_VARIABLE,
     PREPARED_VARIABLE,
     PROFILE_VARIABLE,
+    REGISTRY_RELEASE_VARIABLE,
     REMOTE_ONLY,
     SECURITY_SERVER_VARIABLE,
     SERVER_VARIABLE,
@@ -51,6 +52,29 @@ def test_the_target_is_read_from_the_environment(monkeypatch):
     monkeypatch.setenv(PROFILE_VARIABLE, "evs")
 
     assert Target.from_env() == Target("live", ["python", "-m", "my server", "--flag"], "evs")
+
+
+@pytest.mark.parametrize("value", [None, "optional", "required", "", "REQUIRED", "other"])
+@pytest.mark.parametrize("remote", [False, True])
+def test_registry_selection_is_validated_and_never_given_to_the_server(
+    monkeypatch, tmp_path, value, remote
+):
+    monkeypatch.delenv(SERVER_VARIABLE, raising=False)
+    monkeypatch.delenv(URL_VARIABLE, raising=False)
+    if remote:
+        monkeypatch.setenv(URL_VARIABLE, "http://server.example/mcp")
+    monkeypatch.delenv(REGISTRY_RELEASE_VARIABLE, raising=False)
+    if value is not None:
+        monkeypatch.setenv(REGISTRY_RELEASE_VARIABLE, value)
+    if value not in (None, "optional", "required"):
+        with pytest.raises(ValueError) as error:
+            Target.from_env()
+        assert str(error.value) == (
+            f"{REGISTRY_RELEASE_VARIABLE} must be required or optional, not {value!r}"
+        )
+    else:
+        assert Target.from_env().registry_release == (value or "optional")
+    assert REGISTRY_RELEASE_VARIABLE not in server_environment("live", tmp_path, None)
 
 
 def test_the_secured_fixture_adapter_is_read_for_a_local_and_a_remote_target(monkeypatch):
