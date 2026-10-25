@@ -1,10 +1,12 @@
 """The README's status table is generated from the expected outcomes and is current."""
 
+import hashlib
 import json
 import subprocess
 import sys
 
 import pytest
+import yaml
 
 from nci_si_acceptance import status
 from nci_si_acceptance.status import BEGIN, END, README, current, render, tool_outcomes
@@ -177,3 +179,115 @@ def test_failed_collection_cannot_replace_the_existing_readme(tmp_path, monkeypa
         status.main(["--readme", str(readme)])
 
     assert readme.read_text(encoding="utf-8") == text
+
+
+def test_status_command_includes_stored_scheduled_live_observation(tmp_path):
+    readme = tmp_path / "README.md"
+    readme.write_text(f"{BEGIN}\n{END}\n", encoding="utf-8")
+    ran = run_status("--readme", str(readme))
+    assert ran.returncode == 0
+    assert "46 passed / 0 failed / 920 skipped" in readme.read_text(encoding="utf-8")
+
+
+def live_rows():
+    cases = [
+        ("match_data_elements", "passed", None),
+        ("match_data_elements", "not_live", "scenario"),
+        ("match_data_elements", "not_live", "not_live_capable"),
+        ("list_classification_schemes", "not_live", "not_live_capable"),
+        ("resolve_release", "not_live", "not_live_capable"),
+        ("match_data_elements", "not_live", None),
+        ("resolve_release", "failed", None),
+        (None, "passed", None),
+        (None, "not_live", "scenario"),
+    ]
+    tests = {
+        f"foreign::{index}": {
+            "tool": tool,
+            "gate": tool is None,
+            "outcome": outcome,
+            "unmatched": [],
+            **({"not_live_reason": reason} if reason else {}),
+        }
+        for index, (tool, outcome, reason) in enumerate(cases)
+    }
+    return {
+        "mode": "live",
+        "transport": "stdio",
+        "tests": tests,
+        "tools": {},
+        "failed_gates": [],
+        "unrun_gates": [],
+        "tools_list_bytes": None,
+        "suite": {"version": "old", "fixture_set": "old", "digest": "a" * 64},
+        "run": {"selected": 9, "finished": 9, "worker_crashes": 0, "exit_status": 1},
+    }
+
+
+def provenance(raw):
+    return {
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "run": 123,
+        "artifact": 456,
+        "event": "schedule",
+        "branch": "main",
+        "sha": "b" * 40,
+        "date": "2026-10-19T07:10:38Z",
+    }
+
+
+def test_exact_live_table_with_scenario_and_credential_precedence(monkeypatch):
+    monkeypatch.setattr(
+        status,
+        "REQUIRED_TOOLS",
+        {
+            "match_data_elements": "cadsr",
+            "list_classification_schemes": "cadsr",
+            "resolve_release": "evs",
+        },
+    )
+    report = live_rows()
+    metadata = provenance(json.dumps(report).encode())
+    rendered = status.render_live(report, metadata, status.skip_contexts())
+    assert rendered == (
+        "Latest stored scheduled main live run: "
+        "[123](https://github.com/CBIIT/nci-si-mcp/actions/runs/123), "
+        "2026-10-19T07:10:38Z; commit [bbbbbbbbbbbb](https://github.com/CBIIT/nci-si-mcp/commit/"
+        + "b"
+        * 40
+        + "). **Complete**.\n"
+        "Report SHA-256: `" + metadata["sha256"] + "`; artifact 456.\n\n"
+        "| Tool | Live passed / failed / skipped | Skip reason / context |\n|---|---|---|\n"
+        "| `match_data_elements` | 1 / 0 / 3 | 1 crafted scenario (fixture-only); "
+        "1 credentials not issued ([cadsr-access](docs/upstream/cadsr.md#cadsr-access)); "
+        "1 unrecorded |\n"
+        "| `list_classification_schemes` | 0 / 0 / 1 | 1 upstream capability gap "
+        "([cadsr-discovery](docs/upstream/cadsr.md#cadsr-discovery)) |\n"
+        "| `resolve_release` | 0 / 1 / 1 | 1 not yet probed by this live acceptance run |\n"
+        "| Unattributed gates | 1 / 0 / 1 | 1 crafted scenario (fixture-only) |\n"
+        "| **Total** | **2 / 1 / 6** | |\n\n"
+        "2 passed / 1 failed / 6 skipped. Skipped includes `not_live`, `not_implemented` and "
+        "ordinary skips; only `not_live` has the reason contexts above. "
+        "Passed validation/refusal tests do not establish live content retrieval. "
+        "Unrecorded reasons are never inferred from current test markers."
+    )
+
+
+def test_incomplete_latest_is_disclosed_without_substituting_older_green():
+    report = live_rows()
+    report["run"]["finished"] = 8
+    text = status.render_live(report, provenance(b"incomplete"), status.skip_contexts())
+    assert "**Incomplete: selected, finished and recorded outcome counts differ**" in text
+    assert "2 passed / 1 failed / 6 skipped" in text
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [("event", "workflow_dispatch"), ("branch", "issue/358"), ("sha256", "0" * 64), ("sha", "bad")],
+)
+def test_provenance_rejects_wrong_origin_or_hash(tmp_path, field, value):
+    raw = json.dumps(live_rows()).encode()
+    (tmp_path / "latest.json").write_bytes(raw)
+    (tmp_path / "latest.yaml").write_text(yaml.safe_dump(provenance(raw) | {field: value}))
+    with pytest.raises(ValueError, match="provenance"):
+        status.load_live(tmp_path)
