@@ -34,6 +34,14 @@ IDS = (
     "values-descendants",
     "values-by-public-id",
 )
+REQUIRED = (
+    ("graph", "date"),
+    ("id", "version", "name"),
+    ("id", "version", "name"),
+    ("id", "version", "value", "concept"),
+    ("id", "version", "value", "concept"),
+    ("version",),
+)
 
 
 def bodies():
@@ -246,15 +254,79 @@ def query_operations():
 
 
 class SSISRegisterTest(unittest.TestCase):
-    def test_every_required_variable_is_required_even_when_other_terms_are_valid(self):
+    def test_content_versions_follow_item_version_contract(self):
+        # Given a content binding, when its version is checked, then only the
+        # item-version syntax accepted by the consuming seam passes.
+        entries = yaml.safe_load(REGISTER.read_text())["queries"]
+        for entry, original in zip(entries[1:], bodies()[1:], strict=True):
+            for version in ("invalid", "1.2.3", " 1", "1 ", "-1", "1."):
+                with self.subTest(family=entry["id"], version=version):
+                    payload = copy.deepcopy(original)
+                    payload["results"]["bindings"][0]["version"]["value"] = version
+                    with self.assertRaises(ValueError) as raised:
+                        validate(payload, entry)
+                    self.assertEqual(str(raised.exception), "version: invalid item version")
+
+    def test_concepts_require_ncit_namespace_and_code(self):
+        # Given a value binding, when its concept URI cannot resolve at the seam,
+        # then the checker rejects it even though it is an absolute URI.
+        entries = yaml.safe_load(REGISTER.read_text())["queries"]
+        for entry, original in zip(entries[3:], bodies()[3:], strict=True):
+            for uri in (
+                "https://example.test/C1",
+                "https://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C1",
+                "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C0",
+                "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C01",
+                "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#bad",
+                "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C1/extra",
+            ):
+                with self.subTest(family=entry["id"], uri=uri):
+                    payload = copy.deepcopy(original)
+                    payload["results"]["bindings"][0]["concept"]["value"] = uri
+                    with self.assertRaises(ValueError) as raised:
+                        validate(payload, entry)
+                    self.assertEqual(str(raised.exception), "concept: expected NCIt concept URI")
+
+    def test_valid_item_versions_and_opaque_graph_versions_pass(self):
         entries = yaml.safe_load(REGISTER.read_text())["queries"]
         for entry, original in zip(entries, bodies(), strict=True):
-            for key in entry["required"]:
+            versions = (
+                ("invalid", "1.2.3", "future-release")
+                if entry["id"] == IDS[0]
+                else ("0", "1", "1.0", "01.02")
+            )
+            for version in versions:
+                with self.subTest(family=entry["id"], version=version):
+                    payload = copy.deepcopy(original)
+                    payload["results"]["bindings"][0]["version"] = {
+                        "type": "literal",
+                        "value": version,
+                    }
+                    self.assertIsNone(validate(payload, entry))
+
+    def test_every_required_variable_is_required_even_when_other_terms_are_valid(self):
+        entries = yaml.safe_load(REGISTER.read_text())["queries"]
+        for entry, original, required in zip(entries, bodies(), REQUIRED, strict=True):
+            self.assertEqual(entry["required"], list(required), entry["id"])
+            for key in required:
                 with self.subTest(family=entry["id"], missing=key):
                     payload = copy.deepcopy(original)
                     del payload["results"]["bindings"][0][key]
-                    with self.assertRaisesRegex(ValueError, "binding missing required variables"):
+                    with self.assertRaises(ValueError) as raised:
                         validate(payload, entry)
+                    self.assertEqual(str(raised.exception), "binding missing required variables")
+
+    def test_register_maps_content_hops_to_their_spec_requirements(self):
+        entries = yaml.safe_load(REGISTER.read_text())["queries"]
+        expected = (
+            ["X-1", "X-2", "X-3", "get_release_alignment-1"],
+            ["find_data_elements_for_concept-1", "ground_value-2"],
+            ["find_data_elements_for_concept-1"],
+            ["find_data_elements_for_concept-2", "ground_value-2"],
+            ["find_data_elements_for_concept-2"],
+            ["get_concept_for_permissible_value-1"],
+        )
+        self.assertEqual([entry["requirements"] for entry in entries], list(expected))
 
     def test_register_references_real_spec_requirements_and_tools(self):
         requirements = yaml.safe_load((ROOT / "spec/requirements.yaml").read_text())
