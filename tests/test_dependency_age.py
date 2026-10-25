@@ -10,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "dependency_age.py"
@@ -220,7 +221,7 @@ class DependencyAgeTest(unittest.TestCase):
 
         def fetch(url):
             seen.append(url)
-            if "pypi.org" in url:
+            if urlsplit(url).hostname == "pypi.org":
                 return pypi("2026-10-01T00:00:00Z")
             return {"time": {"2.0": "2026-10-01T00:00:00Z"}}
 
@@ -478,7 +479,7 @@ class DependencyAgeTest(unittest.TestCase):
 
             def fetch(url):
                 uploaded = NOW.isoformat() if young in url else "2026-10-01T00:00:00Z"
-                if "registry.npmjs.org" in url:
+                if urlsplit(url).hostname == "registry.npmjs.org":
                     return {"time": {"1": uploaded}}
                 return pypi(uploaded)
 
@@ -522,7 +523,7 @@ class DependencyAgeTest(unittest.TestCase):
                         + "a" * 64
                         + '" data-upload-time="2026-10-01T00:00:00Z">wheel</a>'
                     )
-                if "registry.npmjs.org" in url:
+                if urlsplit(url).hostname == "registry.npmjs.org":
                     return {"time": {"1": "2026-10-01T00:00:00Z"}}
                 return pypi("2026-10-21T00:00:00Z" if "certifi" in url else "2026-10-01T00:00:00Z")
 
