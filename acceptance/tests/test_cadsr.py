@@ -110,6 +110,7 @@ def _ok(result):
 @pytest.mark.own_server
 @pytest.mark.tool("resolve_registry_release")
 @pytest.mark.requirement("resolve_registry_release-1")
+@pytest.mark.registry_release
 def test_without_a_registry_release_the_export_date_stands_for_it(tools, upstream, recorded):
     dated = export_date(recorded(EXPORT_LISTING)["response"]["body"])
     assert (
@@ -755,6 +756,7 @@ def _published(recorded):
 @pytest.mark.scenario("cadsr/with-registry-release")
 @pytest.mark.tool("resolve_registry_release")
 @pytest.mark.requirement("resolve_registry_release-1")
+@pytest.mark.registry_release
 def test_a_published_registry_release_is_returned(tools, recorded):
     release = _published(recorded)
 
@@ -769,6 +771,7 @@ def test_a_published_registry_release_is_returned(tools, recorded):
 @pytest.mark.scenario("cadsr/with-registry-release")
 @pytest.mark.tool("get_data_element")
 @pytest.mark.requirement("X-21")
+@pytest.mark.registry_release
 def test_a_published_registry_release_is_asked_for_and_named_with_its_date(
     tools, upstream, recorded
 ):
@@ -807,6 +810,7 @@ def test_a_registry_release_cadsr_does_not_list_fails_closed_where_it_lists_some
 @pytest.mark.parametrize(
     "pinned_first", [True, False], ids=["pinned-then-not", "unpinned-then-pinned"]
 )
+@pytest.mark.registry_release
 def test_a_cursor_keeps_the_registry_release_it_was_issued_with(
     tools, upstream, recorded, pinned_first
 ):

@@ -31,6 +31,28 @@ pdm run spec-render                                  # regenerate docs/specifica
 
 ## Writing a test
 
+### Registry-release selection
+
+`NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=optional|required` is harness-only, defaults to
+`optional`, and rejects every other value. Optional suspends exactly five retained cases:
+export-date discovery, published-release discovery, published-pin transport/attribution,
+and both registry cursor-binding directions. Each reports an ordinary skip with reason
+`registry-release requirement suspended pending sponsor decision (NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=optional)`.
+They remain ordinary skips in live mode too, never `not_live` or executed passes.
+Use `required` to run the existing assertions unchanged:
+
+```bash
+NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=required pdm run acceptance --report=required.json
+```
+
+The marker `registry_release` selects only those cases. Explicit unpublished/unlisted-pin
+refusals, registry-only provenance and date alignment still run, as do NCIt graph, EVS and
+GDC checks. The sponsor's contract decision remains pending; see
+[the scope, measurements and proposals](../spec/acceptance.md#interim-registry-release-selection).
+No live tests were measured as newly unblocked. Deterministic `test_registry_selection.py`
+self-tests exercise both modes in the existing CI shards: required detects unpinned content
+on an actual behavioral assertion, optional records five skips with the exact reason.
+
 To read the behaviours without starting with Python, use these views:
 
 | Reader's question | Where to look |

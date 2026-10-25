@@ -107,6 +107,21 @@ entries:
     workaround: Preserve the folder's local date unchanged with published=false; unavailable pins fail release_not_available and listed but unaddressable matching/form pins fail capability_unavailable.
     acceptance: Every supported pin is echoed and verified; an unknown pin fails, an unpinned result is never labelled pinned, and export freshness is stated accurately.
 
+  - id: cadsr-export-retention
+    team: cadsr
+    title: Retain twelve months of dated caDSR exports
+    platform: C-1; A3.8.2
+    requirements: [resolve_registry_release-1, X-21]
+    tests: ["tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it"]
+    evidence: [acceptance/fixtures/recorded/cadsr-ftp/cde-xml-listing.json, acceptance/fixtures/recorded/cadsr-ftp/cde-xml-readme.json, acceptance/fixtures/recorded/cadsr/data-element-2200604.json]
+    source: https://github.com/CBIIT/nci-si-mcp/issues/359#issuecomment-6399041641
+    observation: One releasedCDEsXML-OD.zip overwrites the previous export. The data-element recording describes permissible-value removals without a version change; an item version alone cannot identify content edited in place.
+    reproduction: Inspect the recorded export listing and README and the change notes in data-element-2200604.json; this request adds no live probe.
+    expected: Retain at least twelve months of immutable dated exports, with generation timestamps and documented retrieval by date, so a consumer can retrieve the export for the day cited.
+    impact: Exact reproduction of a set-level answer or an item edited in place needs that day's export; current API responses and item versions do not suffice.
+    workaround: Report supplied provenance and retrievedAt honestly. The MCP server keeps no export archive and invents no registry identifier. The sponsor's registry-contract decision remains pending.
+    acceptance: The upstream team demonstrates retrieval of dated exports spanning at least twelve months and documents generation dates, retention and retrieval. The cited existing test covers export-date discovery only, not retention; no executable MCP acceptance case is added for this upstream operational request.
+
   - id: cadsr-search
     team: cadsr
     title: Serve keyword search with named filters and visible caps

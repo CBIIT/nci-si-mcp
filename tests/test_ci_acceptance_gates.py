@@ -46,6 +46,23 @@ def suite_line(workflow, job, name):
 
 
 class AcceptanceGateWorkflowTest(unittest.TestCase):
+    def test_ci_runs_all_selftests_including_both_registry_modes(self):
+        job = jobs("ci.yml")["selftest"]
+        self.assertEqual(
+            job["strategy"], {"fail-fast": False, "matrix": {"shard": ["1/3", "2/3", "3/3"]}}
+        )
+        self.assertEqual(job.get("env", {}), {})
+        self.assertEqual(job.get("if", ""), "")
+        self.assertEqual(job.get("needs", []), [])
+        (run,) = [entry for entry in job["steps"] if "run" in entry]
+        self.assertEqual(
+            run,
+            {
+                "run": "pdm run acceptance-selftest --cov-fail-under=0",
+                "env": {"SELFTEST_SHARD": "${{ matrix.shard }}"},
+            },
+        )
+
     def test_the_weekly_fixture_run_runs_the_same_gates_as_ci(self):
         self.assertEqual(fixture_env("ci.yml", "acceptance"), FIXTURE_ENV)
         self.assertEqual(fixture_env("acceptance-live.yml", "acceptance-live"), FIXTURE_ENV)

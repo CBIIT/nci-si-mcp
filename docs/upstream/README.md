@@ -68,6 +68,7 @@ None.
 | [Address subset, mapset and FHIR content states explicitly](evs.md#evs-pinned-forms) | EVS | OP-E06; OP-E23; OP-E24; OP-E25; OP-F05 |
 | [Define inactive membership and expansion paging](evs.md#evs-inactive-expansion) | EVS | OP-F05; A8.3; A9.5 |
 | [Publish registry identity and a verifiable pin contract](cadsr.md#cadsr-registry) | caDSR | C-1; OP-C08; OP-C06; OP-M01; OP-M02; OP-C12 |
+| [Retain twelve months of dated caDSR exports](cadsr.md#cadsr-export-retention) | caDSR | C-1; A3.8.2 |
 | [Serve keyword search with named filters and visible caps](cadsr.md#cadsr-search) | caDSR | C-3; OP-C03 |
 | [Specify matching model and threshold controls](cadsr.md#cadsr-match-parameters) | caDSR | C-6; OP-M01 |
 | [Provide access for CDE Match and lists of values](cadsr.md#cadsr-access) | caDSR | C-6; OP-M01; OP-C13 |
