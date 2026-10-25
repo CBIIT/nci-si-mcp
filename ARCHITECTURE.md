@@ -1,5 +1,12 @@
 # NCI SI MCP Architecture
 
+Shared SI cross-domain joins and `ground_value` carry a maintenance dependency risk:
+the team's [8 October 2026 response](docs/upstream/team-responses-2026-10-08.md) reports
+maintenance mode without funding for new API development or maintenance. The project
+coordinator owns the [query register and weekly structural checks](docs/upstream/ssis-dependencies.md).
+EVS SPARQL and caDSR APIs are candidate alternatives, not equivalent or implemented fallbacks;
+Shared SI failures remain explicit caller errors.
+
 This document describes the implemented Python server: EVS terminology, caDSR metadata,
 Shared SI joins and composed workflows served through MCP over stdio or HTTP, with a CLI for
 index operations and the original EVS commands.
@@ -34,11 +41,16 @@ remains pending. The [caller-permission flow](docs/caller-permissions.md) shows 
 | [Index lifecycle](#index-lifecycle) | When can a build serve requests, and how does rollback work? |
 | [Persistence schema](#persistence-schema) | How are concepts, fields and vectors related? |
 | [Local and cloud deployment](docs/deployment.md) | Which processes, assets and network boundaries does an operator need? |
+| [Operations and authorization evidence](docs/operations.md) | Which signals exist, and which monitoring, retention and control obligations belong to the platform? |
 | [HTTP session routing](docs/transport.md#session-routing-sequence) | What happens when a known session reaches another replica? |
 | [Release pipeline](docs/container.md#release-pipeline) | How does a tested commit become a verified image? |
 | [Validation evidence](docs/evidence-contract.md#evidence-flow) | How are results bound to their original run without inventing completeness or trust? |
 
 ## System context
+
+The [content-injection threat model](docs/threat-model.md) maps the upstream, server and
+client-host trust boundaries. Source text stays data; fixed furnished prompts tell assistants
+not to follow embedded instructions. Structured output does not itself enforce model behavior.
 
 Arrows name requests or supplied assets. Upstream systems own their content; the local index
 holds retrieved NCIt snapshots. The acceptance harness can replace the upstreams with local

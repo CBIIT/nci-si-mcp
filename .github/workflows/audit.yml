@@ -1,6 +1,7 @@
 name: Audit
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main]
@@ -28,6 +29,8 @@ jobs:
           fetch-depth: 0  # the package version is derived from the nearest tag
           persist-credentials: false
       - uses: $/.github/actions/setup
+      - name: Reject dependencies released inside five days
+        run: pdm run python scripts/dependency_age.py
       - name: Audit the runtime dependencies
         run: |
           pdm export -G server -G embeddings --prod --without-hashes -o "$RUNNER_TEMP/requirements.txt"

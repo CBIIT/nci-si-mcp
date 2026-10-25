@@ -203,7 +203,10 @@ def generate(root: Path = ROOT) -> dict[str, str]:
     for entry in entries:
         validate_entry(entry, fixture, root)
     excused = qualifications(catalogue, fixture, live)
-    output = {"README.md": overview(catalogue, fixture, live, excused)}
+    output = {
+        "README.md": overview(catalogue, fixture, live, excused),
+        "ssis-dependencies.md": ssis_dependencies(root),
+    }
     for team, title in TEAMS.items():
         lines = [
             f"# {title} upstream requirements",
@@ -217,6 +220,56 @@ def generate(root: Path = ROOT) -> dict[str, str]:
                 lines += entry_text(entry, fixture, live, root)
         output[f"{team}.md"] = "\n".join(lines)
     return output
+
+
+def ssis_dependencies(root: Path) -> str:
+    register = yaml.safe_load((root / DIRECTORY / "ssis-queries.yaml").read_text())
+    lines = [
+        "# Shared SI query dependencies",
+        "",
+        "Generated from [ssis-queries.yaml](ssis-queries.yaml) by "
+        "`pdm run python scripts/upstream_requirements.py`; never edit the table by hand.",
+        "",
+        "The [team response relayed on 8 October 2026](team-responses-2026-10-08.md) "
+        "states maintenance mode and no funding for new API development or maintenance. "
+        "This is an attributed dated report, not an independently verified current status.",
+        "",
+        f"Risk-record owner: **{register['owner']}**. "
+        "EVS SPARQL and caDSR APIs are published candidate alternatives, not implemented "
+        "or equivalent fallbacks. A missing upstream capability stays visible.",
+        "",
+        f"Transport: `{register['transport']}`. "
+        f"Coverage: {register['weekly']}. "
+        f"Caller error fallback: `{register['fallback']}`.",
+        "",
+        "Run `pdm run python -m scripts.ssis_contracts` to attempt all registered families. "
+        "Each is reported; any structural or transport failure exits nonzero. The checker "
+        "validates SELECT variables, bindings, term shapes, identifiers and row bounds. "
+        "Valid empty content results and content/count/release "
+        "changes pass; graph identities require both known graphs. This is platform conformance, "
+        "not a new MCP acceptance requirement.",
+        "",
+        "| Family / live check ID | Client operation | Consumers | Requirements | Evidence |",
+        "|---|---|---|---|---|",
+    ]
+    for entry in register["queries"]:
+        lines.append(
+            f"| `{entry['id']}` | `{entry['operation']}` | "
+            f"{', '.join(entry['consumers'])} | {', '.join(entry['requirements'])} | "
+            f"[{entry['evidence']}](../../acceptance/fixtures/{entry['evidence']}) |"
+        )
+    lines += [
+        "",
+        "The bounded identity request is crafted from "
+        "recorded evidence, not a new live recording. Identifier and remaining-budget "
+        "LIMIT instances are parameters of these families. Historical REST façade, "
+        "unbounded identity and values-by-public-id forms in the "
+        "[request history](../../acceptance/request-forms/ssis.md) are inactive. "
+        "The checker calls only anonymous Shared SI; it does not join EVS or caDSR "
+        "or substitute their results when Shared SI fails.",
+        "",
+    ]
+    return "\n".join(lines)
 
 
 def main() -> None:

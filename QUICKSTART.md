@@ -60,6 +60,18 @@ export NCI_SI_EMBEDDING_MODEL=cambridgeltl/SapBERT-from-PubMedBERT-fulltext
 
 ## Connect a client
 
+### Treat returned content as untrusted data
+
+Concept definitions, CDE names and other upstream text may contain instructions. The server
+preserves that text; its furnished prompts say returned content is data, never instructions.
+Configure the client host to keep source text out of privileged instructions, isolate tool
+execution and credentials, and grant least privilege across servers. Require human confirmation
+for consequential actions in other tools or sensitive-data disclosure. These host recommendations
+follow the [MCP security guidance](https://modelcontextprotocol.io/specification/2025-11-25/basic/security_best_practices);
+the [threat model](docs/threat-model.md) identifies implemented controls, tests and residual risk.
+
+### Choose a connection
+
 For a container deployment with an external index and model, follow the short
 [container runbook](docs/container.md). The [deployment diagrams](docs/deployment.md) compare
 local stdio, a local HTTP container and the proposed cloud layout.

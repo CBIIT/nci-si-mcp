@@ -87,6 +87,14 @@ answers the ordinary forms above.
 
 Crafted from issue #367's live observation of CDE 2178439: To a large extent has API primary C25332 while the graph calls qualifier C49508 main. Other metadata and EVS names are synthetic; this is not a recording.. Crafted, 4 fixtures, for get_concept_for_permissible_value-1: #367 observed API primary C25332, graph main C49508.
 
+### `injection/evs`
+
+Hostile C4817 definition remains decoded source text. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/evs-error`
+
+HTTP 400 with hostile text in the EVS message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
 ### `release/unknown`
 
 Every content path of `ncit_99.99z` answers 404. Recorded.

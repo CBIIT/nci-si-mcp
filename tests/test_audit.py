@@ -575,7 +575,7 @@ class AuditDiagnosticPrivacyTest(unittest.TestCase):
     def test_request_and_retry_diagnostics_hash_each_original_value(self):
         client = EVSClient("https://example.invalid", retry_backoff_seconds=0).http
         path = "/private-path-canary"
-        reason = f"EVS request failed for {path}: HTTP 503 Reason"
+        reason = f"EVS request failed for {path}: HTTP 503 Service Unavailable"
         with (
             captured() as stream,
             patch(

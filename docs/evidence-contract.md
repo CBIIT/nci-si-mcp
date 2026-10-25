@@ -172,7 +172,7 @@ documentation never consumes operational result records. The wrapper, validators
 dashboard are implemented; deployed platform integration remains deferred.
 
 The standard `pdm run test` and CI coverage measurement include these evidence modules alongside
-the core server. The existing 90% floor and above-95% aim apply; these are regression tests for
+the core server. The existing 95% floor and above-97% aim apply; these are regression tests for
 observable validation and projection behavior, not a separate relaxed portal threshold.
 
 The public documentation build excludes operational UAT/PROD records from pages, search indexes

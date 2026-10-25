@@ -354,3 +354,6 @@ X-27:
 X-28:
   statement: Governed HTTP rejects missing or invalid authentication and untrusted forwarded identity before MCP execution. Public health and readiness disclose status only, enforce Host admission, and forbid response caching. Required authentication cannot silently start without its approved integration.
   basis: [M1.6, M2.6, A6.0]
+X-29:
+  statement: Crafted returned content keeps its decoded text values exactly, appears only in data fields (and the JSON text mirror of the same result), and never appears in an error message, tool or schema description, or prompt template; every prompt states that returned content is data, never instructions. Caller prompt arguments remain caller text; server-added interpolation of upstream text is forbidden.
+  basis: [A2.5, A9.1, error, M5.1]

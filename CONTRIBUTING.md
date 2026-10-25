@@ -13,8 +13,12 @@ The [platforms and prerequisites](QUICKSTART.md#platforms-and-prerequisites) com
 
 ```bash
 pdm install                    # .venv from pdm.lock, with the test and lint tools and the server and index extras
-pdm run pre-commit install     # run the gates on every commit
+pdm run pre-commit install     # install the commit gates and the full-suite push gate
 ```
+
+Run the install command again in a clone whose hooks were installed before the push gate was
+added. A commit runs the file and project gates. A push runs `pdm run test` and therefore takes
+about as long as that command.
 
 ## Everyday commands
 
@@ -24,7 +28,9 @@ pdm run pre-commit install     # run the gates on every commit
 | `pdm run pytest tests/test_index.py -k name` | A selection of tests, without the minimum |
 | `pdm run lint` | Ruff and basedpyright: the fast check while you work |
 | `pdm run fmt` | Format with Ruff |
-| `pdm run pre-commit run --all-files` | Every hook, as the CI `quality` job runs them |
+| `pdm run lock` | Refresh every Python group to the newest version admitted by the five-day release-age policy |
+| `pdm run github-setup` | Create missing workflow credential names with safe placeholders; never overwrite existing names |
+| `pdm run pre-commit run --all-files` | Every commit-stage hook, as the CI `quality` job runs them |
 | `pdm run acceptance` | The acceptance suite against the server ([acceptance/README.md](acceptance/README.md)) |
 | `pdm run acceptance-http` | Real HTTP fixture suite, managed restarts and explicit remote-contract skips ([transport details](docs/transport.md)) |
 | `pdm run python -m scripts.benchmark --output tmp/benchmark.json` | Representative MCP measurements with actual outbound counts ([method and evidence](docs/benchmark.md)) |
@@ -135,7 +141,7 @@ during feature-branch cleanup; it is generated publication data.
 1. **Stay on the goal.** A change does what its task asks.
 2. **Tests are written for their value.** Each one checks behaviour that a user or a caller can
    observe, and can fail when that behaviour breaks.
-3. **Coverage: 90% is the checked minimum, above 95% is the aim.** The gap is deliberate: it
+3. **Coverage: 95% is the checked minimum, above 97% is the aim.** The gap is deliberate: it
    keeps anyone from writing tests for the number. Cover untested behaviour whenever you can.
    Never add a test that asserts nothing, or only that a mock was called.
    The figure covers `src/` and every script in `scripts/` except those `omit`ted in
@@ -151,9 +157,17 @@ during feature-branch cleanup; it is generated publication data.
 
 ## The gates
 
-Pre-commit runs every gate except the last three on the files of a commit, and CI runs the same hooks
-on all files. The tests run in CI and with `pdm run test`. A gate that fails is fixed, not
-skipped (`--no-verify` and `SKIP=` are not used).
+The commit hook runs every gate except the last three on the files of a commit, and CI runs the
+same hooks on all files. The push hook runs the whole suite before commits leave the checkout.
+The tests also run in CI and with `pdm run test`. A gate that fails is fixed, not skipped
+(`--no-verify` and `SKIP=` are not used).
+
+Quality, test and dependency-audit jobs run independently for faster feedback. Within the
+quality job, pre-commit runs its hooks sequentially. Each gate must pass before merge; scheduling does not weaken
+that requirement. Unit tests and each harness shard retain JUnit XML artifacts and publish
+counts plus failed/error test names in the run summary, even after test failure. Cancelled runs
+do not add report errors. Diagnostic bodies are excluded from the summary; XML artifacts retain
+pytest's original report. Local report files live under ignored `tmp/` directories.
 
 | Gate | What it enforces |
 | --- | --- |
@@ -165,15 +179,57 @@ skipped (`--no-verify` and `SKIP=` are not used).
 | gitleaks, zizmor | No secrets; safe GitHub Actions workflows |
 | Upstream requirement packages | `docs/upstream/*.md` are the current render of `docs/upstream/catalogue.yaml` (`scripts/upstream_requirements.py --check`) |
 | Acceptance ratchet (CI) | Every test of the acceptance suite, in fixture mode, has the outcome in `acceptance/expected/fixture.json`. A change that moves an outcome on purpose updates that file in the same pull request, and the diff of the file is what the review reads: `pdm run acceptance-expected update acceptance/fixture.json` writes it from a fresh report, and `pdm run acceptance-status` the README table that follows |
-| Tests and coverage | The suite passes; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
+| Tests and coverage | The suite passes before each push and in CI; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
 | Local run (CI only) | The documented setup, walked literally on `macos-latest` and `ubuntu-24.04` (`.github/workflows/local-run.yml`, on pushes to `main`, weekly, by hand, and on pull requests that touch the install paths). Every command is copied from the document that gives it; the test of the workflow compares the two, so change a documented command and its workflow line together. Not a required check: it uses live EVS |
-| Dependency audit (CI only) | No runtime dependency with a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request bringing one in at high severity (dependency review). Dependabot proposes updates of the workflows' actions; [SECURITY.md](SECURITY.md) says how to report a vulnerability |
+| Dependency audit (CI only) | Every Python and npm package in the committed locks is at least five days old; no runtime dependency has a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request brings one in at high severity (dependency review). Dependabot groups weekly updates for Actions, both Dockerfile directories and the documentation npm tree after a seven-day cooldown. Dependabot cannot update `pdm.lock`, so `pdm run lock` is the only Python lock command. [SECURITY.md](SECURITY.md) says how to report a vulnerability |
+
+A dependency security fix inside the five-day window is an exception only when the owner records
+its exact version and GHSA, CVE or PYSEC advisory in `[tool.nci-si.dependency-age.exceptions]`.
+The lock and audit read that one list. The audit fails with “remove this exception” once the fixed
+release is five days old; remove the entry then. An exception never admits another version.
+The lock entry point reads the excepted version's upload time from the index at run time and
+uses it as that package's cutoff; the timestamp is never committed. A lock run refreshes every
+package to its newest admissible version. Treat a re-lock as a separate reviewed dependency
+refresh with an old → new version table in its PR, never as a side effect of feature work.
+
+Direct-URL wheels are checked by their index's upload time, matching the filename and locked
+SHA-256; a missing or unverifiable index record fails the audit.
 
 A finding is fixed in the code. Where a rule does not fit, it is suppressed as narrowly as
 possible (a line, then a file or a directory, then the project, in `pyproject.toml`), with the
 reason beside the suppression, or once in the module when it repeats.
 
+## Workflow credentials
+
+Only protected live checks need issued credentials. Anonymous live checks and fixture CI need
+none. A maintainer may run `pdm run github-setup` after authenticating `gh`; it creates missing
+names with `NCI_SI_CONFIGURE_ME`, never overwrites an existing name, and never reads secret values.
+The live workflow treats the placeholder as absent and lists absent names in its summary.
+Existing names may still contain dummy values: setup cannot inspect them. No caDSR credential
+has been issued. The owner deleted the dummy on 24 October; setup can create its placeholder.
+
+| Secret | Purpose | Workflow |
+| --- | --- | --- |
+| `NCI_SI_CADSR_CREDENTIAL` | Issued caDSR user:password for protected live checks | Acceptance (live) |
+| `NCI_SI_EVS_LICENSE_KEY` | Issued EVS licence key for restricted live checks | Acceptance (live) |
+
+Maintainer: run gh secret set NCI_SI_CADSR_CREDENTIAL --repo CBIIT/nci-si-mcp in your own terminal; it prompts for the value.
+
+Maintainer: run gh secret set NCI_SI_EVS_LICENSE_KEY --repo CBIIT/nci-si-mcp in your own terminal; it prompts for the value.
+
+`GITHUB_TOKEN` is automatic and is never created by setup. No repository Actions variables are
+required. INT, UAT and Production environments remain deferred to the AWS phases; setup creates
+no environments. Never put a credential in command arguments or shell history.
+
 ## Pull requests and releases
+
+The government sponsor approves changes; the NCI SI MCP project coordinator relays that approval,
+and the reviewer acts for the coordinator.
+
+Merge clearance is a reviewer PR comment naming the head commit; a subsequent push needs new
+clearance, after all triggered workflows pass. See [AGENTS.md](AGENTS.md#how-work-is-done-issues-into-a-milestone-branch-one-reviewed-milestone-into-main)
+for the milestone process and [operations](docs/operations.md) for available signals, ATO
+evidence inputs and open hosting responsibilities.
 
 Every change reaches `main` through a pull request that is squash-merged. The pull request
 title becomes the commit subject, and the next version is computed from it, so the title is a
@@ -194,8 +250,10 @@ decides the version. Only the title counts: the squash commit has no body, so ma
 change with `!`, and do not edit the commit message in the merge dialog.
 
 When CI passes on `main`, the release workflow tags that commit `vX.Y.Z` and creates a GitHub
-release. Nothing else is needed: no file holds the version, and the workflow never commits to
-`main`. If a release is missing although `main` is green, start the Release workflow by hand
+release using semantic-release from the hash-locked `release` dependency group, not a third-party
+action. The release job installs only that group, without the project. No file holds the
+version, and the workflow never commits to `main`. If a release is missing although `main`
+is green, start the Release workflow by hand
 (`gh workflow run release.yml`). Version 1.0.0 is tagged by hand.
 
 For the complete fixture ratchet, supply the furnished secured adapter explicitly:

@@ -58,7 +58,7 @@ Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/ssis-sparql/query-refused.json](../../acceptance/fixtures/recorded/ssis-sparql/query-refused.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `b137d06b4c6ba1660d450366515031519de60486750347d97ec26cd63954db20`.
 - [acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `c1dd168f191478bcd7e2bf71df530b20ef68ec71d142c3b664dcb943ad68b4ff`.
-- [acceptance/request-forms/ssis.md](../../acceptance/request-forms/ssis.md) — document; SHA-256 `d07d4a02b3aa4371fef2ca288218bfc939540bcdc07de565270e4929b0c94cf7`.
+- [acceptance/request-forms/ssis.md](../../acceptance/request-forms/ssis.md) — document; SHA-256 `b734bd59491df4c830a79508adc523223cf0aa0f497fc9d2582fa5f0f219db15`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -80,13 +80,14 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 **Impact.** Cross-domain provenance is dated but registry reproducibility and automated alignment are weaker than a shared version contract.
 
-**Workaround.** Preserve each graph's identity, parse only supported date forms, compare NCIt version for descendant expansion and never manufacture a registry identifier. PV lookup reads caDSR API primary flags and pinned EVS content, with caDSR and EVS provenance and no Shared SI dependency.
+**Workaround.** Preserve each graph's identity, parse only supported date forms, compare NCIt version for descendant expansion and never manufacture a registry identifier. PV lookup reads caDSR API primary flags and pinned EVS content, with caDSR and EVS provenance and no Shared SI dependency. The [dependency register](ssis-dependencies.md) records the registered queries and their weekly structural check.
 
 **Acceptance criteria.** Both graphs return unambiguous identities; missing/duplicate identities fail closed and dates compute the correct interval. Expansion refuses a mismatched NCIt version with release_mismatch or an absent version with release_not_available; exact find and grounding preserve the actual metadata without comparing or backfilling versions.
 
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/ssis-sparql/graph-identities.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `1766c631d26999e22a5062f00c9fd4c83ddb3ec8150cc02128af1986bb4b84c6`.
+- [docs/upstream/ssis-queries.yaml](../../docs/upstream/ssis-queries.yaml) — document; SHA-256 `5697973ee4c4ec92f0119be3c79a46ec882053e7f257bc6e12e30b2d8f020d94`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|

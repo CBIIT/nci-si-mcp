@@ -619,7 +619,9 @@ class TraversalTest(unittest.TestCase):
         with self.assertRaises(EVSResponseError) as raised:
             walk(client, max_depth=2)
 
-        self.assertIn("26.07a", str(raised.exception))
+        self.assertEqual(
+            str(raised.exception), "EVS served content of another release than the one requested"
+        )
 
     def test_concept_from_another_release_is_rejected(self):
         client = FakeEVS([concept("C1", version="26.07a")])

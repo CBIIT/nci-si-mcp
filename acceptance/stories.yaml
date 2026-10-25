@@ -5,6 +5,7 @@
   when: It asks which tools exist, what their inputs mean and whether they modify data.
   then: The list matches the profile, uses the agreed names and arguments, describes supported behaviour only, and stays stable after content calls and during an upstream outage.
   tests:
+    tests/test_content_injection.py::test_source_instructions_stay_exactly_in_data_fields: Hostile text in four content groups stays exactly in data fields and the JSON mirror without changing tool schemas or furnished prompts.
     tests/test_protocol.py::test_tools_list_names_the_tools_of_the_profile_and_no_other: The available tool names are exactly those of the selected profile.
     tests/test_protocol.py::test_no_description_holds_placeholder_or_debug_text: Tool and schema descriptions contain no unfinished or debugging text.
     tests/test_protocol.py::test_no_description_or_schema_shows_what_the_tool_does_not_offer: Descriptions and examples do not advertise options that the specification excludes.

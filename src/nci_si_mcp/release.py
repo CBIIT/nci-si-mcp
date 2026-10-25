@@ -154,15 +154,14 @@ def _served_channel(row: dict[str, Any], version: str, preferred: str) -> str:
 def _one_release_row(rows: list[dict[str, Any]], requested: str) -> dict[str, Any]:
     versions = [str(row.get("version") or "") for row in rows]
     if len(rows) != 1:
-        found = ", ".join(versions) or "none"
         raise _not_available(
-            f"EVS lists {len(rows)} {requested} releases as latest, not exactly one ({found})",
+            f"EVS lists {len(rows)} releases as latest, not exactly one",
             requested,
             versions,
         )
     (row,) = rows
     if not versions[0]:
-        raise _not_available(f"The latest {requested} release has no version", requested)
+        raise _not_available("The latest release has no version", requested)
     return row
 
 

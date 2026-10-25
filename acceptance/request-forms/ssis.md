@@ -582,6 +582,22 @@ answers the ordinary forms above.
 
 Crafted from issue #367's live observation of CDE 2178439: To a large extent has API primary C25332 while the graph calls qualifier C49508 main. Other metadata and EVS names are synthetic; this is not a recording.. Crafted, 4 fixtures, for get_concept_for_permissible_value-1: #367 observed API primary C25332, graph main C49508.
 
+### `injection/cross-domain`
+
+Hostile C17357 data element name remains decoded source text. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/workflow`
+
+Hostile C4817 permissible value remains decoded source text. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/cross-domain-error`
+
+HTTP 400 with hostile text in the cross-domain message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/workflow-error`
+
+HTTP 400 with hostile text in the workflow message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
 ### `release/mismatch`
 
 Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 184 fixtures, for A3.4: the content served names another release than the one requested.

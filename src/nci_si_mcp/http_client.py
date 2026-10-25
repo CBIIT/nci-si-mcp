@@ -8,6 +8,7 @@ the error and handed to the request-log hook. A response is classified before it
 failure masked as a success is an `upstream_unavailable` error (`upstream.parse_upstream_json`).
 A credential is sent only to the platform the client was made for, and appears in no log record,
 hook record, error message or error detail (A7.5).
+HTTP protocol and transport failures use server-owned wording, never upstream exception text.
 """
 
 from __future__ import annotations
@@ -66,9 +67,14 @@ class UpstreamRejectedError(UpstreamError):
     empty_body is true only when the bounded error-body read succeeded with no bytes.
     """
 
-    def __init__(self, message: str, /, *, empty_body: bool = False, **details: Any) -> None:
+    def __init__(
+        self, message: str, /, *, empty_body: bool = False, body_message: str = "", **details: Any
+    ) -> None:
         super().__init__(message, **details)
         self.empty_body = empty_body
+        # Full body prose stays internal; EVS may extract the caller's requested identifier
+        # into the existing structured error details, never the full prose into public wording.
+        self.body_message = body_message
 
 
 class UpstreamTooLargeError(UpstreamError):
@@ -167,7 +173,7 @@ def _open(request: Request, timeout: float) -> Any:
 
 
 def _error_detail(exc: HTTPError) -> tuple[str, bool]:
-    """The reason the platform gives in the body of an error response, if it gives one."""
+    """Read body text for internal classification only, and distinguish a proven empty body."""
 
     try:
         payload = exc.read(4096)
@@ -178,6 +184,14 @@ def _error_detail(exc: HTTPError) -> tuple[str, bool]:
     except ValueError:
         return "", not payload
     return (str(body.get("message") or "") if isinstance(body, dict) else ""), False
+
+
+def _status_reason(status: int) -> str:
+    """Use the standard reason, never the platform-controlled status line."""
+    try:
+        return HTTPStatus(status).phrase
+    except ValueError:
+        return ""
 
 
 def _retry_after_seconds(value: str | None) -> float | None:
@@ -396,12 +410,7 @@ class HttpClient:
         """The failure an HTTP error status stands for: to retry, or to report as it is."""
 
         detail, empty_body = _error_detail(exc)
-        reason = " ".join(
-            part
-            for part in (f"HTTP {exc.code}", str(exc.reason or ""), f"({detail})" if detail else "")
-            if part
-        )
-        # Everything here, the status line included, is what the platform said.
+        reason = " ".join(part for part in (f"HTTP {exc.code}", _status_reason(exc.code)) if part)
         message = self._redact(f"{self.label} request failed for {path}: {reason}")
         retry_after = exc.headers.get("Retry-After")
         exc.close()
@@ -410,6 +419,7 @@ class HttpClient:
         return UpstreamRejectedError(
             message,
             empty_body=empty_body,
+            body_message=self._redact(detail),
             surface=self.surface,
             status=exc.code,
             attempts=attempt.number,
@@ -423,11 +433,16 @@ class HttpClient:
         except HTTPError as exc:
             attempt.status, attempt.failure = exc.code, "http_status"
             failure = self._http_failure(exc, path, attempt)
-        except (OSError, HTTPException) as exc:
+        except HTTPException as exc:
             attempt.failure = _transport_failure(exc)
-            reason = getattr(exc, "reason", None) or exc
             failure = _Transient(
-                self._redact(f"{self.label} request failed for {path}: {reason}"),
+                self._redact(f"{self.label} request failed for {path}: invalid HTTP response"),
+                timed_out=_timed_out(exc),
+            )
+        except OSError as exc:
+            attempt.failure = _transport_failure(exc)
+            failure = _Transient(
+                self._redact(f"{self.label} request failed for {path}: transport failure"),
                 timed_out=_timed_out(exc),
             )
         # Raised outside the handlers, so that no chain carries the failure as it came: an
