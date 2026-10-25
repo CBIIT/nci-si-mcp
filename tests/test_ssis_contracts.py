@@ -136,6 +136,38 @@ class SSISContractCommandTest(ServerTestCase):
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertEqual(len(server.bodies), 6)
 
+    def test_blank_element_names_fail_both_families_and_still_report_all_six(self):
+        # Given blank names in both element families, when the real CLI runs,
+        # then each reports name drift and all six queries finish with a nonzero exit.
+        for name in ("", " \t\n"):
+            with self.subTest(name=name):
+                payloads = bodies()
+                expected = passed()
+                for index in (1, 2):
+                    payloads[index]["results"]["bindings"][0]["name"]["value"] = name
+                    expected[index] = {
+                        "id": IDS[index],
+                        "status": "fail",
+                        "error": "name: must not be blank",
+                    }
+                result, server = self.command(payloads)
+                self.assertEqual(json.loads(result.stdout), expected)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(len(server.bodies), 6)
+
+    def test_nonblank_names_and_empty_permissible_value_text_pass(self):
+        # Given nonblank names with surrounding whitespace and empty permissible
+        # value text, when the CLI runs, then these valid content terms still pass.
+        payloads = bodies()
+        for index in (1, 2):
+            payloads[index]["results"]["bindings"][0]["name"]["value"] = " \tValid name\n"
+        for payload in payloads[3:]:
+            payload["results"]["bindings"][0]["value"]["value"] = ""
+        result, server = self.command(payloads)
+        self.assertEqual(json.loads(result.stdout), passed())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(server.bodies), 6)
+
     def test_recorded_and_approved_optional_contracts_pass(self):
         result, server = self.command(bodies())
         self.assertEqual(result.returncode, 0, result.stderr)
