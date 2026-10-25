@@ -89,7 +89,7 @@ Hostile C4817 definition remains decoded source text. Crafted, 1 fixture, for X-
 
 ### `injection/evs-error`
 
-HTTP 400 with the hostile EVS content body. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+HTTP 400 with hostile text in the EVS message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
 
 ### `release/unknown`
 

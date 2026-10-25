@@ -66,9 +66,13 @@ class UpstreamRejectedError(UpstreamError):
     empty_body is true only when the bounded error-body read succeeded with no bytes.
     """
 
-    def __init__(self, message: str, /, *, empty_body: bool = False, **details: Any) -> None:
+    def __init__(
+        self, message: str, /, *, empty_body: bool = False, body_message: str = "", **details: Any
+    ) -> None:
         super().__init__(message, **details)
         self.empty_body = empty_body
+        # For domain classification only; never serialised as message or error details.
+        self.body_message = body_message
 
 
 class UpstreamTooLargeError(UpstreamError):
@@ -167,7 +171,7 @@ def _open(request: Request, timeout: float) -> Any:
 
 
 def _error_detail(exc: HTTPError) -> tuple[str, bool]:
-    """The reason the platform gives in the body of an error response, if it gives one."""
+    """Read body text for internal classification only, and distinguish a proven empty body."""
 
     try:
         payload = exc.read(4096)
@@ -178,6 +182,14 @@ def _error_detail(exc: HTTPError) -> tuple[str, bool]:
     except ValueError:
         return "", not payload
     return (str(body.get("message") or "") if isinstance(body, dict) else ""), False
+
+
+def _status_reason(status: int) -> str:
+    """Use the standard reason, never the platform-controlled status line."""
+    try:
+        return HTTPStatus(status).phrase
+    except ValueError:
+        return ""
 
 
 def _retry_after_seconds(value: str | None) -> float | None:
@@ -396,12 +408,7 @@ class HttpClient:
         """The failure an HTTP error status stands for: to retry, or to report as it is."""
 
         detail, empty_body = _error_detail(exc)
-        reason = " ".join(
-            part
-            for part in (f"HTTP {exc.code}", str(exc.reason or ""), f"({detail})" if detail else "")
-            if part
-        )
-        # Everything here, the status line included, is what the platform said.
+        reason = " ".join(part for part in (f"HTTP {exc.code}", _status_reason(exc.code)) if part)
         message = self._redact(f"{self.label} request failed for {path}: {reason}")
         retry_after = exc.headers.get("Retry-After")
         exc.close()
@@ -410,6 +417,7 @@ class HttpClient:
         return UpstreamRejectedError(
             message,
             empty_body=empty_body,
+            body_message=self._redact(detail),
             surface=self.surface,
             status=exc.code,
             attempts=attempt.number,

@@ -66,7 +66,15 @@ Hostile 2200604 definition remains decoded source text. Crafted, 1 fixture, for 
 
 ### `injection/cadsr-error`
 
-HTTP 400 with the hostile caDSR content body. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+HTTP 400 with hostile text in the caDSR message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+
+### `injection/webmethods-error`
+
+HTTP 200 with hostile text in apiResponse.message. Crafted, 1 fixture, for X-29: masked failure prose never becomes server-authored instructions.
+
+### `injection/fhir-error`
+
+HTTP 200 with hostile FHIR issue diagnostics and details text. Crafted, 1 fixture, for X-29: masked failure prose never becomes server-authored instructions.
 
 ### `upstream/unavailable`
 

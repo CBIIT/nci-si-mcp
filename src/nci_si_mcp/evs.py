@@ -268,7 +268,7 @@ class EVSClient:
         except UpstreamRejectedError as exc:
             if exc.details.get("status") != HTTPStatus.NOT_FOUND:
                 raise
-            unknown = _UNKNOWN_TERMINOLOGY.search(str(exc))
+            unknown = _UNKNOWN_TERMINOLOGY.search(exc.body_message)
             if unknown:
                 raise EVSReleaseNotFoundError(str(exc), requested=unknown[1], source="evs") from exc
             raise EVSNotFoundError(str(exc), **exc.details) from exc

@@ -26,8 +26,7 @@ def _webmethods_error(data: dict[str, Any]) -> str | None:
     envelope = data.get("apiResponse")
     if not isinstance(envelope, dict) or envelope.get("type") != "E":
         return None
-    reason = envelope.get("message")
-    return f"a webMethods error envelope{f' ({reason})' if reason else ''}"
+    return "a webMethods error envelope"
 
 
 def _fhir_error(data: dict[str, Any]) -> str | None:

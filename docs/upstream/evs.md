@@ -54,7 +54,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [docs/retrieval-evaluation.md](../../docs/retrieval-evaluation.md) — document; SHA-256 `eec67b8272d5b502352ccac676e88054c422acc1e09d5b9440b586328226a6e2`.
-- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `048734ab7e3a52f8fadb64730325859433f306521a67bfb9814f85a08034ba2f`.
+- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `b3f97a170b4be94e44c4bb24cab7592a10ce8cfb389fa6fbe4f9959274d99d61`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -116,7 +116,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/evs/terminologies.json](../../acceptance/fixtures/recorded/evs/terminologies.json) — recorded on 2026-10-02; GET evs /api/v1/metadata/terminologies; SHA-256 `ba9c019d97d677bdf68dee2f119f62047d6448f715ec4b3157fb9c59e1b7fe4e`.
-- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `048734ab7e3a52f8fadb64730325859433f306521a67bfb9814f85a08034ba2f`.
+- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `b3f97a170b4be94e44c4bb24cab7592a10ce8cfb389fa6fbe4f9959274d99d61`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -144,7 +144,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 Evidence (linked request/response files retain their original form):
 
-- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `048734ab7e3a52f8fadb64730325859433f306521a67bfb9814f85a08034ba2f`.
+- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `b3f97a170b4be94e44c4bb24cab7592a10ce8cfb389fa6fbe4f9959274d99d61`.
 - [acceptance/fixtures/crafted/OP-E06/subset-gdc.json](../../acceptance/fixtures/crafted/OP-E06/subset-gdc.json) — crafted; GET evs /api/v1/subset/ncit_26.09d/C177537; SHA-256 `4a2ad1a01962939f03d09147f91a0ca446717df1e72bbf08eb35b1afb06620ae`.
 - [acceptance/fixtures/crafted/OP-F05/expand-c85492.json](../../acceptance/fixtures/crafted/OP-F05/expand-c85492.json) — crafted; GET evs-fhir /ValueSet/$expand; SHA-256 `007f987080252d9294440a22f54c3cc4a21dc3879bed70f412da4f337ccb533c`.
 
@@ -176,7 +176,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/evs-fhir/expand-c85492.json](../../acceptance/fixtures/recorded/evs-fhir/expand-c85492.json) — recorded on 2026-10-02; GET evs-fhir /ValueSet/$expand; SHA-256 `836a85af27adff039bc0ba948313dc3e62f31ff9aca3d03ec2091f0331bd840e`.
-- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `048734ab7e3a52f8fadb64730325859433f306521a67bfb9814f85a08034ba2f`.
+- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `b3f97a170b4be94e44c4bb24cab7592a10ce8cfb389fa6fbe4f9959274d99d61`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|

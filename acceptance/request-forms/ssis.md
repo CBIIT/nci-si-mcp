@@ -588,11 +588,11 @@ Hostile C4817 permissible value remains decoded source text. Crafted, 1 fixture,
 
 ### `injection/cross-domain-error`
 
-HTTP 400 with the hostile cross-domain content body. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+HTTP 400 with hostile text in the cross-domain message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
 
 ### `injection/workflow-error`
 
-HTTP 400 with the hostile workflow content body. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
+HTTP 400 with hostile text in the workflow message field. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.
 
 ### `release/mismatch`
 

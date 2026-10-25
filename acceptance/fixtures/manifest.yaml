@@ -54,10 +54,12 @@ scenarios:
   injection/cadsr: Hostile 2200604 definition remains decoded source text
   injection/cross-domain: Hostile C17357 data element name remains decoded source text
   injection/workflow: Hostile C4817 permissible value remains decoded source text
-  injection/evs-error: HTTP 400 with the hostile EVS content body
-  injection/cadsr-error: HTTP 400 with the hostile caDSR content body
-  injection/cross-domain-error: HTTP 400 with the hostile cross-domain content body
-  injection/workflow-error: HTTP 400 with the hostile workflow content body
+  injection/evs-error: HTTP 400 with hostile text in the EVS message field
+  injection/cadsr-error: HTTP 400 with hostile text in the caDSR message field
+  injection/cross-domain-error: HTTP 400 with hostile text in the cross-domain message field
+  injection/workflow-error: HTTP 400 with hostile text in the workflow message field
+  injection/webmethods-error: HTTP 200 with hostile text in apiResponse.message
+  injection/fhir-error: HTTP 200 with hostile FHIR issue diagnostics and details text
   release/unknown: Every content path of `ncit_99.99z` answers 404
   release/mismatch: >-
     Every payload that reports the pinned release names 26.08e instead, the unpinned forms
