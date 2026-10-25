@@ -29,15 +29,21 @@ def _outcome(compliant, source):
         "tests/test_site.py", "-p", "no:cacheprovider", "-p", STAND_IN, f"--report={report}"
     )
     (test,) = json.loads(report.read_text(encoding="utf-8"))["tests"].values()
-    return test["outcome"]
+    return test
 
 
 def test_a_call_to_a_tool_the_server_does_not_list_is_not_implemented(compliant):
     # The compliant server serves the EVS profile here, which has no get_form.
-    assert _outcome(compliant, ABSENT_TOOL) == "not_implemented"
+    assert _outcome(compliant, ABSENT_TOOL)["outcome"] == "not_implemented"
 
 
 def test_a_live_run_counts_a_test_that_is_not_live_capable_as_not_live(compliant, monkeypatch):
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
 
-    assert _outcome(compliant, FIXTURE_ONLY) == "not_live"
+    assert _outcome(compliant, FIXTURE_ONLY) == {
+        "tool": "get_concept",
+        "gate": False,
+        "outcome": "not_live",
+        "unmatched": [],
+        "not_live_reason": "not_live_capable",
+    }
