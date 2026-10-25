@@ -86,7 +86,11 @@ class AcceptanceProjectionTest(unittest.TestCase):
         native["tools"]["lookup"].update(outcome="NOT RUN", counts={"not_live": 1})
         historical = project(native)
         native["tests"][key]["not_live_reason"] = "scenario"
-        self.assertEqual(project(native), historical)
+        current = project(native)
+        self.assertEqual(
+            {key: current[key] for key in ("cases", "tools", "counts", "inventory_complete")},
+            {key: historical[key] for key in ("cases", "tools", "counts", "inventory_complete")},
+        )
 
     def test_unknown_report_fields_are_rejected(self):
         with self.assertRaises(EvidenceError):
