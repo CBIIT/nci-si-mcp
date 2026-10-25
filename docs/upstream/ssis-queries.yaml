@@ -27,7 +27,7 @@ queries:
     required: [id, version, name]
     limit: 1001
     consumers: [find_data_elements_for_concept, ground_value]
-    requirements: [find_data_elements_for_concept-1, ground_value-1]
+    requirements: [find_data_elements_for_concept-1, ground_value-2]
   - id: elements-descendants
     operation: find_data_elements
     args: [C17357]
@@ -47,7 +47,7 @@ queries:
     required: [id, version, value, concept]
     limit: 1001
     consumers: [find_data_elements_for_concept, ground_value]
-    requirements: [find_data_elements_for_concept-1, ground_value-1]
+    requirements: [find_data_elements_for_concept-2, ground_value-2]
   - id: values-descendants
     operation: find_permissible_values
     args: [C17357]
@@ -57,7 +57,7 @@ queries:
     required: [id, version, value, concept]
     limit: 1001
     consumers: [find_data_elements_for_concept]
-    requirements: [find_data_elements_for_concept-1]
+    requirements: [find_data_elements_for_concept-2]
   - id: values-by-public-id
     operation: get_permissible_values
     args: ['2200604']

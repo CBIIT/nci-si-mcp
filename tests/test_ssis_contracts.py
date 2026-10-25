@@ -445,7 +445,10 @@ class SSISRegisterTest(unittest.TestCase):
         payload["results"]["bindings"] = [
             {
                 "version": {"type": "literal", "value": "1"},
-                "concept": {"type": "uri", "value": "http://example.test/C1"},
+                "concept": {
+                    "type": "uri",
+                    "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C1",
+                },
             }
         ]
         with self.assertRaisesRegex(ValueError, "inconsistent OPTIONAL"):

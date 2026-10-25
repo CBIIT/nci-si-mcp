@@ -13,7 +13,9 @@ import yaml
 from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import PlatformError
 from nci_si_mcp.http_client import HttpClient, UpstreamError
+from nci_si_mcp.seam import NCIT_NAMESPACE
 from nci_si_mcp.ssis import CADSR_GRAPH, NCIT_GRAPH, SSISClient, _valid_date
+from nci_si_mcp.validation import ITEM_VERSION_FORM, NCIT_CODE_FORM
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTER = ROOT / "docs/upstream/ssis-queries.yaml"
@@ -74,6 +76,21 @@ def semantics(values: dict[str, str]) -> None:
         require(values["role"] == CADSR_GRAPH + "#main_concept", "role: expected main concept")
 
 
+def content_semantics(values: dict[str, str]) -> None:
+    if "version" in values:
+        require(
+            bool(re.fullmatch(ITEM_VERSION_FORM, values["version"])),
+            "version: invalid item version",
+        )
+    if "concept" in values:
+        uri = values["concept"]
+        require(
+            uri.startswith(NCIT_NAMESPACE)
+            and bool(re.fullmatch(NCIT_CODE_FORM, uri.removeprefix(NCIT_NAMESPACE))),
+            "concept: expected NCIt concept URI",
+        )
+
+
 def binding(row: Any, entry: dict[str, Any]) -> None:
     require(isinstance(row, dict), "binding must be an object")
     require(set(entry["required"]) <= row.keys(), "binding missing required variables")
@@ -86,6 +103,8 @@ def binding(row: Any, entry: dict[str, Any]) -> None:
             "binding has inconsistent OPTIONAL variables",
         )
     semantics(values)
+    if entry["id"] != "graph-identities":
+        content_semantics(values)
 
 
 def validate(payload: Any, entry: dict[str, Any]) -> None:
