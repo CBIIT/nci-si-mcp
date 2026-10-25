@@ -56,7 +56,7 @@ def term_value(key: str, term: Any) -> str:
     require(term.get("type") in ("uri", "literal", "typed-literal"), f"{key}: invalid term type")
     value = term.get("value")
     require(isinstance(value, str), f"{key}: term value must be a string")
-    if key in ("concept", "graph", "role"):
+    if key in ("concept", "graph"):
         require(
             term["type"] == "uri" and bool(re.fullmatch(r"https?://\S+", value)),
             f"{key}: expected absolute URI",
@@ -73,8 +73,6 @@ def semantics(values: dict[str, str]) -> None:
         require(values["graph"] in (NCIT_GRAPH, CADSR_GRAPH), "graph: unexpected identity")
     if "date" in values:
         require(_valid_date(values["date"]), "date: invalid graph date")
-    if "role" in values:
-        require(values["role"] == CADSR_GRAPH + "#main_concept", "role: expected main concept")
 
 
 def content_semantics(values: dict[str, str]) -> None:
@@ -99,12 +97,6 @@ def binding(row: Any, entry: dict[str, Any]) -> None:
     require(set(entry["required"]) <= row.keys(), "binding missing required variables")
     require(row.keys() <= set(entry["selected"]), "binding has unselected variables")
     values = {key: term_value(key, term) for key, term in row.items()}
-    if "optional_groups" in entry:
-        present = row.keys() & {"value", "concept", "role"}
-        require(
-            any(present == set(group) for group in entry["optional_groups"]),
-            "binding has inconsistent OPTIONAL variables",
-        )
     semantics(values)
     if entry["id"] != "graph-identities":
         content_semantics(values)

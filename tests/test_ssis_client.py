@@ -82,63 +82,6 @@ class SSISClientTest(ServerTestCase):
                 self.assertEqual(query.split(), fixture["request"]["form"]["query"].split())
                 self.assertNotIn("OPTION", query)
 
-    def test_value_query_keeps_versions_and_values_without_main_concepts(self):
-        rows = [
-            {"version": {"type": "literal", "value": "2.10"}},
-            {
-                "version": {"type": "literal", "value": "2.9"},
-                "value": {"type": "literal", "value": "Male"},
-            },
-            {
-                "version": {"type": "literal", "value": "2.8"},
-                "value": {"type": "literal", "value": ""},
-                "concept": {"type": "uri", "value": "http://example.test/C1"},
-                "role": {"type": "uri", "value": CADSR_GRAPH + "#main_concept"},
-            },
-        ]
-        server = self.serve(sparql_reply(rows))
-        result = self.ssis(server).get_permissible_values("123")
-        self.assertEqual(
-            result,
-            [{key: term["value"] for key, term in row.items()} for row in rows],
-        )
-        query = parse_qs(server.bodies[0].decode())["query"][0]
-        self.assertEqual(query.count("OPTIONAL"), 2)
-        self.assertIn("VALUES ?role { cadsr:main_concept }", query)
-        self.assertNotIn("minor_concept", query)
-        self.assertTrue(query.endswith("LIMIT 1001"))
-
-    def test_value_query_rejects_inconsistent_optional_bindings(self):
-        terms = {
-            "value": {"type": "literal", "value": "Male"},
-            "concept": {"type": "uri", "value": "http://example.test/C1"},
-            "role": {"type": "uri", "value": CADSR_GRAPH + "#main_concept"},
-        }
-        for keys in (
-            ("concept",),
-            ("role",),
-            ("concept", "role"),
-            ("value", "concept"),
-            ("value", "role"),
-        ):
-            with self.subTest(keys=keys):
-                row = {"version": {"type": "literal", "value": "2.10"}}
-                row.update({key: terms[key] for key in keys})
-                with self.assertRaises(PlatformError) as raised:
-                    self.ssis(self.serve(sparql_reply([row]))).get_permissible_values("123")
-                self.assertEqual(raised.exception.code, "upstream_unavailable")
-
-    def test_value_query_rejects_a_role_other_than_main_concept(self):
-        row = {
-            "version": {"type": "literal", "value": "2.10"},
-            "value": {"type": "literal", "value": "Male"},
-            "concept": {"type": "uri", "value": "http://example.test/C1"},
-            "role": {"type": "uri", "value": CADSR_GRAPH + "#minor_concept"},
-        }
-        with self.assertRaises(PlatformError) as raised:
-            self.ssis(self.serve(sparql_reply([row]))).get_permissible_values("123")
-        self.assertEqual(raised.exception.code, "upstream_unavailable")
-
     def test_maximum_plus_one_retains_the_sentinel_and_rejects_an_unbounded_answer(self):
         fixture = recording("ssis-sparql/data-elements-c17357.json")
         rows = fixture["response"]["body"]["results"]["bindings"]
@@ -155,7 +98,6 @@ class SSISClientTest(ServerTestCase):
         for method, arguments, body in (
             ("find_data_elements", ("C17357",), {"results": {"bindings": []}}),
             ("find_permissible_values", ("C17357",), {"results": {"bindings": []}}),
-            ("get_permissible_values", ("2200604",), {"results": {"bindings": []}}),
         ):
             with self.subTest(method=method):
                 server = self.serve(Reply(body=json.dumps(body).encode()))
@@ -280,7 +222,6 @@ class SSISValidationTest(unittest.TestCase):
             for method in (
                 client.find_data_elements,
                 client.find_permissible_values,
-                client.get_permissible_values,
             ):
                 for value in ("", "C17357>", '2200604"', "C17357}", None, 123):
                     with (
@@ -333,10 +274,7 @@ class SSISContractsTest(ServerTestCase):
                 self.assertEqual(raised.exception.code, "upstream_unavailable")
 
     def test_value_operations_accept_sentinel_and_clamp_query_bounds(self):
-        for method, argument in (
-            ("find_permissible_values", "C17357"),
-            ("get_permissible_values", "2200604"),
-        ):
+        for method, argument in (("find_permissible_values", "C17357"),):
             with self.subTest(method=method):
                 self.assert_value_bounds(method, argument)
 
@@ -363,33 +301,17 @@ class SSISContractsTest(ServerTestCase):
         self.assertTrue(all(f"GRAPH <{CADSR_GRAPH}>" in query for query in queries))
         self.assertEqual([path for path, _ in server.seen], ["/sparql"] * 3)
 
-    def test_find_value_requires_concept_even_though_optional_value_read_does_not(self):
+    def test_find_value_requires_concept(self):
         row = {
             "id": {"type": "literal", "value": "2200604"},
             "version": {"type": "literal", "value": "4"},
             "value": {"type": "literal", "value": "Male"},
         }
-        server = self.serve(sparql_reply([row]), sparql_reply([row]))
+        server = self.serve(sparql_reply([row]))
         client = self.ssis(server)
         with self.assertRaises(PlatformError) as raised:
             client.find_permissible_values("C17357")
         self.assertEqual(raised.exception.code, "upstream_unavailable")
-        self.assertEqual(
-            client.get_permissible_values("2200604"),
-            [{"id": "2200604", "version": "4", "value": "Male"}],
-        )
-
-    def test_optional_value_query_matches_the_approved_derived_request(self):
-        path = (
-            Path(__file__).resolve().parents[1]
-            / "acceptance/fixtures/crafted/ssis-sparql/values-of-2200604-optional.json"
-        )
-        fixture = json.loads(path.read_text())
-        server = self.serve(Reply(body=json.dumps(fixture["response"]["body"]).encode()))
-        result = self.ssis(server).get_permissible_values("2200604")
-        self.assertEqual(len(result), len(fixture["response"]["body"]["results"]["bindings"]))
-        query = parse_qs(server.bodies[0].decode())["query"][0]
-        self.assertEqual(query.split(), fixture["request"]["form"]["query"].split())
 
 
 class SSISValidationContractsTest(unittest.TestCase):
@@ -400,8 +322,6 @@ class SSISValidationContractsTest(unittest.TestCase):
             (client.find_data_elements, "C0", {}, "conceptCode"),
             (client.find_permissible_values, "C0", {}, "conceptCode"),
             (client.find_permissible_values, "17357", {}, "conceptCode"),
-            (client.get_permissible_values, "0", {}, "publicId"),
-            (client.get_permissible_values, "007", {}, "publicId"),
             (client.find_data_elements, "C1", {"expand_descendants": 1}, "expandDescendants"),
             (client.find_data_elements, "C1", {"expand_descendants": "true"}, "expandDescendants"),
             (client.find_permissible_values, "C1", {"expand_descendants": 1}, "expandDescendants"),
@@ -417,7 +337,6 @@ class SSISValidationContractsTest(unittest.TestCase):
         client = SSISClient(Settings())
         for operation, argument in (
             (client.find_data_elements, "C1"),
-            (client.get_permissible_values, "123"),
             (client.find_permissible_values, "C1"),
         ):
             for maximum in (0, -1, True, 1.5, "2"):

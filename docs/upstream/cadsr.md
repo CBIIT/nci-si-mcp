@@ -211,7 +211,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/cadsr/vm-match-male.json](../../acceptance/fixtures/recorded/cadsr/vm-match-male.json) — recorded on 2026-10-03; POST cadsr /vmMatch/v1/vmMatch; SHA-256 `739daa720101c52a2d6749e112dd98ec2097a8faa5b97c46d40d74824403502e`.
-- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `b3456d55174193b81384a0040bdf28a0663babcce5c7f7af857085a4ab05b246`.
+- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `9119d29fff2ac9dbe7234909bbbe8fdd84da555c023c7cb126a2673b685f72f6`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -303,7 +303,7 @@ Evidence (linked request/response files retain their original form):
 - [acceptance/fixtures/recorded/cadsr/permissible-values.json](../../acceptance/fixtures/recorded/cadsr/permissible-values.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/DataElement/2200604/permissibleValues; SHA-256 `997cf0b7cd6993fbb17387defd88d5cebcecef3376d2215001bfadb018a7037c`.
 - [acceptance/fixtures/recorded/cadsr/permissible-value-9192925.json](../../acceptance/fixtures/recorded/cadsr/permissible-value-9192925.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/permissibleValues/9192925; SHA-256 `1926a89787f0f0f5d2f2d4446622056cbf2e07812938993bb29d25d207981b06`.
 - [acceptance/fixtures/recorded/cadsr/classification-3685569.json](../../acceptance/fixtures/recorded/cadsr/classification-3685569.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/DataElements/Classification; SHA-256 `3b53e54ff1f9f6ef5a1ccd80e1df43bcce7a4ca3903e046f2534e5f10d746d19`.
-- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `b3456d55174193b81384a0040bdf28a0663babcce5c7f7af857085a4ab05b246`.
+- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `9119d29fff2ac9dbe7234909bbbe8fdd84da555c023c7cb126a2673b685f72f6`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -323,11 +323,11 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 **Expected.** Name the NCIt release or concept-load state in each link response, alongside the registry state, with a verification contract.
 
-**Impact.** A release-pinned cross-domain join cannot safely use caDSR REST alone.
+**Impact.** A descendant-expanded join needs a verifiable NCIt hierarchy release; exact-code references do not depend on hierarchy alignment.
 
-**Workaround.** Use Shared SI after verifying both graphs and the requested NCIt version; REST alone fails release_not_available.
+**Workaround.** Use Shared SI with both actual graph identities; verify the requested NCIt version only for descendant expansion. Exact-code joins do not use the NCIt hierarchy.
 
-**Acceptance criteria.** Requested, reported and actual NCIt states agree; a mismatch fails closed and both graph/registry states remain visible.
+**Acceptance criteria.** For descendant expansion, requested and reported NCIt hierarchy releases agree or the call fails closed. Exact-code joins preserve both actual graph/registry states without requiring hierarchy alignment.
 
 Evidence (linked request/response files retain their original form):
 

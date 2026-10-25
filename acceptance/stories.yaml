@@ -411,7 +411,9 @@
     tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too: Concept-only and descendant-expanded searches match recorded source uses in fixture mode; live uses carry identity and provenance matching the discovered NCIt release.
     tests/test_cross_domain.py::test_with_the_flag_the_permissible_values_that_stand_for_the_concept_come_too: Requested permissible-value uses represent the concept or selected descendants.
     tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states: Answers preserve both graph identities and dates and distinguish NCIt release from registry state.
-    tests/test_cross_domain.py::test_a_release_other_than_the_ncit_graph_s_fails_closed: A requested release different from the NCIt graph is rejected.
+    tests/test_cross_domain.py::test_expansion_with_another_ncit_graph_release_fails_closed: Descendant expansion rejects a hierarchy release different from the pinned NCIt release.
+    tests/test_cross_domain.py::test_exact_find_preserves_actual_graph_states_without_hierarchy_alignment: Exact find succeeds with graph lag or an absent optional version and preserves both actual graph states.
+    tests/test_cross_domain.py::test_expansion_without_ncit_graph_version_is_release_not_available: Expansion refuses an absent hierarchy version without backfilling it.
     tests/test_cross_domain.py::test_a_terminology_other_than_ncit_is_an_invalid_request: Concept-use queries reject unsupported terminologies.
     tests/test_cross_domain.py::test_descendants_beyond_the_tool_s_maximum_are_truncated_with_how_much_was_left_out: An oversized descendant-use result is bounded and reports at least the known omitted amount.
 
@@ -423,6 +425,8 @@
   then: An exact match returns the concept at the effective release with both content states; nonmatching text is not found; the unsupported route is reported unavailable.
   tests:
     tests/test_cross_domain.py::test_a_value_resolves_to_the_concept_it_stands_for_naming_both_content_states: A permissible value resolves to its source concept and preserves terminology and registry provenance.
+    tests/test_cross_domain.py::test_the_api_primary_is_not_the_graphs_main_qualifier: The explicitly flagged API primary wins over the graph's main qualifier, with no graph provenance.
+    tests/test_cross_domain.py::test_a_requested_api_item_version_keeps_its_own_values_and_spelling: Requested API item versions retain their own permissible values and upstream version spelling.
     tests/test_cross_domain.py::test_a_value_the_data_element_does_not_have_as_given_is_not_found: Changed case, extra spaces and other nonmatching values are not silently normalized into a match.
     tests/test_cross_domain.py::test_a_permissible_value_by_its_identifier_is_unavailable: Unsupported retrieval by permissible-value identifier reports capability unavailable.
 
@@ -454,7 +458,8 @@
   then: Each step returns its source content under the appropriate content states; text follows the search's first result; release conflicts fail; and a bounded step does not discard independently retrieved steps.
   tests:
     tests/test_workflow.py::test_one_envelope_names_the_release_asked_for_and_the_registry_unpinned: The answer and registry-dependent items distinguish the selected NCIt release from the unpinned caDSR registry.
-    tests/test_workflow.py::test_content_of_another_ncit_release_on_either_surface_fails_closed: A different release on either the terminology or graph surface produces a release mismatch.
+    tests/test_workflow.py::test_evs_concept_of_another_ncit_release_fails_closed: EVS concept content from another release produces a release mismatch.
+    tests/test_workflow.py::test_exact_grounding_accepts_graph_lag_or_absent_version: Exact grounding preserves source uses and graph metadata despite hierarchy lag or an absent optional version; EVS reads stay pinned.
     tests/test_workflow.py::test_each_hop_is_what_its_surface_answers_for_the_concept: Concept, data-element uses and permissible values match their sources; without a commons request there is no stored-value section.
     tests/test_workflow.py::test_with_a_commons_the_stored_values_are_the_ones_it_uses_for_the_concept: Adding GDC returns the literal stored values and fields from its mapping source.
     tests/test_workflow.py::test_a_text_resolves_to_the_first_result_search_concepts_gives_it: Text grounding uses the first search result even when another concept's name looks closer.

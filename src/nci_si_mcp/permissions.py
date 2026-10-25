@@ -61,7 +61,7 @@ DEPENDENCIES = {
     "ground_value": ("get_concept", "find_data_elements_for_concept"),
     "expand_cohort": ("get_concept_hierarchy", "get_concept_neighborhood"),
     "harmonize_data_dictionary": ("match_data_elements",),
-    "get_concept_for_permissible_value": ("get_concept",),
+    "get_concept_for_permissible_value": ("get_data_element", "get_concept"),
 }
 
 

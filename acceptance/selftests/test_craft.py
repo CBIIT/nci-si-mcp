@@ -232,6 +232,25 @@ BOUNDED_IDENTITIES = "crafted/ssis-sparql/graph-identities-bounded.json"
 
 
 @pytest.mark.parametrize("file", [IDENTITIES, BOUNDED_IDENTITIES])
+def test_missing_graph_version_changes_only_the_optional_ncit_binding(file):
+    recorded = Recorded(FIXTURES)
+    original = recorded(file)
+    crafted = CRAFTED[f"scenarios/release/graph-version-missing/{Path(file).name}"]
+    assert crafted["request"] == original["request"]
+    expected = json.loads(json.dumps(original["response"]))
+    for row in expected["body"]["results"]["bindings"]:
+        if row["graph"]["value"].endswith("Thesaurus.rdf"):
+            del row["version"]
+    assert crafted["response"] == expected
+    assert {
+        name for name in CRAFTED if name.startswith("scenarios/release/graph-version-missing/")
+    } == {
+        "scenarios/release/graph-version-missing/graph-identities.json",
+        "scenarios/release/graph-version-missing/graph-identities-bounded.json",
+    }
+
+
+@pytest.mark.parametrize("file", [IDENTITIES, BOUNDED_IDENTITIES])
 def test_mismatch_names_another_release_for_the_shared_si_ncit_graph(file):
     recorded = json.loads((FIXTURES / file).read_text(encoding="utf-8"))
     crafted = CRAFTED[f"scenarios/release/mismatch/ssis-sparql-{Path(file).name}"]

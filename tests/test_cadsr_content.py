@@ -338,6 +338,7 @@ class CaDSRContentTest(CaDSRFixture):
             element("456"),
             element(version="3"),
             element(version=None),
+            element(version="4e0"),
             element(workflowStatus=[]),
         ):
             with self.subTest(raw=raw):
@@ -567,9 +568,9 @@ PIN = {"identifier": "26.1", "generatedAt": "2026-07-01T22:19"}
 class CaDSRContentBoundaryTest(CaDSRFixture):
     def test_versioned_resource_retrieves_named_version_and_records_its_uri(self):
         server = self.serve(reply({"DataElement": element(version="1.5")}))
-        result = self.call(server, "data_element_version_resource", publicId="123", version="1.5")
+        result = self.call(server, "data_element_version_resource", publicId="123", version="1.50")
         self.assertEqual(result["version"], "1.5")
-        self.assertEqual(server.seen[0][0], "/NCIAPI/1.0/api/DataElement/123?version=1.5")
+        self.assertEqual(server.seen[0][0], "/NCIAPI/1.0/api/DataElement/123?version=1.50")
         self.assertEqual(result["provenance"]["sourceUri"], server.url + server.seen[0][0])
 
     def test_invalid_arguments_precede_registry_discovery_for_every_content_tool(self):

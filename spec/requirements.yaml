@@ -252,7 +252,7 @@ resolve_registry_release-1:
   statement: Without a registry release upstream, published is false, generatedAt is the export's date as the export folder gives it and sourceDistribution the file it dates, with no identifier; with one, published is true and the release is returned; ttlMs 0.
   basis: [resolve_registry_release, registry_release, A3.8, M2.2]
 get_data_element-1:
-  statement: Each include returns its section, and without include the record's own fields alone; the data element's own version and statuses are surfaced; a version given returns that version.
+  statement: Each include returns its section, and without include the record's own fields alone; the data element's own version and statuses are surfaced; a version given returns that exact numeric version (4 equals 4.0), preserving the request spelling upstream and the returned version string in content and provenance.
   basis: [get_data_element, data_element, A3.8.3]
 get_data_element-2:
   statement: questionText finds the data element whose preferred question text it is; where several have it, the call is an invalid request naming their public ids, and where none has it, not_found; longName is capability_unavailable until the platform serves that lookup (OP-C02), never an empty result.
@@ -271,7 +271,7 @@ match_value_meanings-1:
   statement: "As match_data_elements, for value meanings and concepts: each match rule-attributed, scored where the platform scores (vmMatch does not), naming the item's type and the code system of its concept, with its crosswalk, none where the platform says NA."
   basis: [match_value_meanings, value_meaning_match, A5.2, A2.5]
 get_form-1:
-  statement: A form retrieved by public id returns its modules and questions, and its status unchanged, a retired one included; a keyword is an invalid request stating that the platform needs an identifier.
+  statement: A form retrieved by public id returns its modules and questions, and its status unchanged, a retired one included; a supplied version compares by exact numeric value (1 equals 1.0), preserving request and upstream version spellings; a keyword is an invalid request stating that the platform needs an identifier.
   basis: [get_form, form, A8.1]
 get_permissible_value-1:
   statement: Retrieval by permissible value id is capability_unavailable until the platform serves it (OP-C10, A9.3), never not_found or empty; the id the tool takes is the one caDSR REST publishes.
@@ -285,7 +285,7 @@ list_contexts-1:
 
 # Cross-domain tools.
 find_data_elements_for_concept-1:
-  statement: The data elements are those the surface named in provenance answers for the concept and, with expandDescendants, its descendants too, answered where the release the call requires can be verified.
+  statement: The data elements are those the surface named in provenance answers for the exact concept and, with expandDescendants, its descendants too; expansion requires verification of the NCIt hierarchy release.
   basis: [find_data_elements_for_concept, data_element_use, A3.7]
 find_data_elements_for_concept-2:
   statement: With includePermissibleValues the permissible values whose value meaning stands for the concept (or a descendant) are returned as well.
@@ -294,13 +294,13 @@ find_data_elements_for_concept-3:
   statement: An answer of the Shared SI Service names both graphs' identities and dates, the NCIt release in release and the registry state in registry.
   basis: [find_data_elements_for_concept, provenance, A1.5, A3.7]
 find_data_elements_for_concept-4:
-  statement: The release, which the call requires, is checked against the NCIt graph's, release_mismatch on a difference and release_not_available on a surface that cannot name it; a terminology other than ncit is an invalid request.
+  statement: Only with expandDescendants is the effective release checked against the NCIt graph's, release_mismatch on a difference and release_not_available when its optional version is absent. Exact-code answers preserve both actual graph identities and dates without comparing or backfilling the optional version; missing or malformed required identities remain upstream failures. A terminology other than ncit is an invalid request.
   basis: [find_data_elements_for_concept, A3.4, A3.7]
 find_data_elements_for_concept-5:
   statement: Data elements beyond the tool's maximum are left out, with the truncation record saying how many at least.
   basis: [find_data_elements_for_concept, truncation, A5.4]
 get_concept_for_permissible_value-1:
-  statement: A data element and value resolve to the concept its value meaning stands for, as the concept record of the release the call pins (explicitly named or resolved under X-22), its provenance naming both content states.
+  statement: A data element and exact value resolve only to the primaryIndicator Yes concept of the caDSR API's requested or latest item version, as the pinned EVS concept; missing, invalid or conflicting primary evidence is upstream_unavailable, identical assertions may collapse. Provenance names caDSR and EVS, with registry state and no Shared SI graphs.
   basis: [get_concept_for_permissible_value, provenance, A1.5]
 get_concept_for_permissible_value-2:
   statement: By permissibleValueId the tool is capability_unavailable (OP-C10), never not_found or empty.
@@ -323,7 +323,7 @@ get_release_alignment-1:
 
 # Workflow tools.
 ground_value-1:
-  statement: One provenance envelope names both content states, the release asked for and the registry, unpinned without registryRelease as X-21 reads it; content of another NCIt release fails closed with the mismatch error.
+  statement: One provenance envelope names both content states, the release asked for and the registry, unpinned without registryRelease as X-21 reads it; EVS content of another NCIt release fails closed with the mismatch error. Exact Shared SI hops preserve both graph identities without requiring hierarchy version alignment or inventing an absent version.
   basis: [ground_value, provenance, A3.8, A3.4]
 ground_value-2:
   statement: The data elements, the permissible values and, with commons, the stored values are those the surfaces answer for the concept, each hop asked by the concept; without commons there is no storedValues.

@@ -6,6 +6,7 @@ version, status and include contracts without assuming recorded values.
 """
 
 import json
+from decimal import Decimal
 from http import HTTPStatus
 
 import pytest
@@ -132,7 +133,7 @@ def test_without_a_registry_release_the_export_date_stands_for_it(tools, upstrea
 @pytest.mark.tool("get_data_element")
 @pytest.mark.requirement("get_data_element-1")
 @pytest.mark.live_capable
-@pytest.mark.parametrize("version", [None, "1"], ids=["latest", "version-1"])
+@pytest.mark.parametrize("version", [None, "1", "4.0"], ids=["latest", "version-1", "version-4.0"])
 def test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses(
     tools, target, recorded, version
 ):
@@ -142,12 +143,13 @@ def test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses(
 
     assert set(content) - set(OWN) == set()
     if target.mode == "fixture":
-        assert _own(content) == _own(_element(recorded, VERSION_1 if version else ELEMENT))
+        assert _own(content) == _own(_element(recorded, VERSION_1 if version == "1" else ELEMENT))
     else:
         assert content.get("publicId") == DATA_ELEMENT
         assert all(_live_scalar(content, key) for key in OWN if key != "provenance")
-        assert version is None or content["version"] == version
+        assert version is None or Decimal(content["version"]) == Decimal(version)
         assert release_of(content) == ("cadsr", None)
+    assert content["provenance"]["upstream"]["version"] == content["version"]
 
 
 def _live_scalar(content, key):
@@ -310,16 +312,21 @@ FORM = "recorded/cadsr/form-5406471.json"
 
 @pytest.mark.tool("get_form")
 @pytest.mark.requirement("get_form-1")
-def test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too(tools, recorded):
+@pytest.mark.parametrize("version", [None, "1", "1.0"], ids=["latest", "version-1", "version-1.0"])
+def test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too(
+    tools, recorded, version
+):
     form = recorded(FORM)["response"]["body"]["form"]
     assert form["workflowStatus"] == "RETIRED ARCHIVED"
 
-    content = _ok(tools.call("get_form", {"publicId": form["publicID"]}))
+    selected = {"version": version} if version is not None else {}
+    content = _ok(tools.call("get_form", {"publicId": form["publicID"], **selected}))
 
     named = [name for name in RECORDS["form"]["fields"] if name not in ("provenance", "modules")]
     expected = {name: form.get(name) for name in named} | {"publicId": form["publicID"]}
     assert {name: content.get(name) for name in named} == expected
     assert content.get("modules") == form["modules"]
+    assert content["provenance"]["upstream"]["version"] == form["version"]
 
 
 @pytest.mark.tool("get_form")

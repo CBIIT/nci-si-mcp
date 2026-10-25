@@ -301,7 +301,10 @@ def test_a_release_the_platform_does_not_serve_fails_closed(tools, pinned, name)
 @pytest.mark.requirement("X-3")
 @pytest.mark.parametrize("name", _per_tool(RELEASED, "release/mismatch"))
 def test_content_of_another_release_fails_closed(tools, pinned, name):
-    result = _call(tools, pinned, name)
+    arguments = CALLS[name]["arguments"]
+    if name == "find_data_elements_for_concept":
+        arguments = arguments | {"expandDescendants": True}
+    result = _call(tools, pinned, name, arguments)
 
     assert error_code(result) == "release_mismatch", result.content
 
@@ -895,6 +898,10 @@ FORMED = {
     | {"version": CALLS["get_form"]["upstream"]["version"]},
     ("expand_value_set", "code"): {"code": CALLS["expand_value_set"]["arguments"]["valueSet"]},
     ("get_concept_for_permissible_value", "permissibleValueId"): {"permissibleValueId": "9192925"},
+    ("get_concept_for_permissible_value", "version"): CALLS["get_concept_for_permissible_value"][
+        "arguments"
+    ]
+    | {"version": "4.0"},
     ("resolve_stored_value", "dataElementId"): CALLS["resolve_stored_value"]["arguments"]
     | {"dataElementId": CALLS["get_concept_for_permissible_value"]["arguments"]["dataElementId"]},
     # The workflow tools have no call yet: their concept is the one resolve_stored_value asks.

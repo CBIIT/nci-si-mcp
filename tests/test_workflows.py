@@ -124,12 +124,9 @@ class GroundTest(WorkflowFixture):
         self.assertIn("conceptCode", result["error"]["message"])
         self.assertEqual(self.ssis.calls, [])
 
-    def test_concept_and_graph_mismatch_both_fail_closed(self):
-        for surface in ("concept", "graph"):
-            with self.subTest(surface=surface):
-                self.evs.concepts["C1"]["version"] = "wrong" if surface == "concept" else "26.06e"
-                self.ssis.graphs[0]["version"] = "wrong" if surface == "graph" else "26.06e"
-                self.assertEqual(self.call(conceptCode="C1")["error"]["code"], "release_mismatch")
+    def test_evs_concept_mismatch_fails_closed(self):
+        self.evs.concepts["C1"]["version"] = "wrong"
+        self.assertEqual(self.call(conceptCode="C1")["error"]["code"], "release_mismatch")
 
     def test_session_pin_is_reused_and_implicit_cache_stays_private(self):
         with session_scope(SessionRelease()):

@@ -25,9 +25,11 @@ from nci_si_mcp.permissions import (
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.server import create_mcp
 from test_cadsr_matching import cde_response, cde_row
+from test_evs_client import FakeResponse
 from test_index import normalized
+from test_primary_api import primary_element
 from test_release_selection import initialize_http
-from test_seam import gdc_map, value_row
+from test_seam import gdc_map
 from test_server import ServerFixture, pinned
 from test_transport import concept_response, http_app
 from test_transport import result as http_result
@@ -406,19 +408,22 @@ class CompoundPermissionTest(WorkflowFixture):
 
     def test_expiry_after_value_resolution_blocks_the_concept_child(self):
         now = time()
-        self.ssis.element_values = [value_row()]
-        read = self.ssis.get_permissible_values
 
         def values(*args, **kwargs):
             nonlocal now
-            rows = read(*args, **kwargs)
             now += 120
-            return rows
+            return primary_element(
+                publicId="123",
+                value="Male",
+                codes=[{"conceptCode": "C1", "primaryIndicator": "Yes"}],
+            )
 
         with (
-            authority_scope(authority("get_concept_for_permissible_value", "get_concept")),
+            authority_scope(
+                authority("get_concept_for_permissible_value", "get_data_element", "get_concept")
+            ),
             patch("nci_si_mcp.permissions.time", side_effect=lambda: now),
-            patch.object(self.ssis, "get_permissible_values", side_effect=values),
+            patch.object(self.context.cadsr, "get_data_element", side_effect=values),
         ):
             result = self.call(
                 "get_concept_for_permissible_value", dataElementId="123", value="Male"
@@ -457,6 +462,42 @@ class CompoundPermissionTest(WorkflowFixture):
         self.assertEqual(result["error"]["code"], "permission_denied")
         self.assertEqual(searches.call_count, 0)
 
+    def test_expiry_during_release_discovery_blocks_permissible_value_read(self):
+        now = 1000
+        read = self.evs.get_terminologies
+
+        def releases(*args, **kwargs):
+            nonlocal now
+            rows = read(*args, **kwargs)
+            now += 120
+            return rows
+
+        with (
+            authority_scope(
+                authority(
+                    "get_concept_for_permissible_value",
+                    "get_data_element",
+                    "get_concept",
+                    expires_at=1060,
+                )
+            ),
+            patch("nci_si_mcp.permissions.time", side_effect=lambda: now),
+            patch.object(self.evs, "get_terminologies", side_effect=releases),
+            patch(
+                "nci_si_mcp.http_client._open",
+                return_value=FakeResponse(json.dumps(primary_element()).encode()),
+            ) as requests,
+        ):
+            result = self.call(
+                "get_concept_for_permissible_value",
+                dataElementId="2178439",
+                value="To a large extent",
+            )
+        self.assertEqual(set(result), {"error"})
+        self.assertEqual(result["error"]["code"], "permission_denied")
+        self.assertTrue(self.evs.calls)
+        self.assertEqual(requests.call_args_list, [])
+
     def test_denied_dictionary_child_precedes_registry_pin_discovery(self):
         with (
             authority_scope(authority("harmonize_data_dictionary")),
@@ -470,10 +511,21 @@ class CompoundPermissionTest(WorkflowFixture):
         self.assertEqual(reads.call_count, 0)
 
     def test_denied_value_concept_child_precedes_graph_and_release_reads(self):
-        with authority_scope(authority("get_concept_for_permissible_value")):
-            result = self.call("get_concept_for_permissible_value", dataElementId="123", value="II")
-        self.assertEqual(set(result), {"error"})
-        self.assertEqual(result["error"]["code"], "permission_denied")
+        for child in ("get_concept", "get_data_element"):
+            with (
+                self.subTest(child=child),
+                authority_scope(authority("get_concept_for_permissible_value", child)),
+                patch.object(
+                    self.context.cadsr,
+                    "get_data_element",
+                    side_effect=AssertionError("Denied read"),
+                ),
+            ):
+                result = self.call(
+                    "get_concept_for_permissible_value", dataElementId="123", value="II"
+                )
+                self.assertEqual(set(result), {"error"})
+                self.assertEqual(result["error"]["code"], "permission_denied")
         self.assertEqual(self.evs.calls, [])
         self.assertEqual(self.ssis.calls, [])
 
