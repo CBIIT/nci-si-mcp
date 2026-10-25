@@ -162,6 +162,11 @@ class DocumentationTest(unittest.TestCase):
             with self.subTest(name):
                 tools = re.search(r"^Tools: (.+)$", story, re.M).group(1)
                 self.assertEqual(re.findall(r"`([^`]+)`", tools), prompts[name]["tools"])
+                prompt = re.search(r"^Prompt: (.+)$", story, re.M).group(1)
+                self.assertEqual(
+                    re.findall(r"`([^`]+)`", prompt)[1:],
+                    [argument["name"] for argument in prompts[name]["arguments"]],
+                )
                 for label in (
                     "Role",
                     "Need",
