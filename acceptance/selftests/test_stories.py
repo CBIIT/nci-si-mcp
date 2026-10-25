@@ -2,6 +2,7 @@
 
 import html
 import os
+import re
 import subprocess
 import sys
 from dataclasses import replace
@@ -27,6 +28,12 @@ STORY = {
 CASES = [stories.Case(f"{FUNCTION}[{mode}]", FUNCTION, 20, ("X-1",)) for mode in ("a", "b")]
 
 
+def unresolved_uat_nodes(document, cases):
+    linked = set(re.findall(r"`acceptance/(tests/[^`]+::[^`]+)`", document))
+    collected = {case.function for case in cases} | {case.key for case in cases}
+    return linked - collected
+
+
 def source(tmp_path, value):
     path = tmp_path / "stories.yaml"
     path.write_text(yaml.safe_dump(value), encoding="utf-8")
@@ -41,6 +48,11 @@ def test_every_actual_case_is_documented_and_the_generated_guide_is_current(pyte
     rendered = stories.render(stories.load_stories(), cases)
 
     assert cases
+    uat = (stories.ROOT.parent / "docs/user-acceptance.md").read_text(encoding="utf-8")
+    assert re.findall(r"`acceptance/tests/[^`]+::[^`]+`", uat)
+    assert unresolved_uat_nodes(uat, cases) == set()
+    invalid = "tests/test_missing.py::test_does_not_exist"
+    assert unresolved_uat_nodes(uat + f"\n`acceptance/{invalid}`", cases) == {invalid}
     assert stories.DOCUMENT.read_text(encoding="utf-8") == rendered
     assert {f"acceptance/{case.key}" for case in cases} == {
         html.unescape(line.split("<code>", 1)[1].split("</code>", 1)[0])

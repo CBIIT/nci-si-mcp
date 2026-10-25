@@ -151,6 +151,64 @@ def shell_lines(name):
 
 
 class DocumentationTest(unittest.TestCase):
+    def test_domain_stories_name_the_specification_prompts_and_exact_tool_sequences(self):
+        path = ROOT / "docs/user-acceptance.md"
+        document = path.read_text(encoding="utf-8") if path.exists() else ""
+        prompts = yaml.safe_load(read("spec/prompts.yaml"))
+        stories = re.findall(r"^## Story: `([^`]+)`\n(.*?)(?=\n## |\Z)", document, re.M | re.S)
+
+        self.assertEqual({name for name, _ in stories}, set(prompts))
+        for name, story in stories:
+            with self.subTest(name):
+                tools = re.search(r"^Tools: (.+)$", story, re.M).group(1)
+                self.assertEqual(re.findall(r"`([^`]+)`", tools), prompts[name]["tools"])
+                for label in (
+                    "Role",
+                    "Need",
+                    "Benefit",
+                    "Given",
+                    "When",
+                    "Then",
+                    "Pass criteria",
+                    "Role confirms",
+                    "Gaps",
+                    "Evidence",
+                ):
+                    self.assertRegex(story, rf"(?m)^{label}: .+\S")
+
+    def test_uat_records_the_client_blocker_and_trace_fields_without_claiming_execution(self):
+        document = read("docs/user-acceptance.md")
+        for statement in (
+            "Status: planned; UAT has not run.",
+            "Client: BLOCKED — NCI availability and approval are unknown; there is no default.",
+            "Decision owner: NCI client/platform owner.",
+            "The QUICKSTART Claude Desktop example is not NCI approval.",
+        ):
+            self.assertIn(statement, document)
+        self.assertEqual(
+            bullet_names(section(document, "Evidence record")),
+            [
+                "story",
+                "participant",
+                "environment",
+                "content",
+                "conversation",
+                "trace",
+                "decision",
+            ],
+        )
+
+    def test_readme_explains_client_orchestration_and_links_the_uat_plan(self):
+        readme = read("README.md")
+        for statement in (
+            "The client model holds the conversation and selects tool calls; the prompts guide it.",
+            "The tools are deterministic; the server runs no LLM.",
+            "Workflow tools also bundle their own upstream calls deterministically, "
+            "with provenance.",
+            "[Domain-user stories and UAT plan](docs/user-acceptance.md)",
+        ):
+            self.assertIn(statement, readme)
+
     def test_quickstart_introduces_exactly_the_settings_the_code_reads(self):
         setting = re.compile(r"NCI_SI_[A-Z_]+")
         sources = [path.read_text(encoding="utf-8") for path in PACKAGE.glob("*.py")]
