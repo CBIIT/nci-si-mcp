@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+from jsonschema import validate
+
 from fakes import FakeEVS, FakeSSIS, concept, data_element
 from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.http_client import UpstreamUnavailableError
@@ -38,6 +40,10 @@ def primary_element(value="To a large extent", codes=None, **fields):
         },
         **fields,
     )
+
+
+def sourced_primary(code, **fields):
+    return {"conceptCode": code, "primaryIndicator": "Yes"} | fields
 
 
 @patch("nci_si_mcp.server.configure_logging")
@@ -110,6 +116,144 @@ class PrimaryAPIProtocolTest(ServerFixture):
                 response = self.lookup()
             self.assertFalse(response.is_error, response.content)
             self.assertEqual(response.structured_content["code"], "C25332")
+
+    def test_foreign_and_compound_primaries_return_exact_unresolved_references(self, _):
+        # Given #368's observed codes with explicitly synthetic surrounding metadata,
+        # when called through MCP, then return references without an NCIt concept read.
+        cases = [
+            ("LA20347-3", {"evsSource": "LOINC_CODE"}, "non_ncit_source"),
+            ("C0009219", {"evsSource": "UMLS_CUI"}, "non_ncit_source"),
+            ("C45255::10000", {"evsSource": "NCI_CONCEPT_CODE"}, "compound_code"),
+            ("C45255::10000", {}, "compound_code"),
+            ("C25332", {}, "missing_source"),
+            ("C25332", {"evsSource": None}, "missing_source"),
+            ("C25332", {"evsSource": "未知 Ω "}, "non_ncit_source"),
+            ("C25332", {"evsSource": "nci_concept_code"}, "non_ncit_source"),
+        ]
+        for code, source, reason in cases:
+            self.context.evs.calls.clear()
+            raw = primary_element(codes=[sourced_primary(code, longName="API name", **source)])
+            with (
+                self.subTest(code=code, source=source),
+                patch.object(self.context.cadsr, "get_data_element", return_value=raw),
+            ):
+                response = self.lookup()
+            self.assertFalse(response.is_error, response.content)
+            result = response.structured_content
+            reference = {"conceptCode": code, "longName": "API name"}
+            if source:
+                reference["terminology"] = source["evsSource"]
+            self.assertEqual(
+                {key: value for key, value in result.items() if key != "provenance"},
+                {
+                    "conceptReference": reference,
+                    "unresolvedReason": reason,
+                    "permissibleValue": {
+                        "dataElement": {"publicId": "2178439", "version": "2"},
+                        "value": "To a large extent",
+                    },
+                },
+            )
+            provenance = result["provenance"]
+            self.assertEqual(provenance["source"], "cadsr_rest")
+            self.assertEqual(provenance["release"], {"registry": "cadsr"})
+            self.assertEqual(
+                provenance["sourceUri"],
+                self.settings.cadsr_base_url + "/NCIAPI/1.0/api/DataElement/2178439",
+            )
+            self.assertEqual(
+                provenance["upstream"],
+                {"publicId": "2178439", "version": "2", "dateModified": "2026-08-25"},
+            )
+            self.assertNotIn("graphs", provenance)
+            self.assertEqual(self.context.evs.calls, [("get_terminologies", "ncit", (False, None))])
+            self.assertEqual(self.context.ssis.calls, [])
+            tools = self.session(lambda client: client.list_tools())
+            schema = next(
+                t.output_schema
+                for t in tools.tools
+                if t.name == "get_concept_for_permissible_value"
+            )
+            self.assertIsNone(validate(result, schema))
+
+    def test_primary_agreement_includes_source_presence_and_value(self, _):
+        for first, second in (
+            ({"evsSource": "NCI_CONCEPT_CODE"}, {"evsSource": "UMLS_CUI"}),
+            ({}, {"evsSource": None}),
+        ):
+            for separate_rows in (False, True):
+                raw = primary_element(codes=[sourced_primary("C25332", **first)])
+                other = sourced_primary("C25332", **second)
+                values = raw["ValueDomain"]["PermissibleValues"]
+                if separate_rows:
+                    values.extend(
+                        primary_element(codes=[other])["ValueDomain"]["PermissibleValues"]
+                    )
+                else:
+                    values[0]["ValueMeaning"]["Concepts"].append(other)
+                with (
+                    self.subTest(first=first, second=second, separate_rows=separate_rows),
+                    patch.object(self.context.cadsr, "get_data_element", return_value=raw),
+                ):
+                    response = self.lookup()
+                self.assertTrue(response.is_error)
+                self.assertEqual(
+                    response.structured_content["error"]["code"], "upstream_unavailable"
+                )
+
+    def test_data_element_preserves_source_evidence_in_both_concept_lists(self, _):
+        for source in ({}, {"evsSource": None}, {"evsSource": "未知 Ω "}):
+            raw = primary_element(codes=[sourced_primary("C0332307", **source)])
+            raw["DataElementConcept"] = {
+                "ObjectClass": {"Concepts": [{"conceptCode": "C0332307"} | source]},
+                "Property": {"Concepts": []},
+            }
+            with (
+                self.subTest(source=source),
+                patch.object(self.context.cadsr, "get_data_element", return_value=raw),
+            ):
+                response = self.session(
+                    lambda client: client.call_tool(
+                        "get_data_element",
+                        {
+                            "publicId": "2178439",
+                            "include": ["conceptAssociations", "permissibleValues"],
+                        },
+                    )
+                )
+            self.assertFalse(response.is_error, response.content)
+            data = response.structured_content
+            reference = {"conceptCode": "C0332307", "longName": None}
+            if source:
+                reference["terminology"] = source["evsSource"]
+            self.assertEqual(data["conceptAssociations"], [reference | {"role": "objectClass"}])
+            self.assertEqual(
+                data["permissibleValues"][0]["valueMeaning"]["concepts"],
+                [reference | {"primary": True}],
+            )
+
+    def test_malformed_sources_are_upstream_errors_in_both_concept_lists(self, _):
+        for source in ("", " \t", 12, True, [], {}):
+            for section in ("conceptAssociations", "permissibleValues"):
+                code = sourced_primary("C25332", evsSource=source)
+                raw = primary_element(codes=[code])
+                raw["DataElementConcept"] = {
+                    "ObjectClass": {"Concepts": []},
+                    "Property": {"Concepts": [code]},
+                }
+                with (
+                    self.subTest(source=source, section=section),
+                    patch.object(self.context.cadsr, "get_data_element", return_value=raw),
+                ):
+                    response = self.session(
+                        lambda client, section=section: client.call_tool(
+                            "get_data_element", {"publicId": "2178439", "include": [section]}
+                        )
+                    )
+                self.assertTrue(response.is_error)
+                self.assertEqual(
+                    response.structured_content["error"]["code"], "upstream_unavailable"
+                )
 
     def test_provenance_names_only_the_api_and_pinned_evs_reads(self, _):
         with patch.object(
