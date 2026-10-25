@@ -17,6 +17,7 @@ from typing import ClassVar
 from unittest.mock import patch
 from urllib.request import ProxyHandler, build_opener
 
+from fakes import release
 from nci_si_mcp.cadsr import CaDSRClient
 from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import PlatformError, correlated
@@ -759,6 +760,20 @@ class CredentialsStayOutTest(ServerTestCase):
 
         self.assertEqual(raised.exception.details["status"], 403)
         self.assertNotIn(KEY, f"{raised.exception} {raised.exception.details}")
+
+    def test_an_unknown_release_echoing_the_key_keeps_it_out_of_the_error_record(self):
+        # Given EVS echoes the key as an unknown terminology, when a concept is read,
+        # then release classification survives without exposing the key in any value.
+        body = json.dumps({"message": f"Terminology not found = {KEY}"}).encode()
+        server = self.serve(Reply(404, body))
+        client = EVSClient(server.url, license_key=KEY)
+
+        result = call("get_concept", lambda: client.get_concept("C4817", release=release()))
+
+        self.assertEqual(result["error"]["code"], "release_not_available")
+        self.assertNotIn(KEY, result["error"]["message"])
+        self.assertNotIn(KEY, repr(result["error"]["details"]))
+        self.assertEqual(result["error"]["details"], {"requested": "[redacted]", "source": "evs"})
 
 
 class ClientBoundaryTest(ServerTestCase):

@@ -206,8 +206,21 @@ class UnknownReleaseTest(HandlerTestCase):
 
         self.assertEqual(result["error"]["code"], "release_not_available")
         self.assertEqual(result["error"]["details"], {"requested": "ncit_26.09d", "source": "evs"})
-        self.assertIn("Retry later", result["error"]["message"])
-        self.assertIn("no longer serves", result["error"]["message"])
+        self.assertEqual(
+            result["error"]["message"],
+            "EVS request failed for /api/v1/concept/ncit_26.09d/C4817: HTTP 404 Not Found. "
+            "Retry later: EVS no longer serves the release the request was pinned to.",
+        )
+
+    def test_prose_before_the_unknown_terminology_still_classifies_a_release_failure(self):
+        # Given a prefixed EVS message, when a concept is read, then the release
+        # failure names the upstream requested terminology rather than a missing concept.
+        client = EVSClient("https://example.invalid", max_attempts=1)
+        with self.answer_404("Error: Terminology not found = ncit_x"):
+            result = call("get_concept", lambda: client.get_concept("C4817", release=release()))
+
+        self.assertEqual(result["error"]["code"], "release_not_available")
+        self.assertEqual(result["error"]["details"], {"requested": "ncit_x", "source": "evs"})
 
 
 class ServiceReleaseTest(HandlerTestCase):
