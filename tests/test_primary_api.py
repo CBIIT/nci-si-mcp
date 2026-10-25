@@ -5,7 +5,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 from fakes import FakeEVS, FakeSSIS, concept, data_element
+from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.http_client import UpstreamUnavailableError
+from nci_si_mcp.registry import invoke
 from test_evs_client import FakeResponse
 from test_server import ServerFixture
 
@@ -63,6 +65,30 @@ class PrimaryAPIProtocolTest(ServerFixture):
                 | arguments,
             )
         )
+
+    def test_invalid_version_refuses_before_any_upstream_request(self, _):
+        terminologies = self.context.evs.get_terminologies()
+        self.context.evs = EVSClient(self.settings.evs_base_url)
+        with patch(
+            "nci_si_mcp.http_client._open",
+            return_value=FakeResponse(json.dumps(terminologies).encode()),
+        ) as requests:
+            # The registry exercises the tool's validation without MCP's schema guard.
+            result = invoke(
+                self.context,
+                "get_concept_for_permissible_value",
+                dataElementId="2178439",
+                value="To a large extent",
+                version="4.x",
+            )
+        self.assertEqual(set(result), {"error"})
+        self.assertEqual(result["error"]["code"], "invalid_request")
+        self.assertEqual(
+            result["error"]["details"],
+            {"parameter": "version", "reason": "version must match ^[0-9]+([.][0-9]+)?$"},
+        )
+        self.assertEqual(requests.call_args_list, [])
+        self.assertEqual(self.context.ssis.calls, [])
 
     def test_primary_flag_wins_over_the_graphs_qualifier(self, _):
         # Keep the observed inversion, and separately challenge display-order selection.
