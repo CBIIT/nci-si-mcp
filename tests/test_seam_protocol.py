@@ -15,6 +15,30 @@ from test_server import ServerFixture
 
 @patch("nci_si_mcp.server.configure_logging")
 class SeamProtocolTest(ServerFixture):
+    def test_exact_find_preserves_graph_states_without_requiring_hierarchy_alignment(self, _):
+        self.context.ssis = FakeSSIS(self.settings)
+        self.context.ssis.elements = [element(123)]
+        for version in ("26.05d", None):
+            with self.subTest(version=version):
+                self.context.ssis.graphs[0].pop("version", None)
+                if version is not None:
+                    self.context.ssis.graphs[0]["version"] = version
+
+                async def call(client):
+                    return await client.call_tool(
+                        "find_data_elements_for_concept",
+                        {"conceptCode": "C3262", "release": "26.06e"},
+                    )
+
+                result = self.session(call)
+                self.assertFalse(result.is_error, result.content)
+                use = result.structured_content["dataElements"][0]
+                self.assertEqual(use["dataElement"]["publicId"], "123")
+                provenance = use["provenance"]
+                self.assertEqual(provenance["release"]["identifier"], "26.06e")
+                self.assertEqual(provenance["graphs"], self.context.ssis.graphs)
+                self.assertEqual(provenance["upstream"]["graphs"], self.context.ssis.graphs)
+
     def test_all_four_tools_serialize_their_real_records_and_cache_policies(self, _):
         self.context.ssis = FakeSSIS(self.settings)
         self.context.ssis.elements = [element(123)]
