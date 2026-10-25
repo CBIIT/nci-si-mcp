@@ -63,18 +63,43 @@ def test_one_envelope_names_the_release_asked_for_and_the_registry_unpinned(tool
     assert registries == [UNPINNED_REGISTRY] * len(registries)
 
 
-# One surface behind at a time: the Shared SI Service's NCIt graph, or EVS's concept.
+@pytest.mark.tool(GROUND)
+@pytest.mark.requirement("ground_value-1")
+@pytest.mark.scenario("release/concept-behind")
+def test_evs_concept_of_another_ncit_release_fails_closed(tools, pinned):
+    assert error_code(_ground(tools, pinned)) == "release_mismatch"
+
+
 @pytest.mark.tool(GROUND)
 @pytest.mark.requirement("ground_value-1")
 @pytest.mark.parametrize(
     "scenario",
     [
         pytest.param(name, id=name, marks=pytest.mark.scenario(f"release/{name}"))
-        for name in ("graph-behind", "concept-behind")
+        for name in ("graph-behind", "graph-version-missing")
     ],
 )
-def test_content_of_another_ncit_release_on_either_surface_fails_closed(tools, pinned, scenario):
-    assert error_code(_ground(tools, pinned)) == "release_mismatch"
+def test_exact_grounding_accepts_graph_lag_or_absent_version(tools, pinned, recorded, scenario):
+    content = _ok(_ground(tools, pinned))
+    assert content["concept"]["code"] == EWING
+    assert content["concept"]["provenance"]["sourceUri"].endswith(
+        f"/ncit_{pinned['release']}/{EWING}"
+    )
+    assert element_ids(content["dataElements"]) == {
+        (row["id"], row["version"]) for row in _rows(recorded, "data-elements-c4817")
+    }
+    assert value_ids(content["permissibleValues"]) == {
+        (row["id"], row["version"], row["value"], bare_code(row["concept"]))
+        for row in _rows(recorded, "values-c4817")
+    }
+    filename = (
+        "ssis-sparql-graph-identities.json"
+        if scenario == "graph-behind"
+        else "graph-identities.json"
+    )
+    graphs = sparql_rows(recorded(f"scenarios/release/{scenario}/{filename}"))
+    for item in [*content["dataElements"], *content["permissibleValues"]]:
+        assert item["provenance"]["upstream"]["graphs"] == graphs
 
 
 @pytest.mark.tool(GROUND)

@@ -791,6 +791,10 @@ The Shared SI Service's NCIt graph names another release; EVS serves the one pin
 
 EVS serves C4817 of another release; the NCIt graph names the one pinned. Crafted, 1 fixture, for A3.4: the content served names another release than the one requested.
 
+### `release/graph-version-missing`
+
+Both graph identities and dates remain; only the optional NCIt version is omitted. Crafted, 2 fixtures, for find_data_elements_for_concept-4: only expansion requires the NCIt graph version.
+
 ### `search/first-not-named`
 
 The lexical search for "ewing sarcoma" with Disease or Disorder (C2991) put first, an invented order. Crafted, 1 fixture, for ground_value-3: a search whose first result is not the concept named like the text.

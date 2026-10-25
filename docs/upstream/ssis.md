@@ -58,7 +58,7 @@ Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/ssis-sparql/query-refused.json](../../acceptance/fixtures/recorded/ssis-sparql/query-refused.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `b137d06b4c6ba1660d450366515031519de60486750347d97ec26cd63954db20`.
 - [acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `c1dd168f191478bcd7e2bf71df530b20ef68ec71d142c3b664dcb943ad68b4ff`.
-- [acceptance/request-forms/ssis.md](../../acceptance/request-forms/ssis.md) — document; SHA-256 `a1a1c4d0bdd8833b941442d4152aa16a6fb3cb8395cd1e8a8d997782a550284c`.
+- [acceptance/request-forms/ssis.md](../../acceptance/request-forms/ssis.md) — document; SHA-256 `2aecf26be587838c0b118f3954b521e3d4b4133cd28200824cf865b8c89279ad`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -80,9 +80,9 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 **Impact.** Cross-domain provenance is dated but registry reproducibility and automated alignment are weaker than a shared version contract.
 
-**Workaround.** Preserve each graph's identity, parse only supported date forms, compare NCIt version at the tool boundary and never manufacture a registry identifier.
+**Workaround.** Preserve each graph's identity, parse only supported date forms, compare NCIt version for descendant expansion and never manufacture a registry identifier. The PV path retains its current guard pending the correction in issue 367.
 
-**Acceptance criteria.** Both graphs return unambiguous identities; missing/duplicate identities fail closed, dates compute the correct interval and mismatched NCIt versions return release_mismatch.
+**Acceptance criteria.** Both graphs return unambiguous identities; missing/duplicate identities fail closed and dates compute the correct interval. Expansion refuses a mismatched NCIt version with release_mismatch or an absent version with release_not_available; exact find and grounding preserve the actual metadata without comparing or backfilling versions.
 
 Evidence (linked request/response files retain their original form):
 

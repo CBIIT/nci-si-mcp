@@ -3,8 +3,8 @@
 A tool answers from any surface that can, and the surfaces answer from
 their own content: the Shared SI graph is the caDSR export of 1 July 2026, the caDSR API is
 live. So a test reads the surface the result's provenance names and checks the answer against
-that surface's recording, never one surface against another. The release a call requires can be
-verified only against the Shared SI Service's NCIt graph, so the Shared SI Service answers.
+that surface's recording, never one surface against another. Only descendant expansion
+requires the Shared SI NCIt hierarchy version to match the pinned release.
 
 Fixture expectations come from recordings; live discovery checks identities and provenance
 against the current NCIt release rather than assuming historical graph content.
@@ -69,7 +69,7 @@ def test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_
 ):
     content = _ok(_find(tools, content_pin, expandDescendants=expand))
 
-    # The release is verified against the NCIt graph, so the Shared SI Service answers.
+    # Shared SI answers both exact-code and descendant-expanded queries.
     if target.mode == "fixture":
         assert _sources(content["dataElements"]) == {"ssis_sparql"}
         expected = {(row["id"], row["version"]) for row in _rows(recorded, recording)}
@@ -145,7 +145,7 @@ def test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_s
 
 @pytest.mark.tool(FIND)
 @pytest.mark.requirement("find_data_elements_for_concept-4")
-def test_a_release_other_than_the_ncit_graph_s_fails_closed(tools, pinned, recorded):
+def test_expansion_with_another_ncit_graph_release_fails_closed(tools, pinned, recorded):
     graphs = {row["graph"]: row for row in _rows(recorded, "graph-identities")}
     listing = recorded("recorded/evs/terminologies.json")["response"]["body"]
     # Another monthly release EVS serves, which the graph is not (terminologies.json).
@@ -156,9 +156,44 @@ def test_a_release_other_than_the_ncit_graph_s_fails_closed(tools, pinned, recor
         and row["version"] != graphs[THESAURUS]["version"]
     )
 
-    result = _find(tools, pinned | {"release": other})
+    result = _find(tools, pinned | {"release": other}, expandDescendants=True)
 
     assert error_code(result) == "release_mismatch", result.content
+
+
+@pytest.mark.tool(FIND)
+@pytest.mark.requirement("find_data_elements_for_concept-4")
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        pytest.param(name, marks=pytest.mark.scenario(f"release/{name}"))
+        for name in ("graph-behind", "graph-version-missing")
+    ],
+)
+def test_exact_find_preserves_actual_graph_states_without_hierarchy_alignment(
+    tools, pinned, recorded, scenario
+):
+    content = _ok(_find(tools, pinned))
+    assert element_ids(content["dataElements"]) == {
+        (row["id"], row["version"]) for row in _rows(recorded, "data-elements-c17357")
+    }
+    filename = (
+        "ssis-sparql-graph-identities.json"
+        if scenario == "graph-behind"
+        else "graph-identities.json"
+    )
+    graphs = sparql_rows(recorded(f"scenarios/release/{scenario}/{filename}"))
+    expected = [row | {"date": _iso(row["date"])} for row in graphs]
+    for use in content["dataElements"]:
+        assert use["provenance"]["graphs"] == expected
+        assert release_of(use) == ("ncit", pinned["release"])
+
+
+@pytest.mark.tool(FIND)
+@pytest.mark.requirement("find_data_elements_for_concept-4")
+@pytest.mark.scenario("release/graph-version-missing")
+def test_expansion_without_ncit_graph_version_is_release_not_available(tools, pinned):
+    assert error_code(_find(tools, pinned, expandDescendants=True)) == "release_not_available"
 
 
 @pytest.mark.tool(FIND)
