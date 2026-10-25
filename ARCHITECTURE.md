@@ -40,6 +40,10 @@ remains pending. The [caller-permission flow](docs/caller-permissions.md) shows 
 
 ## System context
 
+The [content-injection threat model](docs/threat-model.md) maps the upstream, server and
+client-host trust boundaries. Source text stays data; fixed furnished prompts tell assistants
+not to follow embedded instructions. Structured output does not itself enforce model behavior.
+
 Arrows name requests or supplied assets. Upstream systems own their content; the local index
 holds retrieved NCIt snapshots. The acceptance harness can replace the upstreams with local
 recorded or contract-crafted fixtures, including caDSR until credentials are issued.
