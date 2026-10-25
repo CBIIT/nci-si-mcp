@@ -81,10 +81,6 @@ class DependencyLockPolicyTest(unittest.TestCase):
         self.assertEqual(
             project["tool"]["nci-si"]["dependency-age"]["exceptions"],
             {
-                "certifi": {
-                    "version": "2026.10.19",
-                    "advisory": "GHSA-6q48-6c7w-9gw2",
-                },
                 "setuptools": {
                     "version": "84.2.1",
                     "advisory": "GHSA-xmj3-9gf7-h52w",
@@ -109,8 +105,6 @@ class DependencyLockPolicyTest(unittest.TestCase):
                 "--exclude-newer",
                 "5d",
                 "--exclude-newer-override",
-                "certifi=2026-10-20T02:24:00+00:00",
-                "--exclude-newer-override",
                 "setuptools=2026-10-20T19:01:00+00:00",
             ],
         )
@@ -118,7 +112,8 @@ class DependencyLockPolicyTest(unittest.TestCase):
     def test_lock_refuses_unverifiable_exception_upload_times(self):
         module = lock_script()
         with self.assertRaisesRegex(
-            ValueError, "^certifi upload time could not be read: has no distribution upload time$"
+            ValueError,
+            "^setuptools upload time could not be read: has no distribution upload time$",
         ):
             module.command(ROOT, lambda _: {"urls": []})
 

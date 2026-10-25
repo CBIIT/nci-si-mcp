@@ -83,7 +83,6 @@ fallback_version = "0.0.0"
 # A known-vulnerability fix may bypass the rolling age cutoff only at this exact version.
 # The online audit fails once the release is five days old, requiring removal of the exception.
 [tool.nci-si.dependency-age.exceptions]
-certifi = { version = "2026.10.19", advisory = "GHSA-6q48-6c7w-9gw2" }
 setuptools = { version = "84.2.1", advisory = "GHSA-xmj3-9gf7-h52w" }
 
 # The release workflow computes the next version from the commit subjects on main
