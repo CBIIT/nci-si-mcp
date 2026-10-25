@@ -63,6 +63,33 @@ class AcceptanceGateWorkflowTest(unittest.TestCase):
                 "CREDENTIAL_PLACEHOLDER": module.PLACEHOLDER,
             },
         )
+        self.assertEqual(
+            live,
+            {
+                "name": LIVE_STEP,
+                "env": {
+                    "NCI_SI_ACCEPTANCE_MODE": "live",
+                    "NCI_SI_ACCEPTANCE_PREPARE": FIXTURE_ENV["NCI_SI_ACCEPTANCE_PREPARE"],
+                    "NCI_SI_EVS_LICENSE_KEY": "${{ secrets.NCI_SI_EVS_LICENSE_KEY }}",
+                    "NCI_SI_CADSR_CREDENTIAL": "${{ secrets.NCI_SI_CADSR_CREDENTIAL }}",
+                    "CREDENTIAL_PLACEHOLDER": "NCI_SI_CONFIGURE_ME",
+                },
+                "run": 'absent=""\n'
+                "for name in NCI_SI_EVS_LICENSE_KEY NCI_SI_CADSR_CREDENTIAL; do\n"
+                '  if [ -z "${!name}" ] || [ "${!name}" = "$CREDENTIAL_PLACEHOLDER" ]; then\n'
+                '    absent="$absent $name"\n    unset "$name"\n  fi\ndone\n'
+                'echo "- Credentials absent from the live run:${absent:- none}" '
+                '| tee -a acceptance/network.md >> "$GITHUB_STEP_SUMMARY"\n'
+                "status=0\npdm run acceptance -n 4 --dist worksteal "
+                "--report=live.json || status=$?\n"
+                'if [ "$status" -gt 1 ] || [ ! -s acceptance/live.json ]; then\n'
+                '  echo "::error title=The live run did not finish::'
+                'exit status ${status}, or no report."\n'
+                "  exit 1\nfi\n"
+                "pdm run python -m nci_si_acceptance.report acceptance/live.json "
+                "--check-complete live\n",
+            },
+        )
         for supplied in (
             ("", ""),
             (module.PLACEHOLDER, module.PLACEHOLDER),

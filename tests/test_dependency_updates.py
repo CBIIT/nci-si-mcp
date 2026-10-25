@@ -164,6 +164,10 @@ class DependencyAuditWorkflowTest(unittest.TestCase):
             },
         )
         steps = workflow["jobs"]["pip-audit"]["steps"]
+        self.assertEqual(
+            [step for step in steps if step.get("uses") == "$/.github/actions/setup"],
+            [{"uses": "$/.github/actions/setup"}],
+        )
         runs = [step for step in steps if "run" in step]
 
         self.assertEqual(

@@ -66,6 +66,14 @@ class ReleaseWorkflowTest(unittest.TestCase):
 
     def test_release_steps_use_only_the_locked_cli(self):
         steps = workflow()["jobs"]["release"]["steps"]
+        self.assertEqual(
+            steps[0],
+            {
+                "name": "Check out main",
+                "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "with": {"ref": "main", "fetch-depth": 0, "persist-credentials": False},
+            },
+        )
         selected = [
             step
             for step in steps
