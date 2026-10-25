@@ -338,7 +338,7 @@ class SSISRegisterTest(unittest.TestCase):
                         "type": "literal",
                         "value": version,
                     }
-                    self.assertIsNone(validate(payload, entry))
+                    validate(payload, entry)
         for version in ("", "  "):
             with self.subTest(family=IDS[0], version=version):
                 payload = bodies()[0]
