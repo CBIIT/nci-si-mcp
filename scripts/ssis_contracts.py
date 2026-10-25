@@ -102,6 +102,11 @@ def validate(payload: Any, entry: dict[str, Any]) -> None:
     require(len(rows) <= entry["limit"], "bindings exceed requested LIMIT")
     for row in rows:
         binding(row, entry)
+    if entry["id"] == "graph-identities":
+        require(
+            {NCIT_GRAPH, CADSR_GRAPH} <= {row["graph"]["value"] for row in rows},
+            "graph: required identity missing",
+        )
 
 
 def check(entry: dict[str, Any], http: HttpClient) -> dict[str, str]:
