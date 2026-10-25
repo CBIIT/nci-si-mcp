@@ -301,7 +301,10 @@ def test_a_release_the_platform_does_not_serve_fails_closed(tools, pinned, name)
 @pytest.mark.requirement("X-3")
 @pytest.mark.parametrize("name", _per_tool(RELEASED, "release/mismatch"))
 def test_content_of_another_release_fails_closed(tools, pinned, name):
-    result = _call(tools, pinned, name)
+    arguments = CALLS[name]["arguments"]
+    if name == "find_data_elements_for_concept":
+        arguments = arguments | {"expandDescendants": True}
+    result = _call(tools, pinned, name, arguments)
 
     assert error_code(result) == "release_mismatch", result.content
 

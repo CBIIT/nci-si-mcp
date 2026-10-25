@@ -590,6 +590,10 @@ Every upstream request, whatever its surface and path, gets a closed connection,
 
 The Shared SI Service's NCIt graph names another release; EVS serves the one pinned. Crafted, 2 fixtures, for A3.4: the content served names another release than the one requested.
 
+### `release/graph-version-missing`
+
+Both graph identities and dates remain; only the optional NCIt version is omitted. Crafted, 2 fixtures, for find_data_elements_for_concept-4: only expansion requires the NCIt graph version.
+
 ### `upstream/masked-error`
 
 Every request to the Shared SI façade and to the caDSR API is answered with HTTP 200 and an apiResponse of type E, the failure each sends inside a success. Crafted, 2 fixtures, for X-15: an error envelope in an HTTP 200 is an upstream error.

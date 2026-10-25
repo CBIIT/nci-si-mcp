@@ -293,11 +293,11 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 **Expected.** Name the NCIt release or concept-load state in each link response, alongside the registry state, with a verification contract.
 
-**Impact.** A release-pinned cross-domain join cannot safely use caDSR REST alone.
+**Impact.** A descendant-expanded join needs a verifiable NCIt hierarchy release; exact-code references do not depend on hierarchy alignment.
 
-**Workaround.** Use Shared SI after verifying both graphs and the requested NCIt version; REST alone fails release_not_available.
+**Workaround.** Use Shared SI with both actual graph identities; verify the requested NCIt version only for descendant expansion. Exact-code joins do not use the NCIt hierarchy.
 
-**Acceptance criteria.** Requested, reported and actual NCIt states agree; a mismatch fails closed and both graph/registry states remain visible.
+**Acceptance criteria.** For descendant expansion, requested and reported NCIt hierarchy releases agree or the call fails closed. Exact-code joins preserve both actual graph/registry states without requiring hierarchy alignment.
 
 Evidence (linked request/response files retain their original form):
 

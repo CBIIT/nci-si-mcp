@@ -181,14 +181,14 @@ class SeamTest(unittest.TestCase):
 
     def test_graph_mismatch_fails_before_content_query(self):
         self.ssis.graphs[0]["version"] = "26.05d"
-        result = self.call(conceptCode="C1", release="26.06e")
+        result = self.call(conceptCode="C1", release="26.06e", expandDescendants=True)
         self.assertEqual(result["error"]["code"], "release_mismatch")
         self.assertEqual(result["error"]["details"]["source"], NCIT_GRAPH)
         self.assertEqual(self.ssis.calls, [("identities",)])
 
     def test_missing_graph_version_is_release_not_available(self):
         del self.ssis.graphs[0]["version"]
-        result = self.call(conceptCode="C1", release="26.06e")
+        result = self.call(conceptCode="C1", release="26.06e", expandDescendants=True)
         self.assertEqual(result["error"]["code"], "release_not_available")
         self.assertEqual(self.ssis.calls, [("identities",)])
 

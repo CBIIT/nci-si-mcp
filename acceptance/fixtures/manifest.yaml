@@ -87,6 +87,7 @@ scenarios:
   release/graph-behind: >-
     The Shared SI Service's NCIt graph names another release; EVS serves the one pinned
   release/concept-behind: EVS serves C4817 of another release; the NCIt graph names the one pinned
+  release/graph-version-missing: Both graph identities and dates remain; only the optional NCIt version is omitted
   search/first-not-named: >-
     The lexical search for "ewing sarcoma" with Disease or Disorder (C2991) put first, an
     invented order
@@ -1278,4 +1279,4 @@ record:
 # The fixtures craft.py makes are built in memory when the set loads; this is the digest
 # of what it makes now. `pdm run acceptance-craft` writes it, `--out DIR` writes the
 # fixtures to read (fixtures/README.md).
-crafted: sha256:80a80e43b182563781a0bb9ac26f9738fd86cd4caad6415c51720f74d04d5822
+crafted: sha256:1a4ad5fd51b2cc63787ff24cedd85af185164730488e645088471f20a5ae5017

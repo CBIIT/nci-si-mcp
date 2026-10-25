@@ -201,8 +201,7 @@ def release_mismatch(recorded: Recorded) -> Documents:
 def release_one_surface_behind(recorded: Recorded) -> Documents:
     """Another release on one surface only, as release/mismatch has it: the Shared SI
     Service's graph identities (release/graph-behind), or EVS's C4817 (release/concept-behind).
-    A tool that rests on both checks each, which only one surface behind at a time shows
-    (ground_value-1)."""
+    Exact grounding accepts graph lag but still checks EVS content (ground_value-1)."""
 
     behind = release_mismatch(recorded)
     sides = {
@@ -215,6 +214,31 @@ def release_one_surface_behind(recorded: Recorded) -> Documents:
         for name, document in behind.items()
         if chosen(name)
     }
+
+
+def release_graph_version_missing(recorded: Recorded) -> Documents:
+    """Omit only the optional NCIt version in both graph-identity request forms."""
+    documents = {}
+    for file in (
+        "recorded/ssis-sparql/graph-identities.json",
+        "crafted/ssis-sparql/graph-identities-bounded.json",
+    ):
+        source = recorded(file)
+        body = source["response"]["body"]
+        rows = body["results"]["bindings"]
+        bindings = [
+            {key: value for key, value in row.items() if key != "version"}
+            if row["graph"]["value"].endswith("Thesaurus.rdf")
+            else row
+            for row in rows
+        ]
+        documents[f"scenarios/release/graph-version-missing/{Path(file).name}"] = crafted(
+            "find_data_elements_for_concept-4: only expansion requires the NCIt graph version",
+            source["request"],
+            response=source["response"]
+            | {"body": body | {"results": body["results"] | {"bindings": bindings}}},
+        )
+    return documents
 
 
 def search_first_not_named(recorded: Recorded) -> Documents:
@@ -1085,6 +1109,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     license_restricted,
     license_attributed,
     release_one_surface_behind,
+    release_graph_version_missing,
     search_first_not_named,
     cadsr_with_registry_release,
     cadsr_credentialed,

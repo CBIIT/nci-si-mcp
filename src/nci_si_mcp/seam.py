@@ -96,8 +96,7 @@ def _selected(context: Context, release: str | None) -> ReleaseContext:
     return selected
 
 
-def _graphs(context: Context, selected: ReleaseContext) -> list[GraphIdentity]:
-    graphs = context.ssis.get_graph_identities()
+def _verify_graph_release(graphs: list[GraphIdentity], selected: ReleaseContext) -> None:
     ncit = next(row for row in graphs if row["graph"] == NCIT_GRAPH)
     if "version" not in ncit:
         raise PlatformError(
@@ -114,7 +113,6 @@ def _graphs(context: Context, selected: ReleaseContext) -> list[GraphIdentity]:
             served=[ncit["version"]],
             source=NCIT_GRAPH,
         )
-    return graphs
 
 
 def _provenance(
@@ -282,9 +280,10 @@ def find_data_elements_for_concept(
     with truncation and nextCursor. One page limit and one 1000-result cap cover data-element
     uses first, then value uses; hitting the cap is inexact truncation, ordinary paging is not.
 
-    release_mismatch when the Shared SI graph holds another NCIt release (no unverified REST
-    fallback is used); release_not_available when it names none; cursor_expired when content
-    changed since the cursor; upstream_unavailable when a graph cannot be read.
+    With expandDescendants, release_mismatch when the Shared SI NCIt graph holds another
+    release, release_not_available when its version is absent. Exact-code queries preserve
+    both actual graph identities without comparing versions. cursor_expired when content
+    changed since the cursor; upstream_unavailable when graph metadata cannot be read.
     """
     _find_options(conceptCode, terminology, expandDescendants, includePermissibleValues)
     arguments = {
@@ -299,7 +298,9 @@ def find_data_elements_for_concept(
     cursors.validate_before_selection(cursor, arguments, indexed=True)
     with budgeted(current_budget() or Budget()):
         selected = _selected(context, release)
-        graphs = _graphs(context, selected)
+        graphs = context.ssis.get_graph_identities()
+        if expandDescendants:
+            _verify_graph_release(graphs, selected)
         arguments["release"] = selected.version
         cursors.decode(cursor, arguments, indexed=True)
         result = _page(
@@ -414,7 +415,8 @@ def get_concept_for_permissible_value(
     require_operation("get_concept_for_permissible_value", {})
     with budgeted(current_budget() or Budget()):
         selected = _selected(context, release)
-        graphs = _graphs(context, selected)
+        graphs = context.ssis.get_graph_identities()
+        _verify_graph_release(graphs, selected)
         version, code = _latest_value(context.ssis.get_permissible_values(element), value)
         require("get_concept")
         raw = context.evs.get_concept(code, release=selected, include="minimal")

@@ -238,9 +238,9 @@ entries:
     observation: caDSR REST's concept links do not name their NCIt release; Shared SI's NCIt graph does. The two surfaces have distinct content states and can return different rows.
     reproduction: Compare concept C17357 on the recorded caDSR REST and Shared SI forms and inspect each identity record; never compare their rows as if they were one snapshot.
     expected: Name the NCIt release or concept-load state in each link response, alongside the registry state, with a verification contract.
-    impact: A release-pinned cross-domain join cannot safely use caDSR REST alone.
-    workaround: Use Shared SI after verifying both graphs and the requested NCIt version; REST alone fails release_not_available.
-    acceptance: Requested, reported and actual NCIt states agree; a mismatch fails closed and both graph/registry states remain visible.
+    impact: A descendant-expanded join needs a verifiable NCIt hierarchy release; exact-code references do not depend on hierarchy alignment.
+    workaround: Use Shared SI with both actual graph identities; verify the requested NCIt version only for descendant expansion. Exact-code joins do not use the NCIt hierarchy.
+    acceptance: For descendant expansion, requested and reported NCIt hierarchy releases agree or the call fails closed. Exact-code joins preserve both actual graph/registry states without requiring hierarchy alignment.
 
   - id: ssis-facade
     team: ssis
@@ -287,5 +287,5 @@ entries:
     reproduction: Read both graph identity rows from the linked query, requiring both graphs; inspect datatype and version rather than substituting today's date.
     expected: Use xsd:date consistently and publish a stable caDSR export/version identifier alongside the NCIt version.
     impact: Cross-domain provenance is dated but registry reproducibility and automated alignment are weaker than a shared version contract.
-    workaround: Preserve each graph's identity, parse only supported date forms, compare NCIt version at the tool boundary and never manufacture a registry identifier.
-    acceptance: Both graphs return unambiguous identities; missing/duplicate identities fail closed, dates compute the correct interval and mismatched NCIt versions return release_mismatch.
+    workaround: Preserve each graph's identity, parse only supported date forms, compare NCIt version for descendant expansion and never manufacture a registry identifier. The PV path retains its current guard pending the correction in issue 367.
+    acceptance: Both graphs return unambiguous identities; missing/duplicate identities fail closed and dates compute the correct interval. Expansion refuses a mismatched NCIt version with release_mismatch or an absent version with release_not_available; exact find and grounding preserve the actual metadata without comparing or backfilling versions.
