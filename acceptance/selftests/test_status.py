@@ -301,13 +301,39 @@ def test_incomplete_latest_is_disclosed_without_substituting_older_green():
 
 @pytest.mark.parametrize(
     "field,value",
-    [("event", "workflow_dispatch"), ("branch", "issue/358"), ("sha256", "0" * 64), ("sha", "bad")],
+    [
+        ("event", "workflow_dispatch"),
+        ("branch", "issue/358"),
+        ("sha256", "0" * 64),
+        ("sha", "bad"),
+        ("missing", "date"),
+        ("extra", "unexpected"),
+        (None, None),
+        (None, []),
+        ("run", 0),
+        ("run", -1),
+        ("run", True),
+        ("run", "123"),
+        ("artifact", 0),
+        ("artifact", -1),
+        ("artifact", True),
+        ("artifact", 456.0),
+        ("date", "2026-10-19"),
+        ("date", 20261019),
+    ],
 )
-def test_provenance_rejects_wrong_origin_or_hash(tmp_path, field, value):
+def test_provenance_rejects_invalid_sidecar(tmp_path, field, value):
     raw = json.dumps(live_rows()).encode()
     (tmp_path / "latest.json").write_bytes(raw)
-    (tmp_path / "latest.yaml").write_text(yaml.safe_dump(provenance(raw) | {field: value}))
-    with pytest.raises(ValueError, match="provenance"):
+    metadata = provenance(raw)
+    if field == "missing":
+        del metadata[value]
+    elif field is None:
+        metadata = value
+    else:
+        metadata[field] = value
+    (tmp_path / "latest.yaml").write_text(yaml.safe_dump(metadata))
+    with pytest.raises(ValueError, match=r"^Invalid live evidence provenance$"):
         status.load_live(tmp_path)
 
 

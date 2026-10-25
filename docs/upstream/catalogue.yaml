@@ -115,7 +115,7 @@ entries:
     tests: ["tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it"]
     evidence: [acceptance/fixtures/recorded/cadsr-ftp/cde-xml-listing.json, acceptance/fixtures/recorded/cadsr-ftp/cde-xml-readme.json, acceptance/fixtures/recorded/cadsr/data-element-2200604.json]
     source: https://github.com/CBIIT/nci-si-mcp/issues/359#issuecomment-6399041641
-    observation: One releasedCDEsXML-OD.zip overwrites the previous export. The data-element recording describes permissible-value removals without a version change; an item version alone cannot identify content edited in place.
+    observation: The recorded listing names the current releasedCDEsXML-OD.zip; its README states daily updates and refers to an Archive folder for older files. These recordings do not establish immutable dated retrieval or twelve-month retention. The data-element recording describes permissible-value removals without a version change; an item version alone cannot identify content edited in place.
     reproduction: Inspect the recorded export listing and README and the change notes in data-element-2200604.json; this request adds no live probe.
     expected: Retain at least twelve months of immutable dated exports, with generation timestamps and documented retrieval by date, so a consumer can retrieve the export for the day cited.
     impact: Exact reproduction of a set-level answer or an item edited in place needs that day's export; current API responses and item versions do not suffice.

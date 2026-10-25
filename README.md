@@ -33,8 +33,9 @@ pdm run acceptance           # the acceptance suite against it, on recorded upst
 ```
 
 [Platforms and prerequisites](QUICKSTART.md#platforms-and-prerequisites) lists what to install first.
-A plain `pdm run acceptance` skips the prepared and secured cases; the
-[prepared fixture run](acceptance/README.md) (`NCI_SI_ACCEPTANCE_PREPARE`) runs all of them.
+A plain `pdm run acceptance` skips prepared, secured and optional registry-release checks.
+The [complete fixture command](CONTRIBUTING.md#complete-fixture-ratchet) supplies preparation, the security
+adapter and `NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=required` to run all cases.
 
 [QUICKSTART.md](QUICKSTART.md) has the rest: connecting a client, settings, tools and errors.
 

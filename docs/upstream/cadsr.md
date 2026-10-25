@@ -42,7 +42,7 @@ Platform requirement/operation: **C-1; A3.8.2**.
 Specification requirements: `resolve_registry_release-1`, `X-21`.
 Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/359#issuecomment-6399041641).
 
-**Observation.** One releasedCDEsXML-OD.zip overwrites the previous export. The data-element recording describes permissible-value removals without a version change; an item version alone cannot identify content edited in place.
+**Observation.** The recorded listing names the current releasedCDEsXML-OD.zip; its README states daily updates and refers to an Archive folder for older files. These recordings do not establish immutable dated retrieval or twelve-month retention. The data-element recording describes permissible-value removals without a version change; an item version alone cannot identify content edited in place.
 
 **Reproduction.** Inspect the recorded export listing and README and the change notes in data-element-2200604.json; this request adds no live probe.
 

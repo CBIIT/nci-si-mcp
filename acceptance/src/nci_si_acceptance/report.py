@@ -14,7 +14,7 @@ each required tool one outcome:
                      needing a capability the tool lacks, or a gate could not run (shown as
                      "gates not run"); a hardening candidate, not a pass
     NOT IMPLEMENTED  the server does not expose the required tool name
-    NOT RUN          no test of the tool ran (in live mode: none is live-capable)
+    NOT RUN          no test of the tool ran (for example, all were skipped or not_live)
     NO TESTS         the suite has no test for the tool: a defect of the suite
 
 In a live run, the tests that run in fixture mode only (not_live) leave a tool NOT RUN, never
@@ -75,7 +75,7 @@ ATTRIBUTION = "acceptance_attribution"
 # The key of a worker's output that carries what it noted of the server under test.
 WORKER_TOOLS = "acceptance_tools"
 # A later phase of a test (setup, call, teardown) overrides an earlier outcome only
-# when it ranks higher.
+# when it ranks higher or equally; the later outcome wins a tie.
 RANK = {
     "passed": 0,
     "skipped": 1,
