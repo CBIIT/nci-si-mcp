@@ -72,7 +72,7 @@ Platform requirement/operation: **C-6; OP-M01**.
 Specification requirements: `match_data_elements-1`.
 Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42).
 
-**Observation.** The published matching contract does not take the requested modelVariant and similarityThreshold controls.
+**Observation.** The published matching contract does not take the requested modelVariant and similarityThreshold controls. The [CDE AI Engine evaluation dated 25 October 2026](cadsr-ai-engine.md) records the team's retrieval/reranking report separately from the unknown Engine contract fields and recommends waiting for contract and comparison evidence.
 
 **Reproduction.** Compare the contract's declared headers/body with those two caller parameters; fixture tests assert rejection, not upstream support.
 
@@ -100,7 +100,7 @@ Platform requirement/operation: **C-6; OP-M01; OP-C13**.
 Specification requirements: `match_data_elements-1`, `list_contexts-1`, `harmonize_data_dictionary-1`.
 Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-5966334217).
 
-**Observation.** Anonymous calls are recorded 401. No credentials have been issued; credentialed fixture answers follow published contracts and are crafted. Live matching and harmonization measurements returned upstream errors.
+**Observation.** Anonymous calls are recorded 401. No credentials have been issued; credentialed fixture answers follow published contracts and are crafted. Live matching and harmonization measurements returned upstream errors. The [CDE AI Engine evaluation dated 25 October 2026](cadsr-ai-engine.md) found no Engine contract or documented anonymous Stage endpoint in the reviewed sources; its access policy is unknown, not inferred from Match 2.0.
 
 **Reproduction.** Repeat the recorded anonymous requests; after access is provided, re-record with an environment-supplied credential and never write its value to evidence.
 

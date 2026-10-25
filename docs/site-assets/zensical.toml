@@ -44,6 +44,7 @@ nav = [
     { "Upstream team responses" = "docs/upstream/team-responses-2026-10-08.md" },
     { "EVS" = "docs/upstream/evs.md" },
     { "caDSR" = "docs/upstream/cadsr.md" },
+    { "CDE AI Engine evaluation" = "docs/upstream/cadsr-ai-engine.md" },
     { "Shared SI" = "docs/upstream/ssis.md" },
     { "Shared SI query dependencies" = "docs/upstream/ssis-dependencies.md" },
   ] },
