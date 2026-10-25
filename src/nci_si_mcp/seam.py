@@ -278,7 +278,8 @@ def find_data_elements_for_concept(
 
     Returns dataElements and, when asked, permissibleValues (on every page, possibly empty),
     with truncation and nextCursor. One page limit and one 1000-result cap cover data-element
-    uses first, then value uses; hitting the cap is inexact truncation, ordinary paging is not.
+    uses first, then value uses. Exceeding the cap or skipping requested value uses because
+    elements fill it is inexact truncation; exactly the cap can be complete. Paging is not a cut.
 
     With expandDescendants, release_mismatch when the Shared SI NCIt graph holds another
     release, release_not_available when its version is absent. Exact-code queries preserve

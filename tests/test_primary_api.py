@@ -1,9 +1,12 @@
 """PV primary correction through real MCP; crafted from issue #367's live observation."""
 
+import json
+from pathlib import Path
 from unittest.mock import patch
 
 from fakes import FakeEVS, FakeSSIS, concept, data_element
 from nci_si_mcp.http_client import UpstreamUnavailableError
+from test_evs_client import FakeResponse
 from test_server import ServerFixture
 
 
@@ -62,22 +65,54 @@ class PrimaryAPIProtocolTest(ServerFixture):
         )
 
     def test_primary_flag_wins_over_the_graphs_qualifier(self, _):
-        with patch.object(self.context.cadsr, "get_data_element", return_value=primary_element()):
-            response = self.lookup()
-        self.assertFalse(response.is_error, response.content)
-        self.assertEqual(response.structured_content["code"], "C25332")
+        # Keep the observed inversion, and separately challenge display-order selection.
+        for codes in (
+            None,
+            [
+                {"conceptCode": "C49508", "primaryIndicator": "No", "displayOrder": 0},
+                {"conceptCode": "C25332", "primaryIndicator": "Yes", "displayOrder": 2},
+            ],
+        ):
+            with (
+                self.subTest(codes=codes),
+                patch.object(
+                    self.context.cadsr,
+                    "get_data_element",
+                    return_value=primary_element(codes=codes),
+                ),
+            ):
+                response = self.lookup()
+            self.assertFalse(response.is_error, response.content)
+            self.assertEqual(response.structured_content["code"], "C25332")
 
     def test_provenance_names_only_the_api_and_pinned_evs_reads(self, _):
-        with patch.object(self.context.cadsr, "get_data_element", return_value=primary_element()):
-            response = self.lookup()
+        with patch.object(
+            self.context.cadsr, "get_data_element", return_value=primary_element(version="4")
+        ):
+            response = self.lookup(version="4.00")
         self.assertFalse(response.is_error, response.content)
         provenance = response.structured_content["provenance"]
         self.assertNotIn("graphs", provenance)
         self.assertEqual(provenance["registry"], {"registry": "cadsr"})
+        self.assertEqual(
+            provenance["release"],
+            {"terminology": "ncit", "identifier": "26.06e", "date": "2026-06-29"},
+        )
+        self.assertEqual(provenance["source"], "evs_rest")
+        self.assertEqual(
+            provenance["sourceUri"], self.context.evs.uri("/api/v1/concept/ncit_26.06e/C25332")
+        )
         self.assertEqual(provenance["upstream"]["version"], "26.06e")
+        origin = provenance["upstream"]["cadsr"]
+        self.assertEqual(origin["release"], {"registry": "cadsr"})
+        self.assertEqual(origin["source"], "cadsr_rest")
+        self.assertEqual(
+            origin["sourceUri"],
+            self.settings.cadsr_base_url + "/NCIAPI/1.0/api/DataElement/2178439?version=4.00",
+        )
         self.assertEqual(
             provenance["upstream"]["cadsr"]["upstream"],
-            {"publicId": "2178439", "version": "2", "dateModified": "2026-08-25"},
+            {"publicId": "2178439", "version": "4", "dateModified": "2026-08-25"},
         )
         self.assertEqual(self.context.ssis.calls, [])
 
@@ -92,6 +127,39 @@ class PrimaryAPIProtocolTest(ServerFixture):
             {"publicId": "2178439", "version": "4.0"},
         )
         self.assertEqual(read.call_args.args, ("2178439", "4"))
+
+        # Given a recorded value exclusive to v1, requesting it succeeds only at v1.
+        # EVS is an explicit unit double, not an invented upstream recording.
+        self.context.evs = FakeEVS([concept("C38046", active=True)])
+        fixtures = Path(__file__).parents[1] / "acceptance/fixtures/recorded/cadsr"
+        for version, filename in (
+            ("1", "data-element-2200604-version-1.json"),
+            (None, "data-element-2200604.json"),
+        ):
+            body = json.loads((fixtures / filename).read_text())["response"]["body"]
+            with (
+                self.subTest(version=version),
+                patch(
+                    "nci_si_mcp.http_client._open",
+                    return_value=FakeResponse(json.dumps(body).encode()),
+                ),
+            ):
+                response = self.lookup(
+                    dataElementId="2200604", value="Not Specified", version=version
+                )
+            if version is not None:
+                self.assertFalse(response.is_error, response.content)
+                self.assertEqual(response.structured_content["code"], "C38046")
+                self.assertEqual(
+                    response.structured_content["permissibleValue"],
+                    {
+                        "dataElement": {"publicId": "2200604", "version": "1"},
+                        "value": "Not Specified",
+                    },
+                )
+            else:
+                self.assertTrue(response.is_error)
+                self.assertEqual(response.structured_content["error"]["code"], "not_found")
 
     def test_primary_evidence_never_comes_from_order_or_an_invalid_flag(self, _):
         cases = [

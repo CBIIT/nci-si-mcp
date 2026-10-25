@@ -80,7 +80,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 **Impact.** Cross-domain provenance is dated but registry reproducibility and automated alignment are weaker than a shared version contract.
 
-**Workaround.** Preserve each graph's identity, parse only supported date forms, compare NCIt version for descendant expansion and never manufacture a registry identifier. The PV path retains its current guard pending the correction in issue 367.
+**Workaround.** Preserve each graph's identity, parse only supported date forms, compare NCIt version for descendant expansion and never manufacture a registry identifier. PV lookup reads caDSR API primary flags and pinned EVS content, with caDSR and EVS provenance and no Shared SI dependency.
 
 **Acceptance criteria.** Both graphs return unambiguous identities; missing/duplicate identities fail closed and dates compute the correct interval. Expansion refuses a mismatched NCIt version with release_mismatch or an absent version with release_not_available; exact find and grounding preserve the actual metadata without comparing or backfilling versions.
 

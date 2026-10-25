@@ -173,7 +173,7 @@ class SSISClient:
         return [_binding(row, required) for row in rows]
 
     def get_graph_identities(self) -> list[GraphIdentity]:
-        """Return unchanged metadata; #38 normalizes dates and verifies the NCIt release."""
+        """Return unchanged metadata; joins normalize dates and check release only for expansion."""
         rows = self._query(_IDENTITIES, ("graph", "date"), len(_GRAPHS) + 1)
         identities = [_identity(row) for row in rows]
         if sorted(row["graph"] for row in identities) != sorted(_GRAPHS):
