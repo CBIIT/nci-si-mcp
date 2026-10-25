@@ -198,7 +198,12 @@ release. Nothing else is needed: no file holds the version, and the workflow nev
 `main`. If a release is missing although `main` is green, start the Release workflow by hand
 (`gh workflow run release.yml`). Version 1.0.0 is tagged by hand.
 
-For the complete fixture ratchet, supply the furnished secured adapter explicitly:
-`NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py'` alongside the
-index preparation environment. CI sets this for this checkout; successors must supply their
-own adapter. Without it the secured cases report NOT RUN, not a security pass.
+For the complete fixture ratchet, select the registry checks this server supports and supply
+the furnished secured adapter and index preparation explicitly, as CI does:
+
+```bash
+NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=required NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py' NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --dist worksteal --report=fixture.json
+```
+
+The harness default remains `optional`. Successors must supply their own secured adapter;
+without it the secured cases report NOT RUN, not a security pass.

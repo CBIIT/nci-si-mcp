@@ -46,6 +46,7 @@ jobs:
       # Status 1 may mean failed tests or an early stop; completion comes from the report.
       - name: Run the suite against the fixtures
         env:
+          NCI_SI_ACCEPTANCE_REGISTRY_RELEASE: required
           # The permission gates run as in CI's fixture run; without them every tool would be
           # INCOMPLETE. The step gets no secret.
           NCI_SI_ACCEPTANCE_SECURITY_SERVER: python ../scripts/permissions_fixture.py
