@@ -1,5 +1,12 @@
 # NCI SI MCP Architecture
 
+Shared SI cross-domain joins and `ground_value` carry a maintenance dependency risk:
+the team's [8 October 2026 response](docs/upstream/team-responses-2026-10-08.md) reports
+maintenance mode without funding for new API development or maintenance. The project
+coordinator owns the [query register and weekly structural checks](docs/upstream/ssis-dependencies.md).
+EVS SPARQL and caDSR APIs are candidate alternatives, not equivalent or implemented fallbacks;
+Shared SI failures remain explicit caller errors.
+
 This document describes the implemented Python server: EVS terminology, caDSR metadata,
 Shared SI joins and composed workflows served through MCP over stdio or HTTP, with a CLI for
 index operations and the original EVS commands.

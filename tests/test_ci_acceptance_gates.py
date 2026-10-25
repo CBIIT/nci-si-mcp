@@ -46,6 +46,33 @@ def suite_line(workflow, job, name):
 
 
 class AcceptanceGateWorkflowTest(unittest.TestCase):
+    def test_anonymous_ssis_contract_step_always_attempts_and_preserves_failure(self):
+        workflow = yaml.safe_load((WORKFLOWS / "acceptance-live.yml").read_text())
+        job = workflow["jobs"]["acceptance-live"]
+        self.assertEqual(workflow["permissions"], {"contents": "read"})
+        self.assertEqual(job.get("permissions"), None)
+        self.assertEqual(job.get("env", {}), {})
+        self.assertEqual(job.get("if"), None)
+        self.assertEqual(job.get("needs"), None)
+        self.assertEqual(
+            step(
+                "acceptance-live.yml",
+                "acceptance-live",
+                "Check every anonymous Shared SI query contract",
+            ),
+            {
+                "name": "Check every anonymous Shared SI query contract",
+                "if": "${{ !cancelled() }}",
+                "env": {},
+                "run": "status=0\n"
+                "pdm run python -m scripts.ssis_contracts > "
+                "acceptance/ssis-contracts.json || status=$?\n"
+                "{ echo '### Shared SI query contracts'; echo; "
+                "cat acceptance/ssis-contracts.json; } "
+                '>> "$GITHUB_STEP_SUMMARY"\nexit "$status"\n',
+            },
+        )
+
     def test_the_weekly_fixture_run_runs_the_same_gates_as_ci(self):
         self.assertEqual(fixture_env("ci.yml", "acceptance"), FIXTURE_ENV)
         self.assertEqual(fixture_env("acceptance-live.yml", "acceptance-live"), FIXTURE_ENV)

@@ -281,11 +281,11 @@ entries:
     platform: S-5; C-1
     requirements: [find_data_elements_for_concept-3, get_release_alignment-1]
     tests: ["tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states", "tests/test_cross_domain.py::test_every_dataset_is_dated_with_the_largest_interval_and_a_warning_above_the_threshold"]
-    evidence: [acceptance/fixtures/recorded/ssis-sparql/graph-identities.json]
+    evidence: [acceptance/fixtures/recorded/ssis-sparql/graph-identities.json, docs/upstream/ssis-queries.yaml]
     source: https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-5968943275
     observation: NCIt has version 26.09d and an untyped September 28, 2026 date; caDSR has untyped 2026-07-01 and no version. Their recorded interval is 89 days, not a claim about current freshness.
     reproduction: Read both graph identity rows from the linked query, requiring both graphs; inspect datatype and version rather than substituting today's date.
     expected: Use xsd:date consistently and publish a stable caDSR export/version identifier alongside the NCIt version.
     impact: Cross-domain provenance is dated but registry reproducibility and automated alignment are weaker than a shared version contract.
-    workaround: Preserve each graph's identity, parse only supported date forms, compare NCIt version at the tool boundary and never manufacture a registry identifier.
+    workaround: Preserve each graph's identity, parse only supported date forms, compare NCIt version at the tool boundary and never manufacture a registry identifier. The [dependency register](ssis-dependencies.md) records every current query and its weekly structural check.
     acceptance: Both graphs return unambiguous identities; missing/duplicate identities fail closed, dates compute the correct interval and mismatched NCIt versions return release_mismatch.

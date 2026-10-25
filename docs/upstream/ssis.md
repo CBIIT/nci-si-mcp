@@ -80,13 +80,14 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 **Impact.** Cross-domain provenance is dated but registry reproducibility and automated alignment are weaker than a shared version contract.
 
-**Workaround.** Preserve each graph's identity, parse only supported date forms, compare NCIt version at the tool boundary and never manufacture a registry identifier.
+**Workaround.** Preserve each graph's identity, parse only supported date forms, compare NCIt version at the tool boundary and never manufacture a registry identifier. The [dependency register](ssis-dependencies.md) records every current query and its weekly structural check.
 
 **Acceptance criteria.** Both graphs return unambiguous identities; missing/duplicate identities fail closed, dates compute the correct interval and mismatched NCIt versions return release_mismatch.
 
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/ssis-sparql/graph-identities.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `1766c631d26999e22a5062f00c9fd4c83ddb3ec8150cc02128af1986bb4b84c6`.
+- [docs/upstream/ssis-queries.yaml](../../docs/upstream/ssis-queries.yaml) — document; SHA-256 `a2ff65d80dbd481ff6f488a79ee7788ef2ecae6730c695514813ea8b49d88769`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
