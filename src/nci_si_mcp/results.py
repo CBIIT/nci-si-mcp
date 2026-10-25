@@ -325,13 +325,22 @@ class ConceptBatch(TypedDict):
     provenance: NotRequired[Provenance]
 
 
+class GraphElementIdentity(TypedDict):
+    publicId: str
+    longName: str
+
+
+class GraphValueIdentity(TypedDict):
+    publicId: str
+
+
 class DataElementUse(TypedDict):
-    dataElement: RegistryItemIdentity
+    dataElement: GraphElementIdentity
     provenance: Provenance
 
 
 class ValueUse(TypedDict):
-    dataElement: CodeMapIdentity
+    dataElement: GraphValueIdentity
     value: str
     conceptCode: str
     conceptTerminology: Literal["ncit"]

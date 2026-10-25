@@ -111,6 +111,11 @@ scenarios:
   upstream/masked-error: >-
     Every request to the Shared SI façade and to the caDSR API is answered with HTTP 200 and an
     apiResponse of type E, the failure each sends inside a success
+  ssis/distinct-cap: >-
+    Synthetic 1001 distinct public IDs exercise the sentinel independently of incomplete
+    historical Disease captures (981 exact and 998 descendant distinct IDs from 1001 rows).
+  ssis/merged-versions: >-
+    Crafted public-ID associations from a merged-version CDE node; no version assignment.
   ssis/query-rejected: >-
     Every SPARQL query is refused by the Shared SI Service's inspection layer: HTTP 403 with an
     HTML body
@@ -1283,4 +1288,4 @@ record:
 # The fixtures craft.py makes are built in memory when the set loads; this is the digest
 # of what it makes now. `pdm run acceptance-craft` writes it, `--out DIR` writes the
 # fixtures to read (fixtures/README.md).
-crafted: sha256:efc8916d8617c736b76018786fc9fbc52c23239a003b6b0be464b0d22b98ef8f
+crafted: sha256:db3f450bf4539d43abaa805428cad90e7e8dce7caf005c69e1059e675cb94924

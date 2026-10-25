@@ -80,3 +80,4 @@ None.
 | [Make façade caps, discovery and failures explicit](ssis.md#ssis-facade) | Shared SI | S-5; OP-S02; X-15 |
 | [Publish query-inspection rules and protocol errors](ssis.md#ssis-inspection) | Shared SI | S-5; X-15 |
 | [Publish typed graph dates and a registry version](ssis.md#ssis-identities) | Shared SI | S-5; C-1 |
+| [Clarify merged CDE versions and value concept roles](ssis.md#ssis-public-id-associations) | Shared SI | S-3; S-5 |

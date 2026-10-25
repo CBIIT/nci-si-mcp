@@ -718,9 +718,12 @@ data_element_use:
     expandDescendants, of a descendant. The surface its provenance names answered it; the
     surfaces answer from their own content (the Shared SI graph is an export, the caDSR API is
     live), so their answers differ, and neither says by which route the concept is used.
+    Shared SI merges all versions of a CDE into one node: graph-derived data_element_use
+    and value_use records have public-ID scope, with no version or value-to-version claim.
+    Records from the caDSR API and CRDC crosswalk retain their versioned identities.
   fields:
     dataElement:
-      content: "{ publicId, version, longName } of the data element"
+      content: "{ publicId, longName } of the data element"
       of: A1.2
     provenance:
       content: >-
@@ -736,7 +739,7 @@ value_use:
     element and its value.
   fields:
     dataElement:
-      content: "{ publicId, version } of the data element whose value domain holds it"
+      content: "{ publicId } of the data element associated with the value"
       of: A1.2
     value:
       content: The value, as the platform gives it

@@ -45,6 +45,19 @@ def _ground(tools, pinned, **arguments):
 
 
 @pytest.mark.tool(GROUND)
+@pytest.mark.requirement("ground_value-2")
+@pytest.mark.scenario("ssis/merged-versions")
+def test_grounding_merged_graph_versions_makes_only_public_id_associations(tools, pinned):
+    content = _ok(_ground(tools, pinned))
+    assert content["concept"]["code"] == EWING
+    assert [use["dataElement"] for use in content["dataElements"]] == [
+        {"publicId": "2008092", "longName": "Merged CDE"}
+    ]
+    assert [use["dataElement"] for use in content["permissibleValues"]] == [{"publicId": "2008092"}]
+    assert value_ids(content["permissibleValues"]) == {("2008092", "Tis", EWING)}
+
+
+@pytest.mark.tool(GROUND)
 @pytest.mark.requirement("ground_value-1")
 def test_one_envelope_names_the_release_asked_for_and_the_registry_unpinned(tools, pinned):
     content = _ok(_ground(tools, pinned))
@@ -86,10 +99,10 @@ def test_exact_grounding_accepts_graph_lag_or_absent_version(tools, pinned, reco
         f"/ncit_{pinned['release']}/{EWING}"
     )
     assert element_ids(content["dataElements"]) == {
-        (row["id"], row["version"]) for row in _rows(recorded, "data-elements-c4817")
+        row["id"] for row in _rows(recorded, "data-elements-c4817")
     }
     assert value_ids(content["permissibleValues"]) == {
-        (row["id"], row["version"], row["value"], bare_code(row["concept"]))
+        (row["id"], row["value"], bare_code(row["concept"]))
         for row in _rows(recorded, "values-c4817")
     }
     filename = (
@@ -105,9 +118,9 @@ def test_exact_grounding_accepts_graph_lag_or_absent_version(tools, pinned, reco
 @pytest.mark.tool(GROUND)
 @pytest.mark.requirement("ground_value-2")
 def test_each_hop_is_what_its_surface_answers_for_the_concept(tools, pinned, recorded):
-    elements = {(row["id"], row["version"]) for row in _rows(recorded, "data-elements-c4817")}
+    elements = {row["id"] for row in _rows(recorded, "data-elements-c4817")}
     values = {
-        (row["id"], row["version"], row["value"], bare_code(row["concept"]))
+        (row["id"], row["value"], bare_code(row["concept"]))
         for row in _rows(recorded, "values-c4817")
     }
     # The concept has both, or the hops would show nothing.
@@ -158,10 +171,14 @@ def test_a_text_resolves_to_the_first_result_search_concepts_gives_it(tools, pin
 
 @pytest.mark.tool(GROUND)
 @pytest.mark.requirement("ground_value-4")
+@pytest.mark.scenario("ssis/distinct-cap")
 def test_a_hop_that_reaches_its_bound_leaves_the_others_complete(tools, pinned, recorded):
-    elements = {(row["id"], row["version"]) for row in _rows(recorded, "data-elements-c2991")}
+    elements = {
+        row["id"]
+        for row in sparql_rows(recorded("scenarios/ssis/distinct-cap/data-elements-c2991.json"))
+    }
     values = {
-        (row["id"], row["version"], row["value"], bare_code(row["concept"]))
+        (row["id"], row["value"], bare_code(row["concept"]))
         for row in _rows(recorded, "values-c2991")
     }
     # The data element hop exceeds the maximum and the value hop does not.

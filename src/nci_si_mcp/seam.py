@@ -7,7 +7,6 @@ import json
 import re
 from collections.abc import Iterator
 from datetime import date, datetime
-from decimal import Decimal
 from typing import Annotated, Any, NoReturn
 
 from . import cadsr_content, content
@@ -68,11 +67,6 @@ def _identifier(value: Any, pattern: str, field: str, surface: str = "ssis") -> 
     if re.fullmatch(pattern, value) is None:
         _malformed(field, surface)
     return value
-
-
-def _version(value: Any) -> Decimal:
-    value = _identifier(value, ITEM_VERSION_FORM, "data-element version")
-    return Decimal(value)
 
 
 def _date(value: Any, surface: str) -> str:
@@ -136,8 +130,7 @@ def _mixed_cache() -> None:
 
 def _identity(row: dict[str, str]) -> dict[str, str]:
     identifier = _identifier(row.get("id"), REGISTRY_ID_FORM, "data-element id")
-    _version(row.get("version"))
-    return {"publicId": identifier, "version": row["version"]}
+    return {"publicId": identifier}
 
 
 def _concept_code(uri: str) -> str:
@@ -275,6 +268,9 @@ def find_data_elements_for_concept(
     that stand for it.
 
     includePermissibleValues is the reverse lookup (OP-S04).
+
+    Shared SI merges CDE versions: graph associations identify a public ID only, never
+    a version or a value-to-version assignment. caDSR API records keep their item versions.
 
     Returns dataElements and, when asked, permissibleValues (on every page, possibly empty),
     with truncation and nextCursor. One page limit and one 1000-result cap cover data-element

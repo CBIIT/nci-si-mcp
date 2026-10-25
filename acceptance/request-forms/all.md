@@ -51,7 +51,11 @@ reads them (A3.7.1). For the SPARQL endpoint the suite prescribes the query text
 below is matched with runs of whitespace collapsed, sent as a form-encoded POST (a direct POST
 of the query is refused) asking for `application/sparql-results+json`. Bounded identities ask for
 three rows; content asks for at most the shared remaining maximum + 1, to detect a cut. The
-bounded variants reuse recorded answers as explicitly crafted fixtures. Teams may propose changes
+bounded variants reuse recorded answers as explicitly crafted fixtures. Public-ID projections
+are crafted in memory: element queries group publicId and value queries select distinct
+publicId/value/concept before LIMIT. Historical bounded captures are not complete current
+distinct answers; cap scenarios use 1001 synthetic distinct IDs. Original queries stay below
+as recorded evidence. Teams may propose changes
 to any form. The façade answers HTML unless `Accept: application/json` is sent, and a
 missing argument with HTTP 200 (X-15).
 
@@ -826,6 +830,14 @@ A data element asked for with Accept: application/json is answered with the HTML
 ### `upstream/masked-error`
 
 Every request to the Shared SI façade and to the caDSR API is answered with HTTP 200 and an apiResponse of type E, the failure each sends inside a success. Crafted, 2 fixtures, for X-15: an error envelope in an HTTP 200 is an upstream error.
+
+### `ssis/distinct-cap`
+
+Synthetic 1001 distinct public IDs exercise the sentinel independently of incomplete historical Disease captures (981 exact and 998 descendant distinct IDs from 1001 rows).. Crafted, 2 fixtures, for find_data_elements_for_concept-5 and ground_value-4: synthetic distinct-key sentinel.
+
+### `ssis/merged-versions`
+
+Crafted public-ID associations from a merged-version CDE node; no version assignment.. Crafted, 4 fixtures, for find_data_elements_for_concept-1 and ground_value-2: synthetic merged-version association.
 
 ### `ssis/query-rejected`
 

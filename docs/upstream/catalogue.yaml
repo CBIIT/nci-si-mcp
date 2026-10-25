@@ -289,3 +289,25 @@ entries:
     impact: Cross-domain provenance is dated but registry reproducibility and automated alignment are weaker than a shared version contract.
     workaround: Preserve each graph's identity, parse only supported date forms, compare NCIt version for descendant expansion and never manufacture a registry identifier. PV lookup reads caDSR API primary flags and pinned EVS content, with caDSR and EVS provenance and no Shared SI dependency.
     acceptance: Both graphs return unambiguous identities; missing/duplicate identities fail closed and dates compute the correct interval. Expansion refuses a mismatched NCIt version with release_mismatch or an absent version with release_not_available; exact find and grounding preserve the actual metadata without comparing or backfilling versions.
+
+  - id: ssis-public-id-associations
+    team: ssis
+    title: Clarify merged CDE versions and value concept roles
+    platform: S-3; S-5
+    requirements: [find_data_elements_for_concept-1, find_data_elements_for_concept-2, find_data_elements_for_concept-5, ground_value-2]
+    tests: ["tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too", "tests/test_workflow.py::test_each_hop_is_what_its_surface_answers_for_the_concept"]
+    evidence: [acceptance/fixtures/recorded/ssis-sparql/data-elements-c2991.json, acceptance/fixtures/recorded/ssis-sparql/data-elements-c2991-descendants.json, acceptance/fixtures/recorded/ssis-sparql/values-of-2200604.json, acceptance/fixtures/recorded/ssis-sparql/graph-identities.json]
+    source: https://github.com/CBIIT/nci-si-mcp/issues/367
+    observation: >-
+      Reported live on 25 October 2026 in issue 367, not retained as a new recording:
+      cadsr:DE2008092 merges CDE versions, associating Tis, TX and T0 with version 1 although
+      only version 2 lists them. Value-node main/minor roles can invert the API's primary
+      concept; display_order is a string with a leading space. The retained bounded Disease
+      captures contain 1001 rows but only 981 exact-code or 998 descendant public IDs, not
+      complete distinct answers. The recorded graph dates differ by 89 days, not evidence
+      of current lag.
+    reproduction: Inspect all version assertions and permissible values on DE2008092 against the API's individual versions; compare value meaning primaryIndicator with main/minor and the raw display_order datatype. Inspect the retained queries and both graph metadata rows separately.
+    expected: Confirm the merge model and whether per-version publication is planned; explain the value main/minor inversion, refresh cadence and graph lag, and string display_order semantics or publish numeric order.
+    impact: A merged graph cannot establish a CDE version or assign a value to one; version duplicates consume a row cap before distinct public-ID associations are counted.
+    workaround: Find and grounding use public-ID associations, grouping elements by publicId and distinct values by publicId/value/concept before the sentinel limit. API records keep versions and primary flags; no display_order consumer exists, so no ordering parser is introduced.
+    acceptance: Graph associations make no version claim; distinct keys precede maximum-plus-one LIMIT and omissions remain lower bounds. Original recordings and requests remain unchanged; new derived projections and synthetic cap cases are explicitly crafted.

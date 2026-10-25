@@ -94,7 +94,11 @@ reads them (A3.7.1). For the SPARQL endpoint the suite prescribes the query text
 below is matched with runs of whitespace collapsed, sent as a form-encoded POST (a direct POST
 of the query is refused) asking for `application/sparql-results+json`. Bounded identities ask for
 three rows; content asks for at most the shared remaining maximum + 1, to detect a cut. The
-bounded variants reuse recorded answers as explicitly crafted fixtures. Teams may propose changes
+bounded variants reuse recorded answers as explicitly crafted fixtures. Public-ID projections
+are crafted in memory: element queries group publicId and value queries select distinct
+publicId/value/concept before LIMIT. Historical bounded captures are not complete current
+distinct answers; cap scenarios use 1001 synthetic distinct IDs. Original queries stay below
+as recorded evidence. Teams may propose changes
 to any form. The façade answers HTML unless `Accept: application/json` is sent, and a
 missing argument with HTTP 200 (X-15).
 """

@@ -126,7 +126,7 @@ class SeamTest(unittest.TestCase):
         result = self.call(conceptCode="C1", release="26.06e")
         self.assertEqual(
             result["dataElements"][0]["dataElement"],
-            {"publicId": "123", "version": "1", "longName": "Element 123"},
+            {"publicId": "123", "longName": "Element 123"},
         )
         provenance = result["dataElements"][0]["provenance"]
         self.assertEqual(provenance["registry"], {"registry": "cadsr"})
@@ -147,7 +147,7 @@ class SeamTest(unittest.TestCase):
         self.assertEqual(result["truncation"], {"occurred": False})
 
     def test_malformed_joined_identities_and_iris_are_errors_not_invented_content(self):
-        for key, value in (("id", "0"), ("id", None), ("version", "new"), ("name", "")):
+        for key, value in (("id", "0"), ("id", None), ("name", "")):
             with self.subTest(key=key):
                 self.ssis.elements = [element(123) | {key: value}]
                 result = self.call(conceptCode="C1")

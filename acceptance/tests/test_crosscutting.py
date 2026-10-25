@@ -515,7 +515,16 @@ def _whole(value):
 
 
 @pytest.mark.requirement("X-10")
-@pytest.mark.parametrize("name", _per_tool(TRUNCATING))
+@pytest.mark.parametrize(
+    "name",
+    [
+        case
+        for name in TRUNCATING
+        for case in _per_tool(
+            [name], "ssis/distinct-cap" if name == "find_data_elements_for_concept" else None
+        )
+    ],
+)
 def test_a_bound_reached_is_reported_with_how_much_was_left_out(tools, pinned, name):
     truncating = CALLS[name]["truncating"]
     result = _call(tools, pinned, name, CALLS[name]["arguments"] | truncating["arguments"])
