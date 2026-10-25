@@ -202,8 +202,7 @@ def release_mismatch(recorded: Recorded) -> Documents:
 def release_one_surface_behind(recorded: Recorded) -> Documents:
     """Another release on one surface only, as release/mismatch has it: the Shared SI
     Service's graph identities (release/graph-behind), or EVS's C4817 (release/concept-behind).
-    A tool that rests on both checks each, which only one surface behind at a time shows
-    (ground_value-1)."""
+    Exact grounding accepts graph lag but still checks EVS content (ground_value-1)."""
 
     behind = release_mismatch(recorded)
     sides = {
@@ -216,6 +215,31 @@ def release_one_surface_behind(recorded: Recorded) -> Documents:
         for name, document in behind.items()
         if chosen(name)
     }
+
+
+def release_graph_version_missing(recorded: Recorded) -> Documents:
+    """Omit only the optional NCIt version in both graph-identity request forms."""
+    documents = {}
+    for file in (
+        "recorded/ssis-sparql/graph-identities.json",
+        "crafted/ssis-sparql/graph-identities-bounded.json",
+    ):
+        source = recorded(file)
+        body = source["response"]["body"]
+        rows = body["results"]["bindings"]
+        bindings = [
+            {key: value for key, value in row.items() if key != "version"}
+            if row["graph"]["value"].endswith("Thesaurus.rdf")
+            else row
+            for row in rows
+        ]
+        documents[f"scenarios/release/graph-version-missing/{Path(file).name}"] = crafted(
+            "find_data_elements_for_concept-4: only expansion requires the NCIt graph version",
+            source["request"],
+            response=source["response"]
+            | {"body": body | {"results": body["results"] | {"bindings": bindings}}},
+        )
+    return documents
 
 
 def search_first_not_named(recorded: Recorded) -> Documents:
@@ -1070,6 +1094,90 @@ def cadsr_over_cap(_: Recorded) -> Documents:
     }
 
 
+def cadsr_numeric_versions(recorded: Recorded) -> Documents:
+    """Exact version queries reuse recorded bodies, with their original version spelling."""
+    documents = {}
+    for name, source, version in (
+        ("element-4.0", "data-element-2200604", "4.0"),
+        ("form-1", "form-5406471", "1"),
+        ("form-1.0", "form-5406471", "1.0"),
+    ):
+        origin = f"recorded/cadsr/{source}.json"
+        document = recorded(origin)
+        request = document["request"] | {"params": {"version": [version]}}
+        documents[f"crafted/cadsr/numeric-version-{name}.json"] = crafted(
+            "get_data_element-1, get_form-1: exact numeric item-version identity",
+            request,
+            response=document["response"],
+        ) | {"derived_from": origin}
+    return documents
+
+
+def cadsr_primary_inversion(recorded: Recorded) -> Documents:
+    """Crafted from #367's 2178439 observation; metadata and EVS names are synthetic."""
+    scenario = "cadsr/primary-inversion"
+    requirement = (
+        "get_concept_for_permissible_value-1: #367 observed API primary C25332, graph main C49508"
+    )
+    raw = {
+        "publicId": "2178439",
+        "version": "2",
+        "longName": "Crafted inversion fixture",
+        "workflowStatus": "Crafted",
+        "registrationStatus": "Crafted",
+        "ValueDomain": {
+            "PermissibleValues": [
+                {
+                    "publicId": "99000001",
+                    "value": "To a large extent",
+                    "ValueMeaning": {
+                        "publicId": "99000002",
+                        "version": "1",
+                        "longName": "Crafted meaning",
+                        "Concepts": [
+                            {"conceptCode": "C49508", "primaryIndicator": "No", "displayOrder": 1},
+                            {"conceptCode": "C25332", "primaryIndicator": "Yes", "displayOrder": 0},
+                            {"conceptCode": "C65107", "primaryIndicator": "No", "displayOrder": 2},
+                        ],
+                    },
+                }
+            ]
+        },
+    }
+    request = {
+        "surface": "cadsr",
+        "method": "GET",
+        "path": "/NCIAPI/1.0/api/DataElement/2178439",
+        "headers": {"Accept": "application/json"},
+    }
+    documents = {
+        f"scenarios/{scenario}/element.json": crafted(
+            requirement, request, response={"status": 200, "body": {"DataElement": raw}}
+        )
+    }
+    for code in ("C25332", "C49508"):
+        documents |= recording(scenario, requirement, concept(code, f"Crafted {code}"))
+    graph = recorded("crafted/ssis-sparql/values-of-2200604-optional.json")
+    graph_request = graph["request"] | {
+        "form": {"query": graph["request"]["form"]["query"].replace("2200604", "2178439")}
+    }
+    row = {
+        key: {"type": "literal", "value": value}
+        for key, value in {
+            "version": "2",
+            "value": "To a large extent",
+            "concept": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C49508",
+            "role": "http://cbiit.nci.nih.gov/caDSR#main_concept",
+        }.items()
+    }
+    documents[f"scenarios/{scenario}/graph.json"] = crafted(
+        requirement,
+        graph_request,
+        response={"status": 200, "body": {"results": {"bindings": [row]}}},
+    )
+    return documents
+
+
 def content_injection(recorded: Recorded) -> Documents:
     """Hostile source text in four independently projected content fields, and HTTP failures."""
 
@@ -1169,11 +1277,14 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     license_restricted,
     license_attributed,
     release_one_surface_behind,
+    release_graph_version_missing,
     search_first_not_named,
     cadsr_with_registry_release,
     cadsr_credentialed,
     cadsr_match_timeout,
     cadsr_over_cap,
+    cadsr_numeric_versions,
+    cadsr_primary_inversion,
     cadsr_html_for_json,
     cadsr_match_without_a_concept,
     upstream_masked_error,

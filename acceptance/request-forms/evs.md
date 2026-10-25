@@ -83,6 +83,10 @@ ones while a test selects it. A recorded fixture is what the service answers tod
 stands in for a case the service does not produce on demand, under the requirement it names, and
 answers the ordinary forms above.
 
+### `cadsr/primary-inversion`
+
+Crafted from issue #367's live observation of CDE 2178439: To a large extent has API primary C25332 while the graph calls qualifier C49508 main. Other metadata and EVS names are synthetic; this is not a recording.. Crafted, 4 fixtures, for get_concept_for_permissible_value-1: #367 observed API primary C25332, graph main C49508.
+
 ### `injection/evs`
 
 Hostile C4817 definition remains decoded source text. Crafted, 1 fixture, for X-29: source instructions remain data, never server-authored instructions.

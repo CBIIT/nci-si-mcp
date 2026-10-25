@@ -58,14 +58,3 @@ queries:
     limit: 1001
     consumers: [find_data_elements_for_concept]
     requirements: [find_data_elements_for_concept-2]
-  - id: values-by-public-id
-    operation: get_permissible_values
-    args: ['2200604']
-    kwargs: {maximum: 1000}
-    evidence: crafted/ssis-sparql/values-of-2200604-optional.json
-    selected: [version, value, concept, role]
-    required: [version]
-    optional_groups: [[], [value], [value, concept, role]]
-    limit: 1001
-    consumers: [get_concept_for_permissible_value]
-    requirements: [get_concept_for_permissible_value-1]

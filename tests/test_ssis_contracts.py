@@ -24,7 +24,6 @@ EVIDENCE = (
     "recorded/ssis-sparql/data-elements-c17357-descendants.json",
     "recorded/ssis-sparql/values-c20197.json",
     "recorded/ssis-sparql/values-c17357-descendants.json",
-    "crafted/ssis-sparql/values-of-2200604-optional.json",
 )
 IDS = (
     "graph-identities",
@@ -32,7 +31,6 @@ IDS = (
     "elements-descendants",
     "values-exact",
     "values-descendants",
-    "values-by-public-id",
 )
 REQUIRED = (
     ("graph", "date"),
@@ -40,7 +38,6 @@ REQUIRED = (
     ("id", "version", "name"),
     ("id", "version", "value", "concept"),
     ("id", "version", "value", "concept"),
-    ("version",),
 )
 
 
@@ -73,7 +70,7 @@ class SSISContractCommandTest(ServerTestCase):
         return result, server
 
     def test_bad_success_body_reports_all_families_without_upstream_prose(self):
-        # Given a bad first HTTP 200 and five valid responses, when the real CLI runs,
+        # Given a bad first HTTP 200 and four valid responses, when the real CLI runs,
         # then it reports the failure safely and still checks every remaining family.
         for bad in (
             b"<html>private-upstream-prose</html>",
@@ -92,7 +89,7 @@ class SSISContractCommandTest(ServerTestCase):
                 }
                 self.assertEqual(result.stdout, json.dumps(expected, indent=2) + "\n")
                 self.assertEqual(result.returncode, 1)
-                self.assertEqual(len(server.bodies), 6)
+                self.assertEqual(len(server.bodies), 5)
                 self.assertEqual(result.stderr, "")
 
     def test_graph_dates_reject_invalid_values_and_accept_runtime_date_forms(self):
@@ -118,9 +115,9 @@ class SSISContractCommandTest(ServerTestCase):
                     }
                 self.assertEqual(json.loads(result.stdout), expected)
                 self.assertEqual(result.returncode, int(not valid), result.stderr)
-                self.assertEqual(len(server.bodies), 6)
+                self.assertEqual(len(server.bodies), 5)
 
-    def test_missing_head_variable_fails_exact_family_and_still_reports_all_six(self):
+    def test_missing_head_variable_fails_exact_family_and_still_reports_all_five(self):
         # Given recorded rows intact but SELECT metadata missing name, when the weekly
         # command runs, then it fails that family and still attempts the later families.
         payloads = bodies()
@@ -134,11 +131,11 @@ class SSISContractCommandTest(ServerTestCase):
         }
         self.assertEqual(result.stdout, json.dumps(expected, indent=2) + "\n")
         self.assertEqual(result.returncode, 1, result.stderr)
-        self.assertEqual(len(server.bodies), 6)
+        self.assertEqual(len(server.bodies), 5)
 
-    def test_blank_element_names_fail_both_families_and_still_report_all_six(self):
+    def test_blank_element_names_fail_both_families_and_still_report_all_five(self):
         # Given blank names in both element families, when the real CLI runs,
-        # then each reports name drift and all six queries finish with a nonzero exit.
+        # then each reports name drift and all five queries finish with a nonzero exit.
         for name in ("", " \t\n"):
             with self.subTest(name=name):
                 payloads = bodies()
@@ -153,7 +150,7 @@ class SSISContractCommandTest(ServerTestCase):
                 result, server = self.command(payloads)
                 self.assertEqual(json.loads(result.stdout), expected)
                 self.assertEqual(result.returncode, 1, result.stderr)
-                self.assertEqual(len(server.bodies), 6)
+                self.assertEqual(len(server.bodies), 5)
 
     def test_nonblank_names_and_empty_permissible_value_text_pass(self):
         # Given nonblank names with surrounding whitespace and empty permissible
@@ -166,9 +163,9 @@ class SSISContractCommandTest(ServerTestCase):
         result, server = self.command(payloads)
         self.assertEqual(json.loads(result.stdout), passed())
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(len(server.bodies), 6)
+        self.assertEqual(len(server.bodies), 5)
 
-    def test_recorded_and_approved_optional_contracts_pass(self):
+    def test_recorded_and_bounded_identity_contracts_pass(self):
         # Given valid responses, when the CLI checks every family, then the wire
         # path and Accept match the real SSIS client's planned request for each.
         result, server = self.command(bodies())
@@ -202,7 +199,7 @@ class SSISContractCommandTest(ServerTestCase):
                     }
                 self.assertEqual(json.loads(result.stdout), expected)
                 self.assertEqual(result.returncode, int(missing), result.stderr)
-                self.assertEqual(len(server.bodies), 6)
+                self.assertEqual(len(server.bodies), 5)
 
     def test_invalid_binding_and_third_graph_fail_the_exact_family(self):
         # Given one malformed row, when the CLI runs, then that family's exact
@@ -236,7 +233,7 @@ class SSISContractCommandTest(ServerTestCase):
                 expected[index] = {"id": IDS[index], "status": "fail", "error": error}
                 self.assertEqual(json.loads(result.stdout), expected)
                 self.assertEqual(result.returncode, 1, result.stderr)
-                self.assertEqual(len(server.bodies), 6)
+                self.assertEqual(len(server.bodies), 5)
 
     def test_empty_and_changed_content_counts_and_releases_pass(self):
         payloads = bodies()
@@ -244,13 +241,6 @@ class SSISContractCommandTest(ServerTestCase):
         payloads[1]["results"]["bindings"] = []
         payloads[2]["results"]["bindings"] = payloads[2]["results"]["bindings"][:1]
         payloads[2]["results"]["bindings"][0]["name"]["value"] = "Changed upstream label"
-        payloads[5]["results"]["bindings"] = [{"version": {"type": "literal", "value": "9"}}]
-        payloads[5]["results"]["bindings"].append(
-            {
-                "version": {"type": "literal", "value": "10"},
-                "value": {"type": "literal", "value": "unmapped"},
-            }
-        )
         result, _ = self.command(payloads)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout), passed())
@@ -265,7 +255,7 @@ class SSISContractCommandTest(ServerTestCase):
                     row[key] = copy.deepcopy(bad_term)
                 result, _ = self.command(payloads)
                 self.assertEqual(result.returncode, 1, result.stderr)
-                self.assertEqual([row["status"] for row in json.loads(result.stdout)], ["fail"] * 6)
+                self.assertEqual([row["status"] for row in json.loads(result.stdout)], ["fail"] * 5)
 
     def test_http_failure_is_reported_and_does_not_stop_later_queries(self):
         server = self.serve(Reply(403), *[Reply(body=json.dumps(b).encode()) for b in bodies()[1:]])
@@ -280,12 +270,11 @@ class SSISContractCommandTest(ServerTestCase):
         expected[0] = {"id": "graph-identities", "status": "fail", "error": "UpstreamRejectedError"}
         self.assertEqual(json.loads(result.stdout), expected)
         self.assertEqual(result.returncode, 1)
-        self.assertEqual(len(server.bodies), 6)
+        self.assertEqual(len(server.bodies), 5)
 
 
 def normalized(query):
     query = re.sub(r"ncit:C[1-9][0-9]*", "ncit:CODE", query)
-    query = re.sub(r'cadsr:publicId "[1-9][0-9]*"', 'cadsr:publicId "ID"', query)
     return re.sub(r"LIMIT [0-9]+", "LIMIT BOUND", " ".join(query.split()))
 
 
@@ -378,7 +367,6 @@ class SSISRegisterTest(unittest.TestCase):
             ["find_data_elements_for_concept-1"],
             ["find_data_elements_for_concept-2", "ground_value-2"],
             ["find_data_elements_for_concept-2"],
-            ["get_concept_for_permissible_value-1"],
         )
         self.assertEqual([entry["requirements"] for entry in entries], list(expected))
 
@@ -435,7 +423,7 @@ class SSISRegisterTest(unittest.TestCase):
                 )
                 if entry["args"]:
                     varied = copy.deepcopy(entry)
-                    varied["args"] = ["123" if entry["id"] == "values-by-public-id" else "C4817"]
+                    varied["args"] = ["C4817"]
                     varied["kwargs"]["maximum"] = 2
                     changed = request(varied).fields["query"]
                     self.assertEqual(normalized(changed), normalized(expected["form"]["query"]))
@@ -461,59 +449,17 @@ class SSISRegisterTest(unittest.TestCase):
                 validate(payload, entry)
             self.assertEqual(str(raised.exception), error)
 
-    def test_optional_combinations_and_query_limit_are_not_silently_accepted(self):
-        entry = yaml.safe_load(REGISTER.read_text())["queries"][5]
-        original = bodies()[5]
-        row = original["results"]["bindings"][0]
-        for selected in (
-            (),
-            ("value",),
-            ("concept",),
-            ("role",),
-            ("value", "concept"),
-            ("value", "role"),
-            ("concept", "role"),
-            ("value", "concept", "role"),
-        ):
-            with self.subTest(selected=selected):
-                candidate = copy.deepcopy(original)
-                candidate["results"]["bindings"] = [
-                    {
-                        key: value
-                        for key, value in row.items()
-                        if key == "version" or key in selected
-                    }
-                ]
-                if selected in ((), ("value",), ("value", "concept", "role")):
-                    validate(candidate, entry)
-                    self.assertEqual(
-                        set(candidate["results"]["bindings"][0]), {"version", *selected}
-                    )
-                else:
-                    with self.assertRaises(ValueError) as raised:
-                        validate(candidate, entry)
-                    self.assertEqual(
-                        str(raised.exception), "binding has inconsistent OPTIONAL variables"
-                    )
+    def test_query_limit_is_not_silently_accepted(self):
+        entry = yaml.safe_load(REGISTER.read_text())["queries"][3]
+        original = bodies()[3]
         payload = copy.deepcopy(original)
-        payload["results"]["bindings"] = [
-            {
-                "version": {"type": "literal", "value": "1"},
-                "concept": {
-                    "type": "uri",
-                    "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C1",
-                },
-            }
-        ]
-        with self.assertRaisesRegex(ValueError, "inconsistent OPTIONAL"):
-            validate(payload, entry)
         payload["results"]["bindings"] = original["results"]["bindings"][:1] * 1002
         with self.assertRaisesRegex(ValueError, "exceed requested LIMIT"):
             validate(payload, entry)
 
-    def test_graph_concept_and_role_require_absolute_uris_and_role_must_be_main(self):
+    def test_graph_and_concept_require_absolute_uris(self):
         # Given the correct graph URI with a literal term type, when validated,
-        # then it fails the URI contract just like non-URI concept and role terms.
+        # then it fails the URI contract just like non-URI concept terms.
         entries = yaml.safe_load(REGISTER.read_text())["queries"]
         originals = bodies()
         cases = (
@@ -530,24 +476,11 @@ class SSISRegisterTest(unittest.TestCase):
                 "graph: expected absolute URI",
             ),
             ("concept", "literal", "http://example.test/C1", "concept: expected absolute URI"),
-            (
-                "role",
-                "literal",
-                "http://cbiit.nci.nih.gov/caDSR#main_concept",
-                "role: expected absolute URI",
-            ),
             ("concept", "uri", "relative/C1", "concept: expected absolute URI"),
-            ("role", "uri", "#main_concept", "role: expected absolute URI"),
-            (
-                "role",
-                "uri",
-                "http://cbiit.nci.nih.gov/caDSR#minor_concept",
-                "role: expected main concept",
-            ),
         )
         for key, kind, value, error in cases:
             with self.subTest(key=key, kind=kind, value=value):
-                index = 0 if key == "graph" else 5
+                index = 0 if key == "graph" else 3
                 payload = copy.deepcopy(originals[index])
                 payload["results"]["bindings"][0][key] = {"type": kind, "value": value}
                 with self.assertRaises(ValueError) as raised:

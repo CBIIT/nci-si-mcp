@@ -9,16 +9,44 @@ from jsonschema import Draft202012Validator
 from fakes import FakeSSIS
 from nci_si_mcp.cli import build_parser
 from nci_si_mcp.evs import EVSClient
-from test_seam import NCIT, element, gdc_map, value_row
+from test_primary_api import primary_element
+from test_seam import NCIT, element, gdc_map
 from test_server import ServerFixture
 
 
 @patch("nci_si_mcp.server.configure_logging")
 class SeamProtocolTest(ServerFixture):
+    def test_exact_find_preserves_graph_states_without_requiring_hierarchy_alignment(self, _):
+        self.context.ssis = FakeSSIS(self.settings)
+        self.context.ssis.elements = [element(123)]
+        for version in ("26.05d", None):
+            with self.subTest(version=version):
+                self.context.ssis.graphs[0].pop("version", None)
+                if version is not None:
+                    self.context.ssis.graphs[0]["version"] = version
+
+                async def call(client):
+                    return await client.call_tool(
+                        "find_data_elements_for_concept",
+                        {"conceptCode": "C3262", "release": "26.06e"},
+                    )
+
+                result = self.session(call)
+                self.assertFalse(result.is_error, result.content)
+                use = result.structured_content["dataElements"][0]
+                self.assertEqual(use["dataElement"]["publicId"], "123")
+                provenance = use["provenance"]
+                self.assertEqual(provenance["release"]["identifier"], "26.06e")
+                expected = [
+                    self.context.ssis.graphs[0] | {"date": "2026-06-29"},
+                    self.context.ssis.graphs[1],
+                ]
+                self.assertEqual(provenance["graphs"], expected)
+                self.assertEqual(provenance["upstream"]["graphs"], self.context.ssis.graphs)
+
     def test_all_four_tools_serialize_their_real_records_and_cache_policies(self, _):
         self.context.ssis = FakeSSIS(self.settings)
         self.context.ssis.elements = [element(123)]
-        self.context.ssis.element_values = [value_row(code="C3262")]
         listing = '<pre><a href="releasedCDEsXML-OD.zip">export</a> 2026-06-05 12:30\n</pre>'
 
         async def calls(client):
@@ -35,6 +63,15 @@ class SeamProtocolTest(ServerFixture):
             )
 
         with (
+            patch.object(
+                self.context.cadsr,
+                "get_data_element",
+                return_value=primary_element(
+                    value="Male",
+                    publicId="123",
+                    codes=[{"conceptCode": "C3262", "primaryIndicator": "Yes"}],
+                ),
+            ),
             patch.object(self.context.cadsr, "get_crdc_list", return_value=[]),
             patch.object(self.context.cadsr.export_http, "get_text", return_value=listing),
         ):
@@ -54,9 +91,18 @@ class SeamProtocolTest(ServerFixture):
     def test_cli_preserves_value_text_and_exposes_shared_paging_flags(self, _):
         parser = build_parser()
         value = parser.parse_args(
-            ["get-concept-for-permissible-value", "--data-element-id", "123", "--value", " Male "]
+            [
+                "get-concept-for-permissible-value",
+                "--data-element-id",
+                "123",
+                "--value",
+                " Male ",
+                "--version",
+                "4.0",
+            ]
         )
         self.assertEqual((value.dataElementId, value.value), ("123", " Male "))
+        self.assertEqual(value.version, "4.0")
         uses = parser.parse_args(
             [
                 "find-data-elements-for-concept",
@@ -131,10 +177,18 @@ class CrossDomainRecordSchemaTest(ServerFixture):
         )
 
     def test_permissible_value_identity_is_required_in_the_concept_output(self, _):
-        self.context.ssis.element_values = [value_row(code="C3262")]
-        validator, data = self.validated(
-            "get_concept_for_permissible_value", {"dataElementId": "123", "value": "Male"}
-        )
+        with patch.object(
+            self.context.cadsr,
+            "get_data_element",
+            return_value=primary_element(
+                value="Male",
+                publicId="123",
+                codes=[{"conceptCode": "C3262", "primaryIndicator": "Yes"}],
+            ),
+        ):
+            validator, data = self.validated(
+                "get_concept_for_permissible_value", {"dataElementId": "123", "value": "Male"}
+            )
         self.assertEqual(data["permissibleValue"]["value"], "Male")
         self.assertEqual(data["provenance"]["servedBy"], "live")
         self.assertEqual(

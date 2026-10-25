@@ -214,7 +214,8 @@ get_data_element:
     selects; without include, the record's own fields. questionText finds it by its preferred
     question text, an invalid request naming the candidates where several have it and not_found
     where none has; longName is capability_unavailable until the platform serves that lookup
-    (OP-C02).
+    (OP-C02). Item versions compare by exact numeric value (4 equals 4.0); request spelling
+    and the upstream version string in content and provenance are preserved.
 search_data_elements:
   title: Data element search
   group: cadsr
@@ -277,7 +278,8 @@ get_form:
     A form or case report form by public id, with its definition, type, dates, instructions and
     classification schemes as the platform gives them, and its modules and questions; a keyword
     is an invalid request saying the platform needs an identifier (Form/query takes a public or
-    protocol id only).
+    protocol id only). Item versions compare by exact numeric value (1 equals 1.0); request
+    spelling and the upstream version string in content and provenance are preserved.
 get_permissible_value:
   title: Permissible value details
   group: cadsr
@@ -335,21 +337,30 @@ find_data_elements_for_concept:
     The data elements that use a concept, as an object class, property or permissible value
     concept, optionally across its descendants; with includePermissibleValues, also the
     permissible values whose value meaning stands for it (the reverse lookup, OP-S04).
-    The effective release (X-22) is checked against the NCIt graph's: release_mismatch on a difference.
-    It is served from a surface that names the NCIt release it used: today the Shared SI
-    Service; caDSR REST, which cannot, answers release_not_available.
+    Only descendant expansion compares the effective release (X-22) with the Shared SI NCIt
+    graph's: release_mismatch on a difference, release_not_available for an absent version.
+    Exact-code queries preserve both actual graph identities and dates, including an optional
+    version only when supplied, without requiring hierarchy alignment.
 get_concept_for_permissible_value:
   title: Concept for a permissible value
   group: cross-domain
-  inputs: "(permissibleValueId | { dataElementId, value }, release?)"
-  patterns: {release: *release, dataElementId: *registry_id, permissibleValueId: *registry_id}
+  inputs: "(permissibleValueId | { dataElementId, value }, release?, version?)"
+  patterns: {release: *release, version: *registry_version, dataElementId: *registry_id, permissibleValueId: *registry_id}
   returns: "concept, with permissibleValue { dataElement { publicId, version }, value }"
   items: ["."]
   summary: >-
     The concept a permissible value stands for, named by its data element and value, as the
     concept record of the release pinned, its provenance naming both content states (release
     and registry); the caller may name a release or use implicit NCIt resolution (X-22). The
-    data element is asked for by its id, and the value is compared locally with its permissible
+    data element is read from the caDSR API at version, or the API's latest when omitted;
+    version uses the existing numeric item-version form and comparison, preserving upstream
+    spelling. Only primaryIndicator Yes identifies the value meaning's primary concept;
+    missing, invalid or conflicting evidence is upstream_unavailable, identical primary
+    assertions may collapse. Neither array order, display order nor graph main/minor decides.
+    Provenance includes the caDSR read under upstream.cadsr and the pinned EVS origin, with
+    registry state but no Shared SI graphs or graph reads. Secured callers need get_data_element
+    and get_concept child permissions before any reads; expiry after caDSR blocks EVS.
+    The value is compared locally with the API's permissible
     values by exact, case-sensitive equality (no trimming, no case-folding), never sent upstream
     (A7.7); a value it does not have is not_found. By permissibleValueId, capability_unavailable
     until the platform retrieves a value by it (OP-C10).
@@ -394,7 +405,10 @@ ground_value:
   summary: >-
     For a concept: the data elements that use it, the permissible values that stand for it,
     and, with commons, the stored values a commons uses for it, each asked by the concept, under
-    one provenance envelope naming both content states (release and registry). Without commons
+    one provenance envelope naming both content states (release and registry).
+    Its Shared SI hops are exact-code queries: graph hierarchy lag or an absent optional version
+    does not refuse them; both actual graph identities remain required. EVS content stays pinned.
+    Without commons
     there is no storedValues. A text is resolved as search_concepts resolves it with its
     defaults (lexical, limit 10), to its first result, the concept chosen named in the result. Without registryRelease the registry is unpinned, as for
     every caDSR tool (X-21). A hop holds at most find_data_elements_for_concept's maximum

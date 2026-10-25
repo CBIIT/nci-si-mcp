@@ -228,8 +228,8 @@ class PackageTests(unittest.TestCase):
             "Caller error fallback: `upstream_unavailable`.",
             "Run `pdm run python -m scripts.ssis_contracts` to attempt all registered families. "
             "Each is reported; any structural or transport failure exits nonzero. The checker "
-            "validates SELECT variables, bindings, term shapes, identifiers, row bounds and "
-            "nested OPTIONAL combinations. Valid empty content results and content/count/release "
+            "validates SELECT variables, bindings, term shapes, identifiers and row bounds. "
+            "Valid empty content results and content/count/release "
             "changes pass; graph identities require both known graphs. "
             "This is platform conformance, "
             "not a new MCP acceptance requirement.",
@@ -237,10 +237,10 @@ class PackageTests(unittest.TestCase):
             "|---|---|---|---|---|\n"
             "| `fixture-family` | `fixture_operation` | first_tool, second_tool | X-1, X-2 | "
             "[crafted/fixture.json](../../acceptance/fixtures/crafted/fixture.json) |",
-            "The bounded identity and nested OPTIONAL value requests are crafted from "
-            "recorded evidence, not new live recordings. Identifier and remaining-budget "
+            "The bounded identity request is crafted from "
+            "recorded evidence, not a new live recording. Identifier and remaining-budget "
             "LIMIT instances are parameters of these families. Historical REST façade, "
-            "unbounded identity and non-OPTIONAL value forms in the "
+            "unbounded identity and values-by-public-id forms in the "
             "[request history](../../acceptance/request-forms/ssis.md) are inactive. "
             "The checker calls only anonymous Shared SI; it does not join EVS or caDSR "
             "or substitute their results when Shared SI fails.",

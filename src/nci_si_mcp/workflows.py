@@ -80,7 +80,7 @@ def _ground_hops(
     context: Context, selected: ReleaseContext, code: str, commons: str | None
 ) -> dict[str, Any]:
     require("find_data_elements_for_concept")
-    graphs = seam._graphs(context, selected)
+    graphs = context.ssis.get_graph_identities()
     provenance = seam._provenance(context, selected, graphs)
     elements = context.ssis.find_data_elements(code, maximum=seam.MAX_RESULTS)
     values = context.ssis.find_permissible_values(code, maximum=seam.MAX_RESULTS)
