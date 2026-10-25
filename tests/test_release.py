@@ -127,8 +127,13 @@ class ResolveEvsReleaseTest(unittest.TestCase):
             if found:
                 details["found"] = found
             self.assertEqual(serialise(error)["error"]["details"], details)
-            self.assertIn(", ".join(found) or "none", error.message)
-            self.assertIn("NCI_SI_RELEASE_CHANNEL", error.message)
+            count = 2 if found else 0
+            self.assertEqual(
+                error.message,
+                f"EVS lists {count} ncit monthly releases as latest, not exactly one. "
+                "Retry later, or set NCI_SI_RELEASE_CHANNEL "
+                "to the other channel (monthly or weekly)",
+            )
 
     def test_a_row_without_a_version_is_not_a_release(self):
         absent = {key: value for key, value in MONTHLY.items() if key != "version"}

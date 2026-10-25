@@ -114,7 +114,7 @@ def verify_release(concepts: Iterable[dict[str, Any]], release_version: str) -> 
     if other:
         served = sorted(other)
         raise EVSReleaseMismatchError(
-            f"EVS served release {', '.join(served)} for a request pinned to {release_version}",
+            "EVS served content of another release than the one requested",
             requested=release_version,
             served=served,
             source="evs",

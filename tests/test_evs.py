@@ -20,14 +20,17 @@ class EVSTest(unittest.TestCase):
     def test_verify_release_accepts_only_the_requested_release(self):
         verify_release([], "26.06e")
         verify_release([{"version": "26.06e"}, {"version": "26.06e"}], "26.06e")
-        for concepts, named, served in (
-            ([{"version": "26.07a"}], "release 26.07a for", ["26.07a"]),
-            ([{"version": "26.06e"}, {}], "release unknown for", ["unknown"]),
-            ([{"version": "26.06e"}, {"version": "26.05d"}], "release 26.05d for", ["26.05d"]),
+        for concepts, served in (
+            ([{"version": "26.07a"}], ["26.07a"]),
+            ([{"version": "26.06e"}, {}], ["unknown"]),
+            ([{"version": "26.06e"}, {"version": "26.05d"}], ["26.05d"]),
         ):
             with self.subTest(concepts=concepts), self.assertRaises(EVSResponseError) as raised:
                 verify_release(concepts, "26.06e")
-            self.assertIn(named, str(raised.exception))
+            self.assertEqual(
+                str(raised.exception),
+                "EVS served content of another release than the one requested",
+            )
             self.assertEqual(
                 raised.exception.details,
                 {"requested": "26.06e", "served": served, "source": "evs"},
