@@ -77,6 +77,45 @@ Fixture-mode outcome of each tool, from the expected outcomes of the 966 tests o
 | caDSR tools | 10 | PASS: `resolve_registry_release`, `get_data_element`, `search_data_elements`, `match_data_elements`, `match_value_meanings`, `get_form`, `get_permissible_value`, `get_code_map`, `list_contexts`, `list_classification_schemes` |
 | Cross-domain tools | 4 | PASS: `find_data_elements_for_concept`, `get_concept_for_permissible_value`, `resolve_stored_value`, `get_release_alignment` |
 | Workflow tools | 3 | PASS: `ground_value`, `expand_cohort`, `harmonize_data_dictionary` |
+
+Latest stored scheduled main live run: [39214306172](https://github.com/CBIIT/nci-si-mcp/actions/runs/39214306172), 2026-10-19T07:10:38Z; commit [782747778543](https://github.com/CBIIT/nci-si-mcp/commit/782747778543b0fb78498d7a3bc7e718f319475e). **Complete**.
+Report SHA-256: `8a6ae3a9a2050838e9d1096f687e2cc1fe50fb4886be407e7628aadcb7254479`; artifact 12169206506.
+
+| Tool | Live passed / failed / skipped | Skip reason / context |
+|---|---|---|
+| `resolve_release` | 1 / 0 / 17 | 17 unrecorded |
+| `get_concept` | 6 / 0 / 41 | 41 unrecorded |
+| `get_concepts` | 0 / 0 / 38 | 38 unrecorded |
+| `search_concepts` | 0 / 0 / 79 | 79 unrecorded |
+| `get_concept_hierarchy` | 1 / 0 / 50 | 50 unrecorded |
+| `expand_value_set` | 0 / 0 / 47 | 47 unrecorded |
+| `get_concept_neighborhood` | 0 / 0 / 55 | 55 unrecorded |
+| `get_concept_subsets` | 0 / 0 / 32 | 32 unrecorded |
+| `get_concept_mappings` | 1 / 0 / 33 | 33 unrecorded |
+| `resolve_retired_code` | 0 / 0 / 34 | 34 unrecorded |
+| `list_relationships` | 1 / 0 / 27 | 27 unrecorded |
+| `list_terminologies` | 0 / 0 / 8 | 8 unrecorded |
+| `resolve_registry_release` | 0 / 0 / 2 | 2 unrecorded |
+| `get_data_element` | 8 / 0 / 35 | 35 unrecorded |
+| `search_data_elements` | 2 / 0 / 23 | 23 unrecorded |
+| `match_data_elements` | 3 / 0 / 21 | 21 unrecorded |
+| `match_value_meanings` | 1 / 0 / 15 | 15 unrecorded |
+| `get_form` | 1 / 0 / 27 | 27 unrecorded |
+| `get_permissible_value` | 1 / 0 / 6 | 6 unrecorded |
+| `get_code_map` | 1 / 0 / 33 | 33 unrecorded |
+| `list_contexts` | 0 / 0 / 17 | 17 unrecorded |
+| `list_classification_schemes` | 1 / 0 / 0 | — |
+| `find_data_elements_for_concept` | 2 / 0 / 44 | 44 unrecorded |
+| `get_concept_for_permissible_value` | 0 / 0 / 37 | 37 unrecorded |
+| `resolve_stored_value` | 0 / 0 / 35 | 35 unrecorded |
+| `get_release_alignment` | 0 / 0 / 10 | 10 unrecorded |
+| `ground_value` | 0 / 0 / 48 | 48 unrecorded |
+| `expand_cohort` | 0 / 0 / 46 | 46 unrecorded |
+| `harmonize_data_dictionary` | 0 / 0 / 15 | 15 unrecorded |
+| Unattributed gates | 16 / 0 / 45 | 45 unrecorded |
+| **Total** | **46 / 0 / 920** | |
+
+46 passed / 0 failed / 920 skipped. Skipped includes `not_live`, `not_implemented` and ordinary skips; only `not_live` has the reason contexts above. Passed validation/refusal tests do not establish live content retrieval. Unrecorded reasons are never inferred from current test markers.
 <!-- acceptance-status:end -->
 
 [Caller permissions](docs/caller-permissions.md) and the

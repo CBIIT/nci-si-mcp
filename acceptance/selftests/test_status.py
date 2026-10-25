@@ -4,6 +4,7 @@ import hashlib
 import json
 import subprocess
 import sys
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -291,3 +292,88 @@ def test_provenance_rejects_wrong_origin_or_hash(tmp_path, field, value):
     (tmp_path / "latest.yaml").write_text(yaml.safe_dump(provenance(raw) | {field: value}))
     with pytest.raises(ValueError, match="provenance"):
         status.load_live(tmp_path)
+
+
+@pytest.mark.parametrize("change", ["report", "provenance"])
+def test_each_stored_input_independently_makes_check_stale_without_writing(tmp_path, change):
+    report, metadata = status.load_live()
+    raw = json.dumps(report).encode()
+    metadata["sha256"] = hashlib.sha256(raw).hexdigest()
+    live = tmp_path / "live"
+    live.mkdir()
+    (live / "latest.json").write_bytes(raw)
+    (live / "latest.yaml").write_text(yaml.safe_dump(metadata))
+    readme = tmp_path / "README.md"
+    readme.write_text(f"{BEGIN}\n{END}\n")
+    options = ["--readme", str(readme), "--live-dir", str(live)]
+    assert run_status(*options).returncode == 0
+    before = readme.read_bytes()
+    if change == "report":
+        report["tests"][next(iter(report["tests"]))]["outcome"] = "failed"
+        raw = json.dumps(report).encode()
+        (live / "latest.json").write_bytes(raw)
+        metadata["sha256"] = hashlib.sha256(raw).hexdigest()
+    else:
+        metadata["run"] += 1
+    (live / "latest.yaml").write_text(yaml.safe_dump(metadata))
+    assert run_status("--check", *options).returncode == 1
+    assert readme.read_bytes() == before
+
+
+def test_real_command_renders_stored_evidence_with_network_denied(tmp_path):
+    readme = tmp_path / "README.md"
+    readme.write_text(f"{BEGIN}\n{END}\n")
+    script = (
+        "import sys, socket; from unittest.mock import patch; "
+        "from nci_si_acceptance.status import main; "
+        "patcher = patch.object(socket.socket, 'connect', "
+        "side_effect=AssertionError('network forbidden')); patcher.start(); "
+        "sys.exit(main(sys.argv[1:]))"
+    )
+    ran = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", script, "--readme", str(readme)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert (ran.returncode, ran.stderr) == (0, "")
+
+
+def test_historical_foreign_ids_do_not_acquire_current_reasons():
+    report = live_rows()
+    for row in report["tests"].values():
+        row.pop("not_live_reason", None)
+    text = status.render_live(report, provenance(b"old"), status.skip_contexts())
+    assert "| `match_data_elements` | 1 / 0 / 3 | 3 unrecorded |" in text
+    assert "credentials not issued" not in text
+    assert "upstream capability gap" not in text
+
+
+def test_catalogue_and_specification_changes_drive_context_instead_of_tool_lists(
+    tmp_path, monkeypatch
+):
+    catalogue = tmp_path / "catalogue.yaml"
+    catalogue.write_text(
+        yaml.safe_dump(
+            {
+                "entries": [
+                    {"id": "cadsr-access", "team": "cadsr", "requirements": ["resolve_release-1"]},
+                    {"id": "new-gap", "team": "evs", "requirements": ["X-1"]},
+                ]
+            }
+        )
+    )
+    monkeypatch.setattr(status, "CATALOGUE", catalogue)
+    with patch.object(
+        status,
+        "load_requirements",
+        return_value={
+            "resolve_release-1": {"basis": ["get_form"]},
+            "X-1": {"basis": ["get_form", "not_a_tool"]},
+        },
+    ):
+        assert status.skip_contexts() == {
+            "resolve_release": "credentials not issued "
+            "([cadsr-access](docs/upstream/cadsr.md#cadsr-access))",
+            "get_form": "upstream capability gap ([new-gap](docs/upstream/evs.md#new-gap))",
+        }

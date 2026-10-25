@@ -42,14 +42,14 @@ from collections import Counter
 from dataclasses import asdict, dataclass, fields
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import pytest
 import yaml
 
 from nci_si_acceptance.client import withhold_authorization
 from nci_si_acceptance.spec import REQUIRED_TOOLS
-from nci_si_acceptance.suite import SKIP, UnmatchedUpstream
+from nci_si_acceptance.suite import NOT_LIVE_REASON, SKIP, UnmatchedUpstream
 from nci_si_acceptance.suite_identity import (
     APPROVED,
     REPOSITORY,
@@ -124,6 +124,13 @@ class Attribution:
 class TestResult(Attribution):
     outcome: str
     unmatched: list[str]
+    not_live_reason: Literal["scenario", "not_live_capable"] | Absent = Absent.FIELD
+
+    def to_dict(self) -> dict[str, Any]:
+        result = asdict(self)
+        if self.not_live_reason == Absent.FIELD:
+            result.pop(NOT_LIVE_REASON)
+        return result
 
     @classmethod
     def from_dict(cls, value: Any, path: str) -> TestResult:
@@ -136,6 +143,12 @@ class TestResult(Attribution):
         require_field(
             all(isinstance(item, str) for item in value["unmatched"]), f"{path}.unmatched"
         )
+        if NOT_LIVE_REASON in value:
+            require_field(
+                value["outcome"] == "not_live"
+                and value[NOT_LIVE_REASON] in ("scenario", "not_live_capable"),
+                f"{path}.{NOT_LIVE_REASON}",
+            )
         return cls(**value)
 
 
@@ -202,6 +215,7 @@ class NativeReport:
     def to_dict(self) -> dict[str, Any]:
         result = {name: value for name, value in asdict(self).items() if value != Absent.FIELD}
         result["tools"] = {name: row.to_dict() for name, row in self.tools.items()}
+        result["tests"] = {name: row.to_dict() for name, row in self.tests.items()}
         return result
 
     @classmethod
@@ -344,11 +358,14 @@ class Collector:
         properties: dict[str, Any] = dict(report.user_properties)
         attribution = properties.get(ATTRIBUTION) or asdict(Attribution(None, False))
         test = self.tests.setdefault(
-            report.nodeid, asdict(TestResult(**attribution, outcome=outcome, unmatched=[]))
+            report.nodeid, TestResult(**attribution, outcome=outcome, unmatched=[]).to_dict()
         )
         if RANK[outcome] >= RANK[test["outcome"]]:
             test["outcome"] = outcome
             test["unmatched"] = properties.get(UNMATCHED, [])
+            test.pop(NOT_LIVE_REASON, None)
+            if outcome == "not_live" and NOT_LIVE_REASON in properties:
+                test[NOT_LIVE_REASON] = properties[NOT_LIVE_REASON]
 
     def note_tools(self, tools: Tools) -> None:
         self.implemented = {name: tools.implemented(name) for name in REQUIRED_TOOLS}

@@ -24,6 +24,7 @@ FIXTURE_ONLY = "fixture mode only"
 # The property a skip site sets to say why a test did not run: not_live or not_implemented.
 # The report reads it, never the reason text.
 SKIP = "acceptance_skip"
+NOT_LIVE_REASON = "not_live_reason"
 # A test marked so expects requests without a fixture, and checks them itself.
 UNMATCHED_UPSTREAM = "unmatched_upstream"
 # A test marked so needs what the operator's prepare command produced (the interim index).
@@ -62,9 +63,13 @@ def skip_fixture_only(items: Iterable[pytest.Item]) -> None:
 
     skip = pytest.mark.skip(reason=FIXTURE_ONLY)
     for item in items:
-        if item.get_closest_marker(LIVE_CAPABLE) is None or scenarios_of(item):
+        scenario = bool(scenarios_of(item))
+        if scenario or item.get_closest_marker(LIVE_CAPABLE) is None:
             item.add_marker(skip)
             item.user_properties.append((SKIP, "not_live"))
+            item.user_properties.append(
+                (NOT_LIVE_REASON, "scenario" if scenario else "not_live_capable")
+            )
 
 
 def skip_unprepared(items: Iterable[pytest.Item], reason: str = NOT_PREPARED) -> None:
