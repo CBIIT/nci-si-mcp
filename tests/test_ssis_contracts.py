@@ -321,3 +321,31 @@ class SSISRegisterTest(unittest.TestCase):
         payload["results"]["bindings"] = original["results"]["bindings"][:1] * 1002
         with self.assertRaisesRegex(ValueError, "exceed requested LIMIT"):
             validate(payload, entry)
+
+    def test_concept_and_role_require_absolute_uris_and_role_must_be_main(self):
+        entry = yaml.safe_load(REGISTER.read_text())["queries"][5]
+        original = bodies()[5]
+        cases = (
+            ("concept", "literal", "http://example.test/C1", "concept: expected absolute URI"),
+            (
+                "role",
+                "literal",
+                "http://cbiit.nci.nih.gov/caDSR#main_concept",
+                "role: expected absolute URI",
+            ),
+            ("concept", "uri", "relative/C1", "concept: expected absolute URI"),
+            ("role", "uri", "#main_concept", "role: expected absolute URI"),
+            (
+                "role",
+                "uri",
+                "http://cbiit.nci.nih.gov/caDSR#minor_concept",
+                "role: expected main concept",
+            ),
+        )
+        for key, kind, value, error in cases:
+            with self.subTest(key=key, kind=kind, value=value):
+                payload = copy.deepcopy(original)
+                payload["results"]["bindings"][0][key] = {"type": kind, "value": value}
+                with self.assertRaises(ValueError) as raised:
+                    validate(payload, entry)
+                self.assertEqual(str(raised.exception), error)

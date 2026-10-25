@@ -183,14 +183,72 @@ class PackageTests(unittest.TestCase):
                 packages.main()
             with patch.object(packages, "ROOT", root), patch("sys.argv", ["generate", "--check"]):
                 packages.main()
-                (root / packages.DIRECTORY / "evs.md").write_text("stale")
-                with self.assertRaisesRegex(SystemExit, "Regenerate"):
-                    packages.main()
+                for name in ("evs.md", "ssis-dependencies.md"):
+                    with self.subTest(stale=name):
+                        path = root / packages.DIRECTORY / name
+                        current = path.read_text()
+                        path.write_text("stale")
+                        with self.assertRaises(SystemExit) as raised:
+                            packages.main()
+                        self.assertEqual(str(raised.exception), f"Regenerate docs/upstream/{name}")
+                        path.write_text(current)
             source = catalogue()
             source["entries"].append(copy.deepcopy(source["entries"][0]))
             (root / packages.DIRECTORY / "catalogue.yaml").write_text(yaml.safe_dump(source))
             with self.assertRaisesRegex(ValueError, "Duplicate"):
                 packages.generate(root)
+
+    def test_shared_si_dependency_output_preserves_independent_register_fixture(self):
+        register = {
+            "owner": "Risk steward",
+            "transport": {"method": "POST"},
+            "weekly": "all fixture families",
+            "fallback": "upstream_unavailable",
+            "queries": [
+                {
+                    "id": "fixture-family",
+                    "operation": "fixture_operation",
+                    "consumers": ["first_tool", "second_tool"],
+                    "requirements": ["X-1", "X-2"],
+                    "evidence": "crafted/fixture.json",
+                }
+            ],
+        }
+        paragraphs = (
+            "# Shared SI query dependencies",
+            "Generated from [ssis-queries.yaml](ssis-queries.yaml) by "
+            "`pdm run python scripts/upstream_requirements.py`; never edit the table by hand.",
+            "The [team response relayed on 8 October 2026](team-responses-2026-10-08.md) "
+            "states maintenance mode and no funding for new API development or maintenance. "
+            "This is an attributed dated report, not an independently verified current status.",
+            "Risk-record owner: **Risk steward**. EVS SPARQL and caDSR APIs are published "
+            "candidate alternatives, not implemented or equivalent fallbacks. "
+            "A missing upstream capability stays visible.",
+            "Transport: `{'method': 'POST'}`. Coverage: all fixture families. "
+            "Caller error fallback: `upstream_unavailable`.",
+            "Run `pdm run python -m scripts.ssis_contracts` to attempt all registered families. "
+            "Each is reported; any structural or transport failure exits nonzero. The checker "
+            "validates SELECT variables, bindings, term shapes, identifiers, row bounds and "
+            "nested OPTIONAL combinations. Valid empty results and content/count/release "
+            "changes pass; this is platform conformance, not a new MCP acceptance requirement.",
+            "| Family / live check ID | Client operation | Consumers | Requirements | Evidence |\n"
+            "|---|---|---|---|---|\n"
+            "| `fixture-family` | `fixture_operation` | first_tool, second_tool | X-1, X-2 | "
+            "[crafted/fixture.json](../../acceptance/fixtures/crafted/fixture.json) |",
+            "The bounded identity and nested OPTIONAL value requests are crafted from "
+            "recorded evidence, not new live recordings. Identifier and remaining-budget "
+            "LIMIT instances are parameters of these families. Historical REST façade, "
+            "unbounded identity and non-OPTIONAL value forms in the "
+            "[request history](../../acceptance/request-forms/ssis.md) are inactive. "
+            "The checker calls only anonymous Shared SI; it does not join EVS or caDSR "
+            "or substitute their results when Shared SI fails.",
+        )
+        expected = "\n\n".join(paragraphs)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / packages.DIRECTORY).mkdir(parents=True)
+            (root / packages.DIRECTORY / "ssis-queries.yaml").write_text(yaml.safe_dump(register))
+            self.assertEqual(packages.ssis_dependencies(root), f"{expected}\n")
 
     @staticmethod
     def write_inputs(root):
