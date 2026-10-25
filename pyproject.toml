@@ -80,11 +80,6 @@ lock = ["-G", ":all"]
 source = "scm"
 fallback_version = "0.0.0"
 
-# A known-vulnerability fix may bypass the rolling age cutoff only at this exact version.
-# The online audit fails once the release is five days old, requiring removal of the exception.
-[tool.nci-si.dependency-age.exceptions]
-setuptools = { version = "84.2.1", advisory = "GHSA-xmj3-9gf7-h52w" }
-
 # The release workflow computes the next version from the commit subjects on main
 # since the last tag, which are pull request titles (CONTRIBUTING.md). Below 1.0 a
 # breaking change releases a minor version; 1.0.0 is tagged by hand.

@@ -78,27 +78,27 @@ class DependencyLockPolicyTest(unittest.TestCase):
             },
         )
         self.assertIsNone(re.search(r"20\d\d-\d\d-\d\d|T\d\d:", scripts["lock"]))
-        self.assertEqual(
-            project["tool"]["nci-si"]["dependency-age"]["exceptions"],
-            {
-                "setuptools": {
-                    "version": "84.2.1",
-                    "advisory": "GHSA-xmj3-9gf7-h52w",
-                },
-            },
-        )
+        self.assertEqual(lock_script().read_exceptions(ROOT), {})
+        self.assertEqual(lock_script().command(ROOT), ["pdm", "lock", "--exclude-newer", "5d"])
 
+    def test_security_exception_uses_the_latest_distribution_upload_cutoff(self):
         def metadata(url):
-            uploaded = "2026-10-20T19:01:00Z" if "setuptools" in url else "2026-10-20T02:24:00Z"
             return {
                 "urls": [
                     {"upload_time_iso_8601": "2026-10-19T00:00:00Z"},
-                    {"upload_time_iso_8601": uploaded},
+                    {"upload_time_iso_8601": "2026-10-20T19:01:00Z"},
                 ]
             }
 
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "pyproject.toml").write_text(
+                "[tool.nci-si.dependency-age.exceptions]\n"
+                'setuptools = {version = "84.2.1", advisory = "GHSA-xmj3-9gf7-h52w"}\n'
+            )
+            arguments = lock_script().command(root, metadata)
         self.assertEqual(
-            lock_script().command(ROOT, metadata),
+            arguments,
             [
                 "pdm",
                 "lock",
@@ -111,11 +111,17 @@ class DependencyLockPolicyTest(unittest.TestCase):
 
     def test_lock_refuses_unverifiable_exception_upload_times(self):
         module = lock_script()
-        with self.assertRaisesRegex(
-            ValueError,
-            "^setuptools upload time could not be read: has no distribution upload time$",
-        ):
-            module.command(ROOT, lambda _: {"urls": []})
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "pyproject.toml").write_text(
+                "[tool.nci-si.dependency-age.exceptions]\n"
+                'setuptools = {version = "84.2.1", advisory = "GHSA-xmj3-9gf7-h52w"}\n'
+            )
+            with self.assertRaisesRegex(
+                ValueError,
+                "^setuptools upload time could not be read: has no distribution upload time$",
+            ):
+                module.command(root, lambda _: {"urls": []})
 
     def test_lock_entry_point_preserves_resolver_failure_status(self):
         module = lock_script()
