@@ -6,9 +6,9 @@ The [team response relayed on 8 October 2026](team-responses-2026-10-08.md) stat
 
 Risk-record owner: **NCI SI MCP project coordinator**. EVS SPARQL and caDSR APIs are published candidate alternatives, not implemented or equivalent fallbacks. A missing upstream capability stays visible.
 
-Transport: `{'method': 'POST', 'path': '/sparql', 'accept': 'application/sparql-results+json', 'form': 'query'}`. Coverage: Acceptance (live), anonymous structural check for every family. Caller error fallback: `upstream_unavailable; graph comparison may return release_not_available or release_mismatch`.
+Transport: `{'method': 'POST', 'path': '/sparql', 'accept': 'application/sparql-results+json', 'form': 'query'}`. Coverage: Acceptance (live), anonymous structural check for every family. Caller error fallback: `upstream_unavailable, timeout or bound_exceeded; graph comparison may return release_not_available or release_mismatch`.
 
-Run `pdm run python -m scripts.ssis_contracts` to attempt all registered families. Each is reported; any structural or transport failure exits nonzero. The checker validates SELECT variables, bindings, term shapes, identifiers, row bounds and nested OPTIONAL combinations. Valid empty results and content/count/release changes pass; this is platform conformance, not a new MCP acceptance requirement.
+Run `pdm run python -m scripts.ssis_contracts` to attempt all registered families. Each is reported; any structural or transport failure exits nonzero. The checker validates SELECT variables, bindings, term shapes, identifiers, row bounds and nested OPTIONAL combinations. Valid empty content results and content/count/release changes pass; graph identities require both known graphs. This is platform conformance, not a new MCP acceptance requirement.
 
 | Family / live check ID | Client operation | Consumers | Requirements | Evidence |
 |---|---|---|---|---|

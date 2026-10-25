@@ -87,7 +87,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/ssis-sparql/graph-identities.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `1766c631d26999e22a5062f00c9fd4c83ddb3ec8150cc02128af1986bb4b84c6`.
-- [docs/upstream/ssis-queries.yaml](../../docs/upstream/ssis-queries.yaml) — document; SHA-256 `fa40639192a3c23cdc72990cac6d1bb73ce0ab5e470f4ce20426183698502fee`.
+- [docs/upstream/ssis-queries.yaml](../../docs/upstream/ssis-queries.yaml) — document; SHA-256 `00686076eccdddb49a1448d4dc07aec81ac1787d9426606decc613466b6a8e3a`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|

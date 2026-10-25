@@ -245,8 +245,9 @@ def ssis_dependencies(root: Path) -> str:
         "Run `pdm run python -m scripts.ssis_contracts` to attempt all registered families. "
         "Each is reported; any structural or transport failure exits nonzero. The checker "
         "validates SELECT variables, bindings, term shapes, identifiers, row bounds and "
-        "nested OPTIONAL combinations. Valid empty results and content/count/release changes "
-        "pass; this is platform conformance, not a new MCP acceptance requirement.",
+        "nested OPTIONAL combinations. Valid empty content results and content/count/release "
+        "changes pass; graph identities require both known graphs. This is platform conformance, "
+        "not a new MCP acceptance requirement.",
         "",
         "| Family / live check ID | Client operation | Consumers | Requirements | Evidence |",
         "|---|---|---|---|---|",
