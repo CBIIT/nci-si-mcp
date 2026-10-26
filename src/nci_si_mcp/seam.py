@@ -636,7 +636,7 @@ def _crosswalk_values(
                 values.append(
                     {
                         "value": value["value"],
-                        "field": _text(row["crdcName"], "CRDC field name", "cadsr"),
+                        "field": _text(row.get("crdcName"), "CRDC field name", "cadsr"),
                         "source": source,
                         "provenance": row["provenance"]
                         | {"release": provenance["release"], "registry": {"registry": "cadsr"}},
