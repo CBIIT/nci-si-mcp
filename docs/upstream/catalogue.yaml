@@ -2,6 +2,24 @@
 # after they have been observed and attributed to the named entry.
 live_failures: {}
 entries:
+  - id: evs-status-metadata
+    team: evs
+    title: Explain DEFAULT and active versus current status semantics
+    platform: OP-E01; OP-E05; OP-E12
+    requirements: [resolve_retired_code-2]
+    tests: ["tests/test_evs.py::test_an_active_code_is_active_with_its_status_and_no_replacement"]
+    evidence: [acceptance/fixtures/recorded/evs/concept-statuses.json, acceptance/fixtures/recorded/evs/concepts/C4817.json, acceptance/fixtures/recorded/evs/concepts/C65159.json, acceptance/fixtures/recorded/evs/descendants-c4817-level-2.json]
+    source: https://github.com/CBIIT/nci-si-mcp/issues/380
+    observation: >-
+      On 26 October 2026 the pinned conceptStatuses endpoint omitted DEFAULT; recorded
+      C4817 supplies DEFAULT. Newly recorded C65159 supplies Obsolete_Concept and active true.
+      Compact descendants supply no active/status. The fact audit's copied-name/retired-code
+      observation is context for deferred alignment work, not a new cross-system comparison.
+    reproduction: GET /api/v1/metadata/ncit_26.09d/conceptStatuses and the linked pinned concept/descendant requests anonymously.
+    expected: Explain why DEFAULT is absent from the status catalogue, whether active includes obsolete concepts, and which upstream field establishes currentness.
+    impact: A caller treating active as current or the metadata list as exhaustive can misclassify concepts.
+    workaround: Preserve returned active/status exactly; do not inject DEFAULT into metadata or infer currentness from status or copied names.
+    acceptance: Published metadata and documentation explain every supplied concept status and active/current semantics; compact entries remain unclassified unless separately read.
   - id: cadsr-concept-sources
     team: cadsr
     title: Document concept sources and compound reference semantics

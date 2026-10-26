@@ -51,6 +51,8 @@ content state of its own, named in provenance and not presented as release-verif
 | OP-E13 | `GET evs /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal` | 200 | recorded | The paths from the concept to the root of the hierarchy. | `recorded/evs/paths-to-root.json` |
 | OP-E12 | `GET evs /api/v1/concept/ncit_26.09d/C4817/descendants?maxLevel=2` | 200 | recorded | The descendants of C4817 to two levels (27), each with its level: the route a cohort or hierarchy to depth 2 may take in place of a children walk (expand_cohort's default maxDepth). | `recorded/evs/descendants-c4817-level-2.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C4817/replacements` | 200 | recorded | An active code's replacements, one code. | `recorded/evs/replacement-active.json` |
+| OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C15368/replacements` | 200 | recorded | Source-specific merge replacement with its own action and date. | `recorded/evs/replacement-merge-c15368.json` |
+| OP-E01 | `GET evs /api/v1/metadata/ncit_26.09d/conceptStatuses` | 200 | recorded | Status metadata omits DEFAULT, although concept payloads supply it. | `recorded/evs/concept-statuses.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C13111/replacements` | 200 | recorded | A retired code the platform names no replacement for: action retire, no replacementCode. | `recorded/evs/replacement-retired.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/replacements?list=C4817` | 200 | recorded | The ?list= batch form, which fails the whole batch on one unknown code. | `recorded/evs/replacements-active.json` |
 | OP-E06 | `GET evs /api/v1/subset/ncit/C177537` | 200 | recorded | The subset by its unpinned path: the pinned path answers 404 today; the payload names its release. | `recorded/evs/subset-gdc-unpinned.json` |
@@ -127,7 +129,7 @@ Each request: An unknown release answers 404 on every content path: the server f
 
 ### `release/mismatch`
 
-Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 184 fixtures, for A3.4: the content served names another release than the one requested.
+Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 186 fixtures, for A3.4: the content served names another release than the one requested.
 
 ### `release/two-latest`
 

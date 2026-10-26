@@ -1142,7 +1142,8 @@ RETIRED_CODES = [
 def _replacement(entry):
     release = (entry.get("provenance") or {}).get("release") or {}
     pin = (release.get("terminology"), release.get("identifier"))
-    return entry.get("code"), entry.get("terminology"), entry.get("name"), pin
+    event = {key: entry[key] for key in ("action", "date") if key in entry}
+    return entry.get("code"), entry.get("terminology"), entry.get("name"), pin, event
 
 
 @pytest.mark.tool("resolve_retired_code")
@@ -1155,7 +1156,13 @@ def test_a_retired_code_is_inactive_with_its_status_and_replacements(
     # Each replacement by code, terminology and name, with the release of its provenance.
     pin = (pinned["terminology"], pinned["release"])
     replacements = [
-        (entry["replacementCode"], body["terminology"], entry["replacementName"], pin)
+        (
+            entry["replacementCode"],
+            body["terminology"],
+            entry["replacementName"],
+            pin,
+            {key: entry[key] for key in ("action", "date") if key in entry},
+        )
         for entry in recorded(history)["response"]["body"]
         if "replacementCode" in entry
     ]
@@ -1176,14 +1183,35 @@ def test_a_retired_code_is_inactive_with_its_status_and_replacements(
 @pytest.mark.tool("resolve_retired_code")
 @pytest.mark.requirement("resolve_retired_code-2")
 def test_an_active_code_is_active_with_its_status_and_no_replacement(tools, pinned, recorded):
-    body = recorded(CURRENT)["response"]["body"]
+    for file in (CURRENT, "recorded/evs/concepts/C65159.json"):
+        body = recorded(file)["response"]["body"]
+        result = _traverse(tools, pinned, "resolve_retired_code", body["code"])
+        content = result.content
+        assert (content.get("code"), content.get("terminology")) == (
+            body["code"],
+            body["terminology"],
+        )
+        assert (content.get("active"), content.get("status")) == (
+            body["active"],
+            body["conceptStatus"],
+        )
+        assert content.get("replacements") == []
 
-    result = _traverse(tools, pinned, "resolve_retired_code", CONCEPT)
 
-    content = result.content
-    assert (content.get("code"), content.get("terminology")) == (body["code"], body["terminology"])
-    assert (content.get("active"), content.get("status")) == (True, body["conceptStatus"])
-    assert content.get("replacements") == []
+@pytest.mark.tool("resolve_retired_code")
+@pytest.mark.requirement("resolve_retired_code-1")
+def test_a_merge_replacement_preserves_its_own_action_and_date(tools, pinned, recorded):
+    (row,) = recorded("recorded/evs/replacement-merge-c15368.json")["response"]["body"]
+    result = _traverse(tools, pinned, "resolve_retired_code", row["code"])
+    assert not result.is_error, result.content
+    (replacement,) = result.content["replacements"]
+    assert _replacement(replacement) == (
+        row["replacementCode"],
+        pinned["terminology"],
+        row["replacementName"],
+        (pinned["terminology"], pinned["release"]),
+        {key: row[key] for key in ("action", "date")},
+    )
 
 
 # The release's relationship catalogue, roles and associations.

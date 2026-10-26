@@ -2,6 +2,37 @@
 
 Generated from [catalogue.yaml](catalogue.yaml). Read the [evidence boundary](README.md) first.
 
+## evs-status-metadata
+
+**Explain DEFAULT and active versus current status semantics**
+
+Platform requirement/operation: **OP-E01; OP-E05; OP-E12**.
+Specification requirements: `resolve_retired_code-2`.
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/380).
+
+**Observation.** On 26 October 2026 the pinned conceptStatuses endpoint omitted DEFAULT; recorded C4817 supplies DEFAULT. Newly recorded C65159 supplies Obsolete_Concept and active true. Compact descendants supply no active/status. The fact audit's copied-name/retired-code observation is context for deferred alignment work, not a new cross-system comparison.
+
+**Reproduction.** GET /api/v1/metadata/ncit_26.09d/conceptStatuses and the linked pinned concept/descendant requests anonymously.
+
+**Expected.** Explain why DEFAULT is absent from the status catalogue, whether active includes obsolete concepts, and which upstream field establishes currentness.
+
+**Impact.** A caller treating active as current or the metadata list as exhaustive can misclassify concepts.
+
+**Workaround.** Preserve returned active/status exactly; do not inject DEFAULT into metadata or infer currentness from status or copied names.
+
+**Acceptance criteria.** Published metadata and documentation explain every supplied concept status and active/current semantics; compact entries remain unclassified unless separately read.
+
+Evidence (linked request/response files retain their original form):
+
+- [acceptance/fixtures/recorded/evs/concept-statuses.json](../../acceptance/fixtures/recorded/evs/concept-statuses.json) — recorded on 2026-10-26; GET evs /api/v1/metadata/ncit_26.09d/conceptStatuses; SHA-256 `7f9ef58e448394c6216a7346165837f7782517f0d3b488c037a801cf9a047c05`.
+- [acceptance/fixtures/recorded/evs/concepts/C4817.json](../../acceptance/fixtures/recorded/evs/concepts/C4817.json) — recorded on 2026-10-02; GET evs /api/v1/concept/ncit_26.09d/C4817; SHA-256 `27dd97c30a3be2c984f609c08c986169a6e1fbf6e5adc765a0c079b9ffe2cebb`.
+- [acceptance/fixtures/recorded/evs/concepts/C65159.json](../../acceptance/fixtures/recorded/evs/concepts/C65159.json) — recorded on 2026-10-26; GET evs /api/v1/concept/ncit_26.09d/C65159; SHA-256 `3940060461ac01a346ec135c91f8ec9771df1dea6c56d1f97d1284779a036785`.
+- [acceptance/fixtures/recorded/evs/descendants-c4817-level-2.json](../../acceptance/fixtures/recorded/evs/descendants-c4817-level-2.json) — recorded on 2026-10-03; GET evs /api/v1/concept/ncit_26.09d/C4817/descendants; SHA-256 `b2e014a84312e4ca4d5bc55ca661b8e060303a0abcca2ab4280c8dcf052d5889`.
+
+| Affected test function | Fixture | Live |
+|---|---|---|
+| `acceptance/tests/test_evs.py::test_an_active_code_is_active_with_its_status_and_no_replacement` | 1 passed | 1 not_live |
+
 ## evs-polarity
 
 **Publish stable relationship polarity by code**
@@ -54,7 +85,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [docs/retrieval-evaluation.md](../../docs/retrieval-evaluation.md) — document; SHA-256 `eec67b8272d5b502352ccac676e88054c422acc1e09d5b9440b586328226a6e2`.
-- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `636301d8288850d71b9aa36d2e3b0c5270307217d8a45a6ddf6ac775b20cc702`.
+- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `f7d0dc379d5b959f9348eb0710186669f7500761901164c10ade06994ff515b0`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -116,7 +147,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/evs/terminologies.json](../../acceptance/fixtures/recorded/evs/terminologies.json) — recorded on 2026-10-02; GET evs /api/v1/metadata/terminologies; SHA-256 `ba9c019d97d677bdf68dee2f119f62047d6448f715ec4b3157fb9c59e1b7fe4e`.
-- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `636301d8288850d71b9aa36d2e3b0c5270307217d8a45a6ddf6ac775b20cc702`.
+- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `f7d0dc379d5b959f9348eb0710186669f7500761901164c10ade06994ff515b0`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -144,7 +175,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 Evidence (linked request/response files retain their original form):
 
-- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `636301d8288850d71b9aa36d2e3b0c5270307217d8a45a6ddf6ac775b20cc702`.
+- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `f7d0dc379d5b959f9348eb0710186669f7500761901164c10ade06994ff515b0`.
 - [acceptance/fixtures/crafted/OP-E06/subset-gdc.json](../../acceptance/fixtures/crafted/OP-E06/subset-gdc.json) — crafted; GET evs /api/v1/subset/ncit_26.09d/C177537; SHA-256 `4a2ad1a01962939f03d09147f91a0ca446717df1e72bbf08eb35b1afb06620ae`.
 - [acceptance/fixtures/crafted/OP-F05/expand-c85492.json](../../acceptance/fixtures/crafted/OP-F05/expand-c85492.json) — crafted; GET evs-fhir /ValueSet/$expand; SHA-256 `007f987080252d9294440a22f54c3cc4a21dc3879bed70f412da4f337ccb533c`.
 
@@ -176,7 +207,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/evs-fhir/expand-c85492.json](../../acceptance/fixtures/recorded/evs-fhir/expand-c85492.json) — recorded on 2026-10-02; GET evs-fhir /ValueSet/$expand; SHA-256 `836a85af27adff039bc0ba948313dc3e62f31ff9aca3d03ec2091f0331bd840e`.
-- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `636301d8288850d71b9aa36d2e3b0c5270307217d8a45a6ddf6ac775b20cc702`.
+- [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `f7d0dc379d5b959f9348eb0710186669f7500761901164c10ade06994ff515b0`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|

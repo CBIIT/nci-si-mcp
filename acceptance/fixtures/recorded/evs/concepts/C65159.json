@@ -1,0 +1,26 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-26",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C65159",
+  "params": {
+   "include": [
+    "minimal"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C65159",
+   "name": "Glassy Cell Carcinoma",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "Obsolete_Concept",
+   "leaf": true,
+   "active": true
+  }
+ }
+}

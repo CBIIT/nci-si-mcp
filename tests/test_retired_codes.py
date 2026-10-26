@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
@@ -11,6 +12,67 @@ from test_server import ServerFixture
 
 
 class RetiredCodeTest(ServerFixture):
+    def mcp_replies(self):
+        responses = [FakeResponse(json.dumps(item).encode()) for item in (self.raw, self.history)]
+        with patch("nci_si_mcp.http_client._open", side_effect=responses):
+            return self.call(
+                "resolve_retired_code", code=self.raw["code"], release=self.raw["version"]
+            )
+
+    def test_recorded_merge_preserves_its_producing_event_metadata(self):
+        # Given the source-specific recorded merge, when resolving through MCP,
+        # then the replacement carries that event's action and date.
+        root = Path(__file__).parents[1] / "acceptance/fixtures/recorded/evs"
+        self.raw = json.loads((root / "concepts/C15368.json").read_text())["response"]["body"]
+        self.history = json.loads((root / "replacement-merge-c15368.json").read_text())["response"][
+            "body"
+        ]
+        failed, result = self.mcp_replies()
+        self.assertFalse(failed, result)
+        replacement = result["replacements"][0]
+        self.assertEqual(replacement.get("action"), "merge")
+        self.assertEqual(replacement.get("date"), "2006-02-24")
+
+    def test_optional_event_fields_stay_on_their_own_rows_unchanged(self):
+        # Adjacent retirement metadata must not fill a replacement's omitted fields.
+        for fields in (
+            {},
+            {"action": "  Future_Action  "},
+            {"date": "unparsed date"},
+            {"action": "", "date": " 2006-02-24 "},
+        ):
+            with self.subTest(fields=fields):
+                self.history = [
+                    {"code": "C1", "action": "retire", "date": "another event"},
+                    {"code": "C1", "replacementCode": "C2", "replacementName": "Second"} | fields,
+                ]
+                failed, result = self.mcp_replies()
+                self.assertFalse(failed, result)
+                self.assertEqual(len(result["replacements"]), 1)
+                self.assertEqual(
+                    {k: v for k, v in result["replacements"][0].items() if k in ("action", "date")},
+                    fields,
+                )
+
+    def test_malformed_supplied_event_fields_are_protocol_errors_without_partial_content(self):
+        for field in ("action", "date"):
+            for value in (None, True, 123, [], {}):
+                with self.subTest(field=field, value=value):
+                    self.history = [
+                        {"code": "C1", "replacementCode": "C2", "replacementName": "Second"},
+                        {
+                            "code": "C1",
+                            "replacementCode": "C3",
+                            "replacementName": "Third",
+                            field: value,
+                        },
+                    ]
+                    failed, result = self.mcp_replies()
+                    self.assertTrue(failed, result)
+                    self.assertEqual(set(result), {"error"})
+                    self.assertEqual(result["error"]["code"], "upstream_unavailable")
+                    self.assertTrue(result["error"]["correlationId"])
+
     def setUp(self):
         super().setUp()
         self.raw = concept(

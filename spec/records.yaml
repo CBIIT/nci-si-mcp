@@ -284,6 +284,14 @@ replacement:
     name:
       content: The replacement's name, as the platform gives it
       of: A9.1
+    action:
+      content: The producing replacement history row's action string, unchanged; no closed action set
+      optional: true
+      of: A9.1
+    date:
+      content: The producing replacement history row's date string, unchanged, without parsing or normalization
+      optional: true
+      of: A9.1
     provenance:
       content: The provenance record
       of: A4.4

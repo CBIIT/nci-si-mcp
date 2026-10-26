@@ -61,6 +61,7 @@ None.
 
 | Entry | Team | Upstream reference |
 |---|---|---|
+| [Explain DEFAULT and active versus current status semantics](evs.md#evs-status-metadata) | EVS | OP-E01; OP-E05; OP-E12 |
 | [Document concept sources and compound reference semantics](cadsr.md#cadsr-concept-sources) | caDSR | OP-C06 |
 | [Publish stable relationship polarity by code](evs.md#evs-polarity) | EVS | E-4; OP-E02 |
 | [Platform semantic retrieval and local-index retirement](evs.md#evs-semantic) | EVS | E-9 |

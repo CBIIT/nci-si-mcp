@@ -238,6 +238,16 @@ record:
       rationale: An active code's replacements, one code.
       surface: evs
       path: /api/v1/history/ncit_26.09d/C4817/replacements
+    - fixture: recorded/evs/replacement-merge-c15368.json
+      operation: OP-E21
+      rationale: Source-specific merge replacement with its own action and date.
+      surface: evs
+      path: /api/v1/history/ncit_26.09d/C15368/replacements
+    - fixture: recorded/evs/concept-statuses.json
+      operation: OP-E01
+      rationale: Status metadata omits DEFAULT, although concept payloads supply it.
+      surface: evs
+      path: /api/v1/metadata/ncit_26.09d/conceptStatuses
     - fixture: recorded/evs/replacement-retired.json
       operation: OP-E21
       rationale: 'A retired code the platform names no replacement for: action retire, no replacementCode.'
@@ -1541,7 +1551,7 @@ record:
 
     # The concepts on C4817's paths to the root that no other list records: a traversal reads
     # the nodes it reaches for their status (the node record, get_concept_hierarchy-2).
-    minimal: [C3262, C3263, C3264, C3810, C7057, C7062, C9305, C27551, C27574]
+    minimal: [C3262, C3263, C3264, C3810, C7057, C7062, C9305, C27551, C27574, C15368, C65159]
 
     # Recorded at 26.09d on 6 October 2026: depth-two cohort descendants, including
     # their child lists for the bounded final-frontier continuation check.
@@ -1584,4 +1594,4 @@ record:
 # The fixtures craft.py makes are built in memory when the set loads; this is the digest
 # of what it makes now. `pdm run acceptance-craft` writes it, `--out DIR` writes the
 # fixtures to read (fixtures/README.md).
-crafted: sha256:674b5556b32074127b2fe377dd6575816cdb4b99c7aa7d6149088f05b1e65150
+crafted: sha256:336e1df3ac2aa00b42e23cd6aae0f8eddf167f0d21470b9b2a7aecae63ba1c2b

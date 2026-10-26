@@ -1,0 +1,26 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-26",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/concept/ncit_26.09d/C15368",
+  "params": {
+   "include": [
+    "minimal"
+   ]
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "code": "C15368",
+   "name": "Treatment",
+   "terminology": "ncit",
+   "version": "26.09d",
+   "conceptStatus": "Retired_Concept",
+   "leaf": true,
+   "active": false
+  }
+ }
+}
