@@ -15,6 +15,32 @@ FIXTURES = Path(__file__).resolve().parents[1] / "acceptance/fixtures/recorded/s
 
 
 class GraphRoleProtocolTest(ServerFixture):
+    def test_graph_status_sets_preserve_unpaired_public_id_evidence(self):
+        """Given merged DE2672191, finding it retains both independent status sets."""
+        source = recording("ssis-sparql/data-elements-statuses-c48179.json")
+        identities = recording("ssis-sparql/graph-identities.json")["response"]["body"]
+        self.context.ssis = SSISClient(self.settings)
+
+        async def call(client):
+            return await client.call_tool(
+                "find_data_elements_for_concept", {"conceptCode": "C48179", "limit": 1000}
+            )
+
+        with patch.object(
+            self.context.ssis.sparql_http,
+            "post_form",
+            side_effect=[identities, source["response"]["body"]],
+        ):
+            result = self.session(call)
+        self.assertFalse(result.is_error, result.content)
+        use = next(
+            row
+            for row in result.structured_content["dataElements"]
+            if row["dataElement"]["publicId"] == "2672191"
+        )
+        self.assertEqual(use.get("workflowStatuses"), ["RELEASED", "RETIRED ARCHIVED"])
+        self.assertEqual(use.get("registrationStatuses"), ["Standard", "Superceded"])
+
     def test_recorded_value_order_survives_mcp_without_primary_inference(self):
         """When finding C49508, its graph-main use in 2178439 retains order one."""
         source = recording("ssis-sparql/data-elements-roles-c49508.json")
