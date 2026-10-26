@@ -2,6 +2,35 @@
 
 Generated from [catalogue.yaml](catalogue.yaml). Read the [evidence boundary](README.md) first.
 
+## cadsr-concept-sources
+
+**Document concept sources and compound reference semantics**
+
+Platform requirement/operation: **OP-C06**.
+Specification requirements: `get_concept_for_permissible_value-1`.
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/368).
+
+**Observation.** The issue's 25 October sample observed NCI_CONCEPT_CODE, CTCAE_CODE, RADLEX_CODE, NCI_META_CUI, UMLS_CUI and LOINC_CODE, including C0009219 and C45255::10000. Recorded 2200604 v1 has UMLS_CUI C0332307 as representation, not a PV; recorded form 5406471 has LOINC references on CDE 5301153, not 5024313. The new source scenarios are contract-crafted from issue observations with synthetic metadata, not captures.
+
+**Reproduction.** Read evsSource alongside conceptCode in the data element API and inspect the linked recordings; exercise the crafted cadsr/concept-sources scenario.
+
+**Expected.** Document all source labels, missing/null evidence and compound code::value semantics without implying every concept is NCIt.
+
+**Impact.** Treating every C-prefixed identifier as NCIt can resolve a UMLS reference against the wrong terminology.
+
+**Workaround.** Preserve exact source/code; resolve only NCI_CONCEPT_CODE with standalone NCIt codes and return other primary references unresolved with caDSR-only provenance.
+
+**Acceptance criteria.** LOINC, UMLS and compound primaries succeed without an NCIt concept request; unknown sources remain unchanged.
+
+Evidence (linked request/response files retain their original form):
+
+- [acceptance/fixtures/recorded/cadsr/data-element-2200604-version-1.json](../../acceptance/fixtures/recorded/cadsr/data-element-2200604-version-1.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/DataElement/2200604; SHA-256 `2ac9667840a7004d7bef58983be22b0cfb15b5d26d14b85f2a13c3658c2064f2`.
+- [acceptance/fixtures/recorded/cadsr/form-5406471.json](../../acceptance/fixtures/recorded/cadsr/form-5406471.json) — recorded on 2026-10-03; GET cadsr /NCIFormAPI.v2_0:NciFormApiRad/Form/5406471; SHA-256 `25748e394ec5e83898095714c359969906b62c49e1b5f7e4d585638861d8d385`.
+
+| Affected test function | Fixture | Live |
+|---|---|---|
+| `acceptance/tests/test_cross_domain.py::test_a_value_resolves_to_the_concept_it_stands_for_naming_both_content_states` | 1 passed | 1 not_live |
+
 ## cadsr-registry
 
 **Publish registry identity and a verifiable pin contract**
@@ -181,7 +210,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/cadsr/vm-match-male.json](../../acceptance/fixtures/recorded/cadsr/vm-match-male.json) — recorded on 2026-10-03; POST cadsr /vmMatch/v1/vmMatch; SHA-256 `739daa720101c52a2d6749e112dd98ec2097a8faa5b97c46d40d74824403502e`.
-- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `9119d29fff2ac9dbe7234909bbbe8fdd84da555c023c7cb126a2673b685f72f6`.
+- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `ff7b66eed5cd4d3661d206c10685eb6ed399c1eac2c2c3b0792686493d85947c`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -273,7 +302,7 @@ Evidence (linked request/response files retain their original form):
 - [acceptance/fixtures/recorded/cadsr/permissible-values.json](../../acceptance/fixtures/recorded/cadsr/permissible-values.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/DataElement/2200604/permissibleValues; SHA-256 `997cf0b7cd6993fbb17387defd88d5cebcecef3376d2215001bfadb018a7037c`.
 - [acceptance/fixtures/recorded/cadsr/permissible-value-9192925.json](../../acceptance/fixtures/recorded/cadsr/permissible-value-9192925.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/permissibleValues/9192925; SHA-256 `1926a89787f0f0f5d2f2d4446622056cbf2e07812938993bb29d25d207981b06`.
 - [acceptance/fixtures/recorded/cadsr/classification-3685569.json](../../acceptance/fixtures/recorded/cadsr/classification-3685569.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/DataElements/Classification; SHA-256 `3b53e54ff1f9f6ef5a1ccd80e1df43bcce7a4ca3903e046f2534e5f10d746d19`.
-- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `9119d29fff2ac9dbe7234909bbbe8fdd84da555c023c7cb126a2673b685f72f6`.
+- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `ff7b66eed5cd4d3661d206c10685eb6ed399c1eac2c2c3b0792686493d85947c`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|

@@ -61,6 +61,7 @@ None.
 
 | Entry | Team | Upstream reference |
 |---|---|---|
+| [Document concept sources and compound reference semantics](cadsr.md#cadsr-concept-sources) | caDSR | OP-C06 |
 | [Publish stable relationship polarity by code](evs.md#evs-polarity) | EVS | E-4; OP-E02 |
 | [Platform semantic retrieval and local-index retirement](evs.md#evs-semantic) | EVS | E-9 |
 | [Consistent active and retired search filters](evs.md#evs-retired) | EVS | OP-E08; A8.3; A9.3 |

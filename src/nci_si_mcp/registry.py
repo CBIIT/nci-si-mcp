@@ -53,6 +53,7 @@ from .results import (
     SubsetsResult,
     TerminologiesResult,
     TraversalResult,
+    UnresolvedPermissibleValueConcept,
     ValueMeaningMatches,
     ValueSetExpansion,
 )
@@ -203,7 +204,7 @@ SPECS = (
     ToolSpec(
         seam.get_concept_for_permissible_value,
         "cross-domain",
-        PermissibleValueConcept | ErrorResult,
+        PermissibleValueConcept | UnresolvedPermissibleValueConcept | ErrorResult,
         name="get_concept_for_permissible_value",
         title="Concept for a permissible value",
         command="get-concept-for-permissible-value",

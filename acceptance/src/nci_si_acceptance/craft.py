@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import copy
 import hashlib
 import json
 import sys
@@ -1135,9 +1136,24 @@ def cadsr_primary_inversion(recorded: Recorded) -> Documents:
                         "version": "1",
                         "longName": "Crafted meaning",
                         "Concepts": [
-                            {"conceptCode": "C49508", "primaryIndicator": "No", "displayOrder": 1},
-                            {"conceptCode": "C25332", "primaryIndicator": "Yes", "displayOrder": 0},
-                            {"conceptCode": "C65107", "primaryIndicator": "No", "displayOrder": 2},
+                            {
+                                "conceptCode": "C49508",
+                                "evsSource": "NCI_CONCEPT_CODE",
+                                "primaryIndicator": "No",
+                                "displayOrder": 1,
+                            },
+                            {
+                                "conceptCode": "C25332",
+                                "evsSource": "NCI_CONCEPT_CODE",
+                                "primaryIndicator": "Yes",
+                                "displayOrder": 0,
+                            },
+                            {
+                                "conceptCode": "C65107",
+                                "evsSource": "NCI_CONCEPT_CODE",
+                                "primaryIndicator": "No",
+                                "displayOrder": 2,
+                            },
                         ],
                     },
                 }
@@ -1175,6 +1191,31 @@ def cadsr_primary_inversion(recorded: Recorded) -> Documents:
         graph_request,
         response={"status": 200, "body": {"results": {"bindings": [row]}}},
     )
+    return documents
+
+
+def cadsr_concept_sources(recorded: Recorded) -> Documents:
+    """Contract-crafted #368 observations; all surrounding metadata is synthetic."""
+    template = cadsr_primary_inversion(recorded)["scenarios/cadsr/primary-inversion/element.json"]
+    documents = {}
+    for identifier, value, code, source in (
+        ("5024313", "Incident", "LA20347-3", "LOINC_CODE"),
+        ("99000003", "Crafted UMLS value", "C0009219", "UMLS_CUI"),
+        ("14940584", "10000", "C45255::10000", "NCI_CONCEPT_CODE"),
+    ):
+        raw = copy.deepcopy(template["response"]["body"]["DataElement"])
+        raw["publicId"] = identifier
+        raw["longName"] = "Synthetic source fixture"
+        pv = raw["ValueDomain"]["PermissibleValues"][0]
+        pv["value"] = value
+        pv["ValueMeaning"]["Concepts"] = [
+            {"conceptCode": code, "evsSource": source, "primaryIndicator": "Yes"}
+        ]
+        documents[f"scenarios/cadsr/concept-sources/{identifier}.json"] = crafted(
+            "get_concept_for_permissible_value-1: #368 observed source/code; synthetic metadata",
+            template["request"] | {"path": f"/NCIAPI/1.0/api/DataElement/{identifier}"},
+            response={"status": 200, "body": {"DataElement": raw}},
+        )
     return documents
 
 
@@ -1397,6 +1438,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     cadsr_over_cap,
     cadsr_numeric_versions,
     cadsr_primary_inversion,
+    cadsr_concept_sources,
     cadsr_html_for_json,
     cadsr_match_without_a_concept,
     upstream_masked_error,

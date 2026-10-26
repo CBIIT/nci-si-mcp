@@ -683,7 +683,11 @@ answers the ordinary forms above.
 
 ### `cadsr/primary-inversion`
 
-Crafted from issue #367's live observation of CDE 2178439: To a large extent has API primary C25332 while the graph calls qualifier C49508 main. Other metadata and EVS names are synthetic; this is not a recording.. Crafted, 4 fixtures, for get_concept_for_permissible_value-1: #367 observed API primary C25332, graph main C49508.
+Crafted from issue #367's live observation of CDE 2178439: To a large extent has API primary C25332 while the graph calls qualifier C49508 main. Other metadata and EVS names and NCI_CONCEPT_CODE source labels are synthetic; this is not a recording.. Crafted, 4 fixtures, for get_concept_for_permissible_value-1: #367 observed API primary C25332, graph main C49508.
+
+### `cadsr/concept-sources`
+
+Contract-crafted from issue #368's live source/code observations (LOINC, UMLS and compound NCIt); all surrounding metadata, UMLS public id and stored compound value are synthetic. Not a capture of 5024313 or 14940584. Recorded form 5406471's LOINC values belong to 5301153, not 5024313; 2200604 v1's UMLS reference is representation.. Crafted, 3 fixtures, for get_concept_for_permissible_value-1: #368 observed source/code; synthetic metadata.
 
 ### `injection/evs`
 

@@ -30,9 +30,24 @@ def primary_element(value="To a large extent", codes=None, **fields):
                         "Concepts": codes
                         if codes is not None
                         else [
-                            {"conceptCode": "C49508", "primaryIndicator": "No", "displayOrder": 1},
-                            {"conceptCode": "C25332", "primaryIndicator": "Yes", "displayOrder": 0},
-                            {"conceptCode": "C65107", "primaryIndicator": "No", "displayOrder": 2},
+                            {
+                                "conceptCode": "C49508",
+                                "evsSource": "NCI_CONCEPT_CODE",
+                                "primaryIndicator": "No",
+                                "displayOrder": 1,
+                            },
+                            {
+                                "conceptCode": "C25332",
+                                "evsSource": "NCI_CONCEPT_CODE",
+                                "primaryIndicator": "Yes",
+                                "displayOrder": 0,
+                            },
+                            {
+                                "conceptCode": "C65107",
+                                "evsSource": "NCI_CONCEPT_CODE",
+                                "primaryIndicator": "No",
+                                "displayOrder": 2,
+                            },
                         ],
                     },
                 }
@@ -101,8 +116,18 @@ class PrimaryAPIProtocolTest(ServerFixture):
         for codes in (
             None,
             [
-                {"conceptCode": "C49508", "primaryIndicator": "No", "displayOrder": 0},
-                {"conceptCode": "C25332", "primaryIndicator": "Yes", "displayOrder": 2},
+                {
+                    "conceptCode": "C49508",
+                    "evsSource": "NCI_CONCEPT_CODE",
+                    "primaryIndicator": "No",
+                    "displayOrder": 0,
+                },
+                {
+                    "conceptCode": "C25332",
+                    "evsSource": "NCI_CONCEPT_CODE",
+                    "primaryIndicator": "Yes",
+                    "displayOrder": 2,
+                },
             ],
         ):
             with (
@@ -166,7 +191,7 @@ class PrimaryAPIProtocolTest(ServerFixture):
                 {"publicId": "2178439", "version": "2", "dateModified": "2026-08-25"},
             )
             self.assertNotIn("graphs", provenance)
-            self.assertEqual(self.context.evs.calls, [("get_terminologies", "ncit", (False, None))])
+            self.assertEqual(self.context.evs.calls, [("get_terminologies", None, (False, None))])
             self.assertEqual(self.context.ssis.calls, [])
             tools = self.session(lambda client: client.list_tools())
             schema = next(
@@ -254,6 +279,17 @@ class PrimaryAPIProtocolTest(ServerFixture):
                 self.assertEqual(
                     response.structured_content["error"]["code"], "upstream_unavailable"
                 )
+
+    def test_ncit_source_with_a_malformed_standalone_code_is_not_resolved(self, _):
+        raw = primary_element(
+            codes=[sourced_primary("not-an-NCIt-code", evsSource="NCI_CONCEPT_CODE")]
+        )
+        with patch.object(self.context.cadsr, "get_data_element", return_value=raw):
+            response = self.lookup()
+        self.assertTrue(response.is_error)
+        self.assertEqual(response.structured_content["error"]["code"], "upstream_unavailable")
+        self.assertEqual(response.structured_content["error"]["details"], {"surface": "cadsr"})
+        self.assertEqual(self.context.evs.calls, [("get_terminologies", None, (False, None))])
 
     def test_provenance_names_only_the_api_and_pinned_evs_reads(self, _):
         with patch.object(
@@ -360,7 +396,9 @@ class PrimaryAPIProtocolTest(ServerFixture):
                 self.assertNotIn("code", response.structured_content)
 
     def test_identical_primary_assertions_collapse_without_using_array_position(self, _):
-        codes = [{"conceptCode": "C25332", "primaryIndicator": "Yes"}] * 2
+        codes = [
+            {"conceptCode": "C25332", "evsSource": "NCI_CONCEPT_CODE", "primaryIndicator": "Yes"}
+        ] * 2
         with patch.object(
             self.context.cadsr, "get_data_element", return_value=primary_element(codes=codes)
         ):

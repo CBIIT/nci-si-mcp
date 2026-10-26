@@ -94,7 +94,13 @@ class SeamProtocolTest(ServerFixture):
                 return_value=primary_element(
                     value="Male",
                     publicId="123",
-                    codes=[{"conceptCode": "C3262", "primaryIndicator": "Yes"}],
+                    codes=[
+                        {
+                            "conceptCode": "C3262",
+                            "evsSource": "NCI_CONCEPT_CODE",
+                            "primaryIndicator": "Yes",
+                        }
+                    ],
                 ),
             ),
             patch.object(self.context.cadsr, "get_crdc_list", return_value=[]),
@@ -208,7 +214,13 @@ class CrossDomainRecordSchemaTest(ServerFixture):
             return_value=primary_element(
                 value="Male",
                 publicId="123",
-                codes=[{"conceptCode": "C3262", "primaryIndicator": "Yes"}],
+                codes=[
+                    {
+                        "conceptCode": "C3262",
+                        "evsSource": "NCI_CONCEPT_CODE",
+                        "primaryIndicator": "Yes",
+                    }
+                ],
             ),
         ):
             validator, data = self.validated(

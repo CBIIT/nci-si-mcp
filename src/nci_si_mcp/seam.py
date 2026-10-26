@@ -40,6 +40,7 @@ from .validation import (
     REGISTRY_ID_FORM,
     RELEASE_FORM,
     CrossDomainTerminology,
+    UnresolvedConceptReason,
     bounded,
     validate_identifier,
 )
@@ -335,11 +336,17 @@ def _value_options(
     return element, value
 
 
-def _meaning_primaries(meaning: dict[str, Any]) -> set[str]:
-    return {concept["conceptCode"] for concept in meaning["concepts"] if concept["primary"]}
+def _meaning_primaries(
+    meaning: dict[str, Any],
+) -> dict[tuple[str, bool, str | None], dict[str, Any]]:
+    return {
+        (concept["conceptCode"], "terminology" in concept, concept.get("terminology")): concept
+        for concept in meaning["concepts"]
+        if concept["primary"]
+    }
 
 
-def _primary_code(rows: list[dict[str, Any]], value: str) -> str:
+def _primary_reference(rows: list[dict[str, Any]], value: str) -> dict[str, Any]:
     meanings = [row["valueMeaning"] for row in rows if row["value"] == value]
     if not meanings:
         raise PlatformError(
@@ -349,17 +356,33 @@ def _primary_code(rows: list[dict[str, Any]], value: str) -> str:
     return _one_primary([_meaning_primaries(meaning) for meaning in meanings])
 
 
-def _one_primary(primaries: list[set[str]]) -> str:
-    codes = set().union(*primaries)
-    if {len(primary) for primary in primaries} != {1} or len(codes) != 1:
+def _one_primary(
+    primaries: list[dict[tuple[str, bool, str | None], dict[str, Any]]],
+) -> dict[str, Any]:
+    references = {key: value for primary in primaries for key, value in primary.items()}
+    if {len(primary) for primary in primaries} != {1} or len(references) != 1:
         raise PlatformError(
             "upstream_unavailable",
             "Registry data is ambiguous for that value. "
             "Ask the provider to correct its primary concept.",
             surface="cadsr",
-            candidates=sorted(codes),
+            candidates=sorted({key[0] for key in references}),
         )
-    return next(iter(codes))
+    reference = next(iter(references.values())).copy()
+    del reference["primary"]
+    return reference
+
+
+def _unresolved_reason(reference: dict[str, Any]) -> UnresolvedConceptReason | None:
+    if "::" in reference["conceptCode"]:
+        return "compound_code"
+    if reference.get("terminology") is None:
+        return "missing_source"
+    if reference["terminology"] != "NCI_CONCEPT_CODE":
+        return "non_ncit_source"
+    if not re.fullmatch(NCIT_CODE_FORM, reference["conceptCode"]):
+        _malformed("NCIt concept code", "cadsr")
+    return None
 
 
 def get_concept_for_permissible_value(
@@ -397,7 +420,7 @@ def get_concept_for_permissible_value(
         ),
     ] = None,
 ) -> dict[str, Any]:
-    """Find the NCIt concept that a permissible value of a data element stands for.
+    """Find the primary concept reference that a permissible value stands for.
 
     permissibleValueId is capability_unavailable until caDSR serves it (OP-C10).
 
@@ -407,8 +430,14 @@ def get_concept_for_permissible_value(
     graphs. The value is compared exactly, without trimming or case folding; neither array
     order nor display order supplies a missing primary flag.
 
+    Only exact NCI_CONCEPT_CODE and a standalone NCIt code resolve through EVS.
+    Otherwise returns conceptReference, unresolvedReason and permissibleValue with caDSR-only
+    provenance. Reasons in precedence order: compound_code, missing_source, non_ncit_source.
+    Codes and sources remain unchanged, including code::value and explicit null sources.
+    Unresolved references make no NCIt concept request, but may perform release discovery.
+
     not_found when the selected version has no such value; upstream_unavailable when primary
-    evidence is missing, invalid or conflicting; identical primary assertions may collapse.
+    evidence is missing, invalid or conflicting; identical code/source presence/value collapse.
     capability_unavailable for permissibleValueId (OP-C10). Secured callers need both
     data-element and concept child permissions before any reads.
     """
@@ -422,8 +451,22 @@ def get_concept_for_permissible_value(
         data = cadsr_content.get_data_element(
             context, publicId=element, version=version, include=["permissibleValues"]
         )
-        code = _primary_code(data["permissibleValues"], value)
+        reference = _primary_reference(data["permissibleValues"], value)
         require("get_concept")
+        identity = {
+            "dataElement": {"publicId": element, "version": data["version"]},
+            "value": value,
+        }
+        reason = _unresolved_reason(reference)
+        if reason is not None:
+            _mixed_cache()
+            return {
+                "conceptReference": reference,
+                "unresolvedReason": reason,
+                "permissibleValue": identity,
+                "provenance": data["provenance"],
+            }
+        code = reference["conceptCode"]
         raw = context.evs.get_concept(code, release=selected, include="minimal")
         if raw.get("code") != code:
             _malformed("concept identity", "evs")
@@ -440,10 +483,7 @@ def get_concept_for_permissible_value(
                 }
             },
         }
-        result["permissibleValue"] = {
-            "dataElement": {"publicId": element, "version": data["version"]},
-            "value": value,
-        }
+        result["permissibleValue"] = identity
     _mixed_cache()
     return result
 
