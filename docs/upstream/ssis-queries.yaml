@@ -16,7 +16,7 @@ queries:
     selected: [graph, version, date]
     required: [graph, date]
     limit: 3
-    consumers: [find_data_elements_for_concept, get_concept_for_permissible_value, get_release_alignment, ground_value]
+    consumers: [find_data_elements_for_concept, get_release_alignment, ground_value]
     requirements: [X-1, X-2, X-3, get_release_alignment-1]
   - id: elements-exact
     operation: find_data_elements
