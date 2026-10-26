@@ -208,6 +208,7 @@ def test_expansion_without_ncit_graph_version_is_release_not_available(tools, pi
 
 @pytest.mark.tool(FIND)
 @pytest.mark.requirement("find_data_elements_for_concept-4")
+@pytest.mark.live_capable
 def test_a_terminology_other_than_ncit_is_an_invalid_request(tools, pinned):
     result = _find(tools, pinned | {"terminology": "mdr"})
 
@@ -395,6 +396,7 @@ def test_a_value_the_data_element_does_not_have_as_given_is_not_found(
 
 @pytest.mark.tool(PERMISSIBLE)
 @pytest.mark.requirement("get_concept_for_permissible_value-2")
+@pytest.mark.live_capable
 def test_a_permissible_value_by_its_identifier_is_unavailable(tools, pinned, recorded):
     asked = recorded("recorded/cadsr/permissible-value-9192925.json")
     # The platform's path for a value by its identifier answers 404 (OP-C10).
