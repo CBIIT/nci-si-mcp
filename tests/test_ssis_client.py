@@ -306,6 +306,8 @@ class SSISContractsTest(ServerTestCase):
             prefix + "0|injection",
             prefix + "%7C",
             prefix + "%F0%9F%A7%AC",
+            "property|C17357|0",
+            "property|https%3A%2F%2Fexample.org%2FC17357|0",
         ):
             with self.subTest(text=text):
                 row["roles"]["value"] = text
@@ -324,6 +326,28 @@ class SSISContractsTest(ServerTestCase):
         second = self.ssis(self.serve(sparql_reply([row]))).find_data_elements("C17357")
         self.assertEqual(first, second)
         self.assertEqual(first[0]["roles"], token)
+
+    def test_same_role_and_concept_preserve_distinct_orders(self):
+        source = recording("ssis-sparql/data-elements-roles-c17357.json")
+        row = source["response"]["body"]["results"]["bindings"][0]
+        prefix = (
+            "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|"
+        )
+        row["roles"]["value"] = prefix + "2 " + prefix + "0"
+        result = self.ssis(self.serve(sparql_reply([row]))).find_data_elements("C17357")
+        self.assertEqual(result[0]["roles"], prefix + "0 " + prefix + "2")
+
+    def test_distinct_role_tuples_are_sorted_independently_of_aggregate_order(self):
+        source = recording("ssis-sparql/data-elements-roles-c17357.json")
+        row = source["response"]["body"]["results"]["bindings"][0]
+        concept = "http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357"
+        object_class = f"objectClass|{concept}|0"
+        value_meaning = f"valueMeaning|{concept}|1"
+        for aggregate in (f"{value_meaning} {object_class}", f"{object_class} {value_meaning}"):
+            with self.subTest(aggregate=aggregate):
+                row["roles"]["value"] = aggregate
+                result = self.ssis(self.serve(sparql_reply([row]))).find_data_elements("C17357")
+                self.assertEqual(result[0]["roles"], f"{object_class} {value_meaning}")
 
     def ssis(self, server):
         return SSISClient(Settings(ssis_sparql_url=server.url))

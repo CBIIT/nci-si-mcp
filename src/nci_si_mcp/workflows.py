@@ -159,7 +159,7 @@ def ground_value(
     elements and permissible values that use it, and optionally a commons' stored values.
     Data element uses name every graph role and actual matching conceptCode, with optional
     integer displayOrder; the graph gives no primary flag, so use get_data_element for
-    caDSR's primary indicator (representation-term API expansion: #360).
+    caDSR's primary indicator.
     Representation-term use is not covered by this route, so absence does not establish non-use.
 
     registryRelease is left unset today (C-1).

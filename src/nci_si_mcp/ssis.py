@@ -92,12 +92,7 @@ class GraphIdentity(TypedDict):
 
 
 def _decode(component: str) -> str:
-    if re.search(r"%(?![0-9a-fA-F]{2})", component):
-        raise _malformed()
-    try:
-        return unquote(component, errors="strict")
-    except UnicodeError:
-        raise _malformed() from None
+    return unquote(component)
 
 
 def _role_tuple(token: str) -> GraphConceptUse:
@@ -118,8 +113,6 @@ def _role_tuple(token: str) -> GraphConceptUse:
 
 def graph_roles(value: str) -> list[GraphConceptUse]:
     """Decode complete tuples; normalize and deduplicate independently of aggregate order."""
-    if not isinstance(value, str) or not value:
-        raise _malformed()
     records = [_role_tuple(token) for token in value.split(" ")]
     unique = {(r["role"], r["conceptCode"], r.get("displayOrder")): r for r in records}
     return [

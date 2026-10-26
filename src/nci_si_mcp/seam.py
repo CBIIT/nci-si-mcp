@@ -275,7 +275,7 @@ def find_data_elements_for_concept(
     a version or a value-to-version assignment. caDSR API records keep their item versions.
     Roles name every graph path and actual matching conceptCode without inferring a primary flag,
     with optional trimmed integer displayOrder. Use get_data_element for caDSR's primary
-    indicator (representation-term API expansion: #360).
+    indicator.
     Representation-term use is not covered by this route, so absence does not establish non-use.
 
     Returns dataElements and, when asked, permissibleValues (on every page, possibly empty),

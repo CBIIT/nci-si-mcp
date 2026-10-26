@@ -761,7 +761,7 @@ data_element_use:
     live), so their answers differ. Roles name every graph-reported path and actual matching
     concept, with a trimmed integer displayOrder only when supplied; malformed present order
     fails as upstream_unavailable. The graph supplies no primary flag; use get_data_element
-    for caDSR's primary indicator (representation-term API expansion is tracked in #360).
+    for caDSR's primary indicator.
     Representation-term use is not covered by this route, so absence does not establish non-use.
     Shared SI merges all versions of a CDE into one node: graph-derived data_element_use
     and value_use records have public-ID scope, with no version or value-to-version claim.
