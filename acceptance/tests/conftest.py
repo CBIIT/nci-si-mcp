@@ -332,6 +332,7 @@ def tools(
     own = any(
         request.node.get_closest_marker(mark) for mark in (UNPREPARED, OWN_SERVER, "mcp_session")
     )
+    # Live mode never starts an index-less server, so an unprepared test is not live-capable.
     if not (scenarios or own) or upstream is None:
         yield request.getfixturevalue("server")
         return
