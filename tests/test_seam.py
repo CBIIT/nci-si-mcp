@@ -126,7 +126,7 @@ class SeamTest(unittest.TestCase):
         result = self.call(conceptCode="C1", release="26.06e")
         self.assertEqual(
             result["dataElements"][0]["dataElement"],
-            {"publicId": "123", "version": "1", "longName": "Element 123"},
+            {"publicId": "123", "longName": "Element 123"},
         )
         provenance = result["dataElements"][0]["provenance"]
         self.assertEqual(provenance["registry"], {"registry": "cadsr"})
@@ -147,7 +147,7 @@ class SeamTest(unittest.TestCase):
         self.assertEqual(result["truncation"], {"occurred": False})
 
     def test_malformed_joined_identities_and_iris_are_errors_not_invented_content(self):
-        for key, value in (("id", "0"), ("id", None), ("version", "new"), ("name", "")):
+        for key, value in (("id", "0"), ("id", None), ("name", "")):
             with self.subTest(key=key):
                 self.ssis.elements = [element(123) | {key: value}]
                 result = self.call(conceptCode="C1")
@@ -769,7 +769,11 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
 
     def test_pv_preserves_whitespace_in_an_exactly_matching_value(self):
         self.api_element = primary_element(
-            publicId="123", value=" Male ", codes=[{"conceptCode": "C1", "primaryIndicator": "Yes"}]
+            publicId="123",
+            value=" Male ",
+            codes=[
+                {"conceptCode": "C1", "evsSource": "NCI_CONCEPT_CODE", "primaryIndicator": "Yes"}
+            ],
         )
         result = self.resolve(value=" Male ")
         self.assertEqual(result["code"], "C1")
@@ -783,7 +787,11 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
 
     def test_pv_wrong_evs_concept_identity_is_an_evs_failure(self):
         self.api_element = primary_element(
-            publicId="123", value="Male", codes=[{"conceptCode": "C1", "primaryIndicator": "Yes"}]
+            publicId="123",
+            value="Male",
+            codes=[
+                {"conceptCode": "C1", "evsSource": "NCI_CONCEPT_CODE", "primaryIndicator": "Yes"}
+            ],
         )
         with patch.object(self.evs, "get_concept", return_value=concept("C2", active=True)):
             result = self.resolve()
@@ -792,10 +800,36 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
 
     def test_pv_explicit_release_keeps_public_cache_hint(self):
         self.api_element = primary_element(
-            publicId="123", value="Male", codes=[{"conceptCode": "C1", "primaryIndicator": "Yes"}]
+            publicId="123",
+            value="Male",
+            codes=[
+                {"conceptCode": "C1", "evsSource": "NCI_CONCEPT_CODE", "primaryIndicator": "Yes"}
+            ],
         )
         result = self.resolve()
         self.assertEqual(result["code"], "C1")
+        self.assertEqual(self.hint, {"ttlMs": 3_600_000, "cacheScope": "public"})
+
+    def test_unresolved_pv_explicit_release_keeps_public_cache_hint(self):
+        self.api_element = primary_element(
+            publicId="123",
+            value="Male",
+            codes=[
+                {
+                    "conceptCode": "C0009219",
+                    "evsSource": "NCI_META_CUI",
+                    "primaryIndicator": "Yes",
+                }
+            ],
+        )
+        # The outer producer must declare its policy even without the child's hint.
+        with patch("nci_si_mcp.cadsr_content.select_cache_hint"):
+            result = self.resolve()
+        self.assertEqual(
+            result["conceptReference"],
+            {"conceptCode": "C0009219", "terminology": "NCI_META_CUI", "longName": None},
+        )
+        self.assertEqual(result["unresolvedReason"], "non_ncit_source")
         self.assertEqual(self.hint, {"ttlMs": 3_600_000, "cacheScope": "public"})
 
     def test_pv_identifier_rejects_either_other_selector_before_upstream(self):
@@ -823,7 +857,7 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
             publicId="123",
             value="Male",
             codes=[
-                {"conceptCode": code, "primaryIndicator": "Yes"}
+                {"conceptCode": code, "evsSource": "NCI_CONCEPT_CODE", "primaryIndicator": "Yes"}
                 for code in ("C9", "C2", "C10", "C1")
             ],
         )

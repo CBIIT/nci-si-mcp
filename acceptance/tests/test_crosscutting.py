@@ -45,9 +45,9 @@ REACHED = ("relationship", "direction", "polarity")
 BARE = {"ncit": re.compile(r"[A-Z][0-9]+")}
 
 
-def _per_tool(names, scenario=None):
+def _per_tool(names, scenario=None, *, live=()):
     """One case per tool, counted for that tool in the report, run with `scenario` or else
-    with the scenario its call needs."""
+    with the scenario its call needs; `live` names eligible ordinary calls."""
 
     return [
         pytest.param(
@@ -55,6 +55,7 @@ def _per_tool(names, scenario=None):
             id=name,
             marks=[
                 pytest.mark.tool(name),
+                *([pytest.mark.live_capable] if name in live and not _scenarios(name) else []),
                 *[
                     pytest.mark.scenario(each)
                     for each in ([scenario] if scenario else _scenarios(name))
@@ -77,6 +78,11 @@ UPSTREAM, EMPTY, TRUNCATING, PAGED = (
 )
 CALLED = _per_tool(CALLS)
 PINNED = _per_tool(PINNED_TOOLS)
+# Successful calls whose historical explicit pin still addresses the requested upstream.
+# FHIR/GDC are unpinned; keyword search needs the crafted OP-C03 capability.
+LIVE_CONTENT = set(CALLS) - {"expand_value_set", "resolve_stored_value", "search_data_elements"}
+LIVE_CALLED = _per_tool(CALLS, live=LIVE_CONTENT)
+LIVE_PINNED = _per_tool(PINNED_TOOLS, live=LIVE_CONTENT)
 # The release the release/unknown scenario answers 404 for on every content path.
 UNKNOWN_RELEASE = "99.99z"
 # The calls whose answers name the release they come from, where a mismatch can show (X-3).
@@ -126,7 +132,7 @@ def _bare(code, terminology):
 
 
 @pytest.mark.requirement("X-1")
-@pytest.mark.parametrize("name", PINNED)
+@pytest.mark.parametrize("name", LIVE_PINNED)
 def test_every_item_carries_the_release_requested(tools, pinned, name):
     found = _items(tools, pinned, name)
 
@@ -134,7 +140,7 @@ def test_every_item_carries_the_release_requested(tools, pinned, name):
 
 
 @pytest.mark.requirement("X-6")
-@pytest.mark.parametrize("name", CALLED)
+@pytest.mark.parametrize("name", LIVE_CALLED)
 def test_a_result_validates_against_the_declared_output_schema(tools, pinned, name):
     result = _call(tools, pinned, name)
 
@@ -143,13 +149,13 @@ def test_a_result_validates_against_the_declared_output_schema(tools, pinned, na
 
 
 @pytest.mark.requirement("X-14")
-@pytest.mark.parametrize("name", CALLED)
+@pytest.mark.parametrize("name", _per_tool(CALLS, live=CALLS))
 def test_a_result_is_an_object(tools, pinned, name):
     assert isinstance(_call(tools, pinned, name).content, dict)
 
 
 @pytest.mark.requirement("X-7")
-@pytest.mark.parametrize("name", CALLED)
+@pytest.mark.parametrize("name", LIVE_CALLED)
 def test_every_item_carries_its_provenance(tools, pinned, name):
     original = _checked_provenances(_call(tools, pinned, name), name)
     correlation = "acceptance-provenance-repeat"
@@ -185,7 +191,9 @@ def _origins(provenances):
 
 
 @pytest.mark.requirement("X-7")
-@pytest.mark.parametrize("name", _per_tool(name for name in CALLS if TOOLS[name].get("traversal")))
+@pytest.mark.parametrize(
+    "name", _per_tool((name for name in CALLS if TOOLS[name].get("traversal")), live=LIVE_CONTENT)
+)
 def test_an_item_reached_by_traversal_says_how(tools, pinned, name):
     provenances = [provenance_of(item) for item in _items(tools, pinned, name)]
     depths = [provenance.get("depth") for provenance in provenances]
@@ -197,7 +205,7 @@ def test_an_item_reached_by_traversal_says_how(tools, pinned, name):
 
 
 @pytest.mark.requirement("X-9")
-@pytest.mark.parametrize("name", CALLED)
+@pytest.mark.parametrize("name", LIVE_CALLED)
 def test_codes_are_bare_with_their_terminology_beside_them(tools, pinned, name):
     # A1.2 is about the codes items carry, in `code` or a field such as `targetCode`; an item
     # without one, such as an edge, has none to check.
@@ -223,7 +231,7 @@ def test_no_upstream_request_is_repeated_within_a_call(tools, upstream, pinned, 
 
 
 @pytest.mark.requirement("X-13")
-@pytest.mark.parametrize("name", PINNED)
+@pytest.mark.parametrize("name", LIVE_PINNED)
 def test_a_release_pinned_result_may_be_cached(tools, pinned, name):
     result = _call(tools, pinned, name)
 
@@ -241,7 +249,7 @@ NOT_FOUND = 404
 
 
 @pytest.mark.requirement("X-21")
-@pytest.mark.parametrize("name", _per_tool(REGISTRY))
+@pytest.mark.parametrize("name", _per_tool(REGISTRY, live=LIVE_CONTENT))
 def test_a_cadsr_item_without_a_registry_release_names_the_registry_alone(tools, pinned, name):
     provenances = [provenance_of(item) for item in _items(tools, pinned, name)]
     # An item of a tool that also takes the NCIt release names the registry beside it (A1.5),
@@ -267,7 +275,7 @@ def test_a_registry_release_cadsr_does_not_publish_fails_closed(tools, pinned, r
 
 
 @pytest.mark.requirement("X-13")
-@pytest.mark.parametrize("name", _per_tool(REGISTRY))
+@pytest.mark.parametrize("name", _per_tool(REGISTRY, live=LIVE_CONTENT))
 def test_a_cadsr_result_is_cached_as_what_it_holds_says(tools, pinned, name):
     result = _call(tools, pinned, name)
 
@@ -515,7 +523,16 @@ def _whole(value):
 
 
 @pytest.mark.requirement("X-10")
-@pytest.mark.parametrize("name", _per_tool(TRUNCATING))
+@pytest.mark.parametrize(
+    "name",
+    [
+        case
+        for name in TRUNCATING
+        for case in _per_tool(
+            [name], "ssis/distinct-cap" if name == "find_data_elements_for_concept" else None
+        )
+    ],
+)
 def test_a_bound_reached_is_reported_with_how_much_was_left_out(tools, pinned, name):
     truncating = CALLS[name]["truncating"]
     result = _call(tools, pinned, name, CALLS[name]["arguments"] | truncating["arguments"])
@@ -545,17 +562,23 @@ def _paged(entry_filter=lambda entry: True):
     ]
 
 
-def _marks(name, entry):
+def _marks(name, entry, *, live=False):
     """A paged case's marks: its tool, the scenario its call needs, and the prepare step where
     the call searches the interim index."""
 
     prepared = [pytest.mark.prepared] if entry.get("prepared") else []
-    scenarios = [pytest.mark.scenario(each) for each in _scenarios(name)]
-    return [pytest.mark.tool(name), *scenarios, *prepared]
+    scenarios = [
+        pytest.mark.scenario(each)
+        for each in ([entry["scenario"]] if "scenario" in entry else _scenarios(name))
+    ]
+    capable = [pytest.mark.live_capable] if live and not scenarios and not prepared else []
+    return [pytest.mark.tool(name), *scenarios, *prepared, *capable]
 
 
 PAGES = [
-    pytest.param(name, entry, id=f"{name}-{index}", marks=_marks(name, entry))
+    pytest.param(
+        name, entry, id=f"{name}-{index}", marks=_marks(name, entry, live=name in LIVE_CONTENT)
+    )
     for name, index, entry in _paged()
 ]
 
@@ -598,7 +621,11 @@ def _first_page(tools, pinned, name, entry, extra=None):
 
 CHANGED = [
     pytest.param(
-        name, entry, change, id=f"{name}-{index}-{next(iter(change))}", marks=_marks(name, entry)
+        name,
+        entry,
+        change,
+        id=f"{name}-{index}-{next(iter(change))}",
+        marks=_marks(name, entry, live=name in LIVE_CONTENT),
     )
     for name, index, entry in _paged()
     for change in entry.get("changed", [])
@@ -676,7 +703,13 @@ def test_a_cursor_with_a_given_default_left_out_continues(tools, pinned, name, e
 # The paged calls' arguments that differ from their stated default: left out at the cursor,
 # each applies as its default, so the cursor is presented with another argument.
 NON_DEFAULT = [
-    pytest.param(name, entry, key, id=f"{name}-{index}-{key}", marks=_marks(name, entry))
+    pytest.param(
+        name,
+        entry,
+        key,
+        id=f"{name}-{index}-{key}",
+        marks=_marks(name, entry, live=name in LIVE_CONTENT),
+    )
     for name, index, entry in _paged()
     for key, value in (CALLS[name]["arguments"] | entry["arguments"]).items()
     if key in defaults(name) and defaults(name)[key] != value
@@ -714,8 +747,7 @@ def _defaulted():
     for name in (name for name in CALLS if defaults(name)):
         calls = [{"arguments": CALLS[name]["arguments"]}, *CALLS[name].get("defaulted", [])]
         for index, call in enumerate(calls):
-            scenarios = [call["scenario"]] if "scenario" in call else _scenarios(name)
-            marks = [pytest.mark.tool(name), *[pytest.mark.scenario(each) for each in scenarios]]
+            marks = _marks(name, call, live=name in LIVE_CONTENT)
             cases.append(pytest.param(name, call["arguments"], id=f"{name}-{index}", marks=marks))
     return cases
 
@@ -753,7 +785,7 @@ def _other_release(recorded, pinned):
 
 
 BOUNDED = [
-    pytest.param(name, argument, id=f"{name}-{argument}", marks=_marks(name, {}))
+    pytest.param(name, argument, id=f"{name}-{argument}", marks=_marks(name, {}, live=True))
     for name in CALLS
     for argument in TOOLS[name].get("bounds", {})
 ]

@@ -10,6 +10,7 @@ from .bounds import HARD_MAX_NODES
 from .errors import InputValidationError
 
 SearchMode = Literal["hybrid", "bm25", "vector"]
+UnresolvedConceptReason = Literal["compound_code", "missing_source", "non_ncit_source"]
 Direction = Literal["out", "in", "both"]
 EdgeType = Literal[
     "parent",

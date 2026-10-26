@@ -22,6 +22,7 @@ from .validation import (
     ServedBy,
     StoredValueConfidence,
     TruncationBound,
+    UnresolvedConceptReason,
 )
 
 
@@ -208,9 +209,13 @@ class RegistryItemIdentity(TypedDict):
     longName: str
 
 
-class ValueMeaningConcept(TypedDict):
+class APIConcept(TypedDict):
     conceptCode: str
     longName: str | None
+    terminology: NotRequired[str | None]
+
+
+class ValueMeaningConcept(APIConcept):
     primary: bool
 
 
@@ -231,9 +236,7 @@ class ClassificationScheme(RegistryItemIdentity):
     provenance: Provenance
 
 
-class ConceptAssociation(TypedDict):
-    conceptCode: str
-    longName: str | None
+class ConceptAssociation(APIConcept):
     role: DataElementConceptRole
 
 
@@ -325,13 +328,22 @@ class ConceptBatch(TypedDict):
     provenance: NotRequired[Provenance]
 
 
+class GraphElementIdentity(TypedDict):
+    publicId: str
+    longName: str
+
+
+class GraphValueIdentity(TypedDict):
+    publicId: str
+
+
 class DataElementUse(TypedDict):
-    dataElement: RegistryItemIdentity
+    dataElement: GraphElementIdentity
     provenance: Provenance
 
 
 class ValueUse(TypedDict):
-    dataElement: CodeMapIdentity
+    dataElement: GraphValueIdentity
     value: str
     conceptCode: str
     conceptTerminology: Literal["ncit"]
@@ -355,6 +367,13 @@ class PermissibleValueConcept(Concept):
     """Pinned EVS concept; upstream.cadsr retains the producing API item's provenance."""
 
     permissibleValue: PermissibleValueIdentity
+
+
+class UnresolvedPermissibleValueConcept(TypedDict):
+    conceptReference: APIConcept
+    unresolvedReason: UnresolvedConceptReason
+    permissibleValue: PermissibleValueIdentity
+    provenance: Provenance
 
 
 class MapsetSource(TypedDict):

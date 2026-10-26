@@ -189,8 +189,8 @@ def test_a_recorded_sparql_answer_reads_as_rows_of_values_and_bare_codes():
 def test_uses_are_named_by_their_data_element_and_value():
     use = {"dataElement": {"publicId": "2200604", "version": "4"}, "value": "Male"}
 
-    assert element_ids([use]) == {("2200604", "4")}
-    assert value_ids([use | {"conceptCode": "C20197"}]) == {("2200604", "4", "Male", "C20197")}
+    assert element_ids([use]) == {"2200604"}
+    assert value_ids([use | {"conceptCode": "C20197"}]) == {("2200604", "Male", "C20197")}
 
 
 PROVENANCE = {

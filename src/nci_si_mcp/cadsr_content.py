@@ -242,7 +242,13 @@ def _concept(raw: dict[str, Any]) -> dict[str, Any]:
     code = raw.get("conceptCode")
     if not isinstance(code, str) or not code.strip():
         _malformed("associated concept code")
-    return _fields(raw, ("conceptCode", "longName"))
+    result = _fields(raw, ("conceptCode", "longName"))
+    if "evsSource" in raw:
+        source = raw["evsSource"]
+        if source is not None and (not isinstance(source, str) or not source.strip()):
+            _malformed("associated concept source")
+        result["terminology"] = source
+    return result
 
 
 def _associations(raw: dict[str, Any]) -> list[dict[str, Any]]:
@@ -356,7 +362,10 @@ def get_data_element(
 
     Returns the data element with provenance (the registry alone for unpinned content); nested
     permissible values and schemes carry provenance. Its conceptAssociations section lists the
-    concepts behind the element. referenceDocuments returns all upstream rows, including
+    concepts behind the element. Association and value-meaning concepts carry terminology
+    as exact upstream evsSource: unknown strings pass through, absent stays absent, null stays
+    null. Compound code::value stays intact; blank or wrong-type sources are upstream errors.
+    referenceDocuments returns all upstream rows, including
     question texts, references and templates. Scalar metadata is null when the producing
     answer supplies none; no other operation is queried to fill it. Item versions compare
     numerically (4 equals 4.0); request and upstream version spellings are preserved.

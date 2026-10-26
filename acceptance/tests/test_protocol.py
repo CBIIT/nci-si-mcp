@@ -266,6 +266,7 @@ def test_each_list_may_be_cached_and_shared(server, method):
 
 @pytest.mark.gate
 @pytest.mark.requirement("P-6")
+@pytest.mark.live_capable
 def test_tools_list_is_the_same_after_a_content_call(server, target, pinned):
     before = _listing(server.listing)
 
@@ -466,6 +467,8 @@ def _case(key: str, template: str) -> object:
     several = len(RESOURCES[key]["uri"]) > 1
     name = "-".join([key, *uri_variables(template)]) if several else key
     marks = [pytest.mark.prepared] if RESOURCES[key].get("prepared") else []
+    if not marks:
+        marks.append(pytest.mark.live_capable)
     return pytest.param(key, template, id=name, marks=marks)
 
 

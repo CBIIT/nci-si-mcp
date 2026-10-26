@@ -171,6 +171,7 @@ def test_an_include_value_returns_its_section_and_no_other(
 
 @pytest.mark.tool("get_concept")
 @pytest.mark.requirement("get_concept-2")
+@pytest.mark.live_capable
 def test_descendants_is_no_include_value(tools, pinned):
     # A server whose input schema lists the include values refuses this in the SDK's argument
     # validation, as text with no error record; that fails here, since M3.2 asks for the record.
@@ -243,6 +244,7 @@ def test_a_code_the_platform_leaves_out_of_a_batch_is_named_missing(tools, pinne
 @pytest.mark.tool("get_concepts")
 @pytest.mark.requirement("get_concepts-3")
 @pytest.mark.parametrize("order", [BATCH, BATCH[::-1]], ids=["as-listed", "reversed"])
+@pytest.mark.live_capable
 def test_a_batch_comes_back_in_request_order(tools, pinned, order):
     result = _batch(tools, pinned, order)
 
@@ -432,6 +434,7 @@ def test_typeahead_takes_retired_only_as_lexical_search_does(tools, pinned, reco
 @pytest.mark.requirement("search_concepts-6")
 # exclude, which the platform cannot serve, and values a lenient server might take for one.
 @pytest.mark.parametrize("value", ["exclude", "ONLY", ""])
+@pytest.mark.live_capable
 def test_a_retired_value_outside_the_two_is_invalid(tools, pinned, recorded, value):
     result = _search(tools, pinned, recorded(RETIRED_SEARCH), "lexical", retired=value)
 
@@ -583,7 +586,11 @@ def test_an_index_search_s_cursor_continues_with_its_next_ranked_items(
 @pytest.mark.parametrize("mode", INDEX_MODES)
 # On a server without an index too: the terminology decides before the index does (-8).
 @pytest.mark.parametrize(
-    "index", ["as-prepared", pytest.param("none", marks=pytest.mark.unprepared)]
+    "index",
+    [
+        pytest.param("as-prepared", marks=pytest.mark.live_capable),
+        pytest.param("none", marks=pytest.mark.unprepared),
+    ],
 )
 def test_an_index_mode_for_a_terminology_without_an_index_is_invalid(tools, recorded, mode, index):
     # GO: the index is NCIt's alone.
@@ -633,9 +640,9 @@ def test_index_search_returns_retired_concepts_with_the_others_or_alone(
     assert {(active, status) for _, active, status in alone} == {(False, retired)}
 
 
-@pytest.mark.prepared
 @pytest.mark.tool("search_concepts")
 @pytest.mark.requirement("search_concepts-6")
+@pytest.mark.live_capable
 @pytest.mark.parametrize("mode", INDEX_MODES)
 @pytest.mark.parametrize("value", ["exclude", "ONLY", ""])
 def test_a_retired_value_outside_the_two_is_invalid_in_index_modes(tools, pinned, mode, value):

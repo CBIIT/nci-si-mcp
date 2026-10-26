@@ -225,7 +225,7 @@ def cross_replies():
         "registry": {"published": False, "generatedAt": "2026-10-10"},
     }
     item = {
-        "dataElement": {"publicId": "882", "version": "9", "longName": "New CDE"},
+        "dataElement": {"publicId": "882", "longName": "New CDE"},
         "provenance": origin,
     }
     return [
@@ -398,7 +398,7 @@ CORRUPTIONS = (
     ]
     + [
         ("cross-domain", 0, "dataElements.0.dataElement." + field, MISSING)
-        for field in ("publicId", "version", "longName")
+        for field in ("publicId", "longName")
     ]
     + [
         ("cross-domain", 0, "dataElements.0.provenance.source", value)

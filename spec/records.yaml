@@ -492,7 +492,7 @@ data_element:
       of: get_data_element
     conceptAssociations:
       content: >-
-        The concepts of its data element concept, each { conceptCode, longName, role }, role
+        The concepts of its data element concept, each { conceptCode, longName, terminology?, role }, role
         objectClass or property, as the platform's ObjectClass and Property give them, when
         include selects them
       optional: true
@@ -520,10 +520,51 @@ permissible_value:
     valueMeaning:
       content: >-
         Its value meaning: { publicId, version, longName, concepts[] }, each concept
-        { conceptCode, longName, primary } as the platform gives it
+        { conceptCode, longName, terminology?, primary } as the platform gives it (api_concept)
       of: A9.1
     provenance:
       content: The provenance record, its release in the registry form
+      of: A4.4
+api_concept:
+  title: The caDSR API concept reference
+  about: >-
+    A reference supplied by caDSR, not a resolved EVS concept. Source is never inferred
+    from the code. Compound code::value strings pass through intact, without splitting.
+  fields:
+    conceptCode:
+      content: The upstream conceptCode unchanged, including compound code::value
+      of: A1.2
+    longName:
+      content: The upstream longName; null where the API supplies none
+      nullable: true
+      of: A4.1
+    terminology:
+      content: >-
+        Exact upstream evsSource, including unknown nonblank strings; omitted stays absent,
+        explicit null stays null. A blank or non-string non-null source is upstream_unavailable
+      optional: true
+      nullable: true
+      of: A1.2
+unresolved_pv_concept:
+  title: The unresolved permissible value concept result
+  about: >-
+    Successful reference from caDSR when its primary concept cannot be resolved as NCIt.
+    No active flag, EVS name or EVS origin is invented.
+  fields:
+    conceptReference:
+      content: The api_concept reference from the selected primary assertion
+      of: get_concept_for_permissible_value
+    unresolvedReason:
+      content: >-
+        Server handling reason, in precedence order compound_code (contains ::), missing_source
+        (absent or null), non_ncit_source (not exactly NCI_CONCEPT_CODE)
+      values: [compound_code, missing_source, non_ncit_source]
+      of: get_concept_for_permissible_value
+    permissibleValue:
+      content: "{ dataElement { publicId, version }, value }, preserving API version spelling"
+      of: A1.2
+    provenance:
+      content: The producing caDSR read only, with registry release and actual upstream origin
       of: A4.4
 classification_scheme:
   title: The classification scheme record
@@ -718,9 +759,12 @@ data_element_use:
     expandDescendants, of a descendant. The surface its provenance names answered it; the
     surfaces answer from their own content (the Shared SI graph is an export, the caDSR API is
     live), so their answers differ, and neither says by which route the concept is used.
+    Shared SI merges all versions of a CDE into one node: graph-derived data_element_use
+    and value_use records have public-ID scope, with no version or value-to-version claim.
+    Records from the caDSR API and CRDC crosswalk retain their versioned identities.
   fields:
     dataElement:
-      content: "{ publicId, version, longName } of the data element"
+      content: "{ publicId, longName } of the data element"
       of: A1.2
     provenance:
       content: >-
@@ -736,7 +780,7 @@ value_use:
     element and its value.
   fields:
     dataElement:
-      content: "{ publicId, version } of the data element whose value domain holds it"
+      content: "{ publicId } of the data element associated with the value"
       of: A1.2
     value:
       content: The value, as the platform gives it

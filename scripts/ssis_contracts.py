@@ -15,7 +15,7 @@ from nci_si_mcp.errors import PlatformError
 from nci_si_mcp.http_client import HttpClient, UpstreamError
 from nci_si_mcp.seam import NCIT_NAMESPACE
 from nci_si_mcp.ssis import CADSR_GRAPH, NCIT_GRAPH, SSISClient, _valid_date
-from nci_si_mcp.validation import ITEM_VERSION_FORM, NCIT_CODE_FORM
+from nci_si_mcp.validation import NCIT_CODE_FORM
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTER = ROOT / "docs/upstream/ssis-queries.yaml"
@@ -78,11 +78,6 @@ def semantics(values: dict[str, str]) -> None:
 def content_semantics(values: dict[str, str]) -> None:
     if "name" in values:
         require(bool(values["name"].strip()), "name: must not be blank")
-    if "version" in values:
-        require(
-            bool(re.fullmatch(ITEM_VERSION_FORM, values["version"])),
-            "version: invalid item version",
-        )
     if "concept" in values:
         uri = values["concept"]
         require(

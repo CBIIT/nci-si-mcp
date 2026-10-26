@@ -408,7 +408,8 @@
   when: I find data elements for an NCIt concept, optionally expanding descendants and including permissible values.
   then: Uses come from the selected concept population, optional value uses are included when requested, provenance identifies both content states, and release mismatch or result caps are explicit.
   tests:
-    tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too: Concept-only and descendant-expanded searches match recorded source uses in fixture mode; live uses carry identity and provenance matching the discovered NCIt release.
+    tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too: Concept-only and descendant-expanded searches match crafted public-ID projections of recorded source uses in fixture mode; live uses carry identity and provenance matching the discovered NCIt release.
+    tests/test_cross_domain.py::test_merged_graph_versions_make_only_public_id_associations: A crafted merged-version graph node yields only public-ID associations, never a CDE version or value-to-version claim.
     tests/test_cross_domain.py::test_with_the_flag_the_permissible_values_that_stand_for_the_concept_come_too: Requested permissible-value uses represent the concept or selected descendants.
     tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states: Answers preserve both graph identities and dates and distinguish NCIt release from registry state.
     tests/test_cross_domain.py::test_expansion_with_another_ncit_graph_release_fails_closed: Descendant expansion rejects a hierarchy release different from the pinned NCIt release.
@@ -426,6 +427,7 @@
   tests:
     tests/test_cross_domain.py::test_a_value_resolves_to_the_concept_it_stands_for_naming_both_content_states: A permissible value resolves to its source concept and preserves terminology and registry provenance.
     tests/test_cross_domain.py::test_the_api_primary_is_not_the_graphs_main_qualifier: The explicitly flagged API primary wins over the graph's main qualifier, with no graph provenance.
+    tests/test_cross_domain.py::test_non_ncit_references_are_successful_without_invented_concepts: LOINC, UMLS and compound primary references retain exact code/source, return a reason and caDSR-only provenance, and invent no EVS concept fields.
     tests/test_cross_domain.py::test_a_requested_api_item_version_keeps_its_own_values_and_spelling: Requested API item versions retain their own permissible values and upstream version spelling.
     tests/test_cross_domain.py::test_a_value_the_data_element_does_not_have_as_given_is_not_found: Changed case, extra spaces and other nonmatching values are not silently normalized into a match.
     tests/test_cross_domain.py::test_a_permissible_value_by_its_identifier_is_unavailable: Unsupported retrieval by permissible-value identifier reports capability unavailable.
@@ -461,6 +463,7 @@
     tests/test_workflow.py::test_evs_concept_of_another_ncit_release_fails_closed: EVS concept content from another release produces a release mismatch.
     tests/test_workflow.py::test_exact_grounding_accepts_graph_lag_or_absent_version: Exact grounding preserves source uses and graph metadata despite hierarchy lag or an absent optional version; EVS reads stay pinned.
     tests/test_workflow.py::test_each_hop_is_what_its_surface_answers_for_the_concept: Concept, data-element uses and permissible values match their sources; without a commons request there is no stored-value section.
+    tests/test_workflow.py::test_grounding_merged_graph_versions_makes_only_public_id_associations: Grounding shares the public-ID graph projection while preserving the pinned EVS concept.
     tests/test_workflow.py::test_with_a_commons_the_stored_values_are_the_ones_it_uses_for_the_concept: Adding GDC returns the literal stored values and fields from its mapping source.
     tests/test_workflow.py::test_a_text_resolves_to_the_first_result_search_concepts_gives_it: Text grounding uses the first search result even when another concept's name looks closer.
     tests/test_workflow.py::test_a_hop_that_reaches_its_bound_leaves_the_others_complete: A capped data-element step reports its own truncation while the independent permissible-value step remains complete.

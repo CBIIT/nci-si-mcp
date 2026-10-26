@@ -61,6 +61,7 @@ None.
 
 | Entry | Team | Upstream reference |
 |---|---|---|
+| [Document concept sources and compound reference semantics](cadsr.md#cadsr-concept-sources) | caDSR | OP-C06 |
 | [Publish stable relationship polarity by code](evs.md#evs-polarity) | EVS | E-4; OP-E02 |
 | [Platform semantic retrieval and local-index retirement](evs.md#evs-semantic) | EVS | E-9 |
 | [Consistent active and retired search filters](evs.md#evs-retired) | EVS | OP-E08; A8.3; A9.3 |
@@ -81,3 +82,4 @@ None.
 | [Make façade caps, discovery and failures explicit](ssis.md#ssis-facade) | Shared SI | S-5; OP-S02; X-15 |
 | [Publish query-inspection rules and protocol errors](ssis.md#ssis-inspection) | Shared SI | S-5; X-15 |
 | [Publish typed graph dates and a registry version](ssis.md#ssis-identities) | Shared SI | S-5; C-1 |
+| [Clarify merged CDE versions and value concept roles](ssis.md#ssis-public-id-associations) | Shared SI | S-3; S-5 |

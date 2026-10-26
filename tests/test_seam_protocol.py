@@ -16,6 +16,31 @@ from test_server import ServerFixture
 
 @patch("nci_si_mcp.server.configure_logging")
 class SeamProtocolTest(ServerFixture):
+    def test_merged_graph_versions_make_only_public_id_associations(self, _):
+        """Given a merged CDE node, finding its uses must not assign its values to a version."""
+        self.context.ssis = FakeSSIS(self.settings)
+        self.context.ssis.elements = [element(2008092, "1")]
+        self.context.ssis.values = [
+            {"id": "2008092", "version": "1", "value": "Tis", "concept": NCIT + "C3262"}
+        ]
+
+        async def call(client):
+            return await client.call_tool(
+                "find_data_elements_for_concept",
+                {"conceptCode": "C3262", "includePermissibleValues": True},
+            )
+
+        result = self.session(call)
+        self.assertFalse(result.is_error, result.content)
+        data = result.structured_content
+        self.assertEqual(
+            data["dataElements"][0]["dataElement"],
+            {"publicId": "2008092", "longName": "Element 2008092"},
+        )
+        self.assertEqual(data["permissibleValues"][0]["dataElement"], {"publicId": "2008092"})
+        self.assertEqual(data["permissibleValues"][0]["value"], "Tis")
+        self.assertNotIn("associationScope", data["dataElements"][0])
+
     def test_exact_find_preserves_graph_states_without_requiring_hierarchy_alignment(self, _):
         self.context.ssis = FakeSSIS(self.settings)
         self.context.ssis.elements = [element(123)]
@@ -69,7 +94,13 @@ class SeamProtocolTest(ServerFixture):
                 return_value=primary_element(
                     value="Male",
                     publicId="123",
-                    codes=[{"conceptCode": "C3262", "primaryIndicator": "Yes"}],
+                    codes=[
+                        {
+                            "conceptCode": "C3262",
+                            "evsSource": "NCI_CONCEPT_CODE",
+                            "primaryIndicator": "Yes",
+                        }
+                    ],
                 ),
             ),
             patch.object(self.context.cadsr, "get_crdc_list", return_value=[]),
@@ -158,13 +189,13 @@ class CrossDomainRecordSchemaTest(ServerFixture):
     def test_value_uses_and_required_provenance_survive_the_public_schema(self, _):
         self.context.ssis.elements = [element(123)]
         self.context.ssis.values = [
-            {"id": "123", "version": "1", "value": "Male", "concept": NCIT + "C3262"}
+            {"id": "123", "version": "1", "value": " Male \t", "concept": NCIT + "C3262"}
         ]
         validator, data = self.validated(
             "find_data_elements_for_concept",
             {"conceptCode": "C3262", "includePermissibleValues": True},
         )
-        self.assertEqual(data["permissibleValues"][0]["value"], "Male")
+        self.assertEqual(data["permissibleValues"][0]["value"], " Male \t")
         self.assertEqual(data["permissibleValues"][0]["conceptCode"], "C3262")
         self.assertEqual(data["permissibleValues"][0]["conceptTerminology"], "ncit")
         self.rejects_missing(
@@ -183,7 +214,13 @@ class CrossDomainRecordSchemaTest(ServerFixture):
             return_value=primary_element(
                 value="Male",
                 publicId="123",
-                codes=[{"conceptCode": "C3262", "primaryIndicator": "Yes"}],
+                codes=[
+                    {
+                        "conceptCode": "C3262",
+                        "evsSource": "NCI_CONCEPT_CODE",
+                        "primaryIndicator": "Yes",
+                    }
+                ],
             ),
         ):
             validator, data = self.validated(

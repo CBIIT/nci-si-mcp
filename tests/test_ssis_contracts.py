@@ -13,6 +13,7 @@ from pathlib import Path
 import yaml
 from scripts.ssis_contracts import REGISTER, request, validate
 
+from nci_si_acceptance.craft import craft
 from nci_si_mcp.registry import SPECS
 from nci_si_mcp.ssis import SSISClient
 from test_http_client import Reply, ServerTestCase
@@ -20,10 +21,10 @@ from test_http_client import Reply, ServerTestCase
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = (
     "crafted/ssis-sparql/graph-identities-bounded.json",
-    "recorded/ssis-sparql/data-elements-c17357.json",
-    "recorded/ssis-sparql/data-elements-c17357-descendants.json",
-    "recorded/ssis-sparql/values-c20197.json",
-    "recorded/ssis-sparql/values-c17357-descendants.json",
+    "crafted/ssis-public-id/data-elements-c17357.json",
+    "crafted/ssis-public-id/data-elements-c17357-descendants.json",
+    "crafted/ssis-public-id/values-c20197.json",
+    "crafted/ssis-public-id/values-c17357-descendants.json",
 )
 IDS = (
     "graph-identities",
@@ -34,18 +35,22 @@ IDS = (
 )
 REQUIRED = (
     ("graph", "date"),
-    ("id", "version", "name"),
-    ("id", "version", "name"),
-    ("id", "version", "value", "concept"),
-    ("id", "version", "value", "concept"),
+    ("id", "name"),
+    ("id", "name"),
+    ("id", "value", "concept"),
+    ("id", "value", "concept"),
 )
 
 
+def evidence(name):
+    fixtures = ROOT / "acceptance/fixtures"
+    if name.startswith("crafted/ssis-public-id/"):
+        return craft(fixtures)[name]
+    return json.loads((fixtures / name).read_text())
+
+
 def bodies():
-    return [
-        json.loads((ROOT / "acceptance/fixtures" / name).read_text())["response"]["body"]
-        for name in EVIDENCE
-    ]
+    return [evidence(name)["response"]["body"] for name in EVIDENCE]
 
 
 def passed():
@@ -127,7 +132,7 @@ class SSISContractCommandTest(ServerTestCase):
         expected[1] = {
             "id": "elements-exact",
             "status": "fail",
-            "error": "head.vars must be exactly: id, version, name",
+            "error": "head.vars must be exactly: id, name",
         }
         self.assertEqual(result.stdout, json.dumps(expected, indent=2) + "\n")
         self.assertEqual(result.returncode, 1, result.stderr)
@@ -165,7 +170,7 @@ class SSISContractCommandTest(ServerTestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(server.bodies), 5)
 
-    def test_recorded_and_bounded_identity_contracts_pass(self):
+    def test_crafted_public_id_and_bounded_identity_contracts_pass(self):
         # Given valid responses, when the CLI checks every family, then the wire
         # path and Accept match the real SSIS client's planned request for each.
         result, server = self.command(bodies())
@@ -288,18 +293,21 @@ def query_operations():
 
 
 class SSISRegisterTest(unittest.TestCase):
-    def test_content_versions_follow_item_version_contract(self):
-        # Given a content binding, when its version is checked, then only the
-        # item-version syntax accepted by the consuming seam passes.
+    def test_content_versions_are_unselected_in_every_public_id_family(self):
+        # Given a graph-derived content binding, when it claims an item version,
+        # then the checker rejects the field that no consumer can attribute.
         entries = yaml.safe_load(REGISTER.read_text())["queries"]
         for entry, original in zip(entries[1:], bodies()[1:], strict=True):
             for version in ("invalid", "1.2.3", " 1", "1 ", "-1", "1."):
                 with self.subTest(family=entry["id"], version=version):
                     payload = copy.deepcopy(original)
-                    payload["results"]["bindings"][0]["version"]["value"] = version
+                    payload["results"]["bindings"][0]["version"] = {
+                        "type": "literal",
+                        "value": version,
+                    }
                     with self.assertRaises(ValueError) as raised:
                         validate(payload, entry)
-                    self.assertEqual(str(raised.exception), "version: invalid item version")
+                    self.assertEqual(str(raised.exception), "binding has unselected variables")
 
     def test_concepts_require_ncit_namespace_and_code(self):
         # Given a value binding, when its concept URI cannot resolve at the seam,
@@ -321,16 +329,12 @@ class SSISRegisterTest(unittest.TestCase):
                         validate(payload, entry)
                     self.assertEqual(str(raised.exception), "concept: expected NCIt concept URI")
 
-    def test_valid_item_versions_and_nonblank_opaque_graph_versions(self):
+    def test_nonblank_opaque_graph_versions(self):
         # Given an opaque graph version, when it is checked, then arbitrary
         # release strings pass but empty and whitespace-only strings fail.
         entries = yaml.safe_load(REGISTER.read_text())["queries"]
-        for entry, original in zip(entries, bodies(), strict=True):
-            versions = (
-                ("invalid", "1.2.3", "future-release")
-                if entry["id"] == IDS[0]
-                else ("0", "1", "1.0", "01.02")
-            )
+        for entry, original in zip(entries[:1], bodies()[:1], strict=True):
+            versions = ("invalid", "1.2.3", "future-release")
             for version in versions:
                 with self.subTest(family=entry["id"], version=version):
                     payload = copy.deepcopy(original)
@@ -338,7 +342,7 @@ class SSISRegisterTest(unittest.TestCase):
                         "type": "literal",
                         "value": version,
                     }
-                    self.assertIsNone(validate(payload, entry))
+                    validate(payload, entry)
         for version in ("", "  "):
             with self.subTest(family=IDS[0], version=version):
                 payload = bodies()[0]
@@ -398,7 +402,7 @@ class SSISRegisterTest(unittest.TestCase):
         register = yaml.safe_load(REGISTER.read_text())
         for entry in register["queries"]:
             with self.subTest(family=entry["id"]):
-                fixture = json.loads((ROOT / "acceptance/fixtures" / entry["evidence"]).read_text())
+                fixture = evidence(entry["evidence"])
                 captured = request(entry)
                 expected = fixture["request"]
                 self.assertEqual(
@@ -438,7 +442,6 @@ class SSISRegisterTest(unittest.TestCase):
         ]
         for key, term, error in (
             ("id", {"type": "literal", "value": "007"}, "id: invalid public identifier"),
-            ("version", {"type": "literal", "value": ""}, "version: must not be blank"),
             ("name", {"type": "literal", "value": 3}, "name: term value must be a string"),
         ):
             payload = copy.deepcopy(original)

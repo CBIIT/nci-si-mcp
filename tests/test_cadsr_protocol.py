@@ -528,8 +528,8 @@ class CaDSRRecordSchemaTest(TestCase):
             results.Form: item_text | {"definition", "type", "beginDate", "endDate"},
             results.RegistryItemIdentity: set(),
             results.ValueMeaning: set(),
-            results.ValueMeaningConcept: {"longName"},
-            results.ConceptAssociation: {"longName"},
+            results.ValueMeaningConcept: {"longName", "terminology"},
+            results.ConceptAssociation: {"longName", "terminology"},
             results.ClassificationScheme: set(),
             results.CodeMap: {"crdcName"},
         }

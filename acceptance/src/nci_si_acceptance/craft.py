@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import copy
 import hashlib
 import json
 import sys
@@ -1135,9 +1136,24 @@ def cadsr_primary_inversion(recorded: Recorded) -> Documents:
                         "version": "1",
                         "longName": "Crafted meaning",
                         "Concepts": [
-                            {"conceptCode": "C49508", "primaryIndicator": "No", "displayOrder": 1},
-                            {"conceptCode": "C25332", "primaryIndicator": "Yes", "displayOrder": 0},
-                            {"conceptCode": "C65107", "primaryIndicator": "No", "displayOrder": 2},
+                            {
+                                "conceptCode": "C49508",
+                                "evsSource": "NCI_CONCEPT_CODE",
+                                "primaryIndicator": "No",
+                                "displayOrder": 1,
+                            },
+                            {
+                                "conceptCode": "C25332",
+                                "evsSource": "NCI_CONCEPT_CODE",
+                                "primaryIndicator": "Yes",
+                                "displayOrder": 0,
+                            },
+                            {
+                                "conceptCode": "C65107",
+                                "evsSource": "NCI_CONCEPT_CODE",
+                                "primaryIndicator": "No",
+                                "displayOrder": 2,
+                            },
                         ],
                     },
                 }
@@ -1178,6 +1194,31 @@ def cadsr_primary_inversion(recorded: Recorded) -> Documents:
     return documents
 
 
+def cadsr_concept_sources(recorded: Recorded) -> Documents:
+    """Contract-crafted #368 observations; all surrounding metadata is synthetic."""
+    template = cadsr_primary_inversion(recorded)["scenarios/cadsr/primary-inversion/element.json"]
+    documents = {}
+    for identifier, value, code, source in (
+        ("5024313", "Incident", "LA20347-3", "LOINC_CODE"),
+        ("99000003", "Crafted UMLS value", "C0009219", "UMLS_CUI"),
+        ("14940584", "10000", "C45255::10000", "NCI_CONCEPT_CODE"),
+    ):
+        raw = copy.deepcopy(template["response"]["body"]["DataElement"])
+        raw["publicId"] = identifier
+        raw["longName"] = "Synthetic source fixture"
+        pv = raw["ValueDomain"]["PermissibleValues"][0]
+        pv["value"] = value
+        pv["ValueMeaning"]["Concepts"] = [
+            {"conceptCode": code, "evsSource": source, "primaryIndicator": "Yes"}
+        ]
+        documents[f"scenarios/cadsr/concept-sources/{identifier}.json"] = crafted(
+            "get_concept_for_permissible_value-1: #368 observed source/code; synthetic metadata",
+            template["request"] | {"path": f"/NCIAPI/1.0/api/DataElement/{identifier}"},
+            response={"status": 200, "body": {"DataElement": raw}},
+        )
+    return documents
+
+
 def content_injection(recorded: Recorded) -> Documents:
     """Hostile source text in four independently projected content fields, and HTTP failures."""
 
@@ -1194,8 +1235,13 @@ def content_injection(recorded: Recorded) -> Documents:
         ),
     }
     documents = {}
+    projections = ssis_public_id_projections(recorded)
     for group, (file, path) in sources.items():
-        source = recorded(file)
+        source = (
+            projections[f"crafted/ssis-public-id/{Path(file).name}"]
+            if group in ("cross-domain", "workflow")
+            else recorded(file)
+        )
         parent = source["response"]["body"]
         for key in path[:-1]:
             parent = parent[key]
@@ -1260,8 +1306,115 @@ def _injection_envelopes(source: dict[str, Any]) -> Documents:
     }
 
 
+def ssis_public_id_projections(recorded: Recorded) -> Documents:
+    """Craft derived projections, not current complete answers from bounded old captures."""
+    documents = {}
+    for file in recorded.files():
+        if "/ssis-sparql/" not in file or not Path(file).name.startswith(
+            ("data-elements-", "values-c")
+        ):
+            continue
+        source = recorded(file)
+        query = source["request"]["form"]["query"]
+        query = query.replace("      mdr:version ?version ;\n", "")
+        query = query.replace(
+            "cadsr:publicId ?id ;\n      mdr:version ?version .", "cadsr:publicId ?id ."
+        )
+        query = query.replace(" ?version", "")
+        body = source["response"]["body"]
+        rows = _public_id_rows(body["results"]["bindings"])
+        response = source["response"] | {
+            "body": body
+            | {
+                "head": body.get("head", {}) | {"vars": list(rows[0]) if rows else []},
+                "results": body["results"] | {"bindings": rows},
+            }
+        }
+        name = Path(file).stem
+        documents[f"crafted/ssis-public-id/{name}.json"] = crafted(
+            "find_data_elements_for_concept-1/2: crafted public-ID projection of a historical "
+            "capture; not a complete current answer",
+            source["request"] | {"form": {"query": query}},
+            response=response,
+        ) | {"derived_from": file}
+    return documents
+
+
+def _public_id_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    projected: dict[tuple[str, ...], dict[str, Any]] = {}
+    for row in rows:
+        item = {key: value for key, value in row.items() if key != "version"}
+        key = _association_key(item)
+        if key not in projected or item.get("name", {}).get("value", "") < projected[key].get(
+            "name", {}
+        ).get("value", ""):
+            projected[key] = item
+    return [projected[key] for key in sorted(projected)]
+
+
+def _association_key(item: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(item[field]["value"] for field in ("id", "value", "concept") if field in item)
+
+
+def ssis_merged_versions(recorded: Recorded) -> Documents:
+    """A crafted merged-version node; no claim that Tis belongs to CDE version 1."""
+    documents = {}
+    projections = ssis_public_id_projections(recorded)
+    for name in ("data-elements-c4817", "values-c4817", "values-c4817-bounded"):
+        source = projections[f"crafted/ssis-public-id/{name}.json"]
+        row = {"id": {"type": "literal", "value": "2008092"}}
+        if name.startswith("data-elements"):
+            row["name"] = {"type": "literal", "value": "Merged CDE"}
+        else:
+            row |= {
+                "value": {"type": "literal", "value": "Tis"},
+                "concept": {
+                    "type": "uri",
+                    "value": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C4817",
+                },
+            }
+        documents[f"scenarios/ssis/merged-versions/{name}.json"] = crafted(
+            "find_data_elements_for_concept-1 and ground_value-2: "
+            "synthetic merged-version association",
+            source["request"],
+            response={"status": 200, "body": {"results": {"bindings": [row]}}},
+        )
+    # Find has one element, so its remaining-cap query asks for 1000 rows, unlike grounding.
+    source = documents["scenarios/ssis/merged-versions/values-c4817-bounded.json"]
+    query = source["request"]["form"]["query"]
+    documents["scenarios/ssis/merged-versions/values-find.json"] = source | {
+        "request": source["request"]
+        | {"form": {"query": query.rsplit("LIMIT", 1)[0] + "LIMIT 1000"}}
+    }
+    return documents
+
+
+def ssis_distinct_cap(recorded: Recorded) -> Documents:
+    """1001 synthetic distinct public IDs, independent of the old Disease capture's duplicates."""
+    projections = ssis_public_id_projections(recorded)
+    documents = {}
+    for name in ("data-elements-c2991", "data-elements-c2991-descendants"):
+        source = projections[f"crafted/ssis-public-id/{name}.json"]
+        rows = [
+            {
+                "id": {"type": "literal", "value": str(SYNTHETIC_PUBLIC_ID + i)},
+                "name": {"type": "literal", "value": f"Synthetic element {i}"},
+            }
+            for i in range(1001)
+        ]
+        documents[f"scenarios/ssis/distinct-cap/{name}.json"] = crafted(
+            "find_data_elements_for_concept-5 and ground_value-4: synthetic distinct-key sentinel",
+            source["request"],
+            response={"status": 200, "body": {"results": {"bindings": rows}}},
+        )
+    return documents
+
+
 SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     content_injection,
+    ssis_public_id_projections,
+    ssis_distinct_cap,
+    ssis_merged_versions,
     release_session,
     release_mismatch,
     release_two_latest,
@@ -1285,6 +1438,7 @@ SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
     cadsr_over_cap,
     cadsr_numeric_versions,
     cadsr_primary_inversion,
+    cadsr_concept_sources,
     cadsr_html_for_json,
     cadsr_match_without_a_concept,
     upstream_masked_error,

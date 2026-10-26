@@ -31,6 +31,52 @@ def sparql_reply(rows):
 
 
 class SSISClientTest(ServerTestCase):
+    def test_distinct_public_id_queries_apply_the_bound_after_the_corrected_keys(self):
+        """Given duplicate version assertions, the database must bound public-ID associations."""
+        prefixes = """PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>"""
+        elements = """SELECT ?id (MIN(?label) AS ?name) WHERE {
+CONCEPT_CLAUSE
+GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+?node ?role ?concept .
+{ VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+UNION { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+?element cadsr:publicId ?id ; rdfs:label ?label .
+} } GROUP BY ?id ORDER BY ?id LIMIT 3"""
+        values = """SELECT DISTINCT ?id ?value ?concept WHERE {
+CONCEPT_CLAUSE
+GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+VALUES ?role { cadsr:main_concept cadsr:minor_concept }
+?node ?role ?concept .
+?pv cadsr:has_concept ?node ; mdr:value ?value .
+?element mdr:permitted_value ?pv ; cadsr:publicId ?id .
+} } ORDER BY ?id ?value ?concept LIMIT 3"""
+        for expand, clause in (
+            (False, "VALUES ?concept { ncit:C17357 }"),
+            (
+                True,
+                "GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> "
+                "{ ?concept rdfs:subClassOf* ncit:C17357 . }",
+            ),
+        ):
+            for method, template in (
+                ("find_data_elements", elements),
+                ("find_permissible_values", values),
+            ):
+                with self.subTest(method=method, expand=expand):
+                    server = self.serve(sparql_reply([]))
+                    getattr(self.ssis(server), method)(
+                        "C17357", expand_descendants=expand, maximum=2
+                    )
+                    query = parse_qs(server.bodies[0].decode())["query"][0]
+                    expected = prefixes + "\n" + template.replace("CONCEPT_CLAUSE", clause)
+                    self.assertEqual(query.split(), expected.split())
+
     def ssis(self, server):
         client = SSISClient(Settings(ssis_sparql_url=server.url))
         client.sparql_http.sleep = lambda _: None
@@ -53,7 +99,7 @@ class SSISClientTest(ServerTestCase):
         self.assertEqual(server.seen[0][1]["content-type"], "application/x-www-form-urlencoded")
         self.assertEqual(server.seen[0][1]["accept"], "application/sparql-results+json")
 
-    def test_content_queries_match_the_recorded_forms_and_preserve_rows(self):
+    def test_content_queries_preserve_crafted_public_id_projection_rows(self):
         for name, method, argument, options in (
             ("data-elements-c17357", "find_data_elements", "C17357", {}),
             (
@@ -72,6 +118,11 @@ class SSISClientTest(ServerTestCase):
         ):
             with self.subTest(name=name):
                 fixture = recording(f"ssis-sparql/{name}.json")
+                rows = fixture["response"]["body"]["results"]["bindings"]
+                projected = [
+                    {key: value for key, value in row.items() if key != "version"} for row in rows
+                ]
+                fixture["response"]["body"]["results"]["bindings"] = projected
                 server = self.serve(Reply(body=json.dumps(fixture["response"]["body"]).encode()))
                 result = getattr(self.ssis(server), method)(argument, **options)
                 rows = fixture["response"]["body"]["results"]["bindings"]
@@ -79,7 +130,6 @@ class SSISClientTest(ServerTestCase):
                     result, [{key: value["value"] for key, value in row.items()} for row in rows]
                 )
                 query = parse_qs(server.bodies[0].decode())["query"][0]
-                self.assertEqual(query.split(), fixture["request"]["form"]["query"].split())
                 self.assertNotIn("OPTION", query)
 
     def test_maximum_plus_one_retains_the_sentinel_and_rejects_an_unbounded_answer(self):
@@ -122,7 +172,7 @@ class SSISClientTest(ServerTestCase):
         original = recording("ssis-sparql/data-elements-c17357.json")["response"]["body"][
             "results"
         ]["bindings"][0]
-        for key in ("id", "version", "name"):
+        for key in ("id", "name"):
             for term in ("missing", None, {}, {"value": "x"}, {"type": "literal", "value": 4}):
                 with self.subTest(key=key, term=term):
                     row = copy.deepcopy(original)

@@ -40,7 +40,7 @@ WHERE {{
   }}
 }}
 LIMIT {len(_GRAPHS) + 1}"""
-_ELEMENTS = """SELECT ?id ?version (MIN(?label) AS ?name)
+_ELEMENTS = """SELECT ?id (MIN(?label) AS ?name)
 WHERE {
   CONCEPT_CLAUSE
   GRAPH <CADSR_GRAPH> {
@@ -50,14 +50,13 @@ WHERE {
     UNION
     { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
     ?element cadsr:publicId ?id ;
-      mdr:version ?version ;
       rdfs:label ?label .
   }
 }
-GROUP BY ?id ?version
-ORDER BY ?id ?version
+GROUP BY ?id
+ORDER BY ?id
 """.replace("CADSR_GRAPH", CADSR_GRAPH)
-_VALUES = """SELECT DISTINCT ?id ?version ?value ?concept
+_VALUES = """SELECT DISTINCT ?id ?value ?concept
 WHERE {
   CONCEPT_CLAUSE
   GRAPH <CADSR_GRAPH> {
@@ -66,11 +65,10 @@ WHERE {
     ?pv cadsr:has_concept ?node ;
       mdr:value ?value .
     ?element mdr:permitted_value ?pv ;
-      cadsr:publicId ?id ;
-      mdr:version ?version .
+      cadsr:publicId ?id .
   }
 }
-ORDER BY ?id ?version ?value ?concept
+ORDER BY ?id ?value ?concept
 """.replace("CADSR_GRAPH", CADSR_GRAPH)
 
 
@@ -187,13 +185,11 @@ class SSISClient:
         query = _ELEMENTS.replace(
             "CONCEPT_CLAUSE", _concept_clause(concept_code, expand_descendants)
         )
-        return self._query(query + f"LIMIT {maximum + 1}", ("id", "version", "name"), maximum + 1)
+        return self._query(query + f"LIMIT {maximum + 1}", ("id", "name"), maximum + 1)
 
     def find_permissible_values(
         self, concept_code: str, *, expand_descendants: bool = False, maximum: int = MAXIMUM
     ) -> list[dict[str, str]]:
         maximum = bounded(maximum, MAXIMUM, "maximum")
         query = _VALUES.replace("CONCEPT_CLAUSE", _concept_clause(concept_code, expand_descendants))
-        return self._query(
-            query + f"LIMIT {maximum + 1}", ("id", "version", "value", "concept"), maximum + 1
-        )
+        return self._query(query + f"LIMIT {maximum + 1}", ("id", "value", "concept"), maximum + 1)

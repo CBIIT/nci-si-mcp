@@ -59,6 +59,18 @@ def _find(tools, pinned, **arguments):
 
 @pytest.mark.tool(FIND)
 @pytest.mark.requirement("find_data_elements_for_concept-1")
+@pytest.mark.scenario("ssis/merged-versions")
+def test_merged_graph_versions_make_only_public_id_associations(tools, pinned):
+    content = _ok(_find(tools, pinned, conceptCode="C4817", includePermissibleValues=True))
+    assert [use["dataElement"] for use in content["dataElements"]] == [
+        {"publicId": "2008092", "longName": "Merged CDE"}
+    ]
+    assert [use["dataElement"] for use in content["permissibleValues"]] == [{"publicId": "2008092"}]
+    assert value_ids(content["permissibleValues"]) == {("2008092", "Tis", "C4817")}
+
+
+@pytest.mark.tool(FIND)
+@pytest.mark.requirement("find_data_elements_for_concept-1")
 @pytest.mark.live_capable
 @pytest.mark.parametrize(
     ("expand", "recording"),
@@ -72,15 +84,14 @@ def test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_
     # Shared SI answers both exact-code and descendant-expanded queries.
     if target.mode == "fixture":
         assert _sources(content["dataElements"]) == {"ssis_sparql"}
-        expected = {(row["id"], row["version"]) for row in _rows(recorded, recording)}
+        expected = {row["id"] for row in _rows(recorded, recording)}
         assert element_ids(content["dataElements"]) == expected
     else:
         assert isinstance(content["dataElements"], list)
         assert _sources(content["dataElements"]) <= {"ssis_sparql"}
         for item in content["dataElements"]:
             assert all(
-                is_name(item.get("dataElement", {}).get(key))
-                for key in ("publicId", "version", "longName")
+                is_name(item.get("dataElement", {}).get(key)) for key in ("publicId", "longName")
             )
             assert release_of(item) == ("ncit", content_pin["release"])
     assert "permissibleValues" not in content
@@ -95,8 +106,7 @@ def test_with_the_flag_the_permissible_values_that_stand_for_the_concept_come_to
     tools, pinned, recorded, expand, recording
 ):
     expected = {
-        (row["id"], row["version"], row["value"], bare_code(row["concept"]))
-        for row in _rows(recorded, recording)
+        (row["id"], row["value"], bare_code(row["concept"])) for row in _rows(recorded, recording)
     }
 
     content = _ok(_find(tools, pinned, expandDescendants=expand, includePermissibleValues=True))
@@ -175,7 +185,7 @@ def test_exact_find_preserves_actual_graph_states_without_hierarchy_alignment(
 ):
     content = _ok(_find(tools, pinned))
     assert element_ids(content["dataElements"]) == {
-        (row["id"], row["version"]) for row in _rows(recorded, "data-elements-c17357")
+        row["id"] for row in _rows(recorded, "data-elements-c17357")
     }
     filename = (
         "ssis-sparql-graph-identities.json"
@@ -198,6 +208,7 @@ def test_expansion_without_ncit_graph_version_is_release_not_available(tools, pi
 
 @pytest.mark.tool(FIND)
 @pytest.mark.requirement("find_data_elements_for_concept-4")
+@pytest.mark.live_capable
 def test_a_terminology_other_than_ncit_is_an_invalid_request(tools, pinned):
     result = _find(tools, pinned | {"terminology": "mdr"})
 
@@ -206,12 +217,14 @@ def test_a_terminology_other_than_ncit_is_an_invalid_request(tools, pinned):
 
 @pytest.mark.tool(FIND)
 @pytest.mark.requirement("find_data_elements_for_concept-5")
+@pytest.mark.scenario("ssis/distinct-cap")
 def test_descendants_beyond_the_tool_s_maximum_are_truncated_with_how_much_was_left_out(
     tools, pinned, recorded
 ):
     maximum = TOOLS[FIND]["bounds"]["limit"]["maximum"]
-    # The query asks one row more than the maximum, and Disease or Disorder fills it.
-    assert len(_rows(recorded, "data-elements-c2991-descendants")) == maximum + 1
+    # Explicitly synthetic: the old bounded Disease capture is not a complete distinct answer.
+    rows = sparql_rows(recorded("scenarios/ssis/distinct-cap/data-elements-c2991-descendants.json"))
+    assert len({row["id"] for row in rows}) == maximum + 1
 
     content = _ok(_find(tools, pinned, conceptCode="C2991", expandDescendants=True, limit=maximum))
 
@@ -330,6 +343,41 @@ def test_a_requested_api_item_version_keeps_its_own_values_and_spelling(
 
 
 @pytest.mark.tool(PERMISSIBLE)
+@pytest.mark.requirement("get_concept_for_permissible_value-1")
+@pytest.mark.scenario("cadsr/concept-sources")
+@pytest.mark.parametrize(
+    "identifier,value,code,source,reason",
+    [
+        ("5024313", "Incident", "LA20347-3", "LOINC_CODE", "non_ncit_source"),
+        ("99000003", "Crafted UMLS value", "C0009219", "UMLS_CUI", "non_ncit_source"),
+        ("14940584", "10000", "C45255::10000", "NCI_CONCEPT_CODE", "compound_code"),
+    ],
+    ids=["LOINC", "UMLS", "compound"],
+)
+def test_non_ncit_references_are_successful_without_invented_concepts(
+    tools, pinned, identifier, value, code, source, reason
+):
+    content = _ok(
+        tools.call(
+            PERMISSIBLE, {"dataElementId": identifier, "value": value, "release": pinned["release"]}
+        )
+    )
+    assert {key: item for key, item in content.items() if key != "provenance"} == {
+        "conceptReference": {"conceptCode": code, "longName": None, "terminology": source},
+        "unresolvedReason": reason,
+        "permissibleValue": {
+            "dataElement": {"publicId": identifier, "version": "2"},
+            "value": value,
+        },
+    }
+    provenance = content["provenance"]
+    assert provenance["source"] == "cadsr_rest"
+    assert provenance["release"] == {"registry": "cadsr"}
+    assert provenance["upstream"] == {"publicId": identifier, "version": "2"}
+    assert "graphs" not in provenance
+
+
+@pytest.mark.tool(PERMISSIBLE)
 @pytest.mark.requirement("get_concept_for_permissible_value-3")
 @pytest.mark.parametrize("value", [VALUE.lower(), VALUE.upper(), f" {VALUE}", f"{VALUE} "])
 def test_a_value_the_data_element_does_not_have_as_given_is_not_found(
@@ -348,6 +396,7 @@ def test_a_value_the_data_element_does_not_have_as_given_is_not_found(
 
 @pytest.mark.tool(PERMISSIBLE)
 @pytest.mark.requirement("get_concept_for_permissible_value-2")
+@pytest.mark.live_capable
 def test_a_permissible_value_by_its_identifier_is_unavailable(tools, pinned, recorded):
     asked = recorded("recorded/cadsr/permissible-value-9192925.json")
     # The platform's path for a value by its identifier answers 404 (OP-C10).
