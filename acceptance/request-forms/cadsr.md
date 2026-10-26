@@ -60,6 +60,10 @@ ones while a test selects it. A recorded fixture is what the service answers tod
 stands in for a case the service does not produce on demand, under the requirement it names, and
 answers the ordinary forms above.
 
+### `cadsr/omitted-citation-fields`
+
+Crafted from recorded 2200604 by omitting each cited item's dateModified; explicit-null endDate retained. Original recording bytes unchanged.. Crafted, 1 fixture, for get_data_element-1: derived omissions; explicit null endDate retained from recording.
+
 ### `cadsr/primary-inversion`
 
 Crafted from issue #367's live observation of CDE 2178439: To a large extent has API primary C25332 while the graph calls qualifier C49508 main. Other metadata and EVS names and NCI_CONCEPT_CODE source labels are synthetic; this is not a recording.. Crafted, 4 fixtures, for get_concept_for_permissible_value-1: #367 observed API primary C25332, graph main C49508.

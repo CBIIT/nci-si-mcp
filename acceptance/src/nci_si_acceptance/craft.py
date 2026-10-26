@@ -1140,19 +1140,19 @@ def cadsr_primary_inversion(recorded: Recorded) -> Documents:
                                 "conceptCode": "C49508",
                                 "evsSource": "NCI_CONCEPT_CODE",
                                 "primaryIndicator": "No",
-                                "displayOrder": 1,
+                                "displayOrder": "1",
                             },
                             {
                                 "conceptCode": "C25332",
                                 "evsSource": "NCI_CONCEPT_CODE",
                                 "primaryIndicator": "Yes",
-                                "displayOrder": 0,
+                                "displayOrder": "0",
                             },
                             {
                                 "conceptCode": "C65107",
                                 "evsSource": "NCI_CONCEPT_CODE",
                                 "primaryIndicator": "No",
-                                "displayOrder": 2,
+                                "displayOrder": "2",
                             },
                         ],
                     },
@@ -1435,7 +1435,25 @@ def ssis_missing_order(recorded: Recorded) -> Documents:
     }
 
 
+def cadsr_omitted_citation_fields(recorded: Recorded) -> Documents:
+    """Craft omissions from a recording; the retained recording bytes remain unchanged."""
+    source = recorded("recorded/cadsr/data-element-2200604.json")
+    element = source["response"]["body"]["DataElement"]
+    dec = element["DataElementConcept"]
+    value = element["ValueDomain"]["PermissibleValues"][0]
+    for item in (element, dec, dec["ObjectClass"], dec["Property"], value, value["ValueMeaning"]):
+        del item["dateModified"]
+    return {
+        "scenarios/cadsr/omitted-citation-fields/element.json": crafted(
+            "get_data_element-1: derived omissions; explicit null endDate retained from recording",
+            source["request"],
+            response=source["response"],
+        )
+    }
+
+
 SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
+    cadsr_omitted_citation_fields,
     ssis_missing_order,
     content_injection,
     ssis_public_id_projections,

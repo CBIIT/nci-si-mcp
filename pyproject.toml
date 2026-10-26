@@ -234,7 +234,7 @@ ignore_names = [
     "registry", "generatedAt", "sourceDistribution", "conceptCode", "valueMeaning",
     "workflowStatus", "registrationStatus", "dateCreated", "dateModified", "permissibleValues",
     "valueDomain", "conceptAssociations", "alternateNames", "classificationSchemes", "dataElement",
-    "conceptReference", "unresolvedReason",
+    "conceptReference", "unresolvedReason", "objectClass", "dataElementConcept",
     "shortName", "latestVersionIndicator", "beginDate", "endDate", "referenceDocuments",
     "userTip", "valueDomainType", "classificationScheme", "matchedText", "itemType", "evsSource",
     "matchedDefinition", "retiredStatusValue",

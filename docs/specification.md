@@ -442,41 +442,73 @@ The registry's content state, as resolve_registry_release returns it. caDSR publ
 
 ### The data element record
 
-A data element as a caDSR tool returns it: these fields, the platform's own, and the sections the caller's include selects; no include returns these fields alone. Names follow the caDSR API's (DataElement), statuses unchanged (A9.1).
+A data element as a caDSR tool returns it: these fields, the platform's own, and the sections the caller's include selects; no include returns these fields alone. Names follow the caDSR API's (DataElement), statuses unchanged (A9.1). Optional metadata is emitted only when supplied: omitted stays absent, explicit null stays null, without parent backfill.
 
 | Field | Content | Rule |
 |---|---|---|
 | `publicId` | The data element's public id | A1.2 |
 | `version` | The data element's own version, never the registry's state | A3.8.3 |
 | `longName` | Its long name | A4.1 |
-| `context` | The context that owns it | A3.8.3 |
+| `context` | The context that owns it (optional) | A3.8.3 |
 | `workflowStatus` | The platform's workflow status, unchanged (RELEASED, RETIRED ARCHIVED, ...) | A3.8.3 |
 | `registrationStatus` | The platform's registration status, unchanged (Standard, Application, ...) | A3.8.3 |
-| `dateCreated` | When the platform created it, its own value unchanged | A3.8.2 |
-| `dateModified` | When the platform last modified it, its own value unchanged | A3.8.2 |
-| `definition` | Its definition unchanged; null means caDSR sent none in the answer that produced this record | A4.1 |
-| `shortName` | Its short name unchanged; null means caDSR sent none in the answer that produced this record | A4.1 |
-| `latestVersionIndicator` | Its latest-version indicator unchanged; null means caDSR sent none in the answer that produced this record | A3.8.3 |
-| `beginDate` | Its begin date unchanged; null means caDSR sent none in the answer that produced this record | A3.8.2 |
-| `endDate` | Its end date unchanged; null means caDSR sent none in the answer that produced this record | A3.8.2 |
-| `origin` | Its origin unchanged; null means caDSR sent none in the answer that produced this record | A4.1 |
+| `dateCreated` | When the platform created it, its own value unchanged (optional) | A3.8.2 |
+| `dateModified` | When the platform last modified it, its own value unchanged (optional) | A3.8.2 |
+| `definition` | Its definition unchanged; null means caDSR sent none in the answer that produced this record (optional) | A4.1 |
+| `shortName` | Its short name unchanged; null means caDSR sent none in the answer that produced this record (optional) | A4.1 |
+| `latestVersionIndicator` | Its latest-version indicator unchanged; null means caDSR sent none in the answer that produced this record (optional) | A3.8.3 |
+| `beginDate` | Its begin date unchanged; null means caDSR sent none in the answer that produced this record (optional) | A3.8.2 |
+| `endDate` | Its end date unchanged; null means caDSR sent none in the answer that produced this record (optional) | A3.8.2 |
+| `origin` | Its origin unchanged; null means caDSR sent none in the answer that produced this record (optional) | A4.1 |
 | `referenceDocuments` | All ReferenceDocuments rows unchanged, including question texts, references and templates, when include selects them (optional) | get_data_element |
 | `provenance` | The provenance record, its release in the registry form | A4.4 |
 | `permissibleValues` | The permissible value records of its value domain, when include selects them (optional) | get_data_element |
 | `valueDomain` | The platform's value domain fields, unchanged but for its permissible values, which permissibleValues holds, when include selects it (optional) | get_data_element |
-| `conceptAssociations` | The concepts of its data element concept, each { conceptCode, longName, terminology?, role }, role objectClass or property, as the platform's ObjectClass and Property give them, when include selects them (optional) | get_data_element |
+| `conceptAssociations` | API derivation references in source order, without sorting or deduplication, each { conceptCode, longName?, terminology?, primary, displayOrder?, role }. Roles objectClass, property and representationTerm come from ObjectClass, Property and ValueDomain.RepresentationTerm. primary is boolean only from explicit Yes/No (other flags fail closed); displayOrder is an integer parsed from trimmed signed decimal digits (malformed values fail closed, missing stays absent). Neither is inferred from array position; no raw duplicate flags. (optional) | get_data_element |
+| `dataElementConcept` | The data_element_concept identity and component records, without concept lists, when include selects it (optional) | get_data_element |
 | `alternateNames` | The platform's alternate name entries, unchanged, when include selects them (optional) | get_data_element |
 | `classificationSchemes` | The classification scheme records it is classified in, when include selects them (optional) | get_data_element |
 
+### The cited caDSR component identity
+
+Own identity and supplied dates, never inherited. Missing dates stay absent; explicit null stays null.
+
+| Field | Content | Rule |
+|---|---|---|
+| `publicId` | Its own public identifier | A1.2 |
+| `version` | Its own version | A3.8.3 |
+| `longName` | Its own name | A4.1 |
+| `dateModified` | Its own last-modified date (optional) | A3.8.2 |
+| `beginDate` | Its own begin date (optional) | A3.8.2 |
+| `endDate` | Its own end date (optional) | A3.8.2 |
+
+### The data element concept citation
+
+The cited_item fields plus objectClass and property identities; concepts occur only in conceptAssociations.
+
+| Field | Content | Rule |
+|---|---|---|
+| `publicId` | The DEC public identifier | A1.2 |
+| `version` | The DEC version | A3.8.3 |
+| `longName` | The DEC name | A4.1 |
+| `dateModified` | The DEC last-modified date (optional) | A3.8.2 |
+| `beginDate` | The DEC begin date (optional) | A3.8.2 |
+| `endDate` | The DEC end date (optional) | A3.8.2 |
+| `objectClass` | The object class cited_item with no concepts | get_data_element |
+| `property` | The property cited_item with no concepts | get_data_element |
+
 ### The permissible value record
 
-A permissible value of a value domain, with the value meaning it stands for.
+A permissible value of a value domain, with its own supplied dates and no version of its own.
 
 | Field | Content | Rule |
 |---|---|---|
 | `publicId` | The identifier caDSR REST publishes for it; no platform operation retrieves a value by it yet (OP-C10) | A1.2 |
 | `value` | The value as stored | A9.1 |
-| `valueMeaning` | Its value meaning: { publicId, version, longName, concepts[] }, each concept { conceptCode, longName, terminology?, primary } as the platform gives it (api_concept) | A9.1 |
+| `dateModified` | Its own last-modified date (optional) | A3.8.2 |
+| `beginDate` | Its own begin date (optional) | A3.8.2 |
+| `endDate` | Its own end date (optional) | A3.8.2 |
+| `valueMeaning` | Its value meaning: { publicId, version, longName, dateModified?, beginDate?, endDate?, concepts[] }, each { conceptCode, longName?, terminology?, primary, displayOrder? }, primary:boolean from explicit Yes/No and optional integer displayOrder, with the same parsing and source-order rules as conceptAssociations. Missing dates stay absent, explicit null stays null. | A9.1 |
 | `provenance` | The provenance record, its release in the registry form | A4.4 |
 
 ### The caDSR API concept reference
@@ -486,7 +518,7 @@ A reference supplied by caDSR, not a resolved EVS concept. Source is never infer
 | Field | Content | Rule |
 |---|---|---|
 | `conceptCode` | The upstream conceptCode unchanged, including compound code::value | A1.2 |
-| `longName` | The upstream longName; null where the API supplies none | A4.1 |
+| `longName` | The upstream longName; null where the API supplies none (optional) | A4.1 |
 | `terminology` | Exact upstream evsSource, including unknown nonblank strings; omitted stays absent, explicit null stays null. A blank or non-string non-null source is upstream_unavailable (optional) | A1.2 |
 
 ### The unresolved permissible value concept result
@@ -510,7 +542,10 @@ A classification scheme as an object with its nested items (A7.2). The platform 
 | `version` | The scheme's version | A3.8.3 |
 | `longName` | Its long name | A4.1 |
 | `context` | The context that owns it | A7.2 |
-| `items` | Its classification scheme items, each { publicId, version, longName } | A7.2 |
+| `items` | Its classification scheme items, each { publicId, version, longName, dateModified?, beginDate?, endDate? } with its own supplied dates | A7.2 |
+| `dateModified` | Its own last-modified date (optional) | A3.8.2 |
+| `beginDate` | Its own begin date (optional) | A3.8.2 |
+| `endDate` | Its own end date (optional) | A3.8.2 |
 | `provenance` | The provenance record, its release in the registry form | A4.4 |
 
 ### The context record
@@ -547,22 +582,22 @@ One match of match_value_meanings, in the platform's order.
 
 ### The form record
 
-A form as get_form returns it, its status the platform's own (A8.1).
+A form as get_form returns it, its status the platform's own (A8.1). Optional metadata omitted upstream stays absent; explicit null stays null. Raw modules/questions retain their own identities, dates and unknown fields without invented dates.
 
 | Field | Content | Rule |
 |---|---|---|
 | `publicId` | The form's public id (the Form API's publicID) | A1.2 |
 | `version` | The form's version | A3.8.3 |
 | `longName` | Its long name | A4.1 |
-| `definition` | Its definition unchanged; null means caDSR sent none in the answer that produced this record | A4.1 |
-| `type` | Its form type unchanged (CRF, ...); null means caDSR sent none in the answer that produced this record | A3.8.3 |
-| `beginDate` | Its begin date unchanged; null means caDSR sent none in the answer that produced this record | A3.8.2 |
-| `endDate` | Its end date unchanged; null means caDSR sent none in the answer that produced this record | A3.8.2 |
-| `context` | The context that owns it | A3.8.3 |
+| `definition` | Its definition unchanged; null means caDSR sent none in the answer that produced this record (optional) | A4.1 |
+| `type` | Its form type unchanged (CRF, ...); null means caDSR sent none in the answer that produced this record (optional) | A3.8.3 |
+| `beginDate` | Its begin date unchanged; null means caDSR sent none in the answer that produced this record (optional) | A3.8.2 |
+| `endDate` | Its end date unchanged; null means caDSR sent none in the answer that produced this record (optional) | A3.8.2 |
+| `context` | The context that owns it (optional) | A3.8.3 |
 | `workflowStatus` | The platform's workflow status, unchanged (RETIRED ARCHIVED is surfaced, not hidden) | A8.1 |
 | `registrationStatus` | The platform's registration status, unchanged | A3.8.3 |
-| `dateCreated` | When the platform created it, its own value unchanged | A3.8.2 |
-| `dateModified` | When the platform last modified it, its own value unchanged | A3.8.2 |
+| `dateCreated` | When the platform created it, its own value unchanged (optional) | A3.8.2 |
+| `dateModified` | When the platform last modified it, its own value unchanged (optional) | A3.8.2 |
 | `provenance` | The provenance record, its release in the registry form | A4.4 |
 | `instructions` | Its instructions, the platform's entries unchanged and in its order, whatever includeModules says; absent where the platform sends none (optional) | A4.1 |
 | `classificationSchemes` | Its classification schemes, the platform's entries unchanged and in its order, whatever includeModules says; absent where the platform sends none (optional) | A4.1 |
@@ -716,7 +751,7 @@ The keys of `details` for each code:
 | Tool | Inputs → result | What it does |
 |---|---|---|
 | Registry content state<br>`resolve_registry_release` | `() → registry_release` | The registry's content state: published false and the export's date while caDSR publishes no registry release, never an invented identifier; the release itself where one is. |
-| Data element details<br>`get_data_element` | `(publicId \| longName \| questionText, version?, include[]?, registryRelease?) → data_element` | One data element, at its latest version or the version given, with the sections include selects; without include, the record's own fields. questionText finds it by its preferred question text, an invalid request naming the candidates where several have it and not_found where none has; longName is capability_unavailable until the platform serves that lookup (OP-C02). Item versions compare by exact numeric value (4 equals 4.0); request spelling and the upstream version string in content and provenance are preserved. `include`: permissibleValues, valueDomain, conceptAssociations, alternateNames, classificationSchemes, referenceDocuments. `publicId` form `^[1-9][0-9]*$`. `version` form `^[0-9]+([.][0-9]+)?$`. Free text: `questionText`. Items: `.`. |
+| Data element details<br>`get_data_element` | `(publicId \| longName \| questionText, version?, include[]?, registryRelease?) → data_element` | One data element, at its latest version or the version given, with the sections include selects; without include, the record's own fields. questionText finds it by its preferred question text, an invalid request naming the candidates where several have it and not_found where none has; longName is capability_unavailable until the platform serves that lookup (OP-C02). Item versions compare by exact numeric value (4 equals 4.0); request spelling and the upstream version string in content and provenance are preserved. `include`: permissibleValues, valueDomain, conceptAssociations, alternateNames, classificationSchemes, referenceDocuments, dataElementConcept. `publicId` form `^[1-9][0-9]*$`. `version` form `^[0-9]+([.][0-9]+)?$`. Free text: `questionText`. Items: `.`. |
 | Data element search<br>`search_data_elements` | `(query, mode?, filters?, limit?, cursor?, registryRelease?) → { results[{ dataElement, score?, matchedOn? }], nextCursor?, totalKnown?, truncation }` | Search of data elements, filtered by context, status and value-domain type, a page at a time up to the platform's cap of 1,000 results a query, which truncation reports (upstream_cap). semantic and hybrid are capability_unavailable until the platform serves them (OP-C04). `mode`: lexical, semantic, hybrid. `filters`: context, workflowStatus, registrationStatus, valueDomainType. `limit`: default 10, at most 100. `mode`: default lexical. Free text: `query`. Items: `results[].dataElement`. |
 | Data element candidates<br>`match_data_elements` | `(entities[{ name, userTip?, permissibleValues[]? }], matchLimit?, modelVariant?, similarityThreshold?, filters?, registryRelease?) → { matches[data_element_match] }` | Data elements matched to described entities, scored and rule-attributed, at most matchLimit for each entity; the contract's default is 10, and the maximum of 100 is this specification's, the contract stating none. The classificationScheme filter takes both publicId and version. modelVariant and similarityThreshold, which the platform does not take, are an invalid request when given. At most 10 entities a call: the contract states no maximum, and one entity took 28.9 s (10 September 2026) against a match timeout of 45 s. `filters`: context, workflowStatus, registrationStatus, classificationScheme, valueDomainType. `matchLimit`: default 10, at most 100. Computed from caller-supplied values: ttlMs 0, private. `entities`: at most 10 a call. Free text: `entities[].name`, `entities[].userTip`, `entities[].permissibleValues[]`. Items: `matches[].dataElement`. |
 | Value meaning candidates<br>`match_value_meanings` | `(values[], strictness?, terminologyScope?, registryRelease?) → { matches[value_meaning_match] }` | Value meanings and concepts matched to values, each rule-attributed with its crosswalk and with the matched item's definition where vmMatch gives one; strictness is vmMatch's matchType, terminologyScope its evsTerminologyCodes. At most 10 values a call: the contract states no maximum, and one value took 15.5 s (10 September 2026) against a match timeout of 45 s. `strictness`: restricted, unrestricted. `strictness`: default restricted. Computed from caller-supplied values: ttlMs 0, private. `values`: at most 10 a call. Free text: `values[]`. Items: `matches[].item`. |
@@ -951,7 +986,7 @@ The tools it names, in order: `resolve_release`, `harmonize_data_dictionary`, `g
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
 | <a id="requirement-resolve_registry_release-1"></a>resolve_registry_release-1 | Without a registry release upstream, published is false, generatedAt is the export's date as the export folder gives it and sourceDistribution the file it dates, with no identifier; with one, published is true and the release is returned; ttlMs 0. | resolve_registry_release, registry_release, A3.8, M2.2 | `acceptance/tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it`, `acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_returned` | tested |
-| <a id="requirement-get_data_element-1"></a>get_data_element-1 | Each include returns its section, and without include the record's own fields alone; the data element's own version and statuses are surfaced; a version given returns that exact numeric version (4 equals 4.0), preserving the request spelling upstream and the returned version string in content and provenance. | get_data_element, data_element, A3.8.3 | `acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[latest]`, `acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-1]`, `acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-4.0]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[permissibleValues]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[valueDomain]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[conceptAssociations]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[alternateNames]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[classificationSchemes]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[referenceDocuments]` | tested |
+| <a id="requirement-get_data_element-1"></a>get_data_element-1 | Each include returns its section, and without include the record's own fields alone; the data element's own version and statuses are surfaced; a version given returns that exact numeric version (4 equals 4.0), preserving the request spelling upstream and the returned version string in content and provenance. Cited items retain their own supplied identity and dates, omitted metadata stays absent and explicit null stays null. dataElementConcept contains only DEC and objectClass/property identities and dates; concepts occur only in conceptAssociations, including representationTerm. API derivations retain source order without deduplication, with primary boolean from explicit Yes/No and optional integer displayOrder, never inferred. Permissible values have own dates but no invented version; provenance is unchanged. | get_data_element, data_element, A3.8.3 | `acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[latest]`, `acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-1]`, `acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-4.0]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[permissibleValues]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[valueDomain]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[conceptAssociations]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[alternateNames]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[classificationSchemes]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[referenceDocuments]`, `acceptance/tests/test_cadsr.py::test_cited_items_keep_their_own_identity_dates_and_derivations[latest]`, `acceptance/tests/test_cadsr.py::test_cited_items_keep_their_own_identity_dates_and_derivations[version-1]`, `acceptance/tests/test_cadsr.py::test_omitted_citation_fields_are_absent_and_explicit_null_stays_null` | tested |
 | <a id="requirement-get_data_element-2"></a>get_data_element-2 | questionText finds the data element whose preferred question text it is; where several have it, the call is an invalid request naming their public ids, and where none has it, not_found; longName is capability_unavailable until the platform serves that lookup (OP-C02), never an empty result. | get_data_element, M1.2, A9.3 | `acceptance/tests/test_cadsr.py::test_a_question_text_one_data_element_has_finds_it`, `acceptance/tests/test_cadsr.py::test_a_question_text_several_have_is_an_invalid_request_naming_them`, `acceptance/tests/test_cadsr.py::test_a_long_name_lookup_is_unavailable_never_empty`, `acceptance/tests/test_cadsr.py::test_a_question_text_no_data_element_has_is_not_found` | tested |
 | <a id="requirement-search_data_elements-1"></a>search_data_elements-1 | A lexical search the platform answers with its cap of 1,000 results reports truncation with bound upstream_cap, limit 1000, omitted at least 1 and exact false; totalKnown only where the platform counts; semantic and hybrid are capability_unavailable until the platform serves them (OP-C04). | search_data_elements, truncation, A5.4, M1.2, M6.1 | `acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[search-semantic]`, `acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[search-hybrid]`, `acceptance/tests/test_cadsr.py::test_a_search_s_page_is_the_limit_given`, `acceptance/tests/test_cadsr.py::test_a_search_the_platform_caps_reports_the_cap_and_no_total` | tested |
 | <a id="requirement-search_data_elements-2"></a>search_data_elements-2 | Filters by context, workflow status, registration status and value-domain type apply. The platform's search form names no parameter for them yet (OP-C03), a platform dependency (A9.3). | search_data_elements, A9.3 | — | planned #42 |

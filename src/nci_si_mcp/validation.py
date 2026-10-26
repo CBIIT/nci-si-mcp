@@ -54,9 +54,10 @@ DataElementInclude = Literal[
     "alternateNames",
     "classificationSchemes",
     "referenceDocuments",
+    "dataElementConcept",
 ]
 RegistrySearchMode = Literal["lexical", "semantic", "hybrid"]
-DataElementConceptRole = Literal["objectClass", "property"]
+DataElementConceptRole = Literal["objectClass", "property", "representationTerm"]
 GraphConceptRole = Literal["objectClass", "property", "valueMeaning"]
 GRAPH_CONCEPT_ROLES = frozenset(get_args(GraphConceptRole))
 MatchStrictness = Literal["restricted", "unrestricted"]

@@ -44,6 +44,7 @@ _OWN = (
     "dateModified",
 )
 _IDENTITY = ("publicId", "version", "longName")
+_DATES = ("dateModified", "beginDate", "endDate")
 _STATUSES = ("workflowStatus", "registrationStatus")
 _FORM_TEXT = ("definition", "type", "beginDate", "endDate")
 _FORM_LISTS = ("instructions", "classificationSchemes")
@@ -91,7 +92,7 @@ def _object(raw: dict[str, Any], key: str) -> dict[str, Any]:
 
 
 def _fields(raw: dict[str, Any], names: tuple[str, ...]) -> dict[str, Any]:
-    result = {name: raw.get(name) for name in names}
+    result = {name: raw[name] for name in names if name in raw}
     if any(value is not None and not isinstance(value, str) for value in result.values()):
         _malformed("record text fields")
     return result
@@ -198,7 +199,13 @@ def _section(raw: dict[str, Any], section: DataElementInclude, provenance: dict[
     if section == "classificationSchemes":
         return [_scheme(row, provenance) for row in _rows(raw, "ClassificationSchemes")]
     if section == "conceptAssociations":
-        return _associations(_object(raw, "DataElementConcept"))
+        return _associations(raw)
+    if section == "dataElementConcept":
+        concept = _object(raw, "DataElementConcept")
+        return _cited_identity(concept, "data element concept") | {
+            "objectClass": _cited_identity(_object(concept, "ObjectClass"), "object class"),
+            "property": _cited_identity(_object(concept, "Property"), "property"),
+        }
     return _domain_section(raw, section, provenance)
 
 
@@ -210,13 +217,21 @@ def _domain_section(raw: dict[str, Any], section: str, provenance: dict[str, Any
 
 
 def _scheme(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
-    return _identity(raw, "classification scheme", ("context",)) | {
-        "items": [
-            _identity(row, "classification scheme item")
-            for row in _rows(raw, "ClassificationSchemeItems")
-        ],
-        "provenance": _item_provenance(raw, provenance),
-    }
+    return (
+        _identity(raw, "classification scheme", ("context",))
+        | _fields(raw, _DATES)
+        | {
+            "items": [
+                _cited_identity(row, "classification scheme item")
+                for row in _rows(raw, "ClassificationSchemeItems")
+            ],
+            "provenance": _item_provenance(raw, provenance),
+        }
+    )
+
+
+def _cited_identity(raw: dict[str, Any], kind: str) -> dict[str, Any]:
+    return _identity(raw, kind) | _fields(raw, _DATES)
 
 
 def _value(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
@@ -224,8 +239,8 @@ def _value(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(raw.get("value"), str):
         _malformed("permissible value")
     meaning = _object(raw, "ValueMeaning")
-    return _fields(raw, ("publicId", "value")) | {
-        "valueMeaning": _identity(meaning, "value meaning")
+    return _fields(raw, ("publicId", "value", *_DATES)) | {
+        "valueMeaning": _cited_identity(meaning, "value meaning")
         | {"concepts": [_meaning_concept(row) for row in _rows(meaning, "Concepts")]},
         "provenance": _item_provenance(raw, provenance),
     }
@@ -235,7 +250,13 @@ def _meaning_concept(raw: dict[str, Any]) -> dict[str, Any]:
     primary = raw.get("primaryIndicator")
     if primary not in ("Yes", "No"):
         _malformed("value-meaning concept primaryIndicator")
-    return _concept(raw) | {"primary": primary == "Yes"}
+    result = _concept(raw) | {"primary": primary == "Yes"}
+    if "displayOrder" in raw:
+        order = raw["displayOrder"]
+        if not isinstance(order, str) or not re.fullmatch(r"[+-]?[0-9]+", order.strip()):
+            _malformed("concept displayOrder")
+        result["displayOrder"] = int(order.strip())
+    return result
 
 
 def _concept(raw: dict[str, Any]) -> dict[str, Any]:
@@ -253,9 +274,17 @@ def _concept(raw: dict[str, Any]) -> dict[str, Any]:
 
 def _associations(raw: dict[str, Any]) -> list[dict[str, Any]]:
     result = []
-    for key, role in (("ObjectClass", "objectClass"), ("Property", "property")):
-        for row in _rows(_object(raw, key), "Concepts"):
-            result.append(_concept(row) | {"role": role})
+    concept = _object(raw, "DataElementConcept")
+    components = [
+        (_object(concept, "ObjectClass"), "objectClass"),
+        (_object(concept, "Property"), "property"),
+    ]
+    domain = _object(raw, "ValueDomain")
+    if "RepresentationTerm" in domain:
+        components.append((_object(domain, "RepresentationTerm"), "representationTerm"))
+    for component, role in components:
+        for row in _rows(component, "Concepts"):
+            result.append(_meaning_concept(row) | {"role": role})
     return result
 
 
@@ -350,8 +379,8 @@ def get_data_element(
         list[DataElementInclude] | None,
         Described(
             "Sections to add: any of permissibleValues, valueDomain, conceptAssociations, "
-            "alternateNames, classificationSchemes, referenceDocuments. Leave unset for "
-            "the element's own fields only."
+            "alternateNames, classificationSchemes, referenceDocuments, dataElementConcept. "
+            "Leave unset for the element's own fields only."
         ),
     ] = None,
     registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
@@ -367,7 +396,10 @@ def get_data_element(
     null. Compound code::value stays intact; blank or wrong-type sources are upstream errors.
     referenceDocuments returns all upstream rows, including
     question texts, references and templates. Scalar metadata is null when the producing
-    answer supplies none; no other operation is queried to fill it. Item versions compare
+    answer explicitly supplies null; omitted fields stay absent, with no backfill. The optional
+    dataElementConcept holds DEC/objectClass/property identities and own dates, without concepts.
+    conceptAssociations includes representationTerm; all API derivations preserve source order,
+    primary from explicit Yes/No and supplied integer displayOrder. Item versions compare
     numerically (4 equals 4.0); request and upstream version spellings are preserved.
 
     not_found when no element has that publicId and version or that question text;
@@ -803,8 +835,10 @@ def _code_map(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]
     values = [_map_value(value) for value in _rows(raw, "permissibleValues")]
     return {
         "dataElement": item,
-        "crdcName": names["CRDC Name"],
-        "usedBy": [name.strip() for name in (names["Used By"] or "").split(",") if name.strip()],
+        "crdcName": names.get("CRDC Name"),
+        "usedBy": [
+            name.strip() for name in (names.get("Used By") or "").split(",") if name.strip()
+        ],
         "valueLevelBinding": bool(values),
         "coverage": sum("conceptCode" in value for value in values),
         "values": values,

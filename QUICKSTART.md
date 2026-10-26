@@ -464,6 +464,20 @@ not. The same fields everywhere:
 | `attribution` | Licence or copyright text supplied upstream for that item. Omitted when none was supplied; an edge's licence is not copied onto its target concept |
 | `graphs`, `registry` | The graph-joined tools name both graph identities; cross-domain results include `registry` where caDSR content participates. An unpublished registry has no invented release identifier |
 
+**caDSR citations:** cite each item's own `publicId`, `version` (where supplied),
+`dateModified` and the response's `retrievedAt` together. caDSR can edit a version in place;
+exact reproduction requires that day's export. Permissible values have dates but no version.
+`include: ["dataElementConcept"]` adds DEC, object-class and property identities/dates only;
+their concepts stay in `conceptAssociations`, which also includes `representationTerm`.
+The representation identity remains in raw `valueDomain`. API derivations preserve upstream
+array order and duplicates, exposing one boolean `primary` from explicit Yes/No and optional
+integer `displayOrder`; neither array position nor order determines primary.
+
+**Breaking metadata change:** omitted caDSR scalar fields now stay absent rather than being
+filled with null; explicit null remains null. This applies to element, search/match and form
+records. Required identities/statuses still fail closed. Raw value-domain and form
+module/question metadata remain upstream pass-throughs.
+
 Exact `find_data_elements_for_concept` and grounding hops query caDSR concept references,
 so Shared SI NCIt hierarchy lag does not refuse them. Both actual graph identities and dates
 remain required; an omitted optional NCIt version stays absent. With `expandDescendants: true`,

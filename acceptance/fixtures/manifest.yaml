@@ -50,6 +50,7 @@ surfaces:
 # What each scenario provokes, in the order the register lists
 # them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.
 scenarios:
+  cadsr/omitted-citation-fields: Crafted from recorded 2200604 by omitting each cited item's dateModified; explicit-null endDate retained. Original recording bytes unchanged.
   ssis/missing-order: Crafted omission of order from a newly recorded role tuple; no primary or order is inferred.
   cadsr/primary-inversion: >-
     Crafted from issue #367's live observation of CDE 2178439: To a large extent has
@@ -1583,4 +1584,4 @@ record:
 # The fixtures craft.py makes are built in memory when the set loads; this is the digest
 # of what it makes now. `pdm run acceptance-craft` writes it, `--out DIR` writes the
 # fixtures to read (fixtures/README.md).
-crafted: sha256:05a713cd0941f9b9dd38b3d708772d9ea309acbdb29a8885e4525e12246fcc9a
+crafted: sha256:674b5556b32074127b2fe377dd6575816cdb4b99c7aa7d6149088f05b1e65150

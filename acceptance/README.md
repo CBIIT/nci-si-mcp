@@ -123,7 +123,7 @@ that need credentials remain fixture-only. This coverage does not certify all to
 the report retains every fixture-only case as not run in live mode.
 
 The live scalar check uses each DataElement field's `nullable` flag in `spec/records.yaml`;
-nullable metadata is text or null and must still be present. Identity, version and status
+nullable metadata is text or null when supplied, and optional omitted metadata stays absent. Identity, version and status
 fields remain nonblank text. A null metadata field means the producing answer supplied none;
 search and match results are not backfilled from a separate detail lookup.
 
