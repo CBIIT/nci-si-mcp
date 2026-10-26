@@ -769,7 +769,11 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
 
     def test_pv_preserves_whitespace_in_an_exactly_matching_value(self):
         self.api_element = primary_element(
-            publicId="123", value=" Male ", codes=[{"conceptCode": "C1", "primaryIndicator": "Yes"}]
+            publicId="123",
+            value=" Male ",
+            codes=[
+                {"conceptCode": "C1", "evsSource": "NCI_CONCEPT_CODE", "primaryIndicator": "Yes"}
+            ],
         )
         result = self.resolve(value=" Male ")
         self.assertEqual(result["code"], "C1")
@@ -783,7 +787,11 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
 
     def test_pv_wrong_evs_concept_identity_is_an_evs_failure(self):
         self.api_element = primary_element(
-            publicId="123", value="Male", codes=[{"conceptCode": "C1", "primaryIndicator": "Yes"}]
+            publicId="123",
+            value="Male",
+            codes=[
+                {"conceptCode": "C1", "evsSource": "NCI_CONCEPT_CODE", "primaryIndicator": "Yes"}
+            ],
         )
         with patch.object(self.evs, "get_concept", return_value=concept("C2", active=True)):
             result = self.resolve()
@@ -792,7 +800,11 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
 
     def test_pv_explicit_release_keeps_public_cache_hint(self):
         self.api_element = primary_element(
-            publicId="123", value="Male", codes=[{"conceptCode": "C1", "primaryIndicator": "Yes"}]
+            publicId="123",
+            value="Male",
+            codes=[
+                {"conceptCode": "C1", "evsSource": "NCI_CONCEPT_CODE", "primaryIndicator": "Yes"}
+            ],
         )
         result = self.resolve()
         self.assertEqual(result["code"], "C1")
@@ -823,7 +835,7 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
             publicId="123",
             value="Male",
             codes=[
-                {"conceptCode": code, "primaryIndicator": "Yes"}
+                {"conceptCode": code, "evsSource": "NCI_CONCEPT_CODE", "primaryIndicator": "Yes"}
                 for code in ("C9", "C2", "C10", "C1")
             ],
         )

@@ -342,6 +342,41 @@ def test_a_requested_api_item_version_keeps_its_own_values_and_spelling(
 
 
 @pytest.mark.tool(PERMISSIBLE)
+@pytest.mark.requirement("get_concept_for_permissible_value-1")
+@pytest.mark.scenario("cadsr/concept-sources")
+@pytest.mark.parametrize(
+    "identifier,value,code,source,reason",
+    [
+        ("5024313", "Incident", "LA20347-3", "LOINC_CODE", "non_ncit_source"),
+        ("99000003", "Crafted UMLS value", "C0009219", "UMLS_CUI", "non_ncit_source"),
+        ("14940584", "10000", "C45255::10000", "NCI_CONCEPT_CODE", "compound_code"),
+    ],
+    ids=["LOINC", "UMLS", "compound"],
+)
+def test_non_ncit_references_are_successful_without_invented_concepts(
+    tools, pinned, identifier, value, code, source, reason
+):
+    content = _ok(
+        tools.call(
+            PERMISSIBLE, {"dataElementId": identifier, "value": value, "release": pinned["release"]}
+        )
+    )
+    assert {key: item for key, item in content.items() if key != "provenance"} == {
+        "conceptReference": {"conceptCode": code, "longName": None, "terminology": source},
+        "unresolvedReason": reason,
+        "permissibleValue": {
+            "dataElement": {"publicId": identifier, "version": "2"},
+            "value": value,
+        },
+    }
+    provenance = content["provenance"]
+    assert provenance["source"] == "cadsr_rest"
+    assert provenance["release"] == {"registry": "cadsr"}
+    assert provenance["upstream"] == {"publicId": identifier, "version": "2"}
+    assert "graphs" not in provenance
+
+
+@pytest.mark.tool(PERMISSIBLE)
 @pytest.mark.requirement("get_concept_for_permissible_value-3")
 @pytest.mark.parametrize("value", [VALUE.lower(), VALUE.upper(), f" {VALUE}", f"{VALUE} "])
 def test_a_value_the_data_element_does_not_have_as_given_is_not_found(

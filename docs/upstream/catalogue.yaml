@@ -2,6 +2,25 @@
 # after they have been observed and attributed to the named entry.
 live_failures: {}
 entries:
+  - id: cadsr-concept-sources
+    team: cadsr
+    title: Document concept sources and compound reference semantics
+    platform: OP-C06
+    requirements: [get_concept_for_permissible_value-1]
+    tests: ["tests/test_cross_domain.py::test_a_value_resolves_to_the_concept_it_stands_for_naming_both_content_states"]
+    evidence: [acceptance/fixtures/recorded/cadsr/data-element-2200604-version-1.json, acceptance/fixtures/recorded/cadsr/form-5406471.json]
+    source: https://github.com/CBIIT/nci-si-mcp/issues/368
+    observation: >-
+      The issue's 25 October sample observed NCI_CONCEPT_CODE, CTCAE_CODE, RADLEX_CODE,
+      NCI_META_CUI, UMLS_CUI and LOINC_CODE, including C0009219 and C45255::10000.
+      Recorded 2200604 v1 has UMLS_CUI C0332307 as representation, not a PV; recorded
+      form 5406471 has LOINC references on CDE 5301153, not 5024313. The new source
+      scenarios are contract-crafted from issue observations with synthetic metadata, not captures.
+    reproduction: Read evsSource alongside conceptCode in the data element API and inspect the linked recordings; exercise the crafted cadsr/concept-sources scenario.
+    expected: Document all source labels, missing/null evidence and compound code::value semantics without implying every concept is NCIt.
+    impact: Treating every C-prefixed identifier as NCIt can resolve a UMLS reference against the wrong terminology.
+    workaround: Preserve exact source/code; resolve only NCI_CONCEPT_CODE with standalone NCIt codes and return other primary references unresolved with caDSR-only provenance.
+    acceptance: LOINC, UMLS and compound primaries succeed without an NCIt concept request; unknown sources remain unchanged.
   - id: evs-polarity
     team: evs
     title: Publish stable relationship polarity by code

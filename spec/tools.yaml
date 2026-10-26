@@ -348,7 +348,7 @@ get_concept_for_permissible_value:
   group: cross-domain
   inputs: "(permissibleValueId | { dataElementId, value }, release?, version?)"
   patterns: {release: *release, version: *registry_version, dataElementId: *registry_id, permissibleValueId: *registry_id}
-  returns: "concept, with permissibleValue { dataElement { publicId, version }, value }"
+  returns: "concept with permissibleValue { dataElement { publicId, version }, value }, or unresolved_pv_concept"
   items: ["."]
   summary: >-
     The concept a permissible value stands for, named by its data element and value, as the
@@ -356,10 +356,16 @@ get_concept_for_permissible_value:
     and registry); the caller may name a release or use implicit NCIt resolution (X-22). The
     data element is read from the caDSR API at version, or the API's latest when omitted;
     version uses the existing numeric item-version form and comparison, preserving upstream
-    spelling. Only primaryIndicator Yes identifies the value meaning's primary concept;
+    spelling. Only exact NCI_CONCEPT_CODE with a standalone NCIt code resolves through EVS.
+    Otherwise returns unresolved_pv_concept with the exact caDSR code/source and caDSR-only
+    provenance; compound_code, missing_source and non_ncit_source apply in that precedence.
+    Unresolved results make no NCIt concept request but may perform release discovery;
+    release selection and both child permissions remain unchanged.
+    Only primaryIndicator Yes identifies the value meaning's primary concept;
     missing, invalid or conflicting evidence is upstream_unavailable, identical primary
-    assertions may collapse. Neither array order, display order nor graph main/minor decides.
-    Provenance includes the caDSR read under upstream.cadsr and the pinned EVS origin, with
+    assertions of the same code and source presence/value may collapse. Neither array order,
+    display order nor graph main/minor decides. Resolved provenance includes the caDSR read
+    under upstream.cadsr and the pinned EVS origin, with
     registry state but no Shared SI graphs or graph reads. Secured callers need get_data_element
     and get_concept child permissions before any reads; expiry after caDSR blocks EVS.
     The value is compared locally with the API's permissible

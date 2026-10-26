@@ -427,6 +427,7 @@
   tests:
     tests/test_cross_domain.py::test_a_value_resolves_to_the_concept_it_stands_for_naming_both_content_states: A permissible value resolves to its source concept and preserves terminology and registry provenance.
     tests/test_cross_domain.py::test_the_api_primary_is_not_the_graphs_main_qualifier: The explicitly flagged API primary wins over the graph's main qualifier, with no graph provenance.
+    tests/test_cross_domain.py::test_non_ncit_references_are_successful_without_invented_concepts: LOINC, UMLS and compound primary references retain exact code/source, return a reason and caDSR-only provenance, and invent no EVS concept fields.
     tests/test_cross_domain.py::test_a_requested_api_item_version_keeps_its_own_values_and_spelling: Requested API item versions retain their own permissible values and upstream version spelling.
     tests/test_cross_domain.py::test_a_value_the_data_element_does_not_have_as_given_is_not_found: Changed case, extra spaces and other nonmatching values are not silently normalized into a match.
     tests/test_cross_domain.py::test_a_permissible_value_by_its_identifier_is_unavailable: Unsupported retrieval by permissible-value identifier reports capability unavailable.
