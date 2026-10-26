@@ -64,20 +64,38 @@ class Tools:
         return SimpleNamespace(is_error=False, content=self.content)
 
 
-@pytest.mark.parametrize("corruption", ["identity", "code", "source", "primary", "order"])
-def test_citation_mismatch_keeps_both_dates_and_never_retries(corruption):
+@pytest.mark.parametrize(
+    ("path", "key", "value"),
+    [
+        (path, key, value)
+        for path in (
+            (),
+            ("dataElementConcept",),
+            ("valueDomain",),
+            ("dataElementConcept", "objectClass"),
+            ("dataElementConcept", "property"),
+            ("valueDomain", "RepresentationTerm"),
+        )
+        for key, value in (("publicId", "999999"), ("version", "999"))
+    ]
+    + [
+        (("conceptAssociations", index), key, value)
+        for index in range(3)
+        for key, value in (
+            ("conceptCode", "C999"),
+            ("terminology", "other"),
+            ("primary", False),
+            ("displayOrder", "0"),
+        )
+    ],
+)
+def test_citation_mismatch_keeps_both_dates_and_never_retries(path, key, value):
     check = verifier()
     content = answer()
-    if corruption == "identity":
-        del content["dataElementConcept"]["objectClass"]["publicId"]
-    else:
-        key, value = {
-            "code": ("conceptCode", "C999"),
-            "source": ("terminology", "other"),
-            "primary": ("primary", False),
-            "order": ("displayOrder", "0"),
-        }[corruption]
-        content["conceptAssociations"][0][key] = value
+    target = content
+    for part in path:
+        target = target[part]
+    target[key] = value
     tools = Tools(content)
     with FixtureServer(load_fixtures(FIXTURES)) as upstream:
         with pytest.raises(
