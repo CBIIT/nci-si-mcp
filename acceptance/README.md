@@ -266,8 +266,11 @@ Follow-up review found two more `none` parameters inheriting a function-level li
 Only their `as-prepared` siblings remain live-capable; the index-less variants retain their
 fixture assertions. This leaves **227 net additional live-capable cases** and expects
 **274 passed, 0 failed, 712 not_live, 5 skipped** (991 total), including
-**27 search_concepts passes**. A new Acceptance (live) dispatch on the milestone branch must
-confirm this follow-up selection; these are expected counts, not an observed run.
+**27 search_concepts passes**. Hosted confirmation
+[40263866032](https://github.com/CBIIT/nci-si-mcp/actions/runs/40263866032) subsequently
+measured **274 passed, 0 failed, 712 not_live and 5 skipped**, with all 991 cases finished.
+The failed caDSR outage run 40261513919 remains retained separately; no assertion or live
+classification was changed to hide that failure.
 All 991 fixture outcomes remain passing. The stored scheduled-main observation stays separate: its
 19 October **46 / 0 / 920** counts describe an older collection.
 

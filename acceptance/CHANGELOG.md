@@ -59,7 +59,9 @@ fixture set pinned to NCIt 26.09d.
   fixture-only, preserving all assertions and leaving 227 net additional live-capable cases
   from the first hosted run's 229. The follow-up hosted selection expects 274 passed,
   0 failed, 712 not_live and 5 skipped (991 total); a new milestone Acceptance (live)
-  dispatch is required to confirm it. Preserve both earlier runs and all historical JSON.
+  dispatch is required to confirm it. Run 40263866032 subsequently confirmed these exact
+  outcomes with all 991 cases finished. Preserve earlier runs, the separate caDSR outage
+  failure 40261513919, and all historical JSON.
   Clarify that live mode reuses the shared server despite `unprepared`, rather than claiming
   that every test bearing that marker is necessarily unsuitable for live selection.
   Review reference: https://github.com/CBIIT/nci-si-mcp/issues/366#issuecomment-6406638151.
