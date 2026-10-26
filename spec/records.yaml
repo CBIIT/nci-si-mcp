@@ -786,7 +786,8 @@ code_map:
       content: "{ publicId, version } of the data element"
       of: A1.2
     crdcName:
-      content: Its CRDC name, as the platform gives it
+      content: Its CRDC name when supplied; explicit null stays null, omitted stays absent
+      optional: true
       of: A9.1
     usedBy:
       content: >-

@@ -87,17 +87,21 @@ Unpinned caDSR content already works without registry discovery. The 19 October 
 as `not_live`, not server release rejections. Measured newly unblocked live tests: none.
 These historical results are retained; no new live probe is part of this change.
 
-Two proposals await the sponsor and are not implemented:
+**Delivered (#360): cited-item metadata.** CDEs, DEC/object-class/property identities,
+value meanings, permissible values, classification schemes and scheme items retain their
+own supplied `dateModified`, `beginDate` and `endDate`. PVs have no own version; included
+VD and representation metadata remain upstream pass-throughs. Optional
+`include: ["dataElementConcept"]` exposes DEC/object-class/property identities and dates,
+without concepts. API concept associations also include representation terms and retain
+source order and duplicates, explicit Yes/No primary flags and supplied integer order;
+order never determines primary. Omitted scalar fields, including CRDC names, stay absent;
+explicit null stays null. Recording `data-element-2200604.json` supplies the citation
+evidence; exact reproduction of in-place edits still requires that day's export.
 
-- Richer cited-item metadata. Recording `data-element-2200604.json` has version and
-  `dateModified` on CDE, DEC, VD, VM and representation; PV has `dateModified` but no own
-  version, and prose records PV removals without a version change. Current PV provenance
-  retains supplied `dateModified`; the nested VM projection omits it, DEC identity/metadata
-  is flattened, and included VD metadata passes through. The proposal is to expose the
-  missing item identity/version/last-modified metadata where upstream supplies it.
-- Per-reference NCIt alignment: check every object-class, property, representation and
-  value-meaning concept code for existence and active status in the pinned NCIt release,
-  and report copied-name differences. Current alignment compares content-state dates.
+**Pending sponsor proposal, not implemented:** per-reference NCIt alignment would check
+every object-class, property, representation and value-meaning concept code for existence
+and active status in the pinned NCIt release, and report copied-name differences. Current
+alignment compares content-state dates.
 
 The upstream request is twelve months of retained dated caDSR exports, not a server archive
 or synthetic release. Exact reproduction of set-level answers or items edited in place still

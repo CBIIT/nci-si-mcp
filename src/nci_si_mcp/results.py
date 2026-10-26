@@ -50,7 +50,7 @@ class CodeMapIdentity(TypedDict):
 
 class CodeMap(TypedDict):
     dataElement: CodeMapIdentity
-    crdcName: str | None
+    crdcName: NotRequired[str | None]
     usedBy: list[str]
     valueLevelBinding: bool
     coverage: int

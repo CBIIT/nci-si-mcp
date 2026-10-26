@@ -29,6 +29,8 @@ the cross-domain tools that join them, and it never returns content it did not r
 **Breaking caDSR metadata change:** omitted scalar fields now stay absent instead of becoming
 null; explicit null stays null. Item-owned dates and optional component identities support
 [version-aware citations](QUICKSTART.md#provenance-and-truncation), with ordered API concept derivations.
+Included object-class/property derivations with missing or non-Yes/No primary flags now return
+`upstream_unavailable`; malformed supplied `displayOrder` is rejected instead of passed through.
 
 ```bash
 pdm install                  # Python 3.14+ and PDM; see the prerequisites below

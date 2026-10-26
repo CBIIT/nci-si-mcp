@@ -407,7 +407,9 @@ def get_data_element(
     caDSR today and is capability_unavailable (OP-C02). A pin must be published and confirmed
     upstream, else release_not_available or release_mismatch. upstream_unavailable when caDSR
     sends the element without its longName, workflowStatus or registrationStatus, or an included
-    scheme, scheme item or value meaning without its longName (a scheme also its context).
+    scheme, scheme item or value meaning without its longName (a scheme also its context), or
+    an included API derivation without an explicit Yes/No primaryIndicator or with a supplied
+    displayOrder that is not a trimmed integer string.
     """
     sections = _lookup_options(publicId, longName, questionText, version, include)
     release = _pin(context, registryRelease)
@@ -832,10 +834,10 @@ def _code_map(raw: dict[str, Any], provenance: dict[str, Any]) -> dict[str, Any]
     item = {"publicId": raw.get("CDE Public ID"), "version": raw.get("Version")}
     _validate_key(item)
     names = _fields(raw, ("CRDC Name", "Used By"))
-    values = [_map_value(value) for value in _rows(raw, "permissibleValues")]
+    values = list(map(_map_value, _rows(raw, "permissibleValues")))
     return {
         "dataElement": item,
-        "crdcName": names.get("CRDC Name"),
+        **({"crdcName": names["CRDC Name"]} if "CRDC Name" in names else {}),
         "usedBy": [
             name.strip() for name in (names.get("Used By") or "").split(",") if name.strip()
         ],
@@ -884,7 +886,8 @@ def get_code_map(
     crdcName equals the field. targetContext matches its complete name among the comma-split Used
     By names. registryRelease is left unset today (C-1).
 
-    Returns codeMaps, one per data element, each with crdcName, usedBy, valueLevelBinding,
+    Returns codeMaps, one per data element, each with optional crdcName (absent when omitted
+    upstream, null only when supplied as null), usedBy, valueLevelBinding,
     coverage (values that carry a concept code; colon-joined codes are kept) and values; with no
     value-level binding, valueLevelBinding is false and values []. nextCursor continues, bound
     to all arguments. Nothing is guessed from the Model API.

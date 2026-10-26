@@ -475,7 +475,10 @@ integer `displayOrder`; neither array position nor order determines primary.
 
 **Breaking metadata change:** omitted caDSR scalar fields now stay absent rather than being
 filled with null; explicit null remains null. This applies to element, search/match and form
-records. Required identities/statuses still fail closed. Raw value-domain and form
+records and CRDC names. Included API derivations (object class, property, representation term
+and value meaning) now return `upstream_unavailable` for missing or non-Yes/No primary flags,
+or a supplied `displayOrder` that is not a trimmed integer string. Required identities/statuses
+still fail closed. Raw value-domain and form
 module/question metadata remain upstream pass-throughs.
 
 Exact `find_data_elements_for_concept` and grounding hops query caDSR concept references,

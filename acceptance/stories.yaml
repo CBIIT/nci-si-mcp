@@ -410,13 +410,13 @@
   when: I find data elements for an NCIt concept, optionally expanding descendants and including permissible values.
   then: Uses come from the selected concept population, optional value uses are included when requested, provenance identifies both content states, and release mismatch or result caps are explicit.
   tests:
-    tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too: Concept-only and descendant-expanded searches match crafted public-ID projections of recorded source uses in fixture mode; live uses carry identity and provenance matching the discovered NCIt release.
+    tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too: Concept-only and descendant-expanded searches use newly recorded role-bearing Shared SI responses in fixture mode, with the older captures retained as the historical public-ID oracle; live uses carry identity and provenance matching the discovered NCIt release.
     tests/test_graph_roles.py::test_every_matching_graph_role_and_actual_concept_is_preserved: Exact and descendant queries preserve all recorded role assertions.
     tests/test_graph_roles.py::test_graph_main_at_order_one_never_claims_primary: CDE 2178439 retains orders one and zero without a primary claim.
     tests/test_graph_roles.py::test_missing_graph_order_stays_absent: Omitted order is not inferred.
     tests/test_graph_roles.py::test_grounding_preserves_the_same_complete_role_record: Grounding preserves the same role evidence.
     tests/test_cross_domain.py::test_merged_graph_versions_make_only_public_id_associations: A crafted merged-version graph node yields only public-ID associations, never a CDE version or value-to-version claim.
-    tests/test_cross_domain.py::test_with_the_flag_the_permissible_values_that_stand_for_the_concept_come_too: Requested permissible-value uses represent the concept or selected descendants.
+    tests/test_cross_domain.py::test_with_the_flag_the_permissible_values_that_stand_for_the_concept_come_too: Requested permissible-value uses represent the concept or selected descendants; fixture value uses are crafted public-ID projections of older recorded source uses, separate from the newly recorded role-bearing data-element responses.
     tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states: Answers preserve both graph identities and dates and distinguish NCIt release from registry state.
     tests/test_cross_domain.py::test_expansion_with_another_ncit_graph_release_fails_closed: Descendant expansion rejects a hierarchy release different from the pinned NCIt release.
     tests/test_cross_domain.py::test_exact_find_preserves_actual_graph_states_without_hierarchy_alignment: Exact find succeeds with graph lag or an absent optional version and preserves both actual graph states.
