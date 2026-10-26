@@ -59,6 +59,7 @@ def test_grounding_merged_graph_versions_makes_only_public_id_associations(tools
 
 @pytest.mark.tool(GROUND)
 @pytest.mark.requirement("ground_value-1")
+@pytest.mark.live_capable
 def test_one_envelope_names_the_release_asked_for_and_the_registry_unpinned(tools, pinned):
     content = _ok(_ground(tools, pinned))
 

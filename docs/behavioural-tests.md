@@ -76,9 +76,9 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 | Descriptions and examples do not advertise options that the specification excludes. | 1 | [`P-11`](specification.md#requirement-P-11) | [Test](../acceptance/tests/test_protocol.py#L223) |
 | Names follow the common action-led naming convention. | 1 | [`P-4`](specification.md#requirement-P-4) | [Test](../acceptance/tests/test_protocol.py#L234) |
 | Retrieving content does not change the advertised tool definitions. | 1 | [`P-6`](specification.md#requirement-P-6) | [Test](../acceptance/tests/test_protocol.py#L267) |
-| A source outage does not make tools disappear or change their definitions. | 1 | [`P-6`](specification.md#requirement-P-6) | [Test](../acceptance/tests/test_protocol.py#L278) |
-| Tools declare that they read external data, do not destroy it, and are safe to repeat. | 1 | [`P-10`](specification.md#requirement-P-10) | [Test](../acceptance/tests/test_protocol.py#L308) |
-| Input names and which inputs are mandatory match the specification. | 1 | [`P-12`](specification.md#requirement-P-12) | [Test](../acceptance/tests/test_protocol.py#L319) |
+| A source outage does not make tools disappear or change their definitions. | 1 | [`P-6`](specification.md#requirement-P-6) | [Test](../acceptance/tests/test_protocol.py#L279) |
+| Tools declare that they read external data, do not destroy it, and are safe to repeat. | 1 | [`P-10`](specification.md#requirement-P-10) | [Test](../acceptance/tests/test_protocol.py#L309) |
+| Input names and which inputs are mandatory match the specification. | 1 | [`P-12`](specification.md#requirement-P-12) | [Test](../acceptance/tests/test_protocol.py#L320) |
 
 <details>
 <summary>Exact executable cases (12)</summary>
@@ -87,13 +87,13 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 - <code>acceptance/tests/test_content_injection.py::test_source_instructions_stay_exactly_in_data_fields[cross-domain]</code> — [source](../acceptance/tests/test_content_injection.py#L74)
 - <code>acceptance/tests/test_content_injection.py::test_source_instructions_stay_exactly_in_data_fields[evs]</code> — [source](../acceptance/tests/test_content_injection.py#L74)
 - <code>acceptance/tests/test_content_injection.py::test_source_instructions_stay_exactly_in_data_fields[workflow]</code> — [source](../acceptance/tests/test_content_injection.py#L74)
-- <code>acceptance/tests/test_protocol.py::test_each_tool_takes_the_parameters_the_specification_names</code> — [source](../acceptance/tests/test_protocol.py#L319)
-- <code>acceptance/tests/test_protocol.py::test_every_tool_is_annotated_read_only_idempotent_and_open_world</code> — [source](../acceptance/tests/test_protocol.py#L308)
+- <code>acceptance/tests/test_protocol.py::test_each_tool_takes_the_parameters_the_specification_names</code> — [source](../acceptance/tests/test_protocol.py#L320)
+- <code>acceptance/tests/test_protocol.py::test_every_tool_is_annotated_read_only_idempotent_and_open_world</code> — [source](../acceptance/tests/test_protocol.py#L309)
 - <code>acceptance/tests/test_protocol.py::test_no_description_holds_placeholder_or_debug_text</code> — [source](../acceptance/tests/test_protocol.py#L154)
 - <code>acceptance/tests/test_protocol.py::test_no_description_or_schema_shows_what_the_tool_does_not_offer</code> — [source](../acceptance/tests/test_protocol.py#L223)
 - <code>acceptance/tests/test_protocol.py::test_tool_names_are_verb_led_lowercase_and_underscore_separated</code> — [source](../acceptance/tests/test_protocol.py#L234)
 - <code>acceptance/tests/test_protocol.py::test_tools_list_is_the_same_after_a_content_call</code> — [source](../acceptance/tests/test_protocol.py#L267)
-- <code>acceptance/tests/test_protocol.py::test_tools_list_is_the_same_while_the_platform_is_unavailable</code> — [source](../acceptance/tests/test_protocol.py#L278)
+- <code>acceptance/tests/test_protocol.py::test_tools_list_is_the_same_while_the_platform_is_unavailable</code> — [source](../acceptance/tests/test_protocol.py#L279)
 - <code>acceptance/tests/test_protocol.py::test_tools_list_names_the_tools_of_the_profile_and_no_other</code> — [source](../acceptance/tests/test_protocol.py#L132)
 
 </details>
@@ -113,91 +113,91 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
 | Every tool has a valid result schema that accepts the defined errors but rejects an unknown or missing error code. | 1 | [`P-2`](specification.md#requirement-P-2) | [Test](../acceptance/tests/test_protocol.py#L139) |
-| Actual successful results conform to each tool's declared result structure. | 26 | [`X-6`](specification.md#requirement-X-6) | [Test](../acceptance/tests/test_crosscutting.py#L136) |
-| Actual failure results conform to that structure too. | 26 | [`X-6`](specification.md#requirement-X-6) | [Test](../acceptance/tests/test_crosscutting.py#L320) |
-| The answer is a named record rather than an unlabelled list or scalar. | 26 | [`X-14`](specification.md#requirement-X-14) | [Test](../acceptance/tests/test_crosscutting.py#L145) |
+| Actual successful results conform to each tool's declared result structure. | 26 | [`X-6`](specification.md#requirement-X-6) | [Test](../acceptance/tests/test_crosscutting.py#L142) |
+| Actual failure results conform to that structure too. | 26 | [`X-6`](specification.md#requirement-X-6) | [Test](../acceptance/tests/test_crosscutting.py#L328) |
+| The answer is a named record rather than an unlabelled list or scalar. | 26 | [`X-14`](specification.md#requirement-X-14) | [Test](../acceptance/tests/test_crosscutting.py#L151) |
 
 <details>
 <summary>Exact executable cases (79)</summary>
 
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L145)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L136)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_is_an_object[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_a_result_validates_against_the_declared_output_schema[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L142)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_validates_against_the_declared_output_schema[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L328)
 - <code>acceptance/tests/test_protocol.py::test_every_output_schema_admits_the_error_record_and_refuses_a_malformed_one</code> — [source](../acceptance/tests/test_protocol.py#L139)
 
 </details>
@@ -216,45 +216,45 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The listed prompts and their required inputs match the profile's specification. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L345) |
-| Prompt instructions are nonempty and name the stated, available tools in the stated order. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L385) |
-| The resource and address-template lists match the profile exactly. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L417) |
-| An address outside the supported resource forms produces an error, not invented content. | 2 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L431) |
-| Reading each resource gives the declared data format and agrees with its tool on identity and, where applicable, release. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L494) |
-| Resource content identifies its source and retrieval time, including the unpinned caDSR registry state. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L519) |
-| Each resource carries reuse duration and sharing rules appropriate to its content. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L541) |
-| The index description identifies its concept count, embedding configuration, build time and provenance. | 1 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L556) |
+| The listed prompts and their required inputs match the profile's specification. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L346) |
+| Prompt instructions are nonempty and name the stated, available tools in the stated order. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L386) |
+| The resource and address-template lists match the profile exactly. | 1 | [`P-8`](specification.md#requirement-P-8) | [Test](../acceptance/tests/test_protocol.py#L418) |
+| An address outside the supported resource forms produces an error, not invented content. | 2 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L432) |
+| Reading each resource gives the declared data format and agrees with its tool on identity and, where applicable, release. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L497) |
+| Resource content identifies its source and retrieval time, including the unpinned caDSR registry state. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L522) |
+| Each resource carries reuse duration and sharing rules appropriate to its content. | 7 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L544) |
+| The index description identifies its concept count, embedding configuration, build time and provenance. | 1 | [`P-9`](specification.md#requirement-P-9) | [Test](../acceptance/tests/test_protocol.py#L559) |
 
 <details>
 <summary>Exact executable cases (27)</summary>
 
-- <code>acceptance/tests/test_protocol.py::test_a_prompt_returns_messages_naming_the_tools_it_states_and_only_tools_of_the_profile</code> — [source](../acceptance/tests/test_protocol.py#L385)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[concept]</code> — [source](../acceptance/tests/test_protocol.py#L519)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[crosswalk]</code> — [source](../acceptance/tests/test_protocol.py#L519)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[data_element-publicId-version]</code> — [source](../acceptance/tests/test_protocol.py#L519)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[data_element-publicId]</code> — [source](../acceptance/tests/test_protocol.py#L519)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L519)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[registry]</code> — [source](../acceptance/tests/test_protocol.py#L519)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[release]</code> — [source](../acceptance/tests/test_protocol.py#L519)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[concept]</code> — [source](../acceptance/tests/test_protocol.py#L541)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[crosswalk]</code> — [source](../acceptance/tests/test_protocol.py#L541)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[data_element-publicId-version]</code> — [source](../acceptance/tests/test_protocol.py#L541)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[data_element-publicId]</code> — [source](../acceptance/tests/test_protocol.py#L541)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L541)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[registry]</code> — [source](../acceptance/tests/test_protocol.py#L541)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[release]</code> — [source](../acceptance/tests/test_protocol.py#L541)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[concept]</code> — [source](../acceptance/tests/test_protocol.py#L494)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[crosswalk]</code> — [source](../acceptance/tests/test_protocol.py#L494)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[data_element-publicId-version]</code> — [source](../acceptance/tests/test_protocol.py#L494)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[data_element-publicId]</code> — [source](../acceptance/tests/test_protocol.py#L494)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L494)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[registry]</code> — [source](../acceptance/tests/test_protocol.py#L494)
-- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[release]</code> — [source](../acceptance/tests/test_protocol.py#L494)
-- <code>acceptance/tests/test_protocol.py::test_a_uri_no_resource_or_template_matches_is_an_error_and_never_content[ncit://concept/C4817]</code> — [source](../acceptance/tests/test_protocol.py#L431)
-- <code>acceptance/tests/test_protocol.py::test_a_uri_no_resource_or_template_matches_is_an_error_and_never_content[ncit://nothing/x]</code> — [source](../acceptance/tests/test_protocol.py#L431)
-- <code>acceptance/tests/test_protocol.py::test_prompts_list_names_the_prompts_of_the_profile_with_their_arguments</code> — [source](../acceptance/tests/test_protocol.py#L345)
-- <code>acceptance/tests/test_protocol.py::test_resources_list_the_concrete_resources_and_templates_list_the_templates_of_the_profile</code> — [source](../acceptance/tests/test_protocol.py#L417)
-- <code>acceptance/tests/test_protocol.py::test_the_index_manifest_states_what_the_index_holds[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L556)
+- <code>acceptance/tests/test_protocol.py::test_a_prompt_returns_messages_naming_the_tools_it_states_and_only_tools_of_the_profile</code> — [source](../acceptance/tests/test_protocol.py#L386)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[concept]</code> — [source](../acceptance/tests/test_protocol.py#L522)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[crosswalk]</code> — [source](../acceptance/tests/test_protocol.py#L522)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[data_element-publicId-version]</code> — [source](../acceptance/tests/test_protocol.py#L522)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[data_element-publicId]</code> — [source](../acceptance/tests/test_protocol.py#L522)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L522)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[registry]</code> — [source](../acceptance/tests/test_protocol.py#L522)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_a_provenance_record[release]</code> — [source](../acceptance/tests/test_protocol.py#L522)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[concept]</code> — [source](../acceptance/tests/test_protocol.py#L544)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[crosswalk]</code> — [source](../acceptance/tests/test_protocol.py#L544)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[data_element-publicId-version]</code> — [source](../acceptance/tests/test_protocol.py#L544)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[data_element-publicId]</code> — [source](../acceptance/tests/test_protocol.py#L544)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L544)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[registry]</code> — [source](../acceptance/tests/test_protocol.py#L544)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_carries_the_caching_hint_of_what_it_holds[release]</code> — [source](../acceptance/tests/test_protocol.py#L544)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[concept]</code> — [source](../acceptance/tests/test_protocol.py#L497)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[crosswalk]</code> — [source](../acceptance/tests/test_protocol.py#L497)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[data_element-publicId-version]</code> — [source](../acceptance/tests/test_protocol.py#L497)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[data_element-publicId]</code> — [source](../acceptance/tests/test_protocol.py#L497)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L497)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[registry]</code> — [source](../acceptance/tests/test_protocol.py#L497)
+- <code>acceptance/tests/test_protocol.py::test_a_resource_read_is_json_in_its_mime_type_and_matches_its_tool_s_answer[release]</code> — [source](../acceptance/tests/test_protocol.py#L497)
+- <code>acceptance/tests/test_protocol.py::test_a_uri_no_resource_or_template_matches_is_an_error_and_never_content[ncit://concept/C4817]</code> — [source](../acceptance/tests/test_protocol.py#L432)
+- <code>acceptance/tests/test_protocol.py::test_a_uri_no_resource_or_template_matches_is_an_error_and_never_content[ncit://nothing/x]</code> — [source](../acceptance/tests/test_protocol.py#L432)
+- <code>acceptance/tests/test_protocol.py::test_prompts_list_names_the_prompts_of_the_profile_with_their_arguments</code> — [source](../acceptance/tests/test_protocol.py#L346)
+- <code>acceptance/tests/test_protocol.py::test_resources_list_the_concrete_resources_and_templates_list_the_templates_of_the_profile</code> — [source](../acceptance/tests/test_protocol.py#L418)
+- <code>acceptance/tests/test_protocol.py::test_the_index_manifest_states_what_the_index_holds[index_manifest]</code> — [source](../acceptance/tests/test_protocol.py#L559)
 
 </details>
 
@@ -272,77 +272,77 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The caller's correlation identifier appears on every upstream request and in the returned provenance. | 1 | [`P-7`](specification.md#requirement-P-7) | [Test](../acceptance/tests/test_protocol.py#L289) |
-| Every returned item has the required source, release, retrieval time and delivery information. | 26 | [`X-7`](specification.md#requirement-X-7) | [Test](../acceptance/tests/test_crosscutting.py#L151) |
-| Related items identify depth, relationship, direction and polarity, including genuinely traversed items. | 3 | [`X-7`](specification.md#requirement-X-7) | [Test](../acceptance/tests/test_crosscutting.py#L187) |
-| Codes have their terminology stated separately instead of embedding a prefix or a web address. | 26 | [`X-9`](specification.md#requirement-X-9) | [Test](../acceptance/tests/test_crosscutting.py#L199) |
-| Origin fields supplied by the source are retained unchanged. | 6 | [`X-8`](specification.md#requirement-X-8) | [Test](../acceptance/tests/test_crosscutting.py#L493) |
+| The caller's correlation identifier appears on every upstream request and in the returned provenance. | 1 | [`P-7`](specification.md#requirement-P-7) | [Test](../acceptance/tests/test_protocol.py#L290) |
+| Every returned item has the required source, release, retrieval time and delivery information. | 26 | [`X-7`](specification.md#requirement-X-7) | [Test](../acceptance/tests/test_crosscutting.py#L157) |
+| Related items identify depth, relationship, direction and polarity, including genuinely traversed items. | 3 | [`X-7`](specification.md#requirement-X-7) | [Test](../acceptance/tests/test_crosscutting.py#L193) |
+| Codes have their terminology stated separately instead of embedding a prefix or a web address. | 26 | [`X-9`](specification.md#requirement-X-9) | [Test](../acceptance/tests/test_crosscutting.py#L207) |
+| Origin fields supplied by the source are retained unchanged. | 6 | [`X-8`](specification.md#requirement-X-8) | [Test](../acceptance/tests/test_crosscutting.py#L501) |
 
 <details>
 <summary>Exact executable cases (62)</summary>
 
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_reached_by_traversal_says_how[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L187)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_reached_by_traversal_says_how[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L187)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_reached_by_traversal_says_how[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L187)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L199)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L151)
-- <code>acceptance/tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L493)
-- <code>acceptance/tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L493)
-- <code>acceptance/tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L493)
-- <code>acceptance/tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L493)
-- <code>acceptance/tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L493)
-- <code>acceptance/tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L493)
-- <code>acceptance/tests/test_protocol.py::test_a_correlation_identifier_goes_upstream_and_comes_back</code> — [source](../acceptance/tests/test_protocol.py#L289)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_reached_by_traversal_says_how[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L193)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_reached_by_traversal_says_how[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L193)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_reached_by_traversal_says_how[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L193)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_codes_are_bare_with_their_terminology_beside_them[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L207)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_its_provenance[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L157)
+- <code>acceptance/tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L501)
+- <code>acceptance/tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L501)
+- <code>acceptance/tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L501)
+- <code>acceptance/tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L501)
+- <code>acceptance/tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L501)
+- <code>acceptance/tests/test_crosscutting.py::test_what_the_platform_says_of_an_item_s_origin_is_passed_through[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L501)
+- <code>acceptance/tests/test_protocol.py::test_a_correlation_identifier_goes_upstream_and_comes_back</code> — [source](../acceptance/tests/test_protocol.py#L290)
 
 </details>
 
@@ -363,55 +363,55 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 | Monthly and weekly each select their own tagged release even when the other appears first. | 2 | [`resolve_release-1`](specification.md#requirement-resolve_release-1) | [Test](../acceptance/tests/test_evs.py#L52) |
 | Two releases claiming the same channel produce an error naming both candidates. | 1 | [`resolve_release-2`](specification.md#requirement-resolve_release-2) | [Test](../acceptance/tests/test_evs.py#L70) |
 | Discovery is marked for immediate refresh rather than reuse as a cached current release. | 1 | [`resolve_release-3`](specification.md#requirement-resolve_release-3) | [Test](../acceptance/tests/test_evs.py#L83) |
-| Each item identifies the release selected for the call. | 15 | [`X-1`](specification.md#requirement-X-1) | [Test](../acceptance/tests/test_crosscutting.py#L128) |
-| An unserved release returns the specified availability or mismatch error and no substitute content. | 15 | [`X-2`](specification.md#requirement-X-2) | [Test](../acceptance/tests/test_crosscutting.py#L291) |
-| Content identifying a different release is rejected. | 12 | [`X-3`](specification.md#requirement-X-3) | [Test](../acceptance/tests/test_crosscutting.py#L301) |
+| Each item identifies the release selected for the call. | 15 | [`X-1`](specification.md#requirement-X-1) | [Test](../acceptance/tests/test_crosscutting.py#L134) |
+| An unserved release returns the specified availability or mismatch error and no substitute content. | 15 | [`X-2`](specification.md#requirement-X-2) | [Test](../acceptance/tests/test_crosscutting.py#L299) |
+| Content identifying a different release is rejected. | 12 | [`X-3`](specification.md#requirement-X-3) | [Test](../acceptance/tests/test_crosscutting.py#L309) |
 
 <details>
 <summary>Exact executable cases (46)</summary>
 
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L291)
-- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L301)
-- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L301)
-- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L301)
-- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L301)
-- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L301)
-- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L301)
-- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L301)
-- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L301)
-- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L301)
-- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L301)
-- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L301)
-- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L301)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
-- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L128)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_the_platform_does_not_serve_fails_closed[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L299)
+- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L309)
+- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L309)
+- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L309)
+- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L309)
+- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L309)
+- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L309)
+- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L309)
+- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L309)
+- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L309)
+- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L309)
+- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L309)
+- <code>acceptance/tests/test_crosscutting.py::test_content_of_another_release_fails_closed[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L309)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
+- <code>acceptance/tests/test_crosscutting.py::test_every_item_carries_the_release_requested[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L134)
 - <code>acceptance/tests/test_evs.py::test_a_channel_s_release_is_the_row_its_tag_names[monthly]</code> — [source](../acceptance/tests/test_evs.py#L52)
 - <code>acceptance/tests/test_evs.py::test_a_channel_s_release_is_the_row_its_tag_names[weekly]</code> — [source](../acceptance/tests/test_evs.py#L52)
 - <code>acceptance/tests/test_evs.py::test_a_channel_whose_query_names_two_releases_fails_closed</code> — [source](../acceptance/tests/test_evs.py#L70)
@@ -433,28 +433,28 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A call omitting the release identifies the resolved NCIt release in its answer. | 15 | [`X-22`](specification.md#requirement-X-22) | [Test](../acceptance/tests/test_crosscutting.py#L780) |
+| A call omitting the release identifies the resolved NCIt release in its answer. | 15 | [`X-22`](specification.md#requirement-X-22) | [Test](../acceptance/tests/test_crosscutting.py#L803) |
 | The first implicit release survives an explicit override and a source update. | 1 | [`X-22`](specification.md#requirement-X-22) | [Test](../acceptance/tests/test_release_session.py#L11) |
 | Withdrawal of the held release produces an error rather than a fresh implicit selection. | 1 | [`X-22`](specification.md#requirement-X-22) | [Test](../acceptance/tests/test_release_session.py#L30) |
 
 <details>
 <summary>Exact executable cases (17)</summary>
 
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
-- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L780)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
+- <code>acceptance/tests/test_crosscutting.py::test_a_call_without_release_names_the_resolved_ncit_release[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L803)
 - <code>acceptance/tests/test_release_session.py::test_a_session_keeps_its_first_implicit_release_across_an_explicit_override</code> — [source](../acceptance/tests/test_release_session.py#L11)
 - <code>acceptance/tests/test_release_session.py::test_a_withdrawn_session_release_fails_without_switching_to_the_new_release</code> — [source](../acceptance/tests/test_release_session.py#L30)
 
@@ -475,36 +475,36 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
 | Tool, prompt, resource and template lists carry positive reuse durations and public scope. | 4 | [`P-5`](specification.md#requirement-P-5) | [Test](../acceptance/tests/test_protocol.py#L256) |
-| Explicitly pinned content permits positive-duration public reuse. | 15 | [`X-13`](specification.md#requirement-X-13) | [Test](../acceptance/tests/test_crosscutting.py#L225) |
-| Registry content and computed matches receive their distinct required cache policies. | 9 | [`X-13`](specification.md#requirement-X-13) | [Test](../acceptance/tests/test_crosscutting.py#L269) |
+| Explicitly pinned content permits positive-duration public reuse. | 15 | [`X-13`](specification.md#requirement-X-13) | [Test](../acceptance/tests/test_crosscutting.py#L233) |
+| Registry content and computed matches receive their distinct required cache policies. | 9 | [`X-13`](specification.md#requirement-X-13) | [Test](../acceptance/tests/test_crosscutting.py#L277) |
 
 <details>
 <summary>Exact executable cases (28)</summary>
 
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L269)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L269)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L269)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L269)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L269)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L269)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L269)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L269)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L269)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
-- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L225)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L277)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L277)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L277)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L277)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L277)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L277)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L277)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L277)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_result_is_cached_as_what_it_holds_says[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L277)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
+- <code>acceptance/tests/test_crosscutting.py::test_a_release_pinned_result_may_be_cached[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L233)
 - <code>acceptance/tests/test_protocol.py::test_each_list_may_be_cached_and_shared[prompts]</code> — [source](../acceptance/tests/test_protocol.py#L256)
 - <code>acceptance/tests/test_protocol.py::test_each_list_may_be_cached_and_shared[resources]</code> — [source](../acceptance/tests/test_protocol.py#L256)
 - <code>acceptance/tests/test_protocol.py::test_each_list_may_be_cached_and_shared[templates]</code> — [source](../acceptance/tests/test_protocol.py#L256)
@@ -526,54 +526,54 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| An unavailable source yields an upstream error or timeout, not empty success. | 26 | [`X-5`](specification.md#requirement-X-5) | [Test](../acceptance/tests/test_crosscutting.py#L312) |
-| Each supported source's success-shaped error response is recognized as failure. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_crosscutting.py#L455) |
-| A valid search with no matches succeeds with an empty result, provenance and no continuation token. | 6 | [`X-4`](specification.md#requirement-X-4) | [Test](../acceptance/tests/test_crosscutting.py#L476) |
+| An unavailable source yields an upstream error or timeout, not empty success. | 26 | [`X-5`](specification.md#requirement-X-5) | [Test](../acceptance/tests/test_crosscutting.py#L320) |
+| Each supported source's success-shaped error response is recognized as failure. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_crosscutting.py#L463) |
+| A valid search with no matches succeeds with an empty result, provenance and no continuation token. | 6 | [`X-4`](specification.md#requirement-X-4) | [Test](../acceptance/tests/test_crosscutting.py#L484) |
 | caDSR requests ask for JSON so that the expected content is retrieved rather than an HTML page. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L37) |
 | An unknown caDSR data element reported inside HTTP success is not_found, never empty success. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L55) |
-| HTML received instead of requested JSON is rejected as an upstream failure. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L67) |
-| A contract-defined caDSR request refusal is presented as an invalid request. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L81) |
+| HTML received instead of requested JSON is rejected as an upstream failure. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L68) |
+| A contract-defined caDSR request refusal is presented as an invalid request. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L82) |
 
 <details>
 <summary>Exact executable cases (37)</summary>
 
 - <code>acceptance/tests/test_cadsr.py::test_a_failure_inside_an_http_200_is_an_error_never_an_empty_success</code> — [source](../acceptance/tests/test_cadsr.py#L55)
-- <code>acceptance/tests/test_cadsr.py::test_a_refusal_inside_an_http_200_is_an_invalid_request</code> — [source](../acceptance/tests/test_cadsr.py#L81)
+- <code>acceptance/tests/test_cadsr.py::test_a_refusal_inside_an_http_200_is_an_invalid_request</code> — [source](../acceptance/tests/test_cadsr.py#L82)
 - <code>acceptance/tests/test_cadsr.py::test_a_server_that_leaves_out_accept_gets_html_and_never_parses_it</code> — [source](../acceptance/tests/test_cadsr.py#L37)
-- <code>acceptance/tests/test_cadsr.py::test_html_where_json_was_asked_for_is_an_upstream_error</code> — [source](../acceptance/tests/test_cadsr.py#L67)
-- <code>acceptance/tests/test_crosscutting.py::test_a_failure_every_surface_masks_as_an_answer_is_an_upstream_error[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L455)
-- <code>acceptance/tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L476)
-- <code>acceptance/tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L476)
-- <code>acceptance/tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L476)
-- <code>acceptance/tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L476)
-- <code>acceptance/tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L476)
-- <code>acceptance/tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L476)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
-- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L312)
+- <code>acceptance/tests/test_cadsr.py::test_html_where_json_was_asked_for_is_an_upstream_error</code> — [source](../acceptance/tests/test_cadsr.py#L68)
+- <code>acceptance/tests/test_crosscutting.py::test_a_failure_every_surface_masks_as_an_answer_is_an_upstream_error[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L463)
+- <code>acceptance/tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L484)
+- <code>acceptance/tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L484)
+- <code>acceptance/tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L484)
+- <code>acceptance/tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L484)
+- <code>acceptance/tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L484)
+- <code>acceptance/tests/test_crosscutting.py::test_a_query_that_matches_nothing_is_an_empty_result_with_provenance[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L484)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
+- <code>acceptance/tests/test_crosscutting.py::test_an_unavailable_platform_is_an_upstream_error[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L320)
 
 </details>
 
@@ -591,40 +591,40 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Logged upstream requests contain no identical repeated request during the successful call. | 26 | [`X-11`](specification.md#requirement-X-11) | [Test](../acceptance/tests/test_crosscutting.py#L211) |
-| A rate-limited request is retried after the required wait, without an intervening request to that endpoint. | 2 | [`X-16`](specification.md#requirement-X-16) | [Test](../acceptance/tests/test_crosscutting.py#L425) |
+| Logged upstream requests contain no identical repeated request during the successful call. | 26 | [`X-11`](specification.md#requirement-X-11) | [Test](../acceptance/tests/test_crosscutting.py#L219) |
+| A rate-limited request is retried after the required wait, without an intervening request to that endpoint. | 2 | [`X-16`](specification.md#requirement-X-16) | [Test](../acceptance/tests/test_crosscutting.py#L433) |
 
 <details>
 <summary>Exact executable cases (28)</summary>
 
-- <code>acceptance/tests/test_crosscutting.py::test_a_rate_limited_request_is_asked_once_more_after_the_wait[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L425)
-- <code>acceptance/tests/test_crosscutting.py::test_a_rate_limited_request_is_asked_once_more_after_the_wait[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L425)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
-- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L211)
+- <code>acceptance/tests/test_crosscutting.py::test_a_rate_limited_request_is_asked_once_more_after_the_wait[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L433)
+- <code>acceptance/tests/test_crosscutting.py::test_a_rate_limited_request_is_asked_once_more_after_the_wait[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L433)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[get_release_alignment]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[list_terminologies]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[resolve_release]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
+- <code>acceptance/tests/test_crosscutting.py::test_no_upstream_request_is_repeated_within_a_call[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L219)
 
 </details>
 
@@ -642,16 +642,16 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The licence key is sent upstream and is absent from answers, logs and files observable to this test transport. | 1 | [`X-12`](specification.md#requirement-X-12) | [Test](../acceptance/tests/test_crosscutting.py#L347) |
-| Error responses do not expose the licence key even when the upstream response includes it. | 1 | [`X-12`](specification.md#requirement-X-12) | [Test](../acceptance/tests/test_crosscutting.py#L362) |
-| The caDSR credential is sent upstream and is absent from answers, logs and files observable to this test transport. | 1 | [`X-12`](specification.md#requirement-X-12) | [Test](../acceptance/tests/test_crosscutting.py#L382) |
+| The licence key is sent upstream and is absent from answers, logs and files observable to this test transport. | 1 | [`X-12`](specification.md#requirement-X-12) | [Test](../acceptance/tests/test_crosscutting.py#L355) |
+| Error responses do not expose the licence key even when the upstream response includes it. | 1 | [`X-12`](specification.md#requirement-X-12) | [Test](../acceptance/tests/test_crosscutting.py#L370) |
+| The caDSR credential is sent upstream and is absent from answers, logs and files observable to this test transport. | 1 | [`X-12`](specification.md#requirement-X-12) | [Test](../acceptance/tests/test_crosscutting.py#L390) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
 
-- <code>acceptance/tests/test_crosscutting.py::test_an_error_carries_no_licence_key</code> — [source](../acceptance/tests/test_crosscutting.py#L362)
-- <code>acceptance/tests/test_crosscutting.py::test_the_cadsr_credential_reaches_the_platform_and_nothing_the_server_returns_or_logs[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L382)
-- <code>acceptance/tests/test_crosscutting.py::test_the_licence_key_reaches_the_platform_and_nothing_the_server_returns_or_logs</code> — [source](../acceptance/tests/test_crosscutting.py#L347)
+- <code>acceptance/tests/test_crosscutting.py::test_an_error_carries_no_licence_key</code> — [source](../acceptance/tests/test_crosscutting.py#L370)
+- <code>acceptance/tests/test_crosscutting.py::test_the_cadsr_credential_reaches_the_platform_and_nothing_the_server_returns_or_logs[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L390)
+- <code>acceptance/tests/test_crosscutting.py::test_the_licence_key_reaches_the_platform_and_nothing_the_server_returns_or_logs</code> — [source](../acceptance/tests/test_crosscutting.py#L355)
 
 </details>
 
@@ -669,36 +669,36 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Supplied licence text is preserved exactly. | 4 | [`X-19`](specification.md#requirement-X-19) | [Test](../acceptance/tests/test_crosscutting.py#L839) |
-| An item carries no additional licence text absent from the source answer. | 4 | [`X-19`](specification.md#requirement-X-19) | [Test](../acceptance/tests/test_crosscutting.py#L857) |
-| Without source-provided licence text, attribution contains no licence text. | 15 | [`X-19`](specification.md#requirement-X-19) | [Test](../acceptance/tests/test_crosscutting.py#L874) |
+| Supplied licence text is preserved exactly. | 4 | [`X-19`](specification.md#requirement-X-19) | [Test](../acceptance/tests/test_crosscutting.py#L862) |
+| An item carries no additional licence text absent from the source answer. | 4 | [`X-19`](specification.md#requirement-X-19) | [Test](../acceptance/tests/test_crosscutting.py#L880) |
+| Without source-provided licence text, attribution contains no licence text. | 15 | [`X-19`](specification.md#requirement-X-19) | [Test](../acceptance/tests/test_crosscutting.py#L897) |
 
 <details>
 <summary>Exact executable cases (23)</summary>
 
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L874)
-- <code>acceptance/tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L839)
-- <code>acceptance/tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L839)
-- <code>acceptance/tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L839)
-- <code>acceptance/tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L839)
-- <code>acceptance/tests/test_crosscutting.py::test_no_item_carries_licence_text_the_platform_did_not_give_with_it[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L857)
-- <code>acceptance/tests/test_crosscutting.py::test_no_item_carries_licence_text_the_platform_did_not_give_with_it[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L857)
-- <code>acceptance/tests/test_crosscutting.py::test_no_item_carries_licence_text_the_platform_did_not_give_with_it[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L857)
-- <code>acceptance/tests/test_crosscutting.py::test_no_item_carries_licence_text_the_platform_did_not_give_with_it[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L857)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[expand_value_set]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concept_for_permissible_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concept_mappings]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concept_subsets]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[list_relationships]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[resolve_retired_code]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[resolve_stored_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_an_item_the_platform_gave_no_licence_text_with_carries_none[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L897)
+- <code>acceptance/tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L862)
+- <code>acceptance/tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L862)
+- <code>acceptance/tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L862)
+- <code>acceptance/tests/test_crosscutting.py::test_licence_text_the_platform_gives_with_an_item_is_passed_through_unchanged[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L862)
+- <code>acceptance/tests/test_crosscutting.py::test_no_item_carries_licence_text_the_platform_did_not_give_with_it[get_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L880)
+- <code>acceptance/tests/test_crosscutting.py::test_no_item_carries_licence_text_the_platform_did_not_give_with_it[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_crosscutting.py#L880)
+- <code>acceptance/tests/test_crosscutting.py::test_no_item_carries_licence_text_the_platform_did_not_give_with_it[get_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L880)
+- <code>acceptance/tests/test_crosscutting.py::test_no_item_carries_licence_text_the_platform_did_not_give_with_it[search_concepts]</code> — [source](../acceptance/tests/test_crosscutting.py#L880)
 
 </details>
 
@@ -716,65 +716,65 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A deliberately small limit yields explicit truncation information rather than an apparently complete answer. | 4 | [`X-10`](specification.md#requirement-X-10) | [Test](../acceptance/tests/test_crosscutting.py#L517) |
-| Continuation gives the next items without overlap and preserves release identity. | 7 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L572) |
-| Changing an applied argument invalidates the continuation token. | 21 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L617) |
-| An omitted argument can be stated as its original default on continuation. | 6 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L651) |
-| An explicitly supplied default can be omitted on continuation without changing the query. | 6 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L669) |
-| Omitting a previously supplied non-default argument is refused. | 5 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L695) |
+| A deliberately small limit yields explicit truncation information rather than an apparently complete answer. | 4 | [`X-10`](specification.md#requirement-X-10) | [Test](../acceptance/tests/test_crosscutting.py#L525) |
+| Continuation gives the next items without overlap and preserves release identity. | 7 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L586) |
+| Changing an applied argument invalidates the continuation token. | 21 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L635) |
+| An omitted argument can be stated as its original default on continuation. | 6 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L669) |
+| An explicitly supplied default can be omitted on continuation without changing the query. | 6 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L687) |
+| Omitting a previously supplied non-default argument is refused. | 5 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_crosscutting.py#L719) |
 
 <details>
 <summary>Exact executable cases (49)</summary>
 
-- <code>acceptance/tests/test_crosscutting.py::test_a_bound_reached_is_reported_with_how_much_was_left_out[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L517)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bound_reached_is_reported_with_how_much_was_left_out[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L517)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bound_reached_is_reported_with_how_much_was_left_out[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L517)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bound_reached_is_reported_with_how_much_was_left_out[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L517)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[find_data_elements_for_concept-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L572)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[get_code_map-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L572)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[get_concept_hierarchy-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L572)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[list_contexts-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L572)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[search_concepts-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L572)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[search_concepts-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L572)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[search_data_elements-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L572)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues[find_data_elements_for_concept-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L669)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues[get_code_map-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L669)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues[get_concept_hierarchy-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L669)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues[search_concepts-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L669)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues[search_concepts-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L669)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues[search_data_elements-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L669)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues[find_data_elements_for_concept-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L651)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues[get_code_map-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L651)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues[get_concept_hierarchy-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L651)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues[search_concepts-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L651)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues[search_concepts-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L651)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues[search_data_elements-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L651)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[find_data_elements_for_concept-0-expandDescendants]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[find_data_elements_for_concept-0-includePermissibleValues]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[find_data_elements_for_concept-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_code_map-0-dataElementId]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_code_map-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_code_map-0-targetContext]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_concept_hierarchy-0-code]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_concept_hierarchy-0-depth]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_concept_hierarchy-0-direction]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_concept_hierarchy-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[list_contexts-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-0-mode]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-0-query]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-0-retired]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-1-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-1-mode]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-1-query]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-1-retired]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_data_elements-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_data_elements-0-query]</code> — [source](../acceptance/tests/test_crosscutting.py#L617)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request[find_data_elements_for_concept-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L695)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request[get_code_map-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L695)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request[get_concept_hierarchy-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L695)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request[list_contexts-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L695)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request[search_concepts-1-mode]</code> — [source](../acceptance/tests/test_crosscutting.py#L695)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bound_reached_is_reported_with_how_much_was_left_out[expand_cohort]</code> — [source](../acceptance/tests/test_crosscutting.py#L525)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bound_reached_is_reported_with_how_much_was_left_out[find_data_elements_for_concept]</code> — [source](../acceptance/tests/test_crosscutting.py#L525)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bound_reached_is_reported_with_how_much_was_left_out[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_crosscutting.py#L525)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bound_reached_is_reported_with_how_much_was_left_out[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L525)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[find_data_elements_for_concept-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L586)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[get_code_map-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L586)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[get_concept_hierarchy-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L586)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[list_contexts-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L586)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[search_concepts-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L586)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[search_concepts-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L586)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_continues_with_the_next_items_of_the_same_release[search_data_elements-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L586)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues[find_data_elements_for_concept-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L687)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues[get_code_map-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L687)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues[get_concept_hierarchy-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L687)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues[search_concepts-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L687)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues[search_concepts-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L687)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_given_default_left_out_continues[search_data_elements-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L687)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues[find_data_elements_for_concept-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L669)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues[get_code_map-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L669)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues[get_concept_hierarchy-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L669)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues[search_concepts-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L669)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues[search_concepts-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L669)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_a_left_out_argument_given_as_its_default_continues[search_data_elements-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L669)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[find_data_elements_for_concept-0-expandDescendants]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[find_data_elements_for_concept-0-includePermissibleValues]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[find_data_elements_for_concept-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_code_map-0-dataElementId]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_code_map-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_code_map-0-targetContext]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_concept_hierarchy-0-code]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_concept_hierarchy-0-depth]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_concept_hierarchy-0-direction]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[get_concept_hierarchy-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[list_contexts-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-0-mode]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-0-query]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-0-retired]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-1-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-1-mode]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-1-query]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_concepts-1-retired]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_data_elements-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_with_another_argument_is_an_invalid_request[search_data_elements-0-query]</code> — [source](../acceptance/tests/test_crosscutting.py#L635)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request[find_data_elements_for_concept-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L719)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request[get_code_map-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L719)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request[get_concept_hierarchy-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L719)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request[list_contexts-0-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L719)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cursor_without_an_argument_the_first_call_gave_is_an_invalid_request[search_concepts-1-mode]</code> — [source](../acceptance/tests/test_crosscutting.py#L719)
 
 </details>
 
@@ -792,391 +792,391 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Omitting an optional argument gives the same answer as supplying its stated default. | 16 | [`X-20`](specification.md#requirement-X-20) | [Test](../acceptance/tests/test_crosscutting.py#L740) |
-| Zero and negative bounded arguments are rejected instead of silently raised to one. | 30 | [`X-18`](specification.md#requirement-X-18) | [Test](../acceptance/tests/test_crosscutting.py#L771) |
-| Invalid identifier variants are refused before any upstream request can carry them. | 318 | [`X-23`](specification.md#requirement-X-23) | [Test](../acceptance/tests/test_crosscutting.py#L974) |
-| A code without a specified local format remains a single encoded upstream path segment. | 1 | [`X-23`](specification.md#requirement-X-23) | [Test](../acceptance/tests/test_crosscutting.py#L1004) |
-| Free-text punctuation cannot split, truncate or change the value sent to the source. | 11 | [`X-24`](specification.md#requirement-X-24) | [Test](../acceptance/tests/test_crosscutting.py#L1083) |
+| Omitting an optional argument gives the same answer as supplying its stated default. | 16 | [`X-20`](specification.md#requirement-X-20) | [Test](../acceptance/tests/test_crosscutting.py#L763) |
+| Zero and negative bounded arguments are rejected instead of silently raised to one. | 30 | [`X-18`](specification.md#requirement-X-18) | [Test](../acceptance/tests/test_crosscutting.py#L794) |
+| Invalid identifier variants are refused before any upstream request can carry them. | 318 | [`X-23`](specification.md#requirement-X-23) | [Test](../acceptance/tests/test_crosscutting.py#L997) |
+| A code without a specified local format remains a single encoded upstream path segment. | 1 | [`X-23`](specification.md#requirement-X-23) | [Test](../acceptance/tests/test_crosscutting.py#L1027) |
+| Free-text punctuation cannot split, truncate or change the value sent to the source. | 11 | [`X-24`](specification.md#requirement-X-24) | [Test](../acceptance/tests/test_crosscutting.py#L1106) |
 
 <details>
 <summary>Exact executable cases (376)</summary>
 
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-expand_cohort-maxDepth]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-expand_cohort-maxNodes]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-expand_value_set-count]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-find_data_elements_for_concept-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_code_map-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_concept_hierarchy-depth]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_concept_hierarchy-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_concept_neighborhood-budgetPerKind]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_concept_neighborhood-depth]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_concept_neighborhood-maxEdges]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_concept_neighborhood-maxNodes]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-list_contexts-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-match_data_elements-matchLimit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-search_concepts-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-search_data_elements-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-expand_cohort-maxDepth]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-expand_cohort-maxNodes]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-expand_value_set-count]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-find_data_elements_for_concept-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_code_map-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_concept_hierarchy-depth]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_concept_hierarchy-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_concept_neighborhood-budgetPerKind]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_concept_neighborhood-depth]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_concept_neighborhood-maxEdges]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_concept_neighborhood-maxNodes]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-list_contexts-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-match_data_elements-matchLimit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-search_concepts-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-search_data_elements-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L771)
-- <code>acceptance/tests/test_crosscutting.py::test_a_code_of_a_terminology_without_a_stated_form_goes_upstream_as_one_segment</code> — [source](../acceptance/tests/test_crosscutting.py#L1004)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[expand_cohort-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[expand_value_set-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[find_data_elements_for_concept-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_code_map-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_concept_hierarchy-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_concept_hierarchy-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_concept_neighborhood-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_concept_neighborhood-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_concept_neighborhood-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_form-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_release_alignment-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[list_contexts-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[match_data_elements-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[match_value_meanings-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[search_concepts-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[search_data_elements-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L740)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-0_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-0_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-1_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-1_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-2_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-2_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-3_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-3_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-4_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-4_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-5_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-5_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-0_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-0_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-1_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-1_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-2_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-2_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-3_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-3_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-4_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-4_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-5_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-5_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-valueSet-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-valueSet-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-valueSet-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-valueSet-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-valueSet-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-valueSet-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-conceptCode-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-conceptCode-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-conceptCode-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-conceptCode-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-conceptCode-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-conceptCode-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_code_map-dataElementId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_code_map-dataElementId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_code_map-dataElementId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_code_map-dataElementId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_code_map-dataElementId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_code_map-dataElementId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-dataElementId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-dataElementId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-dataElementId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-dataElementId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-dataElementId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-dataElementId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-permissibleValueId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-permissibleValueId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-permissibleValueId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-permissibleValueId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-permissibleValueId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-permissibleValueId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-version-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-version-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-version-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-version-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-version-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-version-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-codes-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-codes-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-codes-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-codes-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-codes-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-codes-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-publicId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-publicId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-publicId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-publicId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-publicId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-publicId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-version-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-version-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-version-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-version-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-version-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-version-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-publicId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-publicId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-publicId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-publicId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-publicId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-publicId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-version-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-version-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-version-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-version-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-version-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-version-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_permissible_value-permissibleValueId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_permissible_value-permissibleValueId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_permissible_value-permissibleValueId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_permissible_value-permissibleValueId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_permissible_value-permissibleValueId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_permissible_value-permissibleValueId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-0_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-0_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-1_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-1_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-2_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-2_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-3_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-3_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-4_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-4_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-5_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-5_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-0_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-0_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-1_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-1_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-2_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-2_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-3_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-3_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-4_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-4_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-5_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-5_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_release-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_release-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_release-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_release-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_release-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_release-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-conceptCode-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-conceptCode-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-conceptCode-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-conceptCode-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-conceptCode-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-conceptCode-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-dataElementId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-dataElementId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-dataElementId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-dataElementId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-dataElementId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-dataElementId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L974)
-- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[get_data_element-questionText]</code> — [source](../acceptance/tests/test_crosscutting.py#L1083)
-- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[ground_value-text]</code> — [source](../acceptance/tests/test_crosscutting.py#L1083)
-- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[harmonize_data_dictionary-columns[].description]</code> — [source](../acceptance/tests/test_crosscutting.py#L1083)
-- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[harmonize_data_dictionary-columns[].name]</code> — [source](../acceptance/tests/test_crosscutting.py#L1083)
-- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[harmonize_data_dictionary-columns[].sampleValues[]]</code> — [source](../acceptance/tests/test_crosscutting.py#L1083)
-- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[match_data_elements-entities[].name]</code> — [source](../acceptance/tests/test_crosscutting.py#L1083)
-- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[match_data_elements-entities[].permissibleValues[]]</code> — [source](../acceptance/tests/test_crosscutting.py#L1083)
-- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[match_data_elements-entities[].userTip]</code> — [source](../acceptance/tests/test_crosscutting.py#L1083)
-- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[match_value_meanings-values[]]</code> — [source](../acceptance/tests/test_crosscutting.py#L1083)
-- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[search_concepts-query]</code> — [source](../acceptance/tests/test_crosscutting.py#L1083)
-- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[search_data_elements-query]</code> — [source](../acceptance/tests/test_crosscutting.py#L1083)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-expand_cohort-maxDepth]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-expand_cohort-maxNodes]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-expand_value_set-count]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-find_data_elements_for_concept-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_code_map-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_concept_hierarchy-depth]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_concept_hierarchy-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_concept_neighborhood-budgetPerKind]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_concept_neighborhood-depth]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_concept_neighborhood-maxEdges]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-get_concept_neighborhood-maxNodes]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-list_contexts-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-match_data_elements-matchLimit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-search_concepts-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[-1-search_data_elements-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-expand_cohort-maxDepth]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-expand_cohort-maxNodes]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-expand_value_set-count]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-find_data_elements_for_concept-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_code_map-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_concept_hierarchy-depth]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_concept_hierarchy-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_concept_neighborhood-budgetPerKind]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_concept_neighborhood-depth]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_concept_neighborhood-maxEdges]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-get_concept_neighborhood-maxNodes]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-list_contexts-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-match_data_elements-matchLimit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-search_concepts-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_bounded_argument_below_one_is_an_invalid_request[0-search_data_elements-limit]</code> — [source](../acceptance/tests/test_crosscutting.py#L794)
+- <code>acceptance/tests/test_crosscutting.py::test_a_code_of_a_terminology_without_a_stated_form_goes_upstream_as_one_segment</code> — [source](../acceptance/tests/test_crosscutting.py#L1027)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[expand_cohort-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[expand_value_set-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[find_data_elements_for_concept-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_code_map-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_concept_hierarchy-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_concept_hierarchy-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_concept_neighborhood-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_concept_neighborhood-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_concept_neighborhood-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_form-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[get_release_alignment-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[list_contexts-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[match_data_elements-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[match_value_meanings-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[search_concepts-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_a_left_out_argument_is_its_stated_default[search_data_elements-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L763)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-0_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-0_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-1_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-1_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-2_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-2_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-3_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-3_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-4_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-4_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-5_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-conceptCode-5_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-0_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-0_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-1_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-1_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-2_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-2_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-3_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-3_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-4_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-4_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-5_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_cohort-release-5_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-valueSet-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-valueSet-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-valueSet-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-valueSet-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-valueSet-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[expand_value_set-valueSet-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-conceptCode-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-conceptCode-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-conceptCode-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-conceptCode-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-conceptCode-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-conceptCode-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[find_data_elements_for_concept-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_code_map-dataElementId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_code_map-dataElementId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_code_map-dataElementId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_code_map-dataElementId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_code_map-dataElementId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_code_map-dataElementId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-dataElementId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-dataElementId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-dataElementId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-dataElementId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-dataElementId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-dataElementId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-permissibleValueId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-permissibleValueId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-permissibleValueId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-permissibleValueId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-permissibleValueId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-permissibleValueId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-version-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-version-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-version-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-version-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-version-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_for_permissible_value-version-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_hierarchy-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_mappings-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_neighborhood-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concept_subsets-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-codes-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-codes-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-codes-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-codes-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-codes-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-codes-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_concepts-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-publicId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-publicId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-publicId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-publicId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-publicId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-publicId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-version-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-version-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-version-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-version-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-version-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_data_element-version-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-publicId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-publicId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-publicId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-publicId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-publicId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-publicId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-version-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-version-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-version-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-version-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-version-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_form-version-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_permissible_value-permissibleValueId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_permissible_value-permissibleValueId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_permissible_value-permissibleValueId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_permissible_value-permissibleValueId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_permissible_value-permissibleValueId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[get_permissible_value-permissibleValueId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-0_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-0_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-1_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-1_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-2_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-2_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-3_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-3_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-4_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-4_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-5_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-conceptCode-5_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-0_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-0_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-1_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-1_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-2_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-2_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-3_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-3_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-4_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-4_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-5_0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[ground_value-release-5_1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[list_relationships-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_release-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_release-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_release-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_release-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_release-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_release-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-code-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-code-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-code-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-code-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-code-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-code-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_retired_code-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-conceptCode-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-conceptCode-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-conceptCode-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-conceptCode-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-conceptCode-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-conceptCode-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-dataElementId-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-dataElementId-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-dataElementId-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-dataElementId-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-dataElementId-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-dataElementId-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[resolve_stored_value-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-release-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-release-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-release-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-release-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-release-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-release-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-terminology-0]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-terminology-1]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-terminology-2]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-terminology-3]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-terminology-4]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_an_identifier_off_its_stated_form_is_refused_before_any_request_carries_it[search_concepts-terminology-5]</code> — [source](../acceptance/tests/test_crosscutting.py#L997)
+- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[get_data_element-questionText]</code> — [source](../acceptance/tests/test_crosscutting.py#L1106)
+- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[ground_value-text]</code> — [source](../acceptance/tests/test_crosscutting.py#L1106)
+- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[harmonize_data_dictionary-columns[].description]</code> — [source](../acceptance/tests/test_crosscutting.py#L1106)
+- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[harmonize_data_dictionary-columns[].name]</code> — [source](../acceptance/tests/test_crosscutting.py#L1106)
+- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[harmonize_data_dictionary-columns[].sampleValues[]]</code> — [source](../acceptance/tests/test_crosscutting.py#L1106)
+- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[match_data_elements-entities[].name]</code> — [source](../acceptance/tests/test_crosscutting.py#L1106)
+- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[match_data_elements-entities[].permissibleValues[]]</code> — [source](../acceptance/tests/test_crosscutting.py#L1106)
+- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[match_data_elements-entities[].userTip]</code> — [source](../acceptance/tests/test_crosscutting.py#L1106)
+- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[match_value_meanings-values[]]</code> — [source](../acceptance/tests/test_crosscutting.py#L1106)
+- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[search_concepts-query]</code> — [source](../acceptance/tests/test_crosscutting.py#L1106)
+- <code>acceptance/tests/test_crosscutting.py::test_free_text_reaches_the_platform_as_one_value_equal_to_it[search_data_elements-query]</code> — [source](../acceptance/tests/test_crosscutting.py#L1106)
 
 </details>
 
@@ -1194,41 +1194,41 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Unpinned items name the caDSR registry without an invented release identifier or date. | 9 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_crosscutting.py#L243) |
-| Asking for an unpublished registry release fails instead of falling back to unpinned content. | 9 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_crosscutting.py#L259) |
-| Registry status uses the export's reported date and distribution without claiming a published release. | 1 | [`resolve_registry_release-1`](specification.md#requirement-resolve_registry_release-1) | [Test](../acceptance/tests/test_cadsr.py#L111) |
-| A fixture-published registry release is returned as published with its identity. | 1 | [`resolve_registry_release-1`](specification.md#requirement-resolve_registry_release-1) | [Test](../acceptance/tests/test_cadsr.py#L763) |
-| Published-release content requests carry that release and retain its identity and date in provenance. | 1 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_cadsr.py#L778) |
-| A missing release is refused even when the registry publishes other releases. | 1 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_cadsr.py#L801) |
-| A registry continuation token cannot be used with a different release. | 2 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_cadsr.py#L814) |
+| Unpinned items name the caDSR registry without an invented release identifier or date. | 9 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_crosscutting.py#L251) |
+| Asking for an unpublished registry release fails instead of falling back to unpinned content. | 9 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_crosscutting.py#L267) |
+| Registry status uses the export's reported date and distribution without claiming a published release. | 1 | [`resolve_registry_release-1`](specification.md#requirement-resolve_registry_release-1) | [Test](../acceptance/tests/test_cadsr.py#L113) |
+| A fixture-published registry release is returned as published with its identity. | 1 | [`resolve_registry_release-1`](specification.md#requirement-resolve_registry_release-1) | [Test](../acceptance/tests/test_cadsr.py#L768) |
+| Published-release content requests carry that release and retain its identity and date in provenance. | 1 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_cadsr.py#L783) |
+| A missing release is refused even when the registry publishes other releases. | 1 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_cadsr.py#L806) |
+| A registry continuation token cannot be used with a different release. | 2 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_cadsr.py#L819) |
 
 <details>
 <summary>Exact executable cases (24)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_cursor_keeps_the_registry_release_it_was_issued_with[pinned-then-not]</code> — [source](../acceptance/tests/test_cadsr.py#L814)
-- <code>acceptance/tests/test_cadsr.py::test_a_cursor_keeps_the_registry_release_it_was_issued_with[unpinned-then-pinned]</code> — [source](../acceptance/tests/test_cadsr.py#L814)
-- <code>acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_asked_for_and_named_with_its_date</code> — [source](../acceptance/tests/test_cadsr.py#L778)
-- <code>acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_returned</code> — [source](../acceptance/tests/test_cadsr.py#L763)
-- <code>acceptance/tests/test_cadsr.py::test_a_registry_release_cadsr_does_not_list_fails_closed_where_it_lists_some</code> — [source](../acceptance/tests/test_cadsr.py#L801)
-- <code>acceptance/tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it</code> — [source](../acceptance/tests/test_cadsr.py#L111)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L243)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L243)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L243)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L243)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L243)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L243)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L243)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L243)
-- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L243)
-- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L259)
-- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L259)
-- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L259)
-- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L259)
-- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L259)
-- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L259)
-- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L259)
-- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L259)
-- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L259)
+- <code>acceptance/tests/test_cadsr.py::test_a_cursor_keeps_the_registry_release_it_was_issued_with[pinned-then-not]</code> — [source](../acceptance/tests/test_cadsr.py#L819)
+- <code>acceptance/tests/test_cadsr.py::test_a_cursor_keeps_the_registry_release_it_was_issued_with[unpinned-then-pinned]</code> — [source](../acceptance/tests/test_cadsr.py#L819)
+- <code>acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_asked_for_and_named_with_its_date</code> — [source](../acceptance/tests/test_cadsr.py#L783)
+- <code>acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_returned</code> — [source](../acceptance/tests/test_cadsr.py#L768)
+- <code>acceptance/tests/test_cadsr.py::test_a_registry_release_cadsr_does_not_list_fails_closed_where_it_lists_some</code> — [source](../acceptance/tests/test_cadsr.py#L806)
+- <code>acceptance/tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it</code> — [source](../acceptance/tests/test_cadsr.py#L113)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L251)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L251)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L251)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L251)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L251)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L251)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L251)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L251)
+- <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L251)
+- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L267)
+- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L267)
+- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[get_form]</code> — [source](../acceptance/tests/test_crosscutting.py#L267)
+- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[ground_value]</code> — [source](../acceptance/tests/test_crosscutting.py#L267)
+- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[harmonize_data_dictionary]</code> — [source](../acceptance/tests/test_crosscutting.py#L267)
+- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[list_contexts]</code> — [source](../acceptance/tests/test_crosscutting.py#L267)
+- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[match_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L267)
+- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[match_value_meanings]</code> — [source](../acceptance/tests/test_crosscutting.py#L267)
+- <code>acceptance/tests/test_crosscutting.py::test_a_registry_release_cadsr_does_not_publish_fails_closed[search_data_elements]</code> — [source](../acceptance/tests/test_crosscutting.py#L267)
 
 </details>
 
@@ -1246,12 +1246,12 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| No terminology offered by the source is left out of the listing. | 1 | [`list_terminologies-1`](specification.md#requirement-list_terminologies-1) | [Test](../acceptance/tests/test_evs.py#L253) |
+| No terminology offered by the source is left out of the listing. | 1 | [`list_terminologies-1`](specification.md#requirement-list_terminologies-1) | [Test](../acceptance/tests/test_evs.py#L255) |
 
 <details>
 <summary>Exact executable cases (1)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_every_terminology_the_platform_serves_is_listed_with_its_current_release</code> — [source](../acceptance/tests/test_evs.py#L253)
+- <code>acceptance/tests/test_evs.py::test_every_terminology_the_platform_serves_is_listed_with_its_current_release</code> — [source](../acceptance/tests/test_evs.py#L255)
 
 </details>
 
@@ -1272,13 +1272,13 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 | Each supported include choice returns its own section without other optional sections. | 4 | [`get_concept-1`](specification.md#requirement-get_concept-1) | [Test](../acceptance/tests/test_evs.py#L149) |
 | Descendants cannot be requested as a concept include section. | 1 | [`get_concept-2`](specification.md#requirement-get_concept-2) | [Test](../acceptance/tests/test_evs.py#L172) |
 | Discover the current monthly release, then retrieve a concept whose identity and provenance agree with that release in fixture or live mode. | 1 | [`X-1`](specification.md#requirement-X-1), [`X-7`](specification.md#requirement-X-7), [`get_concept-3`](specification.md#requirement-get_concept-3) | [Test](../acceptance/tests/test_evs.py#L93) |
-| Code, terminology, name and active state are present, with the source's status where supplied. | 2 | [`get_concept-3`](specification.md#requirement-get_concept-3) | [Test](../acceptance/tests/test_evs.py#L182) |
+| Code, terminology, name and active state are present, with the source's status where supplied. | 2 | [`get_concept-3`](specification.md#requirement-get_concept-3) | [Test](../acceptance/tests/test_evs.py#L183) |
 
 <details>
 <summary>Exact executable cases (8)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes[current]</code> — [source](../acceptance/tests/test_evs.py#L182)
-- <code>acceptance/tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes[retired]</code> — [source](../acceptance/tests/test_evs.py#L182)
+- <code>acceptance/tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes[current]</code> — [source](../acceptance/tests/test_evs.py#L183)
+- <code>acceptance/tests/test_evs.py::test_a_concept_carries_its_identity_and_the_status_the_platform_publishes[retired]</code> — [source](../acceptance/tests/test_evs.py#L183)
 - <code>acceptance/tests/test_evs.py::test_a_discovered_release_identifies_the_concept_and_its_provenance</code> — [source](../acceptance/tests/test_evs.py#L93)
 - <code>acceptance/tests/test_evs.py::test_an_include_value_returns_its_section_and_no_other[definitions]</code> — [source](../acceptance/tests/test_evs.py#L149)
 - <code>acceptance/tests/test_evs.py::test_an_include_value_returns_its_section_and_no_other[properties]</code> — [source](../acceptance/tests/test_evs.py#L149)
@@ -1302,17 +1302,17 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A concept batch is obtained in one upstream request. | 1 | [`get_concepts-1`](specification.md#requirement-get_concepts-1) | [Test](../acceptance/tests/test_evs.py#L219) |
-| A silently omitted upstream code is reported in the missing-code list. | 1 | [`get_concepts-2`](specification.md#requirement-get_concepts-2) | [Test](../acceptance/tests/test_evs.py#L232) |
-| Different requested code orders are retained in the batch answer. | 2 | [`get_concepts-3`](specification.md#requirement-get_concepts-3) | [Test](../acceptance/tests/test_evs.py#L243) |
+| A concept batch is obtained in one upstream request. | 1 | [`get_concepts-1`](specification.md#requirement-get_concepts-1) | [Test](../acceptance/tests/test_evs.py#L220) |
+| A silently omitted upstream code is reported in the missing-code list. | 1 | [`get_concepts-2`](specification.md#requirement-get_concepts-2) | [Test](../acceptance/tests/test_evs.py#L233) |
+| Different requested code orders are retained in the batch answer. | 2 | [`get_concepts-3`](specification.md#requirement-get_concepts-3) | [Test](../acceptance/tests/test_evs.py#L244) |
 
 <details>
 <summary>Exact executable cases (4)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_a_batch_comes_back_in_request_order[as-listed]</code> — [source](../acceptance/tests/test_evs.py#L243)
-- <code>acceptance/tests/test_evs.py::test_a_batch_comes_back_in_request_order[reversed]</code> — [source](../acceptance/tests/test_evs.py#L243)
-- <code>acceptance/tests/test_evs.py::test_a_batch_is_one_upstream_request</code> — [source](../acceptance/tests/test_evs.py#L219)
-- <code>acceptance/tests/test_evs.py::test_a_code_the_platform_leaves_out_of_a_batch_is_named_missing</code> — [source](../acceptance/tests/test_evs.py#L232)
+- <code>acceptance/tests/test_evs.py::test_a_batch_comes_back_in_request_order[as-listed]</code> — [source](../acceptance/tests/test_evs.py#L244)
+- <code>acceptance/tests/test_evs.py::test_a_batch_comes_back_in_request_order[reversed]</code> — [source](../acceptance/tests/test_evs.py#L244)
+- <code>acceptance/tests/test_evs.py::test_a_batch_is_one_upstream_request</code> — [source](../acceptance/tests/test_evs.py#L220)
+- <code>acceptance/tests/test_evs.py::test_a_code_the_platform_leaves_out_of_a_batch_is_named_missing</code> — [source](../acceptance/tests/test_evs.py#L233)
 
 </details>
 
@@ -1330,14 +1330,14 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Lexical search preserves source order, paging, highlights and known total without introducing a score. | 1 | [`search_concepts-1`](specification.md#requirement-search_concepts-1) | [Test](../acceptance/tests/test_evs.py#L312) |
-| Prefix suggestions preserve source order and omit unsupported scores and highlights. | 1 | [`search_concepts-2`](specification.md#requirement-search_concepts-2) | [Test](../acceptance/tests/test_evs.py#L327) |
+| Lexical search preserves source order, paging, highlights and known total without introducing a score. | 1 | [`search_concepts-1`](specification.md#requirement-search_concepts-1) | [Test](../acceptance/tests/test_evs.py#L314) |
+| Prefix suggestions preserve source order and omit unsupported scores and highlights. | 1 | [`search_concepts-2`](specification.md#requirement-search_concepts-2) | [Test](../acceptance/tests/test_evs.py#L329) |
 
 <details>
 <summary>Exact executable cases (2)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_lexical_search_returns_the_platform_s_matches_in_its_order_a_page_at_a_time</code> — [source](../acceptance/tests/test_evs.py#L312)
-- <code>acceptance/tests/test_evs.py::test_typeahead_returns_the_platform_s_prefix_matches_in_its_order</code> — [source](../acceptance/tests/test_evs.py#L327)
+- <code>acceptance/tests/test_evs.py::test_lexical_search_returns_the_platform_s_matches_in_its_order_a_page_at_a_time</code> — [source](../acceptance/tests/test_evs.py#L314)
+- <code>acceptance/tests/test_evs.py::test_typeahead_returns_the_platform_s_prefix_matches_in_its_order</code> — [source](../acceptance/tests/test_evs.py#L329)
 
 </details>
 
@@ -1355,27 +1355,27 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Both index modes return descending scores and index provenance, with the exactly named concept on the first page and a total reflecting the index set. | 2 | [`search_concepts-3`](specification.md#requirement-search_concepts-3) | [Test](../acceptance/tests/test_evs.py#L532) |
-| The continuation token selects the next ranked items. | 2 | [`X-17`](specification.md#requirement-X-17), [`search_concepts-3`](specification.md#requirement-search_concepts-3) | [Test](../acceptance/tests/test_evs.py#L563) |
-| An index mode unsupported for the selected terminology is an invalid request. | 4 | [`search_concepts-4`](specification.md#requirement-search_concepts-4) | [Test](../acceptance/tests/test_evs.py#L581) |
-| A release different from the active index produces a release-mismatch error. | 2 | [`search_concepts-5`](specification.md#requirement-search_concepts-5) | [Test](../acceptance/tests/test_evs.py#L598) |
-| A missing index produces a capability-unavailable error rather than empty search results. | 2 | [`search_concepts-8`](specification.md#requirement-search_concepts-8) | [Test](../acceptance/tests/test_evs.py#L647) |
+| Both index modes return descending scores and index provenance, with the exactly named concept on the first page and a total reflecting the index set. | 2 | [`search_concepts-3`](specification.md#requirement-search_concepts-3) | [Test](../acceptance/tests/test_evs.py#L535) |
+| The continuation token selects the next ranked items. | 2 | [`X-17`](specification.md#requirement-X-17), [`search_concepts-3`](specification.md#requirement-search_concepts-3) | [Test](../acceptance/tests/test_evs.py#L566) |
+| An index mode unsupported for the selected terminology is an invalid request. | 4 | [`search_concepts-4`](specification.md#requirement-search_concepts-4) | [Test](../acceptance/tests/test_evs.py#L584) |
+| A release different from the active index produces a release-mismatch error. | 2 | [`search_concepts-5`](specification.md#requirement-search_concepts-5) | [Test](../acceptance/tests/test_evs.py#L602) |
+| A missing index produces a capability-unavailable error rather than empty search results. | 2 | [`search_concepts-8`](specification.md#requirement-search_concepts-8) | [Test](../acceptance/tests/test_evs.py#L651) |
 
 <details>
 <summary>Exact executable cases (12)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_an_index_mode_for_a_terminology_without_an_index_is_invalid[as-prepared-hybrid]</code> — [source](../acceptance/tests/test_evs.py#L581)
-- <code>acceptance/tests/test_evs.py::test_an_index_mode_for_a_terminology_without_an_index_is_invalid[as-prepared-semantic]</code> — [source](../acceptance/tests/test_evs.py#L581)
-- <code>acceptance/tests/test_evs.py::test_an_index_mode_for_a_terminology_without_an_index_is_invalid[none-hybrid]</code> — [source](../acceptance/tests/test_evs.py#L581)
-- <code>acceptance/tests/test_evs.py::test_an_index_mode_for_a_terminology_without_an_index_is_invalid[none-semantic]</code> — [source](../acceptance/tests/test_evs.py#L581)
-- <code>acceptance/tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable[hybrid]</code> — [source](../acceptance/tests/test_evs.py#L647)
-- <code>acceptance/tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable[semantic]</code> — [source](../acceptance/tests/test_evs.py#L647)
-- <code>acceptance/tests/test_evs.py::test_an_index_search_for_another_release_fails_closed[hybrid]</code> — [source](../acceptance/tests/test_evs.py#L598)
-- <code>acceptance/tests/test_evs.py::test_an_index_search_for_another_release_fails_closed[semantic]</code> — [source](../acceptance/tests/test_evs.py#L598)
-- <code>acceptance/tests/test_evs.py::test_an_index_search_s_cursor_continues_with_its_next_ranked_items[hybrid]</code> — [source](../acceptance/tests/test_evs.py#L563)
-- <code>acceptance/tests/test_evs.py::test_an_index_search_s_cursor_continues_with_its_next_ranked_items[semantic]</code> — [source](../acceptance/tests/test_evs.py#L563)
-- <code>acceptance/tests/test_evs.py::test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_page[hybrid]</code> — [source](../acceptance/tests/test_evs.py#L532)
-- <code>acceptance/tests/test_evs.py::test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_page[semantic]</code> — [source](../acceptance/tests/test_evs.py#L532)
+- <code>acceptance/tests/test_evs.py::test_an_index_mode_for_a_terminology_without_an_index_is_invalid[as-prepared-hybrid]</code> — [source](../acceptance/tests/test_evs.py#L584)
+- <code>acceptance/tests/test_evs.py::test_an_index_mode_for_a_terminology_without_an_index_is_invalid[as-prepared-semantic]</code> — [source](../acceptance/tests/test_evs.py#L584)
+- <code>acceptance/tests/test_evs.py::test_an_index_mode_for_a_terminology_without_an_index_is_invalid[none-hybrid]</code> — [source](../acceptance/tests/test_evs.py#L584)
+- <code>acceptance/tests/test_evs.py::test_an_index_mode_for_a_terminology_without_an_index_is_invalid[none-semantic]</code> — [source](../acceptance/tests/test_evs.py#L584)
+- <code>acceptance/tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable[hybrid]</code> — [source](../acceptance/tests/test_evs.py#L651)
+- <code>acceptance/tests/test_evs.py::test_an_index_mode_without_an_index_is_unavailable[semantic]</code> — [source](../acceptance/tests/test_evs.py#L651)
+- <code>acceptance/tests/test_evs.py::test_an_index_search_for_another_release_fails_closed[hybrid]</code> — [source](../acceptance/tests/test_evs.py#L602)
+- <code>acceptance/tests/test_evs.py::test_an_index_search_for_another_release_fails_closed[semantic]</code> — [source](../acceptance/tests/test_evs.py#L602)
+- <code>acceptance/tests/test_evs.py::test_an_index_search_s_cursor_continues_with_its_next_ranked_items[hybrid]</code> — [source](../acceptance/tests/test_evs.py#L566)
+- <code>acceptance/tests/test_evs.py::test_an_index_search_s_cursor_continues_with_its_next_ranked_items[semantic]</code> — [source](../acceptance/tests/test_evs.py#L566)
+- <code>acceptance/tests/test_evs.py::test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_page[hybrid]</code> — [source](../acceptance/tests/test_evs.py#L535)
+- <code>acceptance/tests/test_evs.py::test_index_search_returns_scored_indexed_concepts_and_the_named_one_first_page[semantic]</code> — [source](../acceptance/tests/test_evs.py#L535)
 
 </details>
 
@@ -1393,35 +1393,35 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Ordinary lexical search retains retired entries, including when the default is stated explicitly. | 2 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L385) |
-| Retired-only lexical search excludes entries not marked retired by the source. | 1 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L398) |
-| Typeahead supports the same retired-only selection. | 1 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L419) |
-| Unsupported retirement values, including an exclusion mode, are refused. | 3 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L431) |
-| A retired status inconsistent with the terminology's concept-status list is rejected. | 1 | [`search_concepts-7`](specification.md#requirement-search_concepts-7) | [Test](../acceptance/tests/test_evs.py#L441) |
-| Retired-only search is refused where the terminology supplies no retired status. | 1 | [`search_concepts-7`](specification.md#requirement-search_concepts-7) | [Test](../acceptance/tests/test_evs.py#L459) |
-| Indexed search retains retired entries by default and can select them alone. | 2 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L616) |
-| Semantic and hybrid modes reject unsupported retirement values too. | 6 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L636) |
+| Ordinary lexical search retains retired entries, including when the default is stated explicitly. | 2 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L387) |
+| Retired-only lexical search excludes entries not marked retired by the source. | 1 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L400) |
+| Typeahead supports the same retired-only selection. | 1 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L421) |
+| Unsupported retirement values, including an exclusion mode, are refused. | 3 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L433) |
+| A retired status inconsistent with the terminology's concept-status list is rejected. | 1 | [`search_concepts-7`](specification.md#requirement-search_concepts-7) | [Test](../acceptance/tests/test_evs.py#L444) |
+| Retired-only search is refused where the terminology supplies no retired status. | 1 | [`search_concepts-7`](specification.md#requirement-search_concepts-7) | [Test](../acceptance/tests/test_evs.py#L462) |
+| Indexed search retains retired entries by default and can select them alone. | 2 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L620) |
+| Semantic and hybrid modes reject unsupported retirement values too. | 6 | [`search_concepts-6`](specification.md#requirement-search_concepts-6) | [Test](../acceptance/tests/test_evs.py#L640) |
 
 <details>
 <summary>Exact executable cases (17)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid[ONLY]</code> — [source](../acceptance/tests/test_evs.py#L431)
-- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid[]</code> — [source](../acceptance/tests/test_evs.py#L431)
-- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid[exclude]</code> — [source](../acceptance/tests/test_evs.py#L431)
-- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes[-hybrid]</code> — [source](../acceptance/tests/test_evs.py#L636)
-- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes[-semantic]</code> — [source](../acceptance/tests/test_evs.py#L636)
-- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes[ONLY-hybrid]</code> — [source](../acceptance/tests/test_evs.py#L636)
-- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes[ONLY-semantic]</code> — [source](../acceptance/tests/test_evs.py#L636)
-- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes[exclude-hybrid]</code> — [source](../acceptance/tests/test_evs.py#L636)
-- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes[exclude-semantic]</code> — [source](../acceptance/tests/test_evs.py#L636)
-- <code>acceptance/tests/test_evs.py::test_index_search_returns_retired_concepts_with_the_others_or_alone[hybrid]</code> — [source](../acceptance/tests/test_evs.py#L616)
-- <code>acceptance/tests/test_evs.py::test_index_search_returns_retired_concepts_with_the_others_or_alone[semantic]</code> — [source](../acceptance/tests/test_evs.py#L616)
-- <code>acceptance/tests/test_evs.py::test_retired_concepts_are_returned_with_the_others_by_default[default]</code> — [source](../acceptance/tests/test_evs.py#L385)
-- <code>acceptance/tests/test_evs.py::test_retired_concepts_are_returned_with_the_others_by_default[include]</code> — [source](../acceptance/tests/test_evs.py#L385)
-- <code>acceptance/tests/test_evs.py::test_retired_only_returns_the_retired_concepts_alone</code> — [source](../acceptance/tests/test_evs.py#L398)
-- <code>acceptance/tests/test_evs.py::test_retired_only_where_the_listing_names_no_retired_status_is_invalid</code> — [source](../acceptance/tests/test_evs.py#L459)
-- <code>acceptance/tests/test_evs.py::test_retired_only_where_the_status_is_none_the_search_selects_is_invalid</code> — [source](../acceptance/tests/test_evs.py#L441)
-- <code>acceptance/tests/test_evs.py::test_typeahead_takes_retired_only_as_lexical_search_does</code> — [source](../acceptance/tests/test_evs.py#L419)
+- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid[ONLY]</code> — [source](../acceptance/tests/test_evs.py#L433)
+- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid[]</code> — [source](../acceptance/tests/test_evs.py#L433)
+- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid[exclude]</code> — [source](../acceptance/tests/test_evs.py#L433)
+- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes[-hybrid]</code> — [source](../acceptance/tests/test_evs.py#L640)
+- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes[-semantic]</code> — [source](../acceptance/tests/test_evs.py#L640)
+- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes[ONLY-hybrid]</code> — [source](../acceptance/tests/test_evs.py#L640)
+- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes[ONLY-semantic]</code> — [source](../acceptance/tests/test_evs.py#L640)
+- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes[exclude-hybrid]</code> — [source](../acceptance/tests/test_evs.py#L640)
+- <code>acceptance/tests/test_evs.py::test_a_retired_value_outside_the_two_is_invalid_in_index_modes[exclude-semantic]</code> — [source](../acceptance/tests/test_evs.py#L640)
+- <code>acceptance/tests/test_evs.py::test_index_search_returns_retired_concepts_with_the_others_or_alone[hybrid]</code> — [source](../acceptance/tests/test_evs.py#L620)
+- <code>acceptance/tests/test_evs.py::test_index_search_returns_retired_concepts_with_the_others_or_alone[semantic]</code> — [source](../acceptance/tests/test_evs.py#L620)
+- <code>acceptance/tests/test_evs.py::test_retired_concepts_are_returned_with_the_others_by_default[default]</code> — [source](../acceptance/tests/test_evs.py#L387)
+- <code>acceptance/tests/test_evs.py::test_retired_concepts_are_returned_with_the_others_by_default[include]</code> — [source](../acceptance/tests/test_evs.py#L387)
+- <code>acceptance/tests/test_evs.py::test_retired_only_returns_the_retired_concepts_alone</code> — [source](../acceptance/tests/test_evs.py#L400)
+- <code>acceptance/tests/test_evs.py::test_retired_only_where_the_listing_names_no_retired_status_is_invalid</code> — [source](../acceptance/tests/test_evs.py#L462)
+- <code>acceptance/tests/test_evs.py::test_retired_only_where_the_status_is_none_the_search_selects_is_invalid</code> — [source](../acceptance/tests/test_evs.py#L444)
+- <code>acceptance/tests/test_evs.py::test_typeahead_takes_retired_only_as_lexical_search_does</code> — [source](../acceptance/tests/test_evs.py#L421)
 
 </details>
 
@@ -1439,16 +1439,16 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Excessive depth is capped; deeper nodes are absent and continuation beyond the cap is reported as depth truncation. | 1 | [`get_concept_hierarchy-1`](specification.md#requirement-get_concept_hierarchy-1) | [Test](../acceptance/tests/test_evs.py#L790) |
-| Paths preserve recorded source order in fixture mode; live paths start at the requested concept and agree with the returned nodes and release. | 1 | [`get_concept_hierarchy-2`](specification.md#requirement-get_concept_hierarchy-2) | [Test](../acceptance/tests/test_evs.py#L808) |
-| Hierarchy continuation pages reconstruct the source listing without duplicate concepts. | 1 | [`get_concept_hierarchy-3`](specification.md#requirement-get_concept_hierarchy-3) | [Test](../acceptance/tests/test_evs.py#L827) |
+| Excessive depth is capped; deeper nodes are absent and continuation beyond the cap is reported as depth truncation. | 1 | [`get_concept_hierarchy-1`](specification.md#requirement-get_concept_hierarchy-1) | [Test](../acceptance/tests/test_evs.py#L795) |
+| Paths preserve recorded source order in fixture mode; live paths start at the requested concept and agree with the returned nodes and release. | 1 | [`get_concept_hierarchy-2`](specification.md#requirement-get_concept_hierarchy-2) | [Test](../acceptance/tests/test_evs.py#L813) |
+| Hierarchy continuation pages reconstruct the source listing without duplicate concepts. | 1 | [`get_concept_hierarchy-3`](specification.md#requirement-get_concept_hierarchy-3) | [Test](../acceptance/tests/test_evs.py#L832) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_a_depth_above_the_maximum_is_applied_as_the_maximum_and_reported</code> — [source](../acceptance/tests/test_evs.py#L790)
-- <code>acceptance/tests/test_evs.py::test_limit_is_a_page_the_cursor_continues_to_the_end</code> — [source](../acceptance/tests/test_evs.py#L827)
-- <code>acceptance/tests/test_evs.py::test_paths_to_root_are_the_platform_s_paths_in_its_order</code> — [source](../acceptance/tests/test_evs.py#L808)
+- <code>acceptance/tests/test_evs.py::test_a_depth_above_the_maximum_is_applied_as_the_maximum_and_reported</code> — [source](../acceptance/tests/test_evs.py#L795)
+- <code>acceptance/tests/test_evs.py::test_limit_is_a_page_the_cursor_continues_to_the_end</code> — [source](../acceptance/tests/test_evs.py#L832)
+- <code>acceptance/tests/test_evs.py::test_paths_to_root_are_the_platform_s_paths_in_its_order</code> — [source](../acceptance/tests/test_evs.py#L813)
 
 </details>
 
@@ -1466,18 +1466,18 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Count and offset select the correct ordered page even when the source ignores them. | 3 | [`expand_value_set-1`](specification.md#requirement-expand_value_set-1) | [Test](../acceptance/tests/test_evs.py#L688) |
-| Active-only removes inactive members and adjusts the total; default and false selections retain them with their status. | 3 | [`expand_value_set-2`](specification.md#requirement-expand_value_set-2) | [Test](../acceptance/tests/test_evs.py#L710) |
+| Count and offset select the correct ordered page even when the source ignores them. | 3 | [`expand_value_set-1`](specification.md#requirement-expand_value_set-1) | [Test](../acceptance/tests/test_evs.py#L693) |
+| Active-only removes inactive members and adjusts the total; default and false selections retain them with their status. | 3 | [`expand_value_set-2`](specification.md#requirement-expand_value_set-2) | [Test](../acceptance/tests/test_evs.py#L715) |
 
 <details>
 <summary>Exact executable cases (6)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[default]</code> — [source](../acceptance/tests/test_evs.py#L710)
-- <code>acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[false]</code> — [source](../acceptance/tests/test_evs.py#L710)
-- <code>acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[true]</code> — [source](../acceptance/tests/test_evs.py#L710)
-- <code>acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[first]</code> — [source](../acceptance/tests/test_evs.py#L688)
-- <code>acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[last]</code> — [source](../acceptance/tests/test_evs.py#L688)
-- <code>acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[middle]</code> — [source](../acceptance/tests/test_evs.py#L688)
+- <code>acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[default]</code> — [source](../acceptance/tests/test_evs.py#L715)
+- <code>acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[false]</code> — [source](../acceptance/tests/test_evs.py#L715)
+- <code>acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[true]</code> — [source](../acceptance/tests/test_evs.py#L715)
+- <code>acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[first]</code> — [source](../acceptance/tests/test_evs.py#L693)
+- <code>acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[last]</code> — [source](../acceptance/tests/test_evs.py#L693)
+- <code>acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[middle]</code> — [source](../acceptance/tests/test_evs.py#L693)
 
 </details>
 
@@ -1495,28 +1495,28 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A busy kind is reported as truncated while other requested kinds still contribute results. | 4 | [`get_concept_neighborhood-1`](specification.md#requirement-get_concept_neighborhood-1) | [Test](../acceptance/tests/test_evs.py#L848) |
-| A supplied per-kind allowance limits the nodes that kind contributes and records its truncation. | 2 | [`get_concept_neighborhood-6`](specification.md#requirement-get_concept_neighborhood-6) | [Test](../acceptance/tests/test_evs.py#L878) |
-| A failed call's reported attempts agree with actual requests, including retries; this case does not prove every internal request-budget boundary. | 2 | [`get_concept_neighborhood-5`](specification.md#requirement-get_concept_neighborhood-5) | [Test](../acceptance/tests/test_evs.py#L922) |
-| Renaming a relationship cannot change its negative or positive classification. | 1 | [`get_concept_neighborhood-2`](specification.md#requirement-get_concept_neighborhood-2) | [Test](../acceptance/tests/test_evs.py#L950) |
-| Negative edges remain visible and marked, but traversal beyond them requires explicit inclusion. | 2 | [`get_concept_neighborhood-3`](specification.md#requirement-get_concept_neighborhood-3) | [Test](../acceptance/tests/test_evs.py#L995) |
-| An excessive node limit is capped and the result reports the applied maximum. | 1 | [`get_concept_neighborhood-4`](specification.md#requirement-get_concept_neighborhood-4) | [Test](../acceptance/tests/test_evs.py#L1023) |
+| A busy kind is reported as truncated while other requested kinds still contribute results. | 4 | [`get_concept_neighborhood-1`](specification.md#requirement-get_concept_neighborhood-1) | [Test](../acceptance/tests/test_evs.py#L853) |
+| A supplied per-kind allowance limits the nodes that kind contributes and records its truncation. | 2 | [`get_concept_neighborhood-6`](specification.md#requirement-get_concept_neighborhood-6) | [Test](../acceptance/tests/test_evs.py#L883) |
+| A failed call's reported attempts agree with actual requests, including retries; this case does not prove every internal request-budget boundary. | 2 | [`get_concept_neighborhood-5`](specification.md#requirement-get_concept_neighborhood-5) | [Test](../acceptance/tests/test_evs.py#L927) |
+| Renaming a relationship cannot change its negative or positive classification. | 1 | [`get_concept_neighborhood-2`](specification.md#requirement-get_concept_neighborhood-2) | [Test](../acceptance/tests/test_evs.py#L955) |
+| Negative edges remain visible and marked, but traversal beyond them requires explicit inclusion. | 2 | [`get_concept_neighborhood-3`](specification.md#requirement-get_concept_neighborhood-3) | [Test](../acceptance/tests/test_evs.py#L1000) |
+| An excessive node limit is capped and the result reports the applied maximum. | 1 | [`get_concept_neighborhood-4`](specification.md#requirement-get_concept_neighborhood-4) | [Test](../acceptance/tests/test_evs.py#L1028) |
 
 <details>
 <summary>Exact executable cases (12)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[in-order-associations]</code> — [source](../acceptance/tests/test_evs.py#L848)
-- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[in-order-roles]</code> — [source](../acceptance/tests/test_evs.py#L848)
-- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[reversed-associations]</code> — [source](../acceptance/tests/test_evs.py#L848)
-- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[reversed-roles]</code> — [source](../acceptance/tests/test_evs.py#L848)
-- <code>acceptance/tests/test_evs.py::test_a_node_limit_above_the_maximum_is_applied_as_the_maximum</code> — [source](../acceptance/tests/test_evs.py#L1023)
-- <code>acceptance/tests/test_evs.py::test_budget_per_kind_bounds_the_nodes_each_kind_adds[associations]</code> — [source](../acceptance/tests/test_evs.py#L878)
-- <code>acceptance/tests/test_evs.py::test_budget_per_kind_bounds_the_nodes_each_kind_adds[roles]</code> — [source](../acceptance/tests/test_evs.py#L878)
-- <code>acceptance/tests/test_evs.py::test_negative_edges_are_returned_marked_and_followed_only_when_included[default]</code> — [source](../acceptance/tests/test_evs.py#L995)
-- <code>acceptance/tests/test_evs.py::test_negative_edges_are_returned_marked_and_followed_only_when_included[included]</code> — [source](../acceptance/tests/test_evs.py#L995)
-- <code>acceptance/tests/test_evs.py::test_polarity_follows_the_relationship_code_not_its_name</code> — [source](../acceptance/tests/test_evs.py#L950)
-- <code>acceptance/tests/test_evs.py::test_the_attempts_a_failed_call_reports_are_the_requests_it_made[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_evs.py#L922)
-- <code>acceptance/tests/test_evs.py::test_the_attempts_a_failed_call_reports_are_the_requests_it_made[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_evs.py#L922)
+- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[in-order-associations]</code> — [source](../acceptance/tests/test_evs.py#L853)
+- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[in-order-roles]</code> — [source](../acceptance/tests/test_evs.py#L853)
+- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[reversed-associations]</code> — [source](../acceptance/tests/test_evs.py#L853)
+- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[reversed-roles]</code> — [source](../acceptance/tests/test_evs.py#L853)
+- <code>acceptance/tests/test_evs.py::test_a_node_limit_above_the_maximum_is_applied_as_the_maximum</code> — [source](../acceptance/tests/test_evs.py#L1028)
+- <code>acceptance/tests/test_evs.py::test_budget_per_kind_bounds_the_nodes_each_kind_adds[associations]</code> — [source](../acceptance/tests/test_evs.py#L883)
+- <code>acceptance/tests/test_evs.py::test_budget_per_kind_bounds_the_nodes_each_kind_adds[roles]</code> — [source](../acceptance/tests/test_evs.py#L883)
+- <code>acceptance/tests/test_evs.py::test_negative_edges_are_returned_marked_and_followed_only_when_included[default]</code> — [source](../acceptance/tests/test_evs.py#L1000)
+- <code>acceptance/tests/test_evs.py::test_negative_edges_are_returned_marked_and_followed_only_when_included[included]</code> — [source](../acceptance/tests/test_evs.py#L1000)
+- <code>acceptance/tests/test_evs.py::test_polarity_follows_the_relationship_code_not_its_name</code> — [source](../acceptance/tests/test_evs.py#L955)
+- <code>acceptance/tests/test_evs.py::test_the_attempts_a_failed_call_reports_are_the_requests_it_made[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_evs.py#L927)
+- <code>acceptance/tests/test_evs.py::test_the_attempts_a_failed_call_reports_are_the_requests_it_made[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_evs.py#L927)
 
 </details>
 
@@ -1534,16 +1534,16 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Subsets are the concept's published subset associations in source order. | 1 | [`get_concept_subsets-1`](specification.md#requirement-get_concept_subsets-1) | [Test](../acceptance/tests/test_evs.py#L1043) |
-| Mappings preserve recorded source content and order in fixture mode; live mappings carry target identity, relation and matching release provenance. | 1 | [`get_concept_mappings-1`](specification.md#requirement-get_concept_mappings-1) | [Test](../acceptance/tests/test_evs.py#L1070) |
-| Target-terminology filtering uses exact matching, including case. | 1 | [`get_concept_mappings-2`](specification.md#requirement-get_concept_mappings-2) | [Test](../acceptance/tests/test_evs.py#L1090) |
+| Subsets are the concept's published subset associations in source order. | 1 | [`get_concept_subsets-1`](specification.md#requirement-get_concept_subsets-1) | [Test](../acceptance/tests/test_evs.py#L1048) |
+| Mappings preserve recorded source content and order in fixture mode; live mappings carry target identity, relation and matching release provenance. | 1 | [`get_concept_mappings-1`](specification.md#requirement-get_concept_mappings-1) | [Test](../acceptance/tests/test_evs.py#L1075) |
+| Target-terminology filtering uses exact matching, including case. | 1 | [`get_concept_mappings-2`](specification.md#requirement-get_concept_mappings-2) | [Test](../acceptance/tests/test_evs.py#L1095) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_target_terminology_keeps_the_maps_with_that_target_and_no_other</code> — [source](../acceptance/tests/test_evs.py#L1090)
-- <code>acceptance/tests/test_evs.py::test_the_mappings_are_the_concept_s_maps_unchanged_in_order</code> — [source](../acceptance/tests/test_evs.py#L1070)
-- <code>acceptance/tests/test_evs.py::test_the_subsets_are_the_concept_s_subset_associations_in_order</code> — [source](../acceptance/tests/test_evs.py#L1043)
+- <code>acceptance/tests/test_evs.py::test_target_terminology_keeps_the_maps_with_that_target_and_no_other</code> — [source](../acceptance/tests/test_evs.py#L1095)
+- <code>acceptance/tests/test_evs.py::test_the_mappings_are_the_concept_s_maps_unchanged_in_order</code> — [source](../acceptance/tests/test_evs.py#L1075)
+- <code>acceptance/tests/test_evs.py::test_the_subsets_are_the_concept_s_subset_associations_in_order</code> — [source](../acceptance/tests/test_evs.py#L1048)
 
 </details>
 
@@ -1561,15 +1561,15 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Retired entries retain their status and exactly the replacements named by the source. | 2 | [`resolve_retired_code-1`](specification.md#requirement-resolve_retired_code-1) | [Test](../acceptance/tests/test_evs.py#L1141) |
-| Active entries report their status with no replacement. | 1 | [`resolve_retired_code-2`](specification.md#requirement-resolve_retired_code-2) | [Test](../acceptance/tests/test_evs.py#L1169) |
+| Retired entries retain their status and exactly the replacements named by the source. | 2 | [`resolve_retired_code-1`](specification.md#requirement-resolve_retired_code-1) | [Test](../acceptance/tests/test_evs.py#L1146) |
+| Active entries report their status with no replacement. | 1 | [`resolve_retired_code-2`](specification.md#requirement-resolve_retired_code-2) | [Test](../acceptance/tests/test_evs.py#L1174) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_a_retired_code_is_inactive_with_its_status_and_replacements[replaced]</code> — [source](../acceptance/tests/test_evs.py#L1141)
-- <code>acceptance/tests/test_evs.py::test_a_retired_code_is_inactive_with_its_status_and_replacements[unreplaced]</code> — [source](../acceptance/tests/test_evs.py#L1141)
-- <code>acceptance/tests/test_evs.py::test_an_active_code_is_active_with_its_status_and_no_replacement</code> — [source](../acceptance/tests/test_evs.py#L1169)
+- <code>acceptance/tests/test_evs.py::test_a_retired_code_is_inactive_with_its_status_and_replacements[replaced]</code> — [source](../acceptance/tests/test_evs.py#L1146)
+- <code>acceptance/tests/test_evs.py::test_a_retired_code_is_inactive_with_its_status_and_replacements[unreplaced]</code> — [source](../acceptance/tests/test_evs.py#L1146)
+- <code>acceptance/tests/test_evs.py::test_an_active_code_is_active_with_its_status_and_no_replacement</code> — [source](../acceptance/tests/test_evs.py#L1174)
 
 </details>
 
@@ -1587,17 +1587,17 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The recorded catalogue matches exactly in fixture mode; live entries carry code, name, kind, polarity and matching release provenance. | 1 | [`list_relationships-1`](specification.md#requirement-list_relationships-1) | [Test](../acceptance/tests/test_evs.py#L1194) |
-| Catalogue polarity remains correct when source relationship names change. | 1 | [`list_relationships-2`](specification.md#requirement-list_relationships-2) | [Test](../acceptance/tests/test_evs.py#L1222) |
-| Catalogue and neighbourhood calls reject a missing exclusion code and name what is absent. | 2 | [`list_relationships-3`](specification.md#requirement-list_relationships-3) | [Test](../acceptance/tests/test_evs.py#L1246) |
+| The recorded catalogue matches exactly in fixture mode; live entries carry code, name, kind, polarity and matching release provenance. | 1 | [`list_relationships-1`](specification.md#requirement-list_relationships-1) | [Test](../acceptance/tests/test_evs.py#L1199) |
+| Catalogue polarity remains correct when source relationship names change. | 1 | [`list_relationships-2`](specification.md#requirement-list_relationships-2) | [Test](../acceptance/tests/test_evs.py#L1227) |
+| Catalogue and neighbourhood calls reject a missing exclusion code and name what is absent. | 2 | [`list_relationships-3`](specification.md#requirement-list_relationships-3) | [Test](../acceptance/tests/test_evs.py#L1251) |
 
 <details>
 <summary>Exact executable cases (4)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_evs.py#L1246)
-- <code>acceptance/tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[list_relationships]</code> — [source](../acceptance/tests/test_evs.py#L1246)
-- <code>acceptance/tests/test_evs.py::test_a_relationship_s_polarity_follows_its_code_not_its_name</code> — [source](../acceptance/tests/test_evs.py#L1222)
-- <code>acceptance/tests/test_evs.py::test_every_relationship_of_the_catalogue_is_listed_by_code_name_and_kind</code> — [source](../acceptance/tests/test_evs.py#L1194)
+- <code>acceptance/tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_evs.py#L1251)
+- <code>acceptance/tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[list_relationships]</code> — [source](../acceptance/tests/test_evs.py#L1251)
+- <code>acceptance/tests/test_evs.py::test_a_relationship_s_polarity_follows_its_code_not_its_name</code> — [source](../acceptance/tests/test_evs.py#L1227)
+- <code>acceptance/tests/test_evs.py::test_every_relationship_of_the_catalogue_is_listed_by_code_name_and_kind</code> — [source](../acceptance/tests/test_evs.py#L1199)
 
 </details>
 
@@ -1615,29 +1615,29 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The base record contains its own fields, selected version and source statuses without unrequested nested sections. | 3 | [`get_data_element-1`](specification.md#requirement-get_data_element-1) | [Test](../acceptance/tests/test_cadsr.py#L133) |
-| Each optional section matches recorded content in fixture mode, retains its live shape and registry provenance, and does not add other sections. | 6 | [`get_data_element-1`](specification.md#requirement-get_data_element-1) | [Test](../acceptance/tests/test_cadsr.py#L242) |
-| The fixture question Sex of a Person resolves to its unique full data element. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L270) |
-| The fixture question Date of birth produces an ambiguity error naming candidate public identifiers. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L284) |
-| Unsupported lookup by long name reports capability unavailable. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L302) |
-| Question text with no matching data element reports not found. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L556) |
+| The base record contains its own fields, selected version and source statuses without unrequested nested sections. | 3 | [`get_data_element-1`](specification.md#requirement-get_data_element-1) | [Test](../acceptance/tests/test_cadsr.py#L135) |
+| Each optional section matches recorded content in fixture mode, retains its live shape and registry provenance, and does not add other sections. | 6 | [`get_data_element-1`](specification.md#requirement-get_data_element-1) | [Test](../acceptance/tests/test_cadsr.py#L244) |
+| The fixture question Sex of a Person resolves to its unique full data element. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L272) |
+| The fixture question Date of birth produces an ambiguity error naming candidate public identifiers. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L286) |
+| Unsupported lookup by long name reports capability unavailable. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L304) |
+| Question text with no matching data element reports not found. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L561) |
 
 <details>
 <summary>Exact executable cases (13)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[latest]</code> — [source](../acceptance/tests/test_cadsr.py#L133)
-- <code>acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-1]</code> — [source](../acceptance/tests/test_cadsr.py#L133)
-- <code>acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-4.0]</code> — [source](../acceptance/tests/test_cadsr.py#L133)
-- <code>acceptance/tests/test_cadsr.py::test_a_long_name_lookup_is_unavailable_never_empty</code> — [source](../acceptance/tests/test_cadsr.py#L302)
-- <code>acceptance/tests/test_cadsr.py::test_a_question_text_no_data_element_has_is_not_found</code> — [source](../acceptance/tests/test_cadsr.py#L556)
-- <code>acceptance/tests/test_cadsr.py::test_a_question_text_one_data_element_has_finds_it</code> — [source](../acceptance/tests/test_cadsr.py#L270)
-- <code>acceptance/tests/test_cadsr.py::test_a_question_text_several_have_is_an_invalid_request_naming_them</code> — [source](../acceptance/tests/test_cadsr.py#L284)
-- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[alternateNames]</code> — [source](../acceptance/tests/test_cadsr.py#L242)
-- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[classificationSchemes]</code> — [source](../acceptance/tests/test_cadsr.py#L242)
-- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[conceptAssociations]</code> — [source](../acceptance/tests/test_cadsr.py#L242)
-- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[permissibleValues]</code> — [source](../acceptance/tests/test_cadsr.py#L242)
-- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[referenceDocuments]</code> — [source](../acceptance/tests/test_cadsr.py#L242)
-- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[valueDomain]</code> — [source](../acceptance/tests/test_cadsr.py#L242)
+- <code>acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[latest]</code> — [source](../acceptance/tests/test_cadsr.py#L135)
+- <code>acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-1]</code> — [source](../acceptance/tests/test_cadsr.py#L135)
+- <code>acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-4.0]</code> — [source](../acceptance/tests/test_cadsr.py#L135)
+- <code>acceptance/tests/test_cadsr.py::test_a_long_name_lookup_is_unavailable_never_empty</code> — [source](../acceptance/tests/test_cadsr.py#L304)
+- <code>acceptance/tests/test_cadsr.py::test_a_question_text_no_data_element_has_is_not_found</code> — [source](../acceptance/tests/test_cadsr.py#L561)
+- <code>acceptance/tests/test_cadsr.py::test_a_question_text_one_data_element_has_finds_it</code> — [source](../acceptance/tests/test_cadsr.py#L272)
+- <code>acceptance/tests/test_cadsr.py::test_a_question_text_several_have_is_an_invalid_request_naming_them</code> — [source](../acceptance/tests/test_cadsr.py#L286)
+- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[alternateNames]</code> — [source](../acceptance/tests/test_cadsr.py#L244)
+- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[classificationSchemes]</code> — [source](../acceptance/tests/test_cadsr.py#L244)
+- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[conceptAssociations]</code> — [source](../acceptance/tests/test_cadsr.py#L244)
+- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[permissibleValues]</code> — [source](../acceptance/tests/test_cadsr.py#L244)
+- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[referenceDocuments]</code> — [source](../acceptance/tests/test_cadsr.py#L244)
+- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[valueDomain]</code> — [source](../acceptance/tests/test_cadsr.py#L244)
 
 </details>
 
@@ -1655,15 +1655,15 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Unsupported classification, permissible-value lookup and search options return the required unavailable-capability response. | 4 | [`get_permissible_value-1`](specification.md#requirement-get_permissible_value-1), [`list_contexts-1`](specification.md#requirement-list_contexts-1), [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L548) |
+| Unsupported classification, permissible-value lookup and search options return the required unavailable-capability response. | 4 | [`get_permissible_value-1`](specification.md#requirement-get_permissible_value-1), [`list_contexts-1`](specification.md#requirement-list_contexts-1), [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L553) |
 
 <details>
 <summary>Exact executable cases (4)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[classification-schemes]</code> — [source](../acceptance/tests/test_cadsr.py#L548)
-- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[permissible-value]</code> — [source](../acceptance/tests/test_cadsr.py#L548)
-- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[search-hybrid]</code> — [source](../acceptance/tests/test_cadsr.py#L548)
-- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[search-semantic]</code> — [source](../acceptance/tests/test_cadsr.py#L548)
+- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[classification-schemes]</code> — [source](../acceptance/tests/test_cadsr.py#L553)
+- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[permissible-value]</code> — [source](../acceptance/tests/test_cadsr.py#L553)
+- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[search-hybrid]</code> — [source](../acceptance/tests/test_cadsr.py#L553)
+- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[search-semantic]</code> — [source](../acceptance/tests/test_cadsr.py#L553)
 
 </details>
 
@@ -1681,14 +1681,14 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A requested page size determines the returned page. | 1 | [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L572) |
-| An upstream-capped search reports its cap and at least one omission without a fabricated total. | 1 | [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L584) |
+| A requested page size determines the returned page. | 1 | [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L577) |
+| An upstream-capped search reports its cap and at least one omission without a fabricated total. | 1 | [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L589) |
 
 <details>
 <summary>Exact executable cases (2)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_search_s_page_is_the_limit_given</code> — [source](../acceptance/tests/test_cadsr.py#L572)
-- <code>acceptance/tests/test_cadsr.py::test_a_search_the_platform_caps_reports_the_cap_and_no_total</code> — [source](../acceptance/tests/test_cadsr.py#L584)
+- <code>acceptance/tests/test_cadsr.py::test_a_search_s_page_is_the_limit_given</code> — [source](../acceptance/tests/test_cadsr.py#L577)
+- <code>acceptance/tests/test_cadsr.py::test_a_search_the_platform_caps_reports_the_cap_and_no_total</code> — [source](../acceptance/tests/test_cadsr.py#L589)
 
 </details>
 
@@ -1706,29 +1706,29 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Data-element candidates retain the source's scores and matching rules. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L608) |
-| Each input entity keeps its own ordered candidate list. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L632) |
-| Unsupported tuning options and excessive entity input are refused rather than ignored. | 3 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L651) |
-| Each entity returns no more than its requested match limit. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L674) |
-| Both matching operations report a timeout when the fixture response exceeds the matching timeout. | 2 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1), [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L705) |
-| Value-meaning candidates retain source order, rules, item types and concepts, omitting unavailable crosswalks and unsupplied scores. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L392) |
-| A value list above the supported maximum is rejected. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L416) |
-| A candidate without a source concept omits that optional concept instead of inventing one or inserting a null value. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L720) |
+| Data-element candidates retain the source's scores and matching rules. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L613) |
+| Each input entity keeps its own ordered candidate list. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L637) |
+| Unsupported tuning options and excessive entity input are refused rather than ignored. | 3 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L656) |
+| Each entity returns no more than its requested match limit. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L679) |
+| Both matching operations report a timeout when the fixture response exceeds the matching timeout. | 2 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1), [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L710) |
+| Value-meaning candidates retain source order, rules, item types and concepts, omitting unavailable crosswalks and unsupplied scores. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L397) |
+| A value list above the supported maximum is rejected. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L421) |
+| A candidate without a source concept omits that optional concept instead of inventing one or inserting a null value. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L725) |
 
 <details>
 <summary>Exact executable cases (11)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_match_with_no_concept_has_none_never_null</code> — [source](../acceptance/tests/test_cadsr.py#L720)
-- <code>acceptance/tests/test_cadsr.py::test_at_most_match_limit_matches_come_for_an_entity</code> — [source](../acceptance/tests/test_cadsr.py#L674)
-- <code>acceptance/tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says</code> — [source](../acceptance/tests/test_cadsr.py#L608)
-- <code>acceptance/tests/test_cadsr.py::test_each_entity_s_matches_are_named_for_it_in_the_order_given</code> — [source](../acceptance/tests/test_cadsr.py#L632)
-- <code>acceptance/tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout[match_data_elements]</code> — [source](../acceptance/tests/test_cadsr.py#L705)
-- <code>acceptance/tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout[match_value_meanings]</code> — [source](../acceptance/tests/test_cadsr.py#L705)
-- <code>acceptance/tests/test_cadsr.py::test_more_values_than_the_tool_takes_is_an_invalid_request</code> — [source](../acceptance/tests/test_cadsr.py#L416)
-- <code>acceptance/tests/test_cadsr.py::test_value_meaning_matches_are_the_platform_s_in_its_order_with_their_rule</code> — [source](../acceptance/tests/test_cadsr.py#L392)
-- <code>acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored[model-variant]</code> — [source](../acceptance/tests/test_cadsr.py#L651)
-- <code>acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored[similarity-threshold]</code> — [source](../acceptance/tests/test_cadsr.py#L651)
-- <code>acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored[too-many-entities]</code> — [source](../acceptance/tests/test_cadsr.py#L651)
+- <code>acceptance/tests/test_cadsr.py::test_a_match_with_no_concept_has_none_never_null</code> — [source](../acceptance/tests/test_cadsr.py#L725)
+- <code>acceptance/tests/test_cadsr.py::test_at_most_match_limit_matches_come_for_an_entity</code> — [source](../acceptance/tests/test_cadsr.py#L679)
+- <code>acceptance/tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says</code> — [source](../acceptance/tests/test_cadsr.py#L613)
+- <code>acceptance/tests/test_cadsr.py::test_each_entity_s_matches_are_named_for_it_in_the_order_given</code> — [source](../acceptance/tests/test_cadsr.py#L637)
+- <code>acceptance/tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout[match_data_elements]</code> — [source](../acceptance/tests/test_cadsr.py#L710)
+- <code>acceptance/tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout[match_value_meanings]</code> — [source](../acceptance/tests/test_cadsr.py#L710)
+- <code>acceptance/tests/test_cadsr.py::test_more_values_than_the_tool_takes_is_an_invalid_request</code> — [source](../acceptance/tests/test_cadsr.py#L421)
+- <code>acceptance/tests/test_cadsr.py::test_value_meaning_matches_are_the_platform_s_in_its_order_with_their_rule</code> — [source](../acceptance/tests/test_cadsr.py#L397)
+- <code>acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored[model-variant]</code> — [source](../acceptance/tests/test_cadsr.py#L656)
+- <code>acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored[similarity-threshold]</code> — [source](../acceptance/tests/test_cadsr.py#L656)
+- <code>acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored[too-many-entities]</code> — [source](../acceptance/tests/test_cadsr.py#L656)
 
 </details>
 
@@ -1746,20 +1746,20 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Form modules and status match the source, including for a retired form. | 3 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L313) |
-| Requesting a form without modules omits that section. | 1 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L332) |
-| Keyword retrieval is refused with an explanation that an identifier is needed. | 1 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L343) |
-| The contract-defined unknown-form response is interpreted as not found despite HTTP success. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L353) |
+| Form modules and status match the source, including for a retired form. | 3 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L316) |
+| Requesting a form without modules omits that section. | 1 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L335) |
+| Keyword retrieval is refused with an explanation that an identifier is needed. | 1 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L347) |
+| The contract-defined unknown-form response is interpreted as not found despite HTTP success. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L357) |
 
 <details>
 <summary>Exact executable cases (6)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_form_keyword_is_an_invalid_request_saying_an_identifier_is_needed</code> — [source](../acceptance/tests/test_cadsr.py#L343)
-- <code>acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too[latest]</code> — [source](../acceptance/tests/test_cadsr.py#L313)
-- <code>acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too[version-1.0]</code> — [source](../acceptance/tests/test_cadsr.py#L313)
-- <code>acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too[version-1]</code> — [source](../acceptance/tests/test_cadsr.py#L313)
-- <code>acceptance/tests/test_cadsr.py::test_a_form_without_its_modules_has_none</code> — [source](../acceptance/tests/test_cadsr.py#L332)
-- <code>acceptance/tests/test_cadsr.py::test_an_unknown_form_answered_inside_an_http_200_is_not_found</code> — [source](../acceptance/tests/test_cadsr.py#L353)
+- <code>acceptance/tests/test_cadsr.py::test_a_form_keyword_is_an_invalid_request_saying_an_identifier_is_needed</code> — [source](../acceptance/tests/test_cadsr.py#L347)
+- <code>acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too[latest]</code> — [source](../acceptance/tests/test_cadsr.py#L316)
+- <code>acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too[version-1.0]</code> — [source](../acceptance/tests/test_cadsr.py#L316)
+- <code>acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too[version-1]</code> — [source](../acceptance/tests/test_cadsr.py#L316)
+- <code>acceptance/tests/test_cadsr.py::test_a_form_without_its_modules_has_none</code> — [source](../acceptance/tests/test_cadsr.py#L335)
+- <code>acceptance/tests/test_cadsr.py::test_an_unknown_form_answered_inside_an_http_200_is_not_found</code> — [source](../acceptance/tests/test_cadsr.py#L357)
 
 </details>
 
@@ -1777,19 +1777,19 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Each code map preserves data-element identity, values, users, coverage and source fields. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L438) |
-| An absent value binding is reported explicitly with no fabricated values. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L476) |
-| Selecting a context returns its maps without confusing a name with part of another name. | 2 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L487) |
-| A source-system choice outside CRDC is rejected. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L502) |
+| Each code map preserves data-element identity, values, users, coverage and source fields. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L443) |
+| An absent value binding is reported explicitly with no fabricated values. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L481) |
+| Selecting a context returns its maps without confusing a name with part of another name. | 2 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L492) |
+| A source-system choice outside CRDC is rejected. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L507) |
 
 <details>
 <summary>Exact executable cases (5)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_code_map_is_a_data_element_s_values_users_and_coverage</code> — [source](../acceptance/tests/test_cadsr.py#L438)
-- <code>acceptance/tests/test_cadsr.py::test_a_context_selects_the_code_maps_it_uses[CIP]</code> — [source](../acceptance/tests/test_cadsr.py#L487)
-- <code>acceptance/tests/test_cadsr.py::test_a_context_selects_the_code_maps_it_uses[GDC]</code> — [source](../acceptance/tests/test_cadsr.py#L487)
-- <code>acceptance/tests/test_cadsr.py::test_a_data_element_without_value_level_binding_says_so</code> — [source](../acceptance/tests/test_cadsr.py#L476)
-- <code>acceptance/tests/test_cadsr.py::test_a_source_system_other_than_crdc_is_an_invalid_request</code> — [source](../acceptance/tests/test_cadsr.py#L502)
+- <code>acceptance/tests/test_cadsr.py::test_a_code_map_is_a_data_element_s_values_users_and_coverage</code> — [source](../acceptance/tests/test_cadsr.py#L443)
+- <code>acceptance/tests/test_cadsr.py::test_a_context_selects_the_code_maps_it_uses[CIP]</code> — [source](../acceptance/tests/test_cadsr.py#L492)
+- <code>acceptance/tests/test_cadsr.py::test_a_context_selects_the_code_maps_it_uses[GDC]</code> — [source](../acceptance/tests/test_cadsr.py#L492)
+- <code>acceptance/tests/test_cadsr.py::test_a_data_element_without_value_level_binding_says_so</code> — [source](../acceptance/tests/test_cadsr.py#L481)
+- <code>acceptance/tests/test_cadsr.py::test_a_source_system_other_than_crdc_is_an_invalid_request</code> — [source](../acceptance/tests/test_cadsr.py#L507)
 
 </details>
 
@@ -1807,12 +1807,12 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Context names match the source listing and also serve as their identifiers. | 1 | [`list_contexts-1`](specification.md#requirement-list_contexts-1) | [Test](../acceptance/tests/test_cadsr.py#L736) |
+| Context names match the source listing and also serve as their identifiers. | 1 | [`list_contexts-1`](specification.md#requirement-list_contexts-1) | [Test](../acceptance/tests/test_cadsr.py#L741) |
 
 <details>
 <summary>Exact executable cases (1)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_the_contexts_are_the_registry_s_context_names</code> — [source](../acceptance/tests/test_cadsr.py#L736)
+- <code>acceptance/tests/test_cadsr.py::test_the_contexts_are_the_registry_s_context_names</code> — [source](../acceptance/tests/test_cadsr.py#L741)
 
 </details>
 
@@ -1838,14 +1838,14 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 | Exact find succeeds with graph lag or an absent optional version and preserves both actual graph states. | 2 | [`find_data_elements_for_concept-4`](specification.md#requirement-find_data_elements_for_concept-4) | [Test](../acceptance/tests/test_cross_domain.py#L174) |
 | Expansion refuses an absent hierarchy version without backfilling it. | 1 | [`find_data_elements_for_concept-4`](specification.md#requirement-find_data_elements_for_concept-4) | [Test](../acceptance/tests/test_cross_domain.py#L202) |
 | Concept-use queries reject unsupported terminologies. | 1 | [`find_data_elements_for_concept-4`](specification.md#requirement-find_data_elements_for_concept-4) | [Test](../acceptance/tests/test_cross_domain.py#L209) |
-| An oversized descendant-use result is bounded and reports at least the known omitted amount. | 1 | [`find_data_elements_for_concept-5`](specification.md#requirement-find_data_elements_for_concept-5) | [Test](../acceptance/tests/test_cross_domain.py#L217) |
+| An oversized descendant-use result is bounded and reports at least the known omitted amount. | 1 | [`find_data_elements_for_concept-5`](specification.md#requirement-find_data_elements_for_concept-5) | [Test](../acceptance/tests/test_cross_domain.py#L218) |
 
 <details>
 <summary>Exact executable cases (12)</summary>
 
 - <code>acceptance/tests/test_cross_domain.py::test_a_terminology_other_than_ncit_is_an_invalid_request</code> — [source](../acceptance/tests/test_cross_domain.py#L209)
 - <code>acceptance/tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states</code> — [source](../acceptance/tests/test_cross_domain.py#L128)
-- <code>acceptance/tests/test_cross_domain.py::test_descendants_beyond_the_tool_s_maximum_are_truncated_with_how_much_was_left_out</code> — [source](../acceptance/tests/test_cross_domain.py#L217)
+- <code>acceptance/tests/test_cross_domain.py::test_descendants_beyond_the_tool_s_maximum_are_truncated_with_how_much_was_left_out</code> — [source](../acceptance/tests/test_cross_domain.py#L218)
 - <code>acceptance/tests/test_cross_domain.py::test_exact_find_preserves_actual_graph_states_without_hierarchy_alignment[graph-behind]</code> — [source](../acceptance/tests/test_cross_domain.py#L174)
 - <code>acceptance/tests/test_cross_domain.py::test_exact_find_preserves_actual_graph_states_without_hierarchy_alignment[graph-version-missing]</code> — [source](../acceptance/tests/test_cross_domain.py#L174)
 - <code>acceptance/tests/test_cross_domain.py::test_expansion_with_another_ncit_graph_release_fails_closed</code> — [source](../acceptance/tests/test_cross_domain.py#L156)
@@ -1872,28 +1872,28 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A permissible value resolves to its source concept and preserves terminology and registry provenance. | 1 | [`get_concept_for_permissible_value-1`](specification.md#requirement-get_concept_for_permissible_value-1) | [Test](../acceptance/tests/test_cross_domain.py#L272) |
-| The explicitly flagged API primary wins over the graph's main qualifier, with no graph provenance. | 1 | [`get_concept_for_permissible_value-1`](specification.md#requirement-get_concept_for_permissible_value-1) | [Test](../acceptance/tests/test_cross_domain.py#L298) |
-| LOINC, UMLS and compound primary references retain exact code/source, return a reason and caDSR-only provenance, and invent no EVS concept fields. | 3 | [`get_concept_for_permissible_value-1`](specification.md#requirement-get_concept_for_permissible_value-1) | [Test](../acceptance/tests/test_cross_domain.py#L344) |
-| Requested API item versions retain their own permissible values and upstream version spelling. | 2 | [`get_concept_for_permissible_value-1`](specification.md#requirement-get_concept_for_permissible_value-1) | [Test](../acceptance/tests/test_cross_domain.py#L317) |
-| Changed case, extra spaces and other nonmatching values are not silently normalized into a match. | 4 | [`get_concept_for_permissible_value-3`](specification.md#requirement-get_concept_for_permissible_value-3) | [Test](../acceptance/tests/test_cross_domain.py#L379) |
-| Unsupported retrieval by permissible-value identifier reports capability unavailable. | 1 | [`get_concept_for_permissible_value-2`](specification.md#requirement-get_concept_for_permissible_value-2) | [Test](../acceptance/tests/test_cross_domain.py#L396) |
+| A permissible value resolves to its source concept and preserves terminology and registry provenance. | 1 | [`get_concept_for_permissible_value-1`](specification.md#requirement-get_concept_for_permissible_value-1) | [Test](../acceptance/tests/test_cross_domain.py#L273) |
+| The explicitly flagged API primary wins over the graph's main qualifier, with no graph provenance. | 1 | [`get_concept_for_permissible_value-1`](specification.md#requirement-get_concept_for_permissible_value-1) | [Test](../acceptance/tests/test_cross_domain.py#L299) |
+| LOINC, UMLS and compound primary references retain exact code/source, return a reason and caDSR-only provenance, and invent no EVS concept fields. | 3 | [`get_concept_for_permissible_value-1`](specification.md#requirement-get_concept_for_permissible_value-1) | [Test](../acceptance/tests/test_cross_domain.py#L345) |
+| Requested API item versions retain their own permissible values and upstream version spelling. | 2 | [`get_concept_for_permissible_value-1`](specification.md#requirement-get_concept_for_permissible_value-1) | [Test](../acceptance/tests/test_cross_domain.py#L318) |
+| Changed case, extra spaces and other nonmatching values are not silently normalized into a match. | 4 | [`get_concept_for_permissible_value-3`](specification.md#requirement-get_concept_for_permissible_value-3) | [Test](../acceptance/tests/test_cross_domain.py#L380) |
+| Unsupported retrieval by permissible-value identifier reports capability unavailable. | 1 | [`get_concept_for_permissible_value-2`](specification.md#requirement-get_concept_for_permissible_value-2) | [Test](../acceptance/tests/test_cross_domain.py#L397) |
 
 <details>
 <summary>Exact executable cases (12)</summary>
 
-- <code>acceptance/tests/test_cross_domain.py::test_a_permissible_value_by_its_identifier_is_unavailable</code> — [source](../acceptance/tests/test_cross_domain.py#L396)
-- <code>acceptance/tests/test_cross_domain.py::test_a_requested_api_item_version_keeps_its_own_values_and_spelling[1]</code> — [source](../acceptance/tests/test_cross_domain.py#L317)
-- <code>acceptance/tests/test_cross_domain.py::test_a_requested_api_item_version_keeps_its_own_values_and_spelling[4.0]</code> — [source](../acceptance/tests/test_cross_domain.py#L317)
-- <code>acceptance/tests/test_cross_domain.py::test_a_value_resolves_to_the_concept_it_stands_for_naming_both_content_states</code> — [source](../acceptance/tests/test_cross_domain.py#L272)
-- <code>acceptance/tests/test_cross_domain.py::test_a_value_the_data_element_does_not_have_as_given_is_not_found[ Male]</code> — [source](../acceptance/tests/test_cross_domain.py#L379)
-- <code>acceptance/tests/test_cross_domain.py::test_a_value_the_data_element_does_not_have_as_given_is_not_found[MALE]</code> — [source](../acceptance/tests/test_cross_domain.py#L379)
-- <code>acceptance/tests/test_cross_domain.py::test_a_value_the_data_element_does_not_have_as_given_is_not_found[Male ]</code> — [source](../acceptance/tests/test_cross_domain.py#L379)
-- <code>acceptance/tests/test_cross_domain.py::test_a_value_the_data_element_does_not_have_as_given_is_not_found[male]</code> — [source](../acceptance/tests/test_cross_domain.py#L379)
-- <code>acceptance/tests/test_cross_domain.py::test_non_ncit_references_are_successful_without_invented_concepts[LOINC]</code> — [source](../acceptance/tests/test_cross_domain.py#L344)
-- <code>acceptance/tests/test_cross_domain.py::test_non_ncit_references_are_successful_without_invented_concepts[UMLS]</code> — [source](../acceptance/tests/test_cross_domain.py#L344)
-- <code>acceptance/tests/test_cross_domain.py::test_non_ncit_references_are_successful_without_invented_concepts[compound]</code> — [source](../acceptance/tests/test_cross_domain.py#L344)
-- <code>acceptance/tests/test_cross_domain.py::test_the_api_primary_is_not_the_graphs_main_qualifier</code> — [source](../acceptance/tests/test_cross_domain.py#L298)
+- <code>acceptance/tests/test_cross_domain.py::test_a_permissible_value_by_its_identifier_is_unavailable</code> — [source](../acceptance/tests/test_cross_domain.py#L397)
+- <code>acceptance/tests/test_cross_domain.py::test_a_requested_api_item_version_keeps_its_own_values_and_spelling[1]</code> — [source](../acceptance/tests/test_cross_domain.py#L318)
+- <code>acceptance/tests/test_cross_domain.py::test_a_requested_api_item_version_keeps_its_own_values_and_spelling[4.0]</code> — [source](../acceptance/tests/test_cross_domain.py#L318)
+- <code>acceptance/tests/test_cross_domain.py::test_a_value_resolves_to_the_concept_it_stands_for_naming_both_content_states</code> — [source](../acceptance/tests/test_cross_domain.py#L273)
+- <code>acceptance/tests/test_cross_domain.py::test_a_value_the_data_element_does_not_have_as_given_is_not_found[ Male]</code> — [source](../acceptance/tests/test_cross_domain.py#L380)
+- <code>acceptance/tests/test_cross_domain.py::test_a_value_the_data_element_does_not_have_as_given_is_not_found[MALE]</code> — [source](../acceptance/tests/test_cross_domain.py#L380)
+- <code>acceptance/tests/test_cross_domain.py::test_a_value_the_data_element_does_not_have_as_given_is_not_found[Male ]</code> — [source](../acceptance/tests/test_cross_domain.py#L380)
+- <code>acceptance/tests/test_cross_domain.py::test_a_value_the_data_element_does_not_have_as_given_is_not_found[male]</code> — [source](../acceptance/tests/test_cross_domain.py#L380)
+- <code>acceptance/tests/test_cross_domain.py::test_non_ncit_references_are_successful_without_invented_concepts[LOINC]</code> — [source](../acceptance/tests/test_cross_domain.py#L345)
+- <code>acceptance/tests/test_cross_domain.py::test_non_ncit_references_are_successful_without_invented_concepts[UMLS]</code> — [source](../acceptance/tests/test_cross_domain.py#L345)
+- <code>acceptance/tests/test_cross_domain.py::test_non_ncit_references_are_successful_without_invented_concepts[compound]</code> — [source](../acceptance/tests/test_cross_domain.py#L345)
+- <code>acceptance/tests/test_cross_domain.py::test_the_api_primary_is_not_the_graphs_main_qualifier</code> — [source](../acceptance/tests/test_cross_domain.py#L299)
 
 </details>
 
@@ -1911,16 +1911,16 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| GDC values come from the named mapset with matching release identity and asserted evidence. | 1 | [`resolve_stored_value-1`](specification.md#requirement-resolve_stored_value-1) | [Test](../acceptance/tests/test_cross_domain.py#L411) |
-| Other supported commons use the CRDC crosswalk and name each value's data element. | 1 | [`resolve_stored_value-2`](specification.md#requirement-resolve_stored_value-2) | [Test](../acceptance/tests/test_cross_domain.py#L464) |
-| Without value binding, no stored value is invented and the evidence states the limitation and lack of confidence. | 1 | [`resolve_stored_value-3`](specification.md#requirement-resolve_stored_value-3) | [Test](../acceptance/tests/test_cross_domain.py#L484) |
+| GDC values come from the named mapset with matching release identity and asserted evidence. | 1 | [`resolve_stored_value-1`](specification.md#requirement-resolve_stored_value-1) | [Test](../acceptance/tests/test_cross_domain.py#L413) |
+| Other supported commons use the CRDC crosswalk and name each value's data element. | 1 | [`resolve_stored_value-2`](specification.md#requirement-resolve_stored_value-2) | [Test](../acceptance/tests/test_cross_domain.py#L466) |
+| Without value binding, no stored value is invented and the evidence states the limitation and lack of confidence. | 1 | [`resolve_stored_value-3`](specification.md#requirement-resolve_stored_value-3) | [Test](../acceptance/tests/test_cross_domain.py#L486) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
 
-- <code>acceptance/tests/test_cross_domain.py::test_a_commons_without_a_value_level_binding_stores_no_value_and_says_so</code> — [source](../acceptance/tests/test_cross_domain.py#L484)
-- <code>acceptance/tests/test_cross_domain.py::test_a_gdc_value_resolves_through_the_mapset_its_source_names</code> — [source](../acceptance/tests/test_cross_domain.py#L411)
-- <code>acceptance/tests/test_cross_domain.py::test_another_commons_value_resolves_through_the_crdc_crosswalk</code> — [source](../acceptance/tests/test_cross_domain.py#L464)
+- <code>acceptance/tests/test_cross_domain.py::test_a_commons_without_a_value_level_binding_stores_no_value_and_says_so</code> — [source](../acceptance/tests/test_cross_domain.py#L486)
+- <code>acceptance/tests/test_cross_domain.py::test_a_gdc_value_resolves_through_the_mapset_its_source_names</code> — [source](../acceptance/tests/test_cross_domain.py#L413)
+- <code>acceptance/tests/test_cross_domain.py::test_another_commons_value_resolves_through_the_crdc_crosswalk</code> — [source](../acceptance/tests/test_cross_domain.py#L466)
 
 </details>
 
@@ -1938,13 +1938,13 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Alignment preserves all dataset dates, calculates the largest interval and checks warning behaviour above the default threshold and below a larger explicit threshold. | 2 | [`get_release_alignment-1`](specification.md#requirement-get_release_alignment-1) | [Test](../acceptance/tests/test_cross_domain.py#L515) |
+| Alignment preserves all dataset dates, calculates the largest interval and checks warning behaviour above the default threshold and below a larger explicit threshold. | 2 | [`get_release_alignment-1`](specification.md#requirement-get_release_alignment-1) | [Test](../acceptance/tests/test_cross_domain.py#L517) |
 
 <details>
 <summary>Exact executable cases (2)</summary>
 
-- <code>acceptance/tests/test_cross_domain.py::test_every_dataset_is_dated_with_the_largest_interval_and_a_warning_above_the_threshold[120]</code> — [source](../acceptance/tests/test_cross_domain.py#L515)
-- <code>acceptance/tests/test_cross_domain.py::test_every_dataset_is_dated_with_the_largest_interval_and_a_warning_above_the_threshold[None]</code> — [source](../acceptance/tests/test_cross_domain.py#L515)
+- <code>acceptance/tests/test_cross_domain.py::test_every_dataset_is_dated_with_the_largest_interval_and_a_warning_above_the_threshold[120]</code> — [source](../acceptance/tests/test_cross_domain.py#L517)
+- <code>acceptance/tests/test_cross_domain.py::test_every_dataset_is_dated_with_the_largest_interval_and_a_warning_above_the_threshold[None]</code> — [source](../acceptance/tests/test_cross_domain.py#L517)
 
 </details>
 
@@ -1963,26 +1963,26 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
 | The answer and registry-dependent items distinguish the selected NCIt release from the unpinned caDSR registry. | 1 | [`ground_value-1`](specification.md#requirement-ground_value-1) | [Test](../acceptance/tests/test_workflow.py#L60) |
-| EVS concept content from another release produces a release mismatch. | 1 | [`ground_value-1`](specification.md#requirement-ground_value-1) | [Test](../acceptance/tests/test_workflow.py#L79) |
-| Exact grounding preserves source uses and graph metadata despite hierarchy lag or an absent optional version; EVS reads stay pinned. | 2 | [`ground_value-1`](specification.md#requirement-ground_value-1) | [Test](../acceptance/tests/test_workflow.py#L86) |
-| Concept, data-element uses and permissible values match their sources; without a commons request there is no stored-value section. | 1 | [`ground_value-2`](specification.md#requirement-ground_value-2) | [Test](../acceptance/tests/test_workflow.py#L118) |
+| EVS concept content from another release produces a release mismatch. | 1 | [`ground_value-1`](specification.md#requirement-ground_value-1) | [Test](../acceptance/tests/test_workflow.py#L80) |
+| Exact grounding preserves source uses and graph metadata despite hierarchy lag or an absent optional version; EVS reads stay pinned. | 2 | [`ground_value-1`](specification.md#requirement-ground_value-1) | [Test](../acceptance/tests/test_workflow.py#L87) |
+| Concept, data-element uses and permissible values match their sources; without a commons request there is no stored-value section. | 1 | [`ground_value-2`](specification.md#requirement-ground_value-2) | [Test](../acceptance/tests/test_workflow.py#L119) |
 | Grounding shares the public-ID graph projection while preserving the pinned EVS concept. | 1 | [`ground_value-2`](specification.md#requirement-ground_value-2) | [Test](../acceptance/tests/test_workflow.py#L47) |
-| Adding GDC returns the literal stored values and fields from its mapping source. | 1 | [`ground_value-2`](specification.md#requirement-ground_value-2) | [Test](../acceptance/tests/test_workflow.py#L138) |
-| Text grounding uses the first search result even when another concept's name looks closer. | 1 | [`ground_value-3`](specification.md#requirement-ground_value-3) | [Test](../acceptance/tests/test_workflow.py#L154) |
-| A capped data-element step reports its own truncation while the independent permissible-value step remains complete. | 1 | [`ground_value-4`](specification.md#requirement-ground_value-4) | [Test](../acceptance/tests/test_workflow.py#L172) |
+| Adding GDC returns the literal stored values and fields from its mapping source. | 1 | [`ground_value-2`](specification.md#requirement-ground_value-2) | [Test](../acceptance/tests/test_workflow.py#L139) |
+| Text grounding uses the first search result even when another concept's name looks closer. | 1 | [`ground_value-3`](specification.md#requirement-ground_value-3) | [Test](../acceptance/tests/test_workflow.py#L155) |
+| A capped data-element step reports its own truncation while the independent permissible-value step remains complete. | 1 | [`ground_value-4`](specification.md#requirement-ground_value-4) | [Test](../acceptance/tests/test_workflow.py#L173) |
 
 <details>
 <summary>Exact executable cases (9)</summary>
 
-- <code>acceptance/tests/test_workflow.py::test_a_hop_that_reaches_its_bound_leaves_the_others_complete</code> — [source](../acceptance/tests/test_workflow.py#L172)
-- <code>acceptance/tests/test_workflow.py::test_a_text_resolves_to_the_first_result_search_concepts_gives_it</code> — [source](../acceptance/tests/test_workflow.py#L154)
-- <code>acceptance/tests/test_workflow.py::test_each_hop_is_what_its_surface_answers_for_the_concept</code> — [source](../acceptance/tests/test_workflow.py#L118)
-- <code>acceptance/tests/test_workflow.py::test_evs_concept_of_another_ncit_release_fails_closed</code> — [source](../acceptance/tests/test_workflow.py#L79)
-- <code>acceptance/tests/test_workflow.py::test_exact_grounding_accepts_graph_lag_or_absent_version[graph-behind]</code> — [source](../acceptance/tests/test_workflow.py#L86)
-- <code>acceptance/tests/test_workflow.py::test_exact_grounding_accepts_graph_lag_or_absent_version[graph-version-missing]</code> — [source](../acceptance/tests/test_workflow.py#L86)
+- <code>acceptance/tests/test_workflow.py::test_a_hop_that_reaches_its_bound_leaves_the_others_complete</code> — [source](../acceptance/tests/test_workflow.py#L173)
+- <code>acceptance/tests/test_workflow.py::test_a_text_resolves_to_the_first_result_search_concepts_gives_it</code> — [source](../acceptance/tests/test_workflow.py#L155)
+- <code>acceptance/tests/test_workflow.py::test_each_hop_is_what_its_surface_answers_for_the_concept</code> — [source](../acceptance/tests/test_workflow.py#L119)
+- <code>acceptance/tests/test_workflow.py::test_evs_concept_of_another_ncit_release_fails_closed</code> — [source](../acceptance/tests/test_workflow.py#L80)
+- <code>acceptance/tests/test_workflow.py::test_exact_grounding_accepts_graph_lag_or_absent_version[graph-behind]</code> — [source](../acceptance/tests/test_workflow.py#L87)
+- <code>acceptance/tests/test_workflow.py::test_exact_grounding_accepts_graph_lag_or_absent_version[graph-version-missing]</code> — [source](../acceptance/tests/test_workflow.py#L87)
 - <code>acceptance/tests/test_workflow.py::test_grounding_merged_graph_versions_makes_only_public_id_associations</code> — [source](../acceptance/tests/test_workflow.py#L47)
 - <code>acceptance/tests/test_workflow.py::test_one_envelope_names_the_release_asked_for_and_the_registry_unpinned</code> — [source](../acceptance/tests/test_workflow.py#L60)
-- <code>acceptance/tests/test_workflow.py::test_with_a_commons_the_stored_values_are_the_ones_it_uses_for_the_concept</code> — [source](../acceptance/tests/test_workflow.py#L138)
+- <code>acceptance/tests/test_workflow.py::test_with_a_commons_the_stored_values_are_the_ones_it_uses_for_the_concept</code> — [source](../acceptance/tests/test_workflow.py#L139)
 
 </details>
 
@@ -2000,15 +2000,15 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Default membership removes the root's excluded codes; explicit negative inclusion retains them while both modes list the exclusion assertions. | 2 | [`expand_cohort-1`](specification.md#requirement-expand_cohort-1) | [Test](../acceptance/tests/test_workflow.py#L229) |
-| A small node limit includes the root in its count and reports the truncated result size. | 1 | [`expand_cohort-1`](specification.md#requirement-expand_cohort-1) | [Test](../acceptance/tests/test_workflow.py#L258) |
+| Default membership removes the root's excluded codes; explicit negative inclusion retains them while both modes list the exclusion assertions. | 2 | [`expand_cohort-1`](specification.md#requirement-expand_cohort-1) | [Test](../acceptance/tests/test_workflow.py#L230) |
+| A small node limit includes the root in its count and reports the truncated result size. | 1 | [`expand_cohort-1`](specification.md#requirement-expand_cohort-1) | [Test](../acceptance/tests/test_workflow.py#L259) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
 
-- <code>acceptance/tests/test_workflow.py::test_max_nodes_counts_the_codes_the_concept_included</code> — [source](../acceptance/tests/test_workflow.py#L258)
-- <code>acceptance/tests/test_workflow.py::test_the_cohort_is_the_concept_and_its_descendants_less_its_own_exclusions[False]</code> — [source](../acceptance/tests/test_workflow.py#L229)
-- <code>acceptance/tests/test_workflow.py::test_the_cohort_is_the_concept_and_its_descendants_less_its_own_exclusions[True]</code> — [source](../acceptance/tests/test_workflow.py#L229)
+- <code>acceptance/tests/test_workflow.py::test_max_nodes_counts_the_codes_the_concept_included</code> — [source](../acceptance/tests/test_workflow.py#L259)
+- <code>acceptance/tests/test_workflow.py::test_the_cohort_is_the_concept_and_its_descendants_less_its_own_exclusions[False]</code> — [source](../acceptance/tests/test_workflow.py#L230)
+- <code>acceptance/tests/test_workflow.py::test_the_cohort_is_the_concept_and_its_descendants_less_its_own_exclusions[True]</code> — [source](../acceptance/tests/test_workflow.py#L230)
 
 </details>
 
@@ -2026,14 +2026,14 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Each column is submitted once with its description; Freezer Shelf Label remains unmatched and candidate records retain the registry state. | 1 | [`harmonize_data_dictionary-1`](specification.md#requirement-harmonize_data_dictionary-1) | [Test](../acceptance/tests/test_workflow.py#L297) |
-| Patient Gender's sample-value alignments match the source's value-meaning and concept answers. | 1 | [`harmonize_data_dictionary-1`](specification.md#requirement-harmonize_data_dictionary-1) | [Test](../acceptance/tests/test_workflow.py#L317) |
+| Each column is submitted once with its description; Freezer Shelf Label remains unmatched and candidate records retain the registry state. | 1 | [`harmonize_data_dictionary-1`](specification.md#requirement-harmonize_data_dictionary-1) | [Test](../acceptance/tests/test_workflow.py#L298) |
+| Patient Gender's sample-value alignments match the source's value-meaning and concept answers. | 1 | [`harmonize_data_dictionary-1`](specification.md#requirement-harmonize_data_dictionary-1) | [Test](../acceptance/tests/test_workflow.py#L318) |
 
 <details>
 <summary>Exact executable cases (2)</summary>
 
-- <code>acceptance/tests/test_workflow.py::test_a_column_s_sample_values_align_to_the_value_meanings_vmmatch_gives</code> — [source](../acceptance/tests/test_workflow.py#L317)
-- <code>acceptance/tests/test_workflow.py::test_each_column_is_matched_once_and_the_unmatched_are_listed</code> — [source](../acceptance/tests/test_workflow.py#L297)
+- <code>acceptance/tests/test_workflow.py::test_a_column_s_sample_values_align_to_the_value_meanings_vmmatch_gives</code> — [source](../acceptance/tests/test_workflow.py#L318)
+- <code>acceptance/tests/test_workflow.py::test_each_column_is_matched_once_and_the_unmatched_are_listed</code> — [source](../acceptance/tests/test_workflow.py#L298)
 
 </details>
 

@@ -54,6 +54,7 @@ def test_a_server_that_leaves_out_accept_gets_html_and_never_parses_it(tools, up
 
 @pytest.mark.tool("get_data_element")
 @pytest.mark.requirement("X-15")
+@pytest.mark.live_capable
 def test_a_failure_inside_an_http_200_is_an_error_never_an_empty_success(tools, recorded):
     answer = recorded("recorded/cadsr/data-element-unknown.json")["response"]
     # caDSR answers the unknown id with HTTP 200, no data element and a note that says so.
@@ -80,6 +81,7 @@ def test_html_where_json_was_asked_for_is_an_upstream_error(tools, recorded):
 
 @pytest.mark.tool("get_data_element")
 @pytest.mark.requirement("X-15")
+@pytest.mark.live_capable
 def test_a_refusal_inside_an_http_200_is_an_invalid_request(tools, recorded):
     answer = recorded("recorded/cadsr/data-element-refused.json")["response"]
     assert (answer["status"], answer["body"]["apiResponse"]["type"]) == (200, "E")
@@ -301,6 +303,7 @@ def test_a_question_text_several_have_is_an_invalid_request_naming_them(tools, r
 
 @pytest.mark.tool("get_data_element")
 @pytest.mark.requirement("get_data_element-2")
+@pytest.mark.live_capable
 def test_a_long_name_lookup_is_unavailable_never_empty(tools, recorded):
     result = tools.call("get_data_element", {"longName": _element(recorded)["longName"]})
 
@@ -331,6 +334,7 @@ def test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too(
 
 @pytest.mark.tool("get_form")
 @pytest.mark.requirement("get_form-1")
+@pytest.mark.live_capable
 def test_a_form_without_its_modules_has_none(tools, recorded):
     form = recorded(FORM)["response"]["body"]["form"]
 
@@ -352,6 +356,7 @@ def test_a_form_keyword_is_an_invalid_request_saying_an_identifier_is_needed(too
 
 @pytest.mark.tool("get_form")
 @pytest.mark.requirement("X-15")
+@pytest.mark.live_capable
 def test_an_unknown_form_answered_inside_an_http_200_is_not_found(tools, recorded):
     answer = recorded("recorded/cadsr/form-unknown.json")["response"]
     # The Form API says type E for an id it does not know, where the data element API says I.

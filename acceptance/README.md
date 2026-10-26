@@ -248,6 +248,18 @@ reports its workers forward.
 
 ## The live workflow
 
+Anonymous live selection includes stable contracts, refusals, bounds, provenance, caching
+and cursor checks. Tests comparing recorded content, requiring fixture request observation,
+synthetic identity, crafted capabilities or guaranteed truncation triggers stay fixture-only;
+scenario parameters remain excluded even when a sibling is live-capable. Credentialed
+successful calls retain their scenarios.
+
+For #366, all 231 newly selected cases passed their first credential-free live run with two
+workers and no index preparation. A full local 991-case run measured **278 passed, 0 failed,
+713 not_live**, against the same collection's **47 / 0 / 944** baseline. All 991 fixture
+outcomes remained passing. These local checks do not replace the stored scheduled-main
+observation below: its 19 October **46 / 0 / 920** counts describe an older collection.
+
 `.github/workflows/acceptance-live.yml` runs by hand (`workflow_dispatch`) and every Monday at
 06:41 UTC; the scheduled run fails when a test that passes on the fixtures fails live. It runs the
 fixture suite and the live suite (`NCI_SI_ACCEPTANCE_MODE=live`, both with `-n 4 --dist worksteal`,

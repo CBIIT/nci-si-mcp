@@ -49,13 +49,28 @@ def test_live_skip_reasons_cross_two_worker_boundary_without_an_upstream_call(
         'import pytest\npytestmark = pytest.mark.tool("get_form")\n'
         'def test_fixture_only():\n    pytest.fail("must not execute")\n'
         '@pytest.mark.scenario("fault")\n'
-        'def test_scenario():\n    pytest.fail("must not execute")\n',
+        'def test_scenario():\n    pytest.fail("must not execute")\n'
+        '@pytest.mark.parametrize("value", [\n'
+        '    pytest.param("live", marks=pytest.mark.live_capable),\n'
+        '    pytest.param("scenario", marks=pytest.mark.scenario("fault")),\n'
+        "])\n"
+        'def test_siblings(value):\n    assert value == "live"\n',
         encoding="utf-8",
     )
     serial = written(compliant, "-k", "test_reasons")
     parallel = written(compliant, "-k", "test_reasons", "-n", "2")
-    assert {row.get("not_live_reason") for row in parallel["tests"].values()} == {
+    assert {
+        row.get("not_live_reason")
+        for row in parallel["tests"].values()
+        if row["outcome"] == "not_live"
+    } == {
         "scenario",
         "not_live_capable",
     }
     assert parallel == serial
+    siblings = {
+        node.rsplit("[", 1)[-1]: (row["outcome"], row.get("not_live_reason"))
+        for node, row in parallel["tests"].items()
+        if "test_siblings[" in node
+    }
+    assert siblings == {"live]": ("passed", None), "scenario]": ("not_live", "scenario")}
