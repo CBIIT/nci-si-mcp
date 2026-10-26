@@ -28,6 +28,52 @@ from test_server import ServerFixture
 
 @patch("nci_si_mcp.server.configure_logging")
 class CaDSRProtocolTest(ServerFixture):
+    def test_public_citation_schema_has_exact_optional_include_and_api_roles(self, _):
+        listing = self.session(lambda client: client.list_tools())
+        tool = next(tool for tool in listing.tools if tool.name == "get_data_element")
+        self.assertEqual(
+            tool.input_schema["properties"]["include"]["anyOf"][0]["items"]["enum"],
+            [
+                "permissibleValues",
+                "valueDomain",
+                "conceptAssociations",
+                "alternateNames",
+                "classificationSchemes",
+                "referenceDocuments",
+                "dataElementConcept",
+            ],
+        )
+        definitions = tool.output_schema["$defs"]
+        self.assertEqual(
+            definitions["ConceptAssociation"]["properties"]["role"]["enum"],
+            ["objectClass", "property", "representationTerm"],
+        )
+        self.assertNotIn("dateModified", definitions["DataElement"]["required"])
+        form_tool = next(tool for tool in listing.tools if tool.name == "get_form")
+        self.assertNotIn("dateModified", form_tool.output_schema["$defs"]["Form"]["required"])
+        self.assertNotIn("dataElementConcept", definitions["DataElement"]["required"])
+        self.assertEqual(
+            set(definitions["DataElementConcept"]["properties"]),
+            {
+                "publicId",
+                "version",
+                "longName",
+                "dateModified",
+                "beginDate",
+                "endDate",
+                "objectClass",
+                "property",
+            },
+        )
+        self.assertEqual(
+            definitions["ConceptAssociation"]["properties"]["primary"],
+            {"type": "boolean"},
+        )
+        self.assertEqual(
+            definitions["ValueMeaningConcept"]["properties"]["displayOrder"],
+            {"type": "integer"},
+        )
+
     def test_numeric_item_versions_preserve_upstream_spelling(self, _):
         # Given caDSR formats a numeric version differently, an explicit MCP read still
         # returns that item and its original version in both content and provenance.
@@ -330,6 +376,8 @@ ROOT = Path(__file__).resolve().parents[1]
 RECORDS = yaml.safe_load((ROOT / "spec/records.yaml").read_text())
 TOOLS = yaml.safe_load((ROOT / "spec/tools.yaml").read_text())
 RECORD_TYPES = {
+    "cited_item": results.CitedItem,
+    "data_element_concept": results.DataElementConcept,
     "registry_release": results.RegistryReleaseResult,
     "data_element": results.DataElement,
     "permissible_value": results.PermissibleValue,
@@ -447,7 +495,7 @@ class CaDSRRecordSchemaTest(TestCase):
             (results.ValueMeaning, pv, 0),
             (results.ValueMeaningConcept, pv, 1),
             (
-                results.RegistryItemIdentity,
+                results.CitedItem,
                 RECORDS["classification_scheme"]["fields"]["items"]["content"],
                 0,
             ),
@@ -497,7 +545,7 @@ class CaDSRRecordSchemaTest(TestCase):
             (
                 results.ConceptAssociation,
                 "role",
-                ["objectClass", "property"],
+                ["objectClass", "property", "representationTerm"],
                 "data_element",
                 "conceptAssociations",
             ),
@@ -527,10 +575,13 @@ class CaDSRRecordSchemaTest(TestCase):
             },
             results.Form: item_text | {"definition", "type", "beginDate", "endDate"},
             results.RegistryItemIdentity: set(),
-            results.ValueMeaning: set(),
+            results.ValueMeaning: {"dateModified", "beginDate", "endDate"},
+            results.CitedItem: {"dateModified", "beginDate", "endDate"},
+            results.DataElementConcept: {"dateModified", "beginDate", "endDate"},
+            results.PermissibleValue: {"dateModified", "beginDate", "endDate"},
             results.ValueMeaningConcept: {"longName", "terminology"},
             results.ConceptAssociation: {"longName", "terminology"},
-            results.ClassificationScheme: set(),
+            results.ClassificationScheme: {"dateModified", "beginDate", "endDate"},
             results.CodeMap: {"crdcName"},
         }
         nested = {

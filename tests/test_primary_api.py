@@ -34,19 +34,19 @@ def primary_element(value="To a large extent", codes=None, **fields):
                                 "conceptCode": "C49508",
                                 "evsSource": "NCI_CONCEPT_CODE",
                                 "primaryIndicator": "No",
-                                "displayOrder": 1,
+                                "displayOrder": "1",
                             },
                             {
                                 "conceptCode": "C25332",
                                 "evsSource": "NCI_CONCEPT_CODE",
                                 "primaryIndicator": "Yes",
-                                "displayOrder": 0,
+                                "displayOrder": "0",
                             },
                             {
                                 "conceptCode": "C65107",
                                 "evsSource": "NCI_CONCEPT_CODE",
                                 "primaryIndicator": "No",
-                                "displayOrder": 2,
+                                "displayOrder": "2",
                             },
                         ],
                     },
@@ -120,13 +120,13 @@ class PrimaryAPIProtocolTest(ServerFixture):
                     "conceptCode": "C49508",
                     "evsSource": "NCI_CONCEPT_CODE",
                     "primaryIndicator": "No",
-                    "displayOrder": 0,
+                    "displayOrder": "0",
                 },
                 {
                     "conceptCode": "C25332",
                     "evsSource": "NCI_CONCEPT_CODE",
                     "primaryIndicator": "Yes",
-                    "displayOrder": 2,
+                    "displayOrder": "2",
                 },
             ],
         ):
@@ -231,7 +231,7 @@ class PrimaryAPIProtocolTest(ServerFixture):
         for source in ({}, {"evsSource": None}, {"evsSource": "未知 Ω "}):
             raw = primary_element(codes=[sourced_primary("C0332307", **source)])
             raw["DataElementConcept"] = {
-                "ObjectClass": {"Concepts": [{"conceptCode": "C0332307"} | source]},
+                "ObjectClass": {"Concepts": [sourced_primary("C0332307", **source)]},
                 "Property": {"Concepts": []},
             }
             with (
@@ -249,7 +249,7 @@ class PrimaryAPIProtocolTest(ServerFixture):
                 )
             self.assertFalse(response.is_error, response.content)
             data = response.structured_content
-            reference = {"conceptCode": "C0332307", "longName": None}
+            reference = {"conceptCode": "C0332307", "primary": True}
             if source:
                 reference["terminology"] = source["evsSource"]
             self.assertEqual(data["conceptAssociations"], [reference | {"role": "objectClass"}])
@@ -371,7 +371,7 @@ class PrimaryAPIProtocolTest(ServerFixture):
     def test_primary_evidence_never_comes_from_order_or_an_invalid_flag(self, _):
         cases = [
             [],
-            [{"conceptCode": "C25332", "primaryIndicator": "No", "displayOrder": 0}],
+            [{"conceptCode": "C25332", "primaryIndicator": "No", "displayOrder": "0"}],
             [{"conceptCode": "C25332"}],
             [{"conceptCode": "C25332", "primaryIndicator": "yes"}],
             [{"conceptCode": "C25332", "primaryIndicator": True}],

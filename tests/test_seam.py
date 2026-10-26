@@ -833,7 +833,7 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
             result = self.resolve()
         self.assertEqual(
             result["conceptReference"],
-            {"conceptCode": "C0009219", "terminology": "NCI_META_CUI", "longName": None},
+            {"conceptCode": "C0009219", "terminology": "NCI_META_CUI"},
         )
         self.assertEqual(result["unresolvedReason"], "non_ncit_source")
         self.assertEqual(self.hint, {"ttlMs": 3_600_000, "cacheScope": "public"})

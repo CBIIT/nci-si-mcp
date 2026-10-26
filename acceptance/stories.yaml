@@ -328,6 +328,8 @@
   tests:
     tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses: The base record contains its own fields, selected version and source statuses without unrequested nested sections.
     tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it: Each optional section matches recorded content in fixture mode, retains its live shape and registry provenance, and does not add other sections.
+    tests/test_cadsr.py::test_cited_items_keep_their_own_identity_dates_and_derivations: Latest and version-1 items retain their own identities and dates, representation associations and ordered concept flags without duplicate component concept lists or invented PV versions.
+    tests/test_cadsr.py::test_omitted_citation_fields_are_absent_and_explicit_null_stays_null: A crafted omission derived from recorded content keeps each item's missing modification date absent while retaining explicit-null end dates.
     tests/test_cadsr.py::test_a_question_text_one_data_element_has_finds_it: The fixture question Sex of a Person resolves to its unique full data element.
     tests/test_cadsr.py::test_a_question_text_several_have_is_an_invalid_request_naming_them: The fixture question Date of birth produces an ambiguity error naming candidate public identifiers.
     tests/test_cadsr.py::test_a_long_name_lookup_is_unavailable_never_empty: Unsupported lookup by long name reports capability unavailable.

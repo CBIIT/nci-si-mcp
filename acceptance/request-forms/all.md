@@ -969,6 +969,10 @@ ones while a test selects it. A recorded fixture is what the service answers tod
 stands in for a case the service does not produce on demand, under the requirement it names, and
 answers the ordinary forms above.
 
+### `cadsr/omitted-citation-fields`
+
+Crafted from recorded 2200604 by omitting each cited item's dateModified; explicit-null endDate retained. Original recording bytes unchanged.. Crafted, 1 fixture, for get_data_element-1: derived omissions; explicit null endDate retained from recording.
+
 ### `ssis/missing-order`
 
 Crafted omission of order from a newly recorded role tuple; no primary or order is inferred.. Crafted, 1 fixture, for find_data_elements_for_concept-1: crafted missing order from a new live recording.

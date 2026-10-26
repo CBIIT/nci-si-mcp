@@ -45,12 +45,7 @@ class CaDSRContentTest(CaDSRFixture):
         raw = element(AlternateNames=[{"name": "Alias"}])
         server = self.serve(reply({"DataElement": raw}))
         result = self.call(server, publicId="123")
-        missing = dict.fromkeys(
-            ("definition", "shortName", "latestVersionIndicator", "beginDate", "endDate", "origin")
-        )
-        self.assertEqual(
-            {k: v for k, v in result.items() if k != "provenance"}, element() | missing
-        )
+        self.assertEqual({k: v for k, v in result.items() if k != "provenance"}, element())
         self.assertEqual(result["provenance"]["release"], {"registry": "cadsr"})
         self.assertEqual(result["provenance"]["correlationId"], "fixture-call")
         self.assertEqual(self.hint, {"ttlMs": 3_600_000, "cacheScope": "public"})
@@ -242,8 +237,16 @@ class CaDSRContentTest(CaDSRFixture):
                 }
             ],
             DataElementConcept={
-                "ObjectClass": {"Concepts": [{"conceptCode": "C2", "longName": "Object"}]},
-                "Property": {"Concepts": [{"conceptCode": "C3", "longName": "Property"}]},
+                "ObjectClass": {
+                    "Concepts": [
+                        {"conceptCode": "C2", "longName": "Object", "primaryIndicator": "Yes"}
+                    ]
+                },
+                "Property": {
+                    "Concepts": [
+                        {"conceptCode": "C3", "longName": "Property", "primaryIndicator": "No"}
+                    ]
+                },
             },
             AlternateNames=[{"name": "Verbatim alias", "type": "Fixture"}],
         )
@@ -251,8 +254,8 @@ class CaDSRContentTest(CaDSRFixture):
             "valueDomain": {"type": "Enumerated"},
             "alternateNames": raw["AlternateNames"],
             "conceptAssociations": [
-                {"conceptCode": "C2", "longName": "Object", "role": "objectClass"},
-                {"conceptCode": "C3", "longName": "Property", "role": "property"},
+                {"conceptCode": "C2", "longName": "Object", "role": "objectClass", "primary": True},
+                {"conceptCode": "C3", "longName": "Property", "role": "property", "primary": False},
             ],
             "permissibleValues": [
                 {

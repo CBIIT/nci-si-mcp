@@ -325,6 +325,13 @@ def test_live_nullable_text_can_be_empty_without_becoming_an_identity(live_suite
     assert result.ret == 0
 
 
+def test_live_optional_metadata_can_be_omitted(live_suite):
+    result, outcomes = run_family(live_suite, "element", corruption=(0, "context", MISSING))
+
+    assert set(outcomes.values()) == {"passed"}
+    assert result.ret == 0
+
+
 def corrupt(content, path, value):
     keys = [int(key) if key.isdigit() else key for key in path.split(".")]
     for key in keys[:-1]:
@@ -348,7 +355,7 @@ CORRUPTIONS = (
         ("element", 0, "publicId", "9999999"),
         ("element", 0, "version", []),
         ("element", 1, "version", "99"),
-        ("element", 0, "context", MISSING),
+        ("element", 0, "longName", MISSING),
         ("element", 0, "extra", True),
         ("element", 0, "dateModified", 5),
         ("element", 0, "context", ["x"]),
