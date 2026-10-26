@@ -50,6 +50,7 @@ surfaces:
 # What each scenario provokes, in the order the register lists
 # them (register.py). Whether a scenario is recorded or crafted is read from its fixtures.
 scenarios:
+  ssis/missing-order: Crafted omission of order from a newly recorded role tuple; no primary or order is inferred.
   cadsr/primary-inversion: >-
     Crafted from issue #367's live observation of CDE 2178439: To a large extent has
     API primary C25332 while the graph calls qualifier C49508 main. Other metadata and
@@ -1019,6 +1020,285 @@ record:
           ORDER BY ?id ?version ?value ?concept
           LIMIT 1001
     - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-roles-c17357.json
+      rationale: "#365: newly recorded public-ID query with complete graph role tuples."
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id (MIN(?label) AS ?name)
+            (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+          WHERE {
+            VALUES ?concept { ncit:C17357 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+              ?node ?membership ?concept .
+              { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+              UNION
+              { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+              OPTIONAL { ?node cadsr:display_order ?order }
+              ?element cadsr:publicId ?id ;
+                rdfs:label ?label .
+            }
+          }
+          GROUP BY ?id
+          ORDER BY ?id
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-roles-c17357-descendants.json
+      rationale: "#365: newly recorded expanded role query for Gender."
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id (MIN(?label) AS ?name)
+            (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+          WHERE {
+            GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> { ?concept rdfs:subClassOf* ncit:C17357 . }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+              ?node ?membership ?concept .
+              { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+              UNION
+              { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+              OPTIONAL { ?node cadsr:display_order ?order }
+              ?element cadsr:publicId ?id ;
+                rdfs:label ?label .
+            }
+          }
+          GROUP BY ?id
+          ORDER BY ?id
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-roles-c116977.json
+      rationale: "#365: newly recorded empty role query."
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id (MIN(?label) AS ?name)
+            (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+          WHERE {
+            VALUES ?concept { ncit:C116977 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+              ?node ?membership ?concept .
+              { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+              UNION
+              { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+              OPTIONAL { ?node cadsr:display_order ?order }
+              ?element cadsr:publicId ?id ;
+                rdfs:label ?label .
+            }
+          }
+          GROUP BY ?id
+          ORDER BY ?id
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-roles-c2991.json
+      rationale: "#365: newly recorded bounded Disease role query."
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id (MIN(?label) AS ?name)
+            (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+          WHERE {
+            VALUES ?concept { ncit:C2991 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+              ?node ?membership ?concept .
+              { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+              UNION
+              { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+              OPTIONAL { ?node cadsr:display_order ?order }
+              ?element cadsr:publicId ?id ;
+                rdfs:label ?label .
+            }
+          }
+          GROUP BY ?id
+          ORDER BY ?id
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-roles-c2991-descendants.json
+      rationale: "#365: newly recorded bounded expanded Disease role query."
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id (MIN(?label) AS ?name)
+            (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+          WHERE {
+            GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> { ?concept rdfs:subClassOf* ncit:C2991 . }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+              ?node ?membership ?concept .
+              { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+              UNION
+              { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+              OPTIONAL { ?node cadsr:display_order ?order }
+              ?element cadsr:publicId ?id ;
+                rdfs:label ?label .
+            }
+          }
+          GROUP BY ?id
+          ORDER BY ?id
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-roles-c4817.json
+      rationale: "#365: newly recorded Ewing sarcoma role query used in grounding."
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id (MIN(?label) AS ?name)
+            (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+          WHERE {
+            VALUES ?concept { ncit:C4817 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+              ?node ?membership ?concept .
+              { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+              UNION
+              { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+              OPTIONAL { ?node cadsr:display_order ?order }
+              ?element cadsr:publicId ?id ;
+                rdfs:label ?label .
+            }
+          }
+          GROUP BY ?id
+          ORDER BY ?id
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-roles-c49508.json
+      rationale: "#365: live 2178439 order-one graph-main inversion evidence."
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id (MIN(?label) AS ?name)
+            (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+          WHERE {
+            VALUES ?concept { ncit:C49508 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+              ?node ?membership ?concept .
+              { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+              UNION
+              { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+              OPTIONAL { ?node cadsr:display_order ?order }
+              ?element cadsr:publicId ?id ;
+                rdfs:label ?label .
+            }
+          }
+          GROUP BY ?id
+          ORDER BY ?id
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-roles-c25332.json
+      rationale: "#365: live mixed-role and 2178439 order-zero evidence; exact probe."
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id (MIN(?label) AS ?name)
+            (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+          WHERE {
+            VALUES ?concept { ncit:C25332 }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+              ?node ?membership ?concept .
+              { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+              UNION
+              { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+              OPTIONAL { ?node cadsr:display_order ?order }
+              ?element cadsr:publicId ?id ;
+                rdfs:label ?label .
+            }
+          }
+          GROUP BY ?id
+          ORDER BY ?id
+          LIMIT 1001
+    - <<: *sparql
+      fixture: recorded/ssis-sparql/data-elements-roles-c25332-descendants.json
+      rationale: "#365: live mixed-role descendant query; expanded probe."
+      form:
+        query: |-
+          PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+          PREFIX owl: <http://www.w3.org/2002/07/owl#>
+          PREFIX dc: <http://purl.org/dc/elements/1.1/>
+          PREFIX mdr: <http://www.iso.org/11179/MDR#>
+          PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+          PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+          SELECT ?id (MIN(?label) AS ?name)
+            (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+          WHERE {
+            GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> { ?concept rdfs:subClassOf* ncit:C25332 . }
+            GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+              VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+              ?node ?membership ?concept .
+              { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+              UNION
+              { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+              UNION
+              { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+              OPTIONAL { ?node cadsr:display_order ?order }
+              ?element cadsr:publicId ?id ;
+                rdfs:label ?label .
+            }
+          }
+          GROUP BY ?id
+          ORDER BY ?id
+          LIMIT 1001
+    - <<: *sparql
       fixture: recorded/ssis-sparql/query-refused.json
       rationale: >-
         The inspection layer's refusal of a query it does not pass: HTTP 403 with an HTML
@@ -1303,4 +1583,4 @@ record:
 # The fixtures craft.py makes are built in memory when the set loads; this is the digest
 # of what it makes now. `pdm run acceptance-craft` writes it, `--out DIR` writes the
 # fixtures to read (fixtures/README.md).
-crafted: sha256:3d815d572f969bde7a1a2d69860308587ea09795e66f5857e611cb9ca2002316
+crafted: sha256:05a713cd0941f9b9dd38b3d708772d9ea309acbdb29a8885e4525e12246fcc9a

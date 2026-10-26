@@ -21,8 +21,8 @@ from test_http_client import Reply, ServerTestCase
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = (
     "crafted/ssis-sparql/graph-identities-bounded.json",
-    "crafted/ssis-public-id/data-elements-c17357.json",
-    "crafted/ssis-public-id/data-elements-c17357-descendants.json",
+    "recorded/ssis-sparql/data-elements-roles-c17357.json",
+    "recorded/ssis-sparql/data-elements-roles-c17357-descendants.json",
     "crafted/ssis-public-id/values-c20197.json",
     "crafted/ssis-public-id/values-c17357-descendants.json",
 )
@@ -35,8 +35,8 @@ IDS = (
 )
 REQUIRED = (
     ("graph", "date"),
-    ("id", "name"),
-    ("id", "name"),
+    ("id", "name", "roles"),
+    ("id", "name", "roles"),
     ("id", "value", "concept"),
     ("id", "value", "concept"),
 )
@@ -58,6 +58,28 @@ def passed():
 
 
 class SSISContractCommandTest(ServerTestCase):
+    def test_partial_role_binding_fails_and_still_reports_all_five(self):
+        for value in (None, "valueMeaning|bad|0"):
+            with self.subTest(value=value):
+                payloads = bodies()
+                row = payloads[1]["results"]["bindings"][0]
+                if value is None:
+                    del row["roles"]
+                else:
+                    row["roles"]["value"] = value
+                result, server = self.command(payloads)
+                expected = passed()
+                expected[1] = {
+                    "id": "elements-exact",
+                    "status": "fail",
+                    "error": "binding missing required variables"
+                    if value is None
+                    else "upstream_unavailable",
+                }
+                self.assertEqual(json.loads(result.stdout), expected)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(len(server.bodies), 5)
+
     def command(self, payloads):
         server = self.serve(
             *[
@@ -132,7 +154,7 @@ class SSISContractCommandTest(ServerTestCase):
         expected[1] = {
             "id": "elements-exact",
             "status": "fail",
-            "error": "head.vars must be exactly: id, name",
+            "error": "head.vars must be exactly: id, name, roles",
         }
         self.assertEqual(result.stdout, json.dumps(expected, indent=2) + "\n")
         self.assertEqual(result.returncode, 1, result.stderr)

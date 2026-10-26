@@ -755,14 +755,21 @@ data_element_use:
   title: The data element use record
   about: >-
     A data element that uses a concept, as find_data_elements_for_concept returns it: as an
-    object class, property or permissible value concept, main or minor, of the concept or, with
+    object class, property or value meaning of the concept or, with
     expandDescendants, of a descendant. The surface its provenance names answered it; the
     surfaces answer from their own content (the Shared SI graph is an export, the caDSR API is
-    live), so their answers differ, and neither says by which route the concept is used.
+    live), so their answers differ. Roles name every graph-reported path and actual matching
+    concept, with a trimmed integer displayOrder only when supplied; malformed present order
+    fails as upstream_unavailable. The graph supplies no primary flag; use get_data_element
+    for caDSR's primary indicator.
+    Representation-term use is not covered by this route, so absence does not establish non-use.
     Shared SI merges all versions of a CDE into one node: graph-derived data_element_use
     and value_use records have public-ID scope, with no version or value-to-version claim.
     Records from the caDSR API and CRDC crosswalk retain their versioned identities.
   fields:
+    roles:
+      content: "Nonempty, canonically sorted distinct { role: objectClass | property | valueMeaning, conceptCode, displayOrder?: integer } assertions; no primary inference"
+      of: A3.7
     dataElement:
       content: "{ publicId, longName } of the data element"
       of: A1.2

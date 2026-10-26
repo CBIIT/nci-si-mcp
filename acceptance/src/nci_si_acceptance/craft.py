@@ -1238,7 +1238,7 @@ def content_injection(recorded: Recorded) -> Documents:
     projections = ssis_public_id_projections(recorded)
     for group, (file, path) in sources.items():
         source = (
-            projections[f"crafted/ssis-public-id/{Path(file).name}"]
+            _current_graph_source(recorded, file, projections)
             if group in ("cross-domain", "workflow")
             else recorded(file)
         )
@@ -1310,9 +1310,7 @@ def ssis_public_id_projections(recorded: Recorded) -> Documents:
     """Craft derived projections, not current complete answers from bounded old captures."""
     documents = {}
     for file in recorded.files():
-        if "/ssis-sparql/" not in file or not Path(file).name.startswith(
-            ("data-elements-", "values-c")
-        ):
+        if "/ssis-sparql/" not in file or not Path(file).name.startswith("values-c"):
             continue
         source = recorded(file)
         query = source["request"]["form"]["query"]
@@ -1356,15 +1354,22 @@ def _association_key(item: dict[str, Any]) -> tuple[str, ...]:
     return tuple(item[field]["value"] for field in ("id", "value", "concept") if field in item)
 
 
+def _current_graph_source(recorded: Recorded, file: str, projections: Documents) -> dict[str, Any]:
+    if Path(file).name.startswith("data-elements-"):
+        return recorded(file.replace("data-elements-", "data-elements-roles-"))
+    return projections[f"crafted/ssis-public-id/{Path(file).name}"]
+
+
 def ssis_merged_versions(recorded: Recorded) -> Documents:
     """A crafted merged-version node; no claim that Tis belongs to CDE version 1."""
     documents = {}
     projections = ssis_public_id_projections(recorded)
     for name in ("data-elements-c4817", "values-c4817", "values-c4817-bounded"):
-        source = projections[f"crafted/ssis-public-id/{name}.json"]
+        source = _current_graph_source(recorded, f"recorded/ssis-sparql/{name}.json", projections)
         row = {"id": {"type": "literal", "value": "2008092"}}
         if name.startswith("data-elements"):
             row["name"] = {"type": "literal", "value": "Merged CDE"}
+            row["roles"] = source["response"]["body"]["results"]["bindings"][0]["roles"]
         else:
             row |= {
                 "value": {"type": "literal", "value": "Tis"},
@@ -1394,11 +1399,17 @@ def ssis_distinct_cap(recorded: Recorded) -> Documents:
     projections = ssis_public_id_projections(recorded)
     documents = {}
     for name in ("data-elements-c2991", "data-elements-c2991-descendants"):
-        source = projections[f"crafted/ssis-public-id/{name}.json"]
+        source = _current_graph_source(recorded, f"recorded/ssis-sparql/{name}.json", projections)
+        evidence = next(
+            row["roles"]
+            for row in source["response"]["body"]["results"]["bindings"]
+            if " " in row["roles"]["value"]
+        )
         rows = [
             {
                 "id": {"type": "literal", "value": str(SYNTHETIC_PUBLIC_ID + i)},
                 "name": {"type": "literal", "value": f"Synthetic element {i}"},
+                "roles": evidence,
             }
             for i in range(1001)
         ]
@@ -1410,7 +1421,22 @@ def ssis_distinct_cap(recorded: Recorded) -> Documents:
     return documents
 
 
+def ssis_missing_order(recorded: Recorded) -> Documents:
+    """Missing order cannot currently be obtained live; remove it from recorded evidence."""
+    source = recorded("recorded/ssis-sparql/data-elements-roles-c17357.json")
+    row = source["response"]["body"]["results"]["bindings"][0]
+    row["roles"]["value"] = row["roles"]["value"].rsplit("|", 1)[0] + "|"
+    return {
+        "scenarios/ssis/missing-order/elements.json": crafted(
+            "find_data_elements_for_concept-1: crafted missing order from a new live recording",
+            source["request"],
+            response={"status": 200, "body": {"results": {"bindings": [row]}}},
+        )
+    }
+
+
 SCENARIOS: tuple[Callable[[Recorded], Documents], ...] = (
+    ssis_missing_order,
     content_injection,
     ssis_public_id_projections,
     ssis_distinct_cap,

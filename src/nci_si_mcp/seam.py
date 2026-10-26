@@ -33,7 +33,7 @@ from .parameters import (
 from .permissions import require, require_operation
 from .release import ReleaseContext, resolve_evs_release, served_evs_release
 from .release_selection import implicit_selection, select
-from .ssis import NCIT_GRAPH, GraphIdentity
+from .ssis import NCIT_GRAPH, GraphIdentity, graph_roles
 from .validation import (
     ITEM_VERSION_FORM,
     NCIT_CODE_FORM,
@@ -144,6 +144,7 @@ def _concept_code(uri: str) -> str:
 def _element_use(row: dict[str, str], provenance: dict[str, Any]) -> dict[str, Any]:
     return {
         "dataElement": _identity(row) | {"longName": _text(row.get("name"), "data-element name")},
+        "roles": graph_roles(row.get("roles", "")),
         "provenance": provenance,
     }
 
@@ -272,6 +273,10 @@ def find_data_elements_for_concept(
 
     Shared SI merges CDE versions: graph associations identify a public ID only, never
     a version or a value-to-version assignment. caDSR API records keep their item versions.
+    Roles name every graph path and actual matching conceptCode without inferring a primary flag,
+    with optional trimmed integer displayOrder. Use get_data_element for caDSR's primary
+    indicator.
+    Representation-term use is not covered by this route, so absence does not establish non-use.
 
     Returns dataElements and, when asked, permissibleValues (on every page, possibly empty),
     with truncation and nextCursor. One page limit and one 1000-result cap cover data-element

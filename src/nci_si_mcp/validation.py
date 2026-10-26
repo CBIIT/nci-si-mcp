@@ -57,6 +57,8 @@ DataElementInclude = Literal[
 ]
 RegistrySearchMode = Literal["lexical", "semantic", "hybrid"]
 DataElementConceptRole = Literal["objectClass", "property"]
+GraphConceptRole = Literal["objectClass", "property", "valueMeaning"]
+GRAPH_CONCEPT_ROLES = frozenset(get_args(GraphConceptRole))
 MatchStrictness = Literal["restricted", "unrestricted"]
 MatchedItemType = Literal["Concept", "ValueMeaning"]
 CodeMapSource = Literal["CRDC"]

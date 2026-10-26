@@ -238,9 +238,10 @@ class PackageTests(unittest.TestCase):
             "| `fixture-family` | `fixture_operation` | first_tool, second_tool | X-1, X-2 | "
             "[crafted/fixture.json](../../acceptance/fixtures/crafted/fixture.json) |",
             "The bounded identity request is crafted from "
-            "recorded evidence, not a new live recording. Public-ID content projections "
-            "are crafted in memory from historical captures by the linked generator; "
-            "they are not complete current answers. Identifier and remaining-budget "
+            "recorded evidence, not a new live recording. Element queries have new live "
+            "recordings with complete role tuples; value public-ID projections are crafted "
+            "in memory from historical captures and are not complete current answers. "
+            "Identifier and remaining-budget "
             "LIMIT instances are parameters of these families. Historical REST façade, "
             "unbounded identity and values-by-public-id forms in the "
             "[request history](../../acceptance/request-forms/ssis.md) are inactive. "

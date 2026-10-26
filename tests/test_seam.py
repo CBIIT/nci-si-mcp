@@ -26,7 +26,13 @@ NCIT = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#"
 
 
 def element(identifier, version="1"):
-    return {"id": str(identifier), "version": version, "name": f"Element {identifier}"}
+    return {
+        "id": str(identifier),
+        "version": version,
+        "name": f"Element {identifier}",
+        "roles": "objectClass|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2F"
+        "Thesaurus.owl%23C1|0",
+    }
 
 
 def gdc_map(code="C1", version="26.06e"):
