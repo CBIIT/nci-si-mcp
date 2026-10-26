@@ -483,8 +483,10 @@ intact. Unresolved references make no NCIt concept request; release discovery an
 permissions still apply.
 
 **Breaking change (#367):** this tool's provenance no longer has `graphs` or
-`upstream.graphs`; `upstream.cadsr` holds the producing API item's provenance, alongside
-the EVS origin fields. Secured callers now need `get_data_element` as well as `get_concept`
+`upstream.graphs`. For resolved results, `upstream.cadsr` holds the producing API item's
+provenance alongside the EVS origin fields. Unresolved results retain the caDSR item's
+provenance directly, without an EVS origin or an `upstream.cadsr` wrapper.
+Secured callers now need `get_data_element` as well as `get_concept`
 child permission. Both are checked before reads, and permission expiry after caDSR blocks EVS.
 
 An item reached by traversal adds `depth` (an edge has that of the node it reaches; the start
