@@ -983,6 +983,7 @@ class LocalInstallerTest(unittest.TestCase):
         with (
             patch.dict(installer.os.environ, {"PATH": "/bin", "HOME": "/home/test"}, clear=True),
             patch.object(installer, "_owned_process", return_value=None),
+            patch.object(installer, "_port_available", return_value=True),
             patch.object(installer.subprocess, "Popen", return_value=process) as popen,
             patch.object(installer, "_poll_ready", return_value=True),
         ):

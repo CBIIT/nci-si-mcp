@@ -14,7 +14,7 @@ from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import PlatformError
 from nci_si_mcp.http_client import HttpClient, UpstreamError
 from nci_si_mcp.seam import NCIT_NAMESPACE
-from nci_si_mcp.ssis import CADSR_GRAPH, NCIT_GRAPH, SSISClient, _valid_date
+from nci_si_mcp.ssis import CADSR_GRAPH, NCIT_GRAPH, SSISClient, _valid_date, graph_roles
 from nci_si_mcp.validation import NCIT_CODE_FORM
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -76,6 +76,8 @@ def semantics(values: dict[str, str]) -> None:
 
 
 def content_semantics(values: dict[str, str]) -> None:
+    if "roles" in values:
+        graph_roles(values["roles"])
     if "name" in values:
         require(bool(values["name"].strip()), "name: must not be blank")
     if "concept" in values:

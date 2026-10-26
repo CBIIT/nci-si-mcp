@@ -442,41 +442,73 @@ The registry's content state, as resolve_registry_release returns it. caDSR publ
 
 ### The data element record
 
-A data element as a caDSR tool returns it: these fields, the platform's own, and the sections the caller's include selects; no include returns these fields alone. Names follow the caDSR API's (DataElement), statuses unchanged (A9.1).
+A data element as a caDSR tool returns it: these fields, the platform's own, and the sections the caller's include selects; no include returns these fields alone. Names follow the caDSR API's (DataElement), statuses unchanged (A9.1). Optional metadata is emitted only when supplied: omitted stays absent, explicit null stays null, without parent backfill.
 
 | Field | Content | Rule |
 |---|---|---|
 | `publicId` | The data element's public id | A1.2 |
 | `version` | The data element's own version, never the registry's state | A3.8.3 |
 | `longName` | Its long name | A4.1 |
-| `context` | The context that owns it | A3.8.3 |
+| `context` | The context that owns it (optional) | A3.8.3 |
 | `workflowStatus` | The platform's workflow status, unchanged (RELEASED, RETIRED ARCHIVED, ...) | A3.8.3 |
 | `registrationStatus` | The platform's registration status, unchanged (Standard, Application, ...) | A3.8.3 |
-| `dateCreated` | When the platform created it, its own value unchanged | A3.8.2 |
-| `dateModified` | When the platform last modified it, its own value unchanged | A3.8.2 |
-| `definition` | Its definition unchanged; null means caDSR sent none in the answer that produced this record | A4.1 |
-| `shortName` | Its short name unchanged; null means caDSR sent none in the answer that produced this record | A4.1 |
-| `latestVersionIndicator` | Its latest-version indicator unchanged; null means caDSR sent none in the answer that produced this record | A3.8.3 |
-| `beginDate` | Its begin date unchanged; null means caDSR sent none in the answer that produced this record | A3.8.2 |
-| `endDate` | Its end date unchanged; null means caDSR sent none in the answer that produced this record | A3.8.2 |
-| `origin` | Its origin unchanged; null means caDSR sent none in the answer that produced this record | A4.1 |
+| `dateCreated` | When the platform created it, its own value unchanged (optional) | A3.8.2 |
+| `dateModified` | When the platform last modified it, its own value unchanged (optional) | A3.8.2 |
+| `definition` | Its definition unchanged; null means caDSR sent none in the answer that produced this record (optional) | A4.1 |
+| `shortName` | Its short name unchanged; null means caDSR sent none in the answer that produced this record (optional) | A4.1 |
+| `latestVersionIndicator` | Its latest-version indicator unchanged; null means caDSR sent none in the answer that produced this record (optional) | A3.8.3 |
+| `beginDate` | Its begin date unchanged; null means caDSR sent none in the answer that produced this record (optional) | A3.8.2 |
+| `endDate` | Its end date unchanged; null means caDSR sent none in the answer that produced this record (optional) | A3.8.2 |
+| `origin` | Its origin unchanged; null means caDSR sent none in the answer that produced this record (optional) | A4.1 |
 | `referenceDocuments` | All ReferenceDocuments rows unchanged, including question texts, references and templates, when include selects them (optional) | get_data_element |
 | `provenance` | The provenance record, its release in the registry form | A4.4 |
 | `permissibleValues` | The permissible value records of its value domain, when include selects them (optional) | get_data_element |
 | `valueDomain` | The platform's value domain fields, unchanged but for its permissible values, which permissibleValues holds, when include selects it (optional) | get_data_element |
-| `conceptAssociations` | The concepts of its data element concept, each { conceptCode, longName, terminology?, role }, role objectClass or property, as the platform's ObjectClass and Property give them, when include selects them (optional) | get_data_element |
+| `conceptAssociations` | API derivation references in source order, without sorting or deduplication, each { conceptCode, longName?, terminology?, primary, displayOrder?, role }. Roles objectClass, property and representationTerm come from ObjectClass, Property and ValueDomain.RepresentationTerm. primary is boolean only from explicit Yes/No (other flags fail closed); displayOrder is an integer parsed from trimmed signed decimal digits (malformed values fail closed, missing stays absent). Neither is inferred from array position; no raw duplicate flags. (optional) | get_data_element |
+| `dataElementConcept` | The data_element_concept identity and component records, without concept lists, when include selects it (optional) | get_data_element |
 | `alternateNames` | The platform's alternate name entries, unchanged, when include selects them (optional) | get_data_element |
 | `classificationSchemes` | The classification scheme records it is classified in, when include selects them (optional) | get_data_element |
 
+### The cited caDSR component identity
+
+Own identity and supplied dates, never inherited. Missing dates stay absent; explicit null stays null.
+
+| Field | Content | Rule |
+|---|---|---|
+| `publicId` | Its own public identifier | A1.2 |
+| `version` | Its own version | A3.8.3 |
+| `longName` | Its own name | A4.1 |
+| `dateModified` | Its own last-modified date (optional) | A3.8.2 |
+| `beginDate` | Its own begin date (optional) | A3.8.2 |
+| `endDate` | Its own end date (optional) | A3.8.2 |
+
+### The data element concept citation
+
+The cited_item fields plus objectClass and property identities; concepts occur only in conceptAssociations.
+
+| Field | Content | Rule |
+|---|---|---|
+| `publicId` | The DEC public identifier | A1.2 |
+| `version` | The DEC version | A3.8.3 |
+| `longName` | The DEC name | A4.1 |
+| `dateModified` | The DEC last-modified date (optional) | A3.8.2 |
+| `beginDate` | The DEC begin date (optional) | A3.8.2 |
+| `endDate` | The DEC end date (optional) | A3.8.2 |
+| `objectClass` | The object class cited_item with no concepts | get_data_element |
+| `property` | The property cited_item with no concepts | get_data_element |
+
 ### The permissible value record
 
-A permissible value of a value domain, with the value meaning it stands for.
+A permissible value of a value domain, with its own supplied dates and no version of its own.
 
 | Field | Content | Rule |
 |---|---|---|
 | `publicId` | The identifier caDSR REST publishes for it; no platform operation retrieves a value by it yet (OP-C10) | A1.2 |
 | `value` | The value as stored | A9.1 |
-| `valueMeaning` | Its value meaning: { publicId, version, longName, concepts[] }, each concept { conceptCode, longName, terminology?, primary } as the platform gives it (api_concept) | A9.1 |
+| `dateModified` | Its own last-modified date (optional) | A3.8.2 |
+| `beginDate` | Its own begin date (optional) | A3.8.2 |
+| `endDate` | Its own end date (optional) | A3.8.2 |
+| `valueMeaning` | Its value meaning: { publicId, version, longName, dateModified?, beginDate?, endDate?, concepts[] }, each { conceptCode, longName?, terminology?, primary, displayOrder? }, primary:boolean from explicit Yes/No and optional integer displayOrder, with the same parsing and source-order rules as conceptAssociations. Missing dates stay absent, explicit null stays null. | A9.1 |
 | `provenance` | The provenance record, its release in the registry form | A4.4 |
 
 ### The caDSR API concept reference
@@ -486,7 +518,7 @@ A reference supplied by caDSR, not a resolved EVS concept. Source is never infer
 | Field | Content | Rule |
 |---|---|---|
 | `conceptCode` | The upstream conceptCode unchanged, including compound code::value | A1.2 |
-| `longName` | The upstream longName; null where the API supplies none | A4.1 |
+| `longName` | The upstream longName; null where the API supplies none (optional) | A4.1 |
 | `terminology` | Exact upstream evsSource, including unknown nonblank strings; omitted stays absent, explicit null stays null. A blank or non-string non-null source is upstream_unavailable (optional) | A1.2 |
 
 ### The unresolved permissible value concept result
@@ -510,7 +542,10 @@ A classification scheme as an object with its nested items (A7.2). The platform 
 | `version` | The scheme's version | A3.8.3 |
 | `longName` | Its long name | A4.1 |
 | `context` | The context that owns it | A7.2 |
-| `items` | Its classification scheme items, each { publicId, version, longName } | A7.2 |
+| `items` | Its classification scheme items, each { publicId, version, longName, dateModified?, beginDate?, endDate? } with its own supplied dates | A7.2 |
+| `dateModified` | Its own last-modified date (optional) | A3.8.2 |
+| `beginDate` | Its own begin date (optional) | A3.8.2 |
+| `endDate` | Its own end date (optional) | A3.8.2 |
 | `provenance` | The provenance record, its release in the registry form | A4.4 |
 
 ### The context record
@@ -547,22 +582,22 @@ One match of match_value_meanings, in the platform's order.
 
 ### The form record
 
-A form as get_form returns it, its status the platform's own (A8.1).
+A form as get_form returns it, its status the platform's own (A8.1). Optional metadata omitted upstream stays absent; explicit null stays null. Raw modules/questions retain their own identities, dates and unknown fields without invented dates.
 
 | Field | Content | Rule |
 |---|---|---|
 | `publicId` | The form's public id (the Form API's publicID) | A1.2 |
 | `version` | The form's version | A3.8.3 |
 | `longName` | Its long name | A4.1 |
-| `definition` | Its definition unchanged; null means caDSR sent none in the answer that produced this record | A4.1 |
-| `type` | Its form type unchanged (CRF, ...); null means caDSR sent none in the answer that produced this record | A3.8.3 |
-| `beginDate` | Its begin date unchanged; null means caDSR sent none in the answer that produced this record | A3.8.2 |
-| `endDate` | Its end date unchanged; null means caDSR sent none in the answer that produced this record | A3.8.2 |
-| `context` | The context that owns it | A3.8.3 |
+| `definition` | Its definition unchanged; null means caDSR sent none in the answer that produced this record (optional) | A4.1 |
+| `type` | Its form type unchanged (CRF, ...); null means caDSR sent none in the answer that produced this record (optional) | A3.8.3 |
+| `beginDate` | Its begin date unchanged; null means caDSR sent none in the answer that produced this record (optional) | A3.8.2 |
+| `endDate` | Its end date unchanged; null means caDSR sent none in the answer that produced this record (optional) | A3.8.2 |
+| `context` | The context that owns it (optional) | A3.8.3 |
 | `workflowStatus` | The platform's workflow status, unchanged (RETIRED ARCHIVED is surfaced, not hidden) | A8.1 |
 | `registrationStatus` | The platform's registration status, unchanged | A3.8.3 |
-| `dateCreated` | When the platform created it, its own value unchanged | A3.8.2 |
-| `dateModified` | When the platform last modified it, its own value unchanged | A3.8.2 |
+| `dateCreated` | When the platform created it, its own value unchanged (optional) | A3.8.2 |
+| `dateModified` | When the platform last modified it, its own value unchanged (optional) | A3.8.2 |
 | `provenance` | The provenance record, its release in the registry form | A4.4 |
 | `instructions` | Its instructions, the platform's entries unchanged and in its order, whatever includeModules says; absent where the platform sends none (optional) | A4.1 |
 | `classificationSchemes` | Its classification schemes, the platform's entries unchanged and in its order, whatever includeModules says; absent where the platform sends none (optional) | A4.1 |
@@ -575,7 +610,7 @@ The values one data element of the CRDC crosswalk binds to concepts, with the co
 | Field | Content | Rule |
 |---|---|---|
 | `dataElement` | { publicId, version } of the data element | A1.2 |
-| `crdcName` | Its CRDC name, as the platform gives it | A9.1 |
+| `crdcName` | Its CRDC name when supplied; explicit null stays null, omitted stays absent (optional) | A9.1 |
 | `usedBy` | The contexts and commons that use it, the platform's Used By names split at their commas (CRDC, GDC, Pediatric Cancer, CTEP, ...); empty where it names none | get_code_map |
 | `valueLevelBinding` | Whether the data element binds values to concepts, which it does where the platform gives its permissible values; false says so rather than returning no values | get_code_map |
 | `coverage` | The number of its values bound to a concept code | get_code_map |
@@ -584,10 +619,11 @@ The values one data element of the CRDC crosswalk binds to concepts, with the co
 
 ### The data element use record
 
-A data element that uses a concept, as find_data_elements_for_concept returns it: as an object class, property or permissible value concept, main or minor, of the concept or, with expandDescendants, of a descendant. The surface its provenance names answered it; the surfaces answer from their own content (the Shared SI graph is an export, the caDSR API is live), so their answers differ, and neither says by which route the concept is used. Shared SI merges all versions of a CDE into one node: graph-derived data_element_use and value_use records have public-ID scope, with no version or value-to-version claim. Records from the caDSR API and CRDC crosswalk retain their versioned identities.
+A data element that uses a concept, as find_data_elements_for_concept returns it: as an object class, property or value meaning of the concept or, with expandDescendants, of a descendant. The surface its provenance names answered it; the surfaces answer from their own content (the Shared SI graph is an export, the caDSR API is live), so their answers differ. Roles name every graph-reported path and actual matching concept, with a trimmed integer displayOrder only when supplied; malformed present order fails as upstream_unavailable. The graph supplies no primary flag; use get_data_element for caDSR's primary indicator. Representation-term use is not covered by this route, so absence does not establish non-use. Shared SI merges all versions of a CDE into one node: graph-derived data_element_use and value_use records have public-ID scope, with no version or value-to-version claim. Records from the caDSR API and CRDC crosswalk retain their versioned identities.
 
 | Field | Content | Rule |
 |---|---|---|
+| `roles` | Nonempty, canonically sorted distinct { role: objectClass \| property \| valueMeaning, conceptCode, displayOrder?: integer } assertions; no primary inference | A3.7 |
 | `dataElement` | { publicId, longName } of the data element | A1.2 |
 | `provenance` | The provenance record: release in the terminology form, the NCIt release the surface used where it names one; registry; graphs where the Shared SI Service served it | A1.5 |
 
@@ -715,7 +751,7 @@ The keys of `details` for each code:
 | Tool | Inputs → result | What it does |
 |---|---|---|
 | Registry content state<br>`resolve_registry_release` | `() → registry_release` | The registry's content state: published false and the export's date while caDSR publishes no registry release, never an invented identifier; the release itself where one is. |
-| Data element details<br>`get_data_element` | `(publicId \| longName \| questionText, version?, include[]?, registryRelease?) → data_element` | One data element, at its latest version or the version given, with the sections include selects; without include, the record's own fields. questionText finds it by its preferred question text, an invalid request naming the candidates where several have it and not_found where none has; longName is capability_unavailable until the platform serves that lookup (OP-C02). Item versions compare by exact numeric value (4 equals 4.0); request spelling and the upstream version string in content and provenance are preserved. `include`: permissibleValues, valueDomain, conceptAssociations, alternateNames, classificationSchemes, referenceDocuments. `publicId` form `^[1-9][0-9]*$`. `version` form `^[0-9]+([.][0-9]+)?$`. Free text: `questionText`. Items: `.`. |
+| Data element details<br>`get_data_element` | `(publicId \| longName \| questionText, version?, include[]?, registryRelease?) → data_element` | One data element, at its latest version or the version given, with the sections include selects; without include, the record's own fields. questionText finds it by its preferred question text, an invalid request naming the candidates where several have it and not_found where none has; longName is capability_unavailable until the platform serves that lookup (OP-C02). Item versions compare by exact numeric value (4 equals 4.0); request spelling and the upstream version string in content and provenance are preserved. `include`: permissibleValues, valueDomain, conceptAssociations, alternateNames, classificationSchemes, referenceDocuments, dataElementConcept. `publicId` form `^[1-9][0-9]*$`. `version` form `^[0-9]+([.][0-9]+)?$`. Free text: `questionText`. Items: `.`. |
 | Data element search<br>`search_data_elements` | `(query, mode?, filters?, limit?, cursor?, registryRelease?) → { results[{ dataElement, score?, matchedOn? }], nextCursor?, totalKnown?, truncation }` | Search of data elements, filtered by context, status and value-domain type, a page at a time up to the platform's cap of 1,000 results a query, which truncation reports (upstream_cap). semantic and hybrid are capability_unavailable until the platform serves them (OP-C04). `mode`: lexical, semantic, hybrid. `filters`: context, workflowStatus, registrationStatus, valueDomainType. `limit`: default 10, at most 100. `mode`: default lexical. Free text: `query`. Items: `results[].dataElement`. |
 | Data element candidates<br>`match_data_elements` | `(entities[{ name, userTip?, permissibleValues[]? }], matchLimit?, modelVariant?, similarityThreshold?, filters?, registryRelease?) → { matches[data_element_match] }` | Data elements matched to described entities, scored and rule-attributed, at most matchLimit for each entity; the contract's default is 10, and the maximum of 100 is this specification's, the contract stating none. The classificationScheme filter takes both publicId and version. modelVariant and similarityThreshold, which the platform does not take, are an invalid request when given. At most 10 entities a call: the contract states no maximum, and one entity took 28.9 s (10 September 2026) against a match timeout of 45 s. `filters`: context, workflowStatus, registrationStatus, classificationScheme, valueDomainType. `matchLimit`: default 10, at most 100. Computed from caller-supplied values: ttlMs 0, private. `entities`: at most 10 a call. Free text: `entities[].name`, `entities[].userTip`, `entities[].permissibleValues[]`. Items: `matches[].dataElement`. |
 | Value meaning candidates<br>`match_value_meanings` | `(values[], strictness?, terminologyScope?, registryRelease?) → { matches[value_meaning_match] }` | Value meanings and concepts matched to values, each rule-attributed with its crosswalk and with the matched item's definition where vmMatch gives one; strictness is vmMatch's matchType, terminologyScope its evsTerminologyCodes. At most 10 values a call: the contract states no maximum, and one value took 15.5 s (10 September 2026) against a match timeout of 45 s. `strictness`: restricted, unrestricted. `strictness`: default restricted. Computed from caller-supplied values: ttlMs 0, private. `values`: at most 10 a call. Free text: `values[]`. Items: `matches[].item`. |
@@ -729,7 +765,7 @@ The keys of `details` for each code:
 
 | Tool | Inputs → result | What it does |
 |---|---|---|
-| Data elements for a concept<br>`find_data_elements_for_concept` | `(conceptCode, terminology?, release?, expandDescendants?, includePermissibleValues?, limit?, cursor?) → { dataElements[data_element_use], permissibleValues[value_use]?, truncation, nextCursor? }` | The data elements that use a concept, as an object class, property or permissible value concept, optionally across its descendants; with includePermissibleValues, also the permissible values whose value meaning stands for it (the reverse lookup, OP-S04). Graph associations identify public IDs only, never CDE versions or value-to-version assignments, because Shared SI merges versions. caDSR API item versions remain unchanged. Only descendant expansion compares the effective release (X-22) with the Shared SI NCIt graph's: release_mismatch on a difference, release_not_available for an absent version. Exact-code queries preserve both actual graph identities and dates, including an optional version only when supplied, without requiring hierarchy alignment. `terminology`: ncit. `limit`: default 100, at most 1000. `terminology`: default ncit. `expandDescendants`: default False. `includePermissibleValues`: default False. `release` form `^[A-Za-z0-9][A-Za-z0-9._-]*$`. `conceptCode` form `^C[1-9][0-9]*$`. Items: `dataElements[]`, `permissibleValues[]`. |
+| Data elements for a concept<br>`find_data_elements_for_concept` | `(conceptCode, terminology?, release?, expandDescendants?, includePermissibleValues?, limit?, cursor?) → { dataElements[data_element_use], permissibleValues[value_use]?, truncation, nextCursor? }` | The data elements that use a concept, as an object class, property or permissible value concept, optionally across its descendants; with includePermissibleValues, also the permissible values whose value meaning stands for it (the reverse lookup, OP-S04). Graph associations identify public IDs only, never CDE versions or value-to-version assignments, because Shared SI merges versions. caDSR API item versions remain unchanged. Each use names all graph roles and actual matching concept codes, with optional integer displayOrder; the graph gives no primary flag, so use get_data_element for caDSR's primary indicator. Representation-term use is not covered by this route, so absence does not establish non-use. Only descendant expansion compares the effective release (X-22) with the Shared SI NCIt graph's: release_mismatch on a difference, release_not_available for an absent version. Exact-code queries preserve both actual graph identities and dates, including an optional version only when supplied, without requiring hierarchy alignment. `terminology`: ncit. `limit`: default 100, at most 1000. `terminology`: default ncit. `expandDescendants`: default False. `includePermissibleValues`: default False. `release` form `^[A-Za-z0-9][A-Za-z0-9._-]*$`. `conceptCode` form `^C[1-9][0-9]*$`. Items: `dataElements[]`, `permissibleValues[]`. |
 | Concept for a permissible value<br>`get_concept_for_permissible_value` | `(permissibleValueId \| { dataElementId, value }, release?, version?) → concept with permissibleValue { dataElement { publicId, version }, value }, or unresolved_pv_concept` | The concept a permissible value stands for, named by its data element and value, as the concept record of the release pinned, its provenance naming both content states (release and registry); the caller may name a release or use implicit NCIt resolution (X-22). The data element is read from the caDSR API at version, or the API's latest when omitted; version uses the existing numeric item-version form and comparison, preserving upstream spelling. Only exact NCI_CONCEPT_CODE with a standalone NCIt code resolves through EVS. Otherwise returns unresolved_pv_concept with the exact caDSR code/source and caDSR-only provenance; compound_code, missing_source and non_ncit_source apply in that precedence. Unresolved results make no NCIt concept request but may perform release discovery; release selection and both child permissions remain unchanged. Only primaryIndicator Yes identifies the value meaning's primary concept; missing, invalid or conflicting evidence is upstream_unavailable, identical primary assertions of the same code and source presence/value may collapse. Neither array order, display order nor graph main/minor decides. Resolved provenance includes the caDSR read under upstream.cadsr and the pinned EVS origin, with registry state but no Shared SI graphs or graph reads. Secured callers need get_data_element and get_concept child permissions before any reads; expiry after caDSR blocks EVS. The value is compared locally with the API's permissible values by exact, case-sensitive equality (no trimming, no case-folding), never sent upstream (A7.7); a value it does not have is not_found. By permissibleValueId, capability_unavailable until the platform retrieves a value by it (OP-C10). `release` form `^[A-Za-z0-9][A-Za-z0-9._-]*$`. `version` form `^[0-9]+([.][0-9]+)?$`. `dataElementId` form `^[1-9][0-9]*$`. `permissibleValueId` form `^[1-9][0-9]*$`. Items: `.`. |
 | Stored values in a commons<br>`resolve_stored_value` | `(conceptCode, commons, release?, dataElementId?) → { storedValues[stored_value], confidence, evidence }` | The literal a data commons stores for a concept of the release given: for GDC through the EVS mapset NCIt_Maps_To_GDC, served unpinned, so the release the mapset reports is compared with the one asked for (release_mismatch on a difference); for the other commons through the CRDC crosswalk, which names the registry state. confidence is asserted when a published source names the value and none otherwise; evidence names each source consulted ({ mapset, version } or { crosswalk, dataElement }), whether the commons binds values to concepts (valueLevelBinding), and its coverage: the number of stored values found. A commons without a value-level binding (PDC, IDC) returns no stored value with evidence saying so, never the preferred term as if stored. `release` form `^[A-Za-z0-9][A-Za-z0-9._-]*$`. `conceptCode` form `^C[1-9][0-9]*$`. `dataElementId` form `^[1-9][0-9]*$`. Items: `storedValues[]`. |
 | Terminology and registry alignment<br>`get_release_alignment` | `(maxIntervalDays?) → { datasets[dataset_release], intervalDays, warning? }` | The release of every dataset a cross-domain answer rests on (NCIt, the Shared SI NCIt and caDSR graphs, the caDSR export), each date ISO-8601; intervalDays, the largest interval in days between any two of their dates; and a warning naming maxIntervalDays when intervalDays exceeds it. `maxIntervalDays`: default 31. Items: `datasets[]`. |
@@ -738,7 +774,7 @@ The keys of `details` for each code:
 
 | Tool | Inputs → result | What it does |
 |---|---|---|
-| Cross-registry value grounding<br>`ground_value` | `(conceptCode \| text, commons?, release?, registryRelease?) → { concept, dataElements[data_element_use], permissibleValues[value_use], storedValues[stored_value]?, provenance, truncation }` | For a concept: the data elements that use it, the permissible values that stand for it, and, with commons, the stored values a commons uses for it, each asked by the concept, under one provenance envelope naming both content states (release and registry). Its Shared SI hops are exact-code queries: graph hierarchy lag or an absent optional version does not refuse them; both actual graph identities remain required. EVS content stays pinned. Without commons there is no storedValues. A text is resolved as search_concepts resolves it with its defaults (lexical, limit 10), to its first result, the concept chosen named in the result. Without registryRelease the registry is unpinned, as for every caDSR tool (X-21). A hop holds at most find_data_elements_for_concept's maximum (1,000), its bound `results`; each hop's truncation is carried (perHop), and since each hop is asked by the concept, one hop's bound limits no other. `release` form `^[A-Za-z0-9][A-Za-z0-9._-]*$`. `conceptCode` form `^C[1-9][0-9]*$`. Free text: `text`. Items: `concept`, `dataElements[]`, `permissibleValues[]`, `storedValues[]`. |
+| Cross-registry value grounding<br>`ground_value` | `(conceptCode \| text, commons?, release?, registryRelease?) → { concept, dataElements[data_element_use], permissibleValues[value_use], storedValues[stored_value]?, provenance, truncation }` | For a concept: the data elements that use it, the permissible values that stand for it, and, with commons, the stored values a commons uses for it, each asked by the concept, under one provenance envelope naming both content states (release and registry). Its Shared SI hops are exact-code queries: graph hierarchy lag or an absent optional version does not refuse them; both actual graph identities remain required. EVS content stays pinned. Data element uses name all graph roles and actual matching concept codes, with optional integer displayOrder; the graph gives no primary flag, so use get_data_element for caDSR's primary indicator. Representation-term use is not covered by this route, so absence does not establish non-use. Without commons there is no storedValues. A text is resolved as search_concepts resolves it with its defaults (lexical, limit 10), to its first result, the concept chosen named in the result. Without registryRelease the registry is unpinned, as for every caDSR tool (X-21). A hop holds at most find_data_elements_for_concept's maximum (1,000), its bound `results`; each hop's truncation is carried (perHop), and since each hop is asked by the concept, one hop's bound limits no other. `release` form `^[A-Za-z0-9][A-Za-z0-9._-]*$`. `conceptCode` form `^C[1-9][0-9]*$`. Free text: `text`. Items: `concept`, `dataElements[]`, `permissibleValues[]`, `storedValues[]`. |
 | Cohort concept expansion<br>`expand_cohort` | `(conceptCode, release?, maxDepth?, includeNegative?, maxNodes?) → { codes[], excluded[excluded_code], edges[edge], truncation, provenance }` | The codes a cohort query should use: the concept itself and its descendants to maxDepth. A code an exclusion role of the concept asked about asserts is withheld from codes and listed in excluded with its assertion, unless includeNegative keeps it in codes (still listed), one excluded record per exclusion assertion; a descendant's own exclusion roles are its own, not the cohort's. maxNodes counts the codes, the concept included. The result equals composing get_concept_hierarchy (child, depth maxDepth) and get_concept_neighborhood (depth 1). `maxDepth`: default 2, at most 4. `maxNodes`: default 200, at most 1000. `includeNegative`: default False. `release` form `^[A-Za-z0-9][A-Za-z0-9._-]*$`. `conceptCode` form `^C[1-9][0-9]*$`. Items: `edges[]`, `excluded[]`. |
 | Data dictionary harmonization<br>`harmonize_data_dictionary` | `(columns[{ name, description?, sampleValues[]? }], registryRelease?, filters?) → { columns[{ name, matches[data_element_match], permissibleValueAlignment[value_meaning_match] }], unmatched[], provenance }` | A data dictionary's columns matched to data elements, one match call per column (its name as the entity, its description as entityUserTip), and each column's sample values aligned to value meanings (vmMatch); unmatched names the columns without a match; every match names one registry state. Computed from caller-supplied values: ttlMs 0, private. `columns`: at most 10 a call. Free text: `columns[].name`, `columns[].description`, `columns[].sampleValues[]`. Items: `columns[].matches[].dataElement`. |
 
@@ -950,7 +986,7 @@ The tools it names, in order: `resolve_release`, `harmonize_data_dictionary`, `g
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
 | <a id="requirement-resolve_registry_release-1"></a>resolve_registry_release-1 | Without a registry release upstream, published is false, generatedAt is the export's date as the export folder gives it and sourceDistribution the file it dates, with no identifier; with one, published is true and the release is returned; ttlMs 0. | resolve_registry_release, registry_release, A3.8, M2.2 | `acceptance/tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it`, `acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_returned` | tested |
-| <a id="requirement-get_data_element-1"></a>get_data_element-1 | Each include returns its section, and without include the record's own fields alone; the data element's own version and statuses are surfaced; a version given returns that exact numeric version (4 equals 4.0), preserving the request spelling upstream and the returned version string in content and provenance. | get_data_element, data_element, A3.8.3 | `acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[latest]`, `acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-1]`, `acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-4.0]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[permissibleValues]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[valueDomain]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[conceptAssociations]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[alternateNames]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[classificationSchemes]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[referenceDocuments]` | tested |
+| <a id="requirement-get_data_element-1"></a>get_data_element-1 | Each include returns its section, and without include the record's own fields alone; the data element's own version and statuses are surfaced; a version given returns that exact numeric version (4 equals 4.0), preserving the request spelling upstream and the returned version string in content and provenance. Cited items retain their own supplied identity and dates, omitted metadata stays absent and explicit null stays null. dataElementConcept contains only DEC and objectClass/property identities and dates; concepts occur only in conceptAssociations, including representationTerm. API derivations retain source order without deduplication, with primary boolean from explicit Yes/No and optional integer displayOrder, never inferred. Permissible values have own dates but no invented version; provenance is unchanged. | get_data_element, data_element, A3.8.3 | `acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[latest]`, `acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-1]`, `acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-4.0]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[permissibleValues]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[valueDomain]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[conceptAssociations]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[alternateNames]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[classificationSchemes]`, `acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[referenceDocuments]`, `acceptance/tests/test_cadsr.py::test_cited_items_keep_their_own_identity_dates_and_derivations[latest]`, `acceptance/tests/test_cadsr.py::test_cited_items_keep_their_own_identity_dates_and_derivations[version-1]`, `acceptance/tests/test_cadsr.py::test_omitted_citation_fields_are_absent_and_explicit_null_stays_null` | tested |
 | <a id="requirement-get_data_element-2"></a>get_data_element-2 | questionText finds the data element whose preferred question text it is; where several have it, the call is an invalid request naming their public ids, and where none has it, not_found; longName is capability_unavailable until the platform serves that lookup (OP-C02), never an empty result. | get_data_element, M1.2, A9.3 | `acceptance/tests/test_cadsr.py::test_a_question_text_one_data_element_has_finds_it`, `acceptance/tests/test_cadsr.py::test_a_question_text_several_have_is_an_invalid_request_naming_them`, `acceptance/tests/test_cadsr.py::test_a_long_name_lookup_is_unavailable_never_empty`, `acceptance/tests/test_cadsr.py::test_a_question_text_no_data_element_has_is_not_found` | tested |
 | <a id="requirement-search_data_elements-1"></a>search_data_elements-1 | A lexical search the platform answers with its cap of 1,000 results reports truncation with bound upstream_cap, limit 1000, omitted at least 1 and exact false; totalKnown only where the platform counts; semantic and hybrid are capability_unavailable until the platform serves them (OP-C04). | search_data_elements, truncation, A5.4, M1.2, M6.1 | `acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[search-semantic]`, `acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[search-hybrid]`, `acceptance/tests/test_cadsr.py::test_a_search_s_page_is_the_limit_given`, `acceptance/tests/test_cadsr.py::test_a_search_the_platform_caps_reports_the_cap_and_no_total` | tested |
 | <a id="requirement-search_data_elements-2"></a>search_data_elements-2 | Filters by context, workflow status, registration status and value-domain type apply. The platform's search form names no parameter for them yet (OP-C03), a platform dependency (A9.3). | search_data_elements, A9.3 | — | planned #42 |
@@ -965,7 +1001,7 @@ The tools it names, in order: `resolve_release`, `harmonize_data_dictionary`, `g
 
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
-| <a id="requirement-find_data_elements_for_concept-1"></a>find_data_elements_for_concept-1 | The data elements are those the surface named in provenance answers for the exact concept and, with expandDescendants, its descendants too; expansion requires verification of the NCIt hierarchy release. | find_data_elements_for_concept, data_element_use, A3.7 | `acceptance/tests/test_cross_domain.py::test_merged_graph_versions_make_only_public_id_associations`, `acceptance/tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too[False-data-elements-c17357]`, `acceptance/tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too[True-data-elements-c17357-descendants]` | tested |
+| <a id="requirement-find_data_elements_for_concept-1"></a>find_data_elements_for_concept-1 | The data elements are those the surface named in provenance answers for the exact concept and, with expandDescendants, its descendants too; expansion requires verification of the NCIt hierarchy release. Each use preserves every distinct graph-reported objectClass, property or valueMeaning role with the actual matching conceptCode and optional trimmed integer displayOrder, canonically sorted independently of aggregate order. Missing order stays absent; malformed present order fails as upstream_unavailable. No primary flag is inferred; representation-term use is not covered by this route. | find_data_elements_for_concept, data_element_use, A3.7 | `acceptance/tests/test_cross_domain.py::test_merged_graph_versions_make_only_public_id_associations`, `acceptance/tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too[False-data-elements-c17357]`, `acceptance/tests/test_cross_domain.py::test_the_data_elements_are_the_concept_s_and_with_expansion_its_descendants_too[True-data-elements-c17357-descendants]`, `acceptance/tests/test_graph_roles.py::test_every_matching_graph_role_and_actual_concept_is_preserved[exact]`, `acceptance/tests/test_graph_roles.py::test_every_matching_graph_role_and_actual_concept_is_preserved[descendants]`, `acceptance/tests/test_graph_roles.py::test_graph_main_at_order_one_never_claims_primary`, `acceptance/tests/test_graph_roles.py::test_missing_graph_order_stays_absent` | tested |
 | <a id="requirement-find_data_elements_for_concept-2"></a>find_data_elements_for_concept-2 | With includePermissibleValues the permissible values whose value meaning stands for the concept (or a descendant) are returned as well. | find_data_elements_for_concept, value_use | `acceptance/tests/test_cross_domain.py::test_with_the_flag_the_permissible_values_that_stand_for_the_concept_come_too[False-values-c17357]`, `acceptance/tests/test_cross_domain.py::test_with_the_flag_the_permissible_values_that_stand_for_the_concept_come_too[True-values-c17357-descendants]` | tested |
 | <a id="requirement-find_data_elements_for_concept-3"></a>find_data_elements_for_concept-3 | An answer of the Shared SI Service names both graphs' identities and dates, the NCIt release in release and the registry state in registry. | find_data_elements_for_concept, provenance, A1.5, A3.7 | `acceptance/tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states` | tested |
 | <a id="requirement-find_data_elements_for_concept-4"></a>find_data_elements_for_concept-4 | Only with expandDescendants is the effective release checked against the NCIt graph's, release_mismatch on a difference and release_not_available when its optional version is absent. Exact-code answers preserve both actual graph identities and dates without comparing or backfilling the optional version; missing or malformed required identities remain upstream failures. A terminology other than ncit is an invalid request. | find_data_elements_for_concept, A3.4, A3.7 | `acceptance/tests/test_cross_domain.py::test_expansion_with_another_ncit_graph_release_fails_closed`, `acceptance/tests/test_cross_domain.py::test_exact_find_preserves_actual_graph_states_without_hierarchy_alignment[graph-behind]`, `acceptance/tests/test_cross_domain.py::test_exact_find_preserves_actual_graph_states_without_hierarchy_alignment[graph-version-missing]`, `acceptance/tests/test_cross_domain.py::test_expansion_without_ncit_graph_version_is_release_not_available`, `acceptance/tests/test_cross_domain.py::test_a_terminology_other_than_ncit_is_an_invalid_request` | tested |
@@ -983,7 +1019,7 @@ The tools it names, in order: `resolve_release`, `harmonize_data_dictionary`, `g
 | Id | Requirement | Basis | Tests | Status |
 |---|---|---|---|---|
 | <a id="requirement-ground_value-1"></a>ground_value-1 | One provenance envelope names both content states, the release asked for and the registry, unpinned without registryRelease as X-21 reads it; EVS content of another NCIt release fails closed with the mismatch error. Exact Shared SI hops preserve both graph identities without requiring hierarchy version alignment or inventing an absent version. | ground_value, provenance, A3.8, A3.4 | `acceptance/tests/test_workflow.py::test_one_envelope_names_the_release_asked_for_and_the_registry_unpinned`, `acceptance/tests/test_workflow.py::test_evs_concept_of_another_ncit_release_fails_closed`, `acceptance/tests/test_workflow.py::test_exact_grounding_accepts_graph_lag_or_absent_version[graph-behind]`, `acceptance/tests/test_workflow.py::test_exact_grounding_accepts_graph_lag_or_absent_version[graph-version-missing]` | tested |
-| <a id="requirement-ground_value-2"></a>ground_value-2 | The data elements, the permissible values and, with commons, the stored values are those the surfaces answer for the concept, each hop asked by the concept; without commons there is no storedValues. | ground_value, data_element_use, value_use, stored_value, A2.6 | `acceptance/tests/test_workflow.py::test_grounding_merged_graph_versions_makes_only_public_id_associations`, `acceptance/tests/test_workflow.py::test_each_hop_is_what_its_surface_answers_for_the_concept`, `acceptance/tests/test_workflow.py::test_with_a_commons_the_stored_values_are_the_ones_it_uses_for_the_concept` | tested |
+| <a id="requirement-ground_value-2"></a>ground_value-2 | The data elements, the permissible values and, with commons, the stored values are those the surfaces answer for the concept, each hop asked by the concept; without commons there is no storedValues. | ground_value, data_element_use, value_use, stored_value, A2.6 | `acceptance/tests/test_graph_roles.py::test_grounding_preserves_the_same_complete_role_record`, `acceptance/tests/test_workflow.py::test_grounding_merged_graph_versions_makes_only_public_id_associations`, `acceptance/tests/test_workflow.py::test_each_hop_is_what_its_surface_answers_for_the_concept`, `acceptance/tests/test_workflow.py::test_with_a_commons_the_stored_values_are_the_ones_it_uses_for_the_concept` | tested |
 | <a id="requirement-ground_value-3"></a>ground_value-3 | A text resolves as search_concepts resolves it with its defaults, to its first result, never to a better-named one, the concept the result names. | ground_value, search_concepts | `acceptance/tests/test_workflow.py::test_a_text_resolves_to_the_first_result_search_concepts_gives_it` | tested |
 | <a id="requirement-ground_value-4"></a>ground_value-4 | A hop that reaches its bound reports it in perHop, and occurred is true; since each hop is asked by the concept, the other hops are complete. | ground_value, truncation, A5.4 | `acceptance/tests/test_workflow.py::test_a_hop_that_reaches_its_bound_leaves_the_others_complete` | tested |
 | <a id="requirement-expand_cohort-1"></a>expand_cohort-1 | The codes are the concept itself and its descendants to maxDepth, less the codes an exclusion role of the concept asserts, each assertion listed in excluded; with includeNegative they stay in codes and are still listed; maxNodes counts the codes, the concept included; the result equals composing get_concept_hierarchy and get_concept_neighborhood. | expand_cohort, A5.6 | `acceptance/tests/test_workflow.py::test_the_cohort_is_the_concept_and_its_descendants_less_its_own_exclusions[False]`, `acceptance/tests/test_workflow.py::test_the_cohort_is_the_concept_and_its_descendants_less_its_own_exclusions[True]`, `acceptance/tests/test_workflow.py::test_max_nodes_counts_the_codes_the_concept_included` | tested |
@@ -1078,17 +1114,21 @@ Unpinned caDSR content already works without registry discovery. The 19 October 
 as `not_live`, not server release rejections. Measured newly unblocked live tests: none.
 These historical results are retained; no new live probe is part of this change.
 
-Two proposals await the sponsor and are not implemented:
+**Delivered (#360): cited-item metadata.** CDEs, DEC/object-class/property identities,
+value meanings, permissible values, classification schemes and scheme items retain their
+own supplied `dateModified`, `beginDate` and `endDate`. PVs have no own version; included
+VD and representation metadata remain upstream pass-throughs. Optional
+`include: ["dataElementConcept"]` exposes DEC/object-class/property identities and dates,
+without concepts. API concept associations also include representation terms and retain
+source order and duplicates, explicit Yes/No primary flags and supplied integer order;
+order never determines primary. Omitted scalar fields, including CRDC names, stay absent;
+explicit null stays null. Recording `data-element-2200604.json` supplies the citation
+evidence; exact reproduction of in-place edits still requires that day's export.
 
-- Richer cited-item metadata. Recording `data-element-2200604.json` has version and
-  `dateModified` on CDE, DEC, VD, VM and representation; PV has `dateModified` but no own
-  version, and prose records PV removals without a version change. Current PV provenance
-  retains supplied `dateModified`; the nested VM projection omits it, DEC identity/metadata
-  is flattened, and included VD metadata passes through. The proposal is to expose the
-  missing item identity/version/last-modified metadata where upstream supplies it.
-- Per-reference NCIt alignment: check every object-class, property, representation and
-  value-meaning concept code for existence and active status in the pinned NCIt release,
-  and report copied-name differences. Current alignment compares content-state dates.
+**Pending sponsor proposal, not implemented:** per-reference NCIt alignment would check
+every object-class, property, representation and value-meaning concept code for existence
+and active status in the pinned NCIt release, and report copied-name differences. Current
+alignment compares content-state dates.
 
 The upstream request is twelve months of retained dated caDSR exports, not a server archive
 or synthetic release. Exact reproduction of set-level answers or items edited in place still

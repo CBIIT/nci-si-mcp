@@ -1,0 +1,4332 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-26",
+ "request": {
+  "surface": "ssis-sparql",
+  "method": "POST",
+  "path": "/sparql",
+  "headers": {
+   "Accept": "application/sparql-results+json"
+  },
+  "form": {
+   "query": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT ?id (MIN(?label) AS ?name)\n  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),\"|\",ENCODE_FOR_URI(STR(?concept)),\"|\",COALESCE(ENCODE_FOR_URI(STR(?order)),\"\"));separator=\" \") AS ?roles)\nWHERE {\n  GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> { ?concept rdfs:subClassOf* ncit:C25332 . }\n  GRAPH <http://cbiit.nci.nih.gov/caDSR> {\n    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }\n    ?node ?membership ?concept .\n    { ?element mdr:Object_Class ?node . BIND(\"objectClass\" AS ?useRole) }\n    UNION\n    { ?element mdr:Property ?node . BIND(\"property\" AS ?useRole) }\n    UNION\n    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND(\"valueMeaning\" AS ?useRole) }\n    OPTIONAL { ?node cadsr:display_order ?order }\n    ?element cadsr:publicId ?id ;\n      rdfs:label ?label .\n  }\n}\nGROUP BY ?id\nORDER BY ?id\nLIMIT 1001"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "head": {
+    "link": [],
+    "vars": [
+     "id",
+     "name",
+     "roles"
+    ]
+   },
+   "results": {
+    "distinct": false,
+    "ordered": true,
+    "bindings": [
+     {
+      "id": {
+       "type": "literal",
+       "value": "117"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease Extent Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "12442951"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Inclusion Exclusion Criteria Not Met Domain Patient Ineligibility Ineligibility Reason"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|%201"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14175985"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Procedures Supplemental Qualifiers Dataset Tumor Resection Extent Other Specify"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14599558"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Invasive Colorectal Carcinoma Tumor Cell Invasion Extent Depth of Tumor Invasion Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15022262"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Rectum Proximal Extent Measurement Centimeter Number"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15882353"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease or Disorder Determine Oligoprogression Visible Increase Extent 18F-FDG Tumor Standardized Uptake Value Peak Criteria Indicator Indicator"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "1786"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Colorectal Disease Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2004001"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Residual Disease Extent"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2007313"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Neoplasm Resection Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178138"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Family Assessment Required Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178142"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Toxicity Assessment Response Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178144"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Symptomatic Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178148"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Friends Patient intimacy Assessment Quality of Life Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178335"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Family Patient Communication Assessment Quality of Life Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178337"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Partner Patient Intimacy Assessment Quality of Life Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178344"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Despondency Assessment Quality of Life Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178350"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Worry Patient Deterioration Assessment Quality of Life Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178352"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Work Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178354"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Occupation Satisfaction Assessment Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178356"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Life Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178375"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Hobby Satisfaction Assessment"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178411"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178437"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Dyspnea Assessment Response"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178439"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Appearance Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178441"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Limb Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178443"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Sexually Attractive Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178445"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Hair Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178447"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Family Assessment Development Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178450"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Distress Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178458"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Weight Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178460"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Feminine Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178462"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Dyspepsia Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178463"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Heartburn Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178473"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Vomiting Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178484"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Flatulence Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178486"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Mouth Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178488"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Diarrhea Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178490"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Dermal Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178492"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Numbness Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178494"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Fever Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178496"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Constipation Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178498"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Pruritus Assessment Genitalia Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178500"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Emotional Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178502"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Vaginal Assessment Discharge Response"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178504"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Vaginal Assessment Dryness Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178506"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Muscle Cramp Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178508"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Extremity Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178511"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Vigorous Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178513"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Movement Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178514"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Long Walking Difficulty Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178515"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Short Walking Difficulty Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178516"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Mobile Assessment Short Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178518"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Household Activity Support Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178521"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Vitality Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178522"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Lethargy Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178523"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Vitality Assessment Reduced Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2181840"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Brain Disease Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2181842"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Brain Malignant Neoplasm Extent Surgical Resection Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|2"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2431544"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Positive Surgical Margin Extent Involvement NCI Concept Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2431546"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Positive Surgical Margin Other Extent Involvement Text"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2500217"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Tissue Target Text Name"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2534508"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Invasive Colorectal Carcinoma Tumor Cell Invasion Extent InvasiveColorectalCarcinomaExtentOfInvasionVD"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2534509"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Invasive Colorectal Carcinoma Missing Value Reason Tumor Cell Invasion Extent InvasiveColorectalCarcinomaExtentOfInvasionMVRVD"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2534544"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Invasive Renal Carcinoma Gross Extent InvasiveKidneyCarcinomaMacroscopicExtentVD"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2545337"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Lung Malignant Neoplasm Extent Surgical Resection Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|2"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2608171"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Diagnosis Diseases and Disorders Extent Text java.lang.String"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2608253"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Radiation Ionizing Radiotherapy Radiation Field Extent Code java.lang.String"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2666680"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease Therapy Payment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2666687"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Memory Dysfunction Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2688123"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Stage Prognostic Factor Disease or Disorder Extent Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2688129"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Stage Prognostic Factor Tumor Disease or Disorder Extent Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2688137"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Stage Prognostic Factor Extension Disease or Disorder Extent Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2688166"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Stage Prognostic Factor Local Disease or Disorder Extent Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2688171"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Stage Prognostic Factor Lymph Node Disease or Disorder Extent Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2688192"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Stage Prognostic Factor Old Two Digit Disease or Disorder Extent Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2688197"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Stage Prognostic Factor Old Four Digit Disease or Disorder Extent Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2688559"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Stage Prognostic Factor Old 13 Digit Disease or Disorder Extent Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2688573"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Stage Prognostic Factor Collaborative Staging Extent Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2712752"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Oral Verrucous Lesion Disease Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2738409"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease Extent Status Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2783717"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Excisional Biopsy Colorectal Pathology Tumor Cell Invasion Extent ColorectalExtentOfInvasion"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2783783"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Positive Surgical Margin Involvement Extent BreastMarginExtentOfInvolvement"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2783785"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Positive Surgical Margin Other Involvement Extent java.lang.String"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2783802"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Gross Neoplasm Extent Neoplasm Extent MacroscopicExtentOfTumor"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "objectClass|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0 property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2783803"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Gross Neoplasm Extent Identifier java.lang.Long"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "objectClass|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2785858"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Residual Disease Ovarian Carcinoma Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2838551"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Clinical Trial Screening Failure Reason"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|%201"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2897167"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prior Therapeutic Procedure Lung Stage Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2923525"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Esophageal Malignant Neoplasm Proximal Extent Measurement"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2923527"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Esophageal Malignant Neoplasm Distal Extent Measurement"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2923532"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Esophageal Malignant Neoplasm Pathologic Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2923905"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Diagnostic Imaging Endoscopic Ultrasound Tumor Cell Invasion Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2955460"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2960890"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Trial Screening Ineligibility Reason"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|%201"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2962060"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Central Nervous System Neoplasm Extent Stage"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2965146"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Excision Extent Radiography Confirmed Indicator"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "objectClass|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3028823"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Intervention Interrupted or Not Completed Reason"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|%201"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158172"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Bladder Carcinoma Disease Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3158183"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Bladder Carcinoma Nodal Dissection Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3194062"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Boost Radiation Therapy Lumpectomy Extent Target Ind-2"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3265499"
+      },
+      "name": {
+       "type": "literal",
+       "value": "AIDS-Related Kaposi Sarcoma Tumor Extent Stage"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3265500"
+      },
+      "name": {
+       "type": "literal",
+       "value": "AIDS-Related Kaposi Sarcoma Immunosuppression Extent Stage"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3265501"
+      },
+      "name": {
+       "type": "literal",
+       "value": "AIDS-Related Kaposi Sarcoma Systemic Illness Stage"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3271028"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Magnetic Resonance Imaging Enhancement Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3287946"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Stage Prognostic Factor Collaborative Staging Post Therapeutic Procedure Extent Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3287951"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Stage Prognostic Factor Collaborative Staging Prior To Therapeutic Procedure Extent Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3290702"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Carcinoma Margin Involvement Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3320023"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Invasive Malignant Neoplasm Apocrine Feature Extent Status Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3342755"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Low Blood Cell Count Sickness Evaluation Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3342940"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Quality of Life Time Disruption Assessment Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3342955"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Quality of Life Method Disruption Assessment Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3342960"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Number Chemotherapy Cycle Assessment Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3342965"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Number Therapeutic Procedure Weekly Assessment Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3436894"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Surgical Procedure Paraaortic Lymph Node Dissection Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3857896"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Submitted Tumor Tissue Prior Resection Extent Post Operative Imaging Text"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4346933"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Neoplasm Resection Extent Stratification Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4385892"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Post-Treatment Breast pain Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4385893"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Post Radiation Therapy Fatigue Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892222"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 31 Extent During Past Week Have Aches or Pains in Bones Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892223"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 32 Extent During Past Week Have Back Pain Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892224"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 33 Extent During Past Week Have Hip Pain Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892225"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 34 Extent During Past Week Have Pain in Arm or Shoulder Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892226"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 35 Extent During Past Week Have Chest Pain Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892227"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 36 Extent During Past Week Have Pain Increase with Activity Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892228"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 37 Extent During Past Week Feel Drowsy Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892229"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 38 Extent During Past Week Feel Thirsty Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892230"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 39 Extent During Past Week Feel Ill Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892231"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 40 Extent During Past Week Have Dry Mouth Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892232"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 41 Extent During Past Week Have Lost Hair Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892233"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 42 Extent During Past Week Upset by Loss of Hair Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892234"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 43 Extent During Past Week Have Tingling in Hands or Feet Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892235"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 44 Extent During Past Week Feel Restless or Agitated Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892236"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 45 Extent During Past Week Have Acid Indigestion or Heartburn Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892237"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 46 Extent During Past Week Have Burning or Sore Eyes Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892238"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 47 Extent During Past Week Feel Less Physically Attractive Due to Disease or Treatment Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892239"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 48 Extent During Past Week Have Been Thinking About Illness Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892240"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 49 Extent During Past Week Worry About Dying Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4892241"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-MY20 50 Extent During Past Week Worry About Future Health Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4909115"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Liver Neoplasm PRETEXT Assessment Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5043463"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Brain Surgical Resection Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|2"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5095196"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chronic Graft Versus Host Disease Extent Grade"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151259"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 31 Extent During Past Week Have Tingling in Fingers or Hands Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151265"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 32 Extent During Past Week Have Tingling in Toes or Feet Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151266"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 33 Extent During Past Week Have Numbness in Fingers or Hand Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151267"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 34 Extent During Past Week Have Numbness in Toes or Feet Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151268"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 35 Extent During Past Week Have Shooting or Burning Pain in Fingers or Hands Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151272"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 36 Extent During Past Week Have Shooting or Burning Pain in Toes or Feet Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151273"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 37 Extent During Past Week Have Cramps in Hands Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151274"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 38 Extent During Past Week Have Cramps in Feet Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151275"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 39 Extent During Past Week Have Problems Standing or Walking Because of Difficulty Feeling the Ground Under Feet Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151276"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 40 Extent During Past Week Have Difficulty Distinguishing Between Hot and Cold Water Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151277"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 41 Extent During Past Week Have Problem Holding a Pen Making Writing Difficult Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151278"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 42 Extent During Past Week Have Difficulty Manipulating Small Objects with Fingers Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151279"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 43 Extent During Past Week Have Difficulty Opening Jar or Bottle Because of Weakness in Hands Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151280"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 44 Extent During Past Week Have Difficulty Walking Because Feet Drop Downwards Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151284"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 45 Extent During Past Week Have Difficulty Climbing Stairs or Getting Out of Chair Because of Weakness in Legs Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151285"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 46 Extent During Past Week Dizzy When Standing Up from Sitting or Lying Position Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151286"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 47 Extent During Past Week Have Blurred Vision Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151287"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 48 Extent During Past Week Have Difficulty Hearing Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151288"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 49 Extent During Past Week Have Difficulty Using Car Pedals Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5151289"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-CIPN20 50 Extent During Past Week Have Difficulty Getting or Maintaining Erection Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5152939"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 31 Extent During Past Week Have Abdominal Discomfort Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153311"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 32 Extent During Past Week Have Bloated Feeling In Abdomen Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153312"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 33 Extent During Past Week Have Back Pain Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153313"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 34 Extent During Past Week Have Pain During the Night Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153314"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 35 Extent During Past Week Find It Uncomfortable In Certain Positions Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153315"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 36 Extent During Past Week Restricted in the Types of Food You Can Eat as Result of Disease or Treatment Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153316"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 37 Extent During Past Week Restricted in the Amounts of Food You Can Eat as Result of Disease or Treatment Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153317"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 38 Extent During Past Week Food and Drink Taste Different From Usual Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153318"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 39 Extent During Past Week Have Indigestion Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153319"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 40 Extent During Past Week Bothered By Gas Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153320"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 41 Extent During Past Week Worried About Weight Being Too Low Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153321"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 42 Extent During Past Week Feel Weak in Arms and Legs Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153322"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 43 Extent During Past Week Have Dry Mouth Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153323"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 44 Extent During Past Week Have Itching Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153324"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 45 Extent During Past Week Have Yellow Skin Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153325"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 46 Extent During Past Week Have Frequent Bowel Movements Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153326"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 47 Extent During Past Week Feel Urge to Move Bowels Quickly Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153327"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 48 Extent During Past Week Feel Physically Less Attractive as Result of Disease or Treatment Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153328"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 49 Extent During Past Week Dissatisfied With Body Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153329"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 50 Extent During Past Week Troubled With Side-Effects from Treatment Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153330"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 51 Extent During Past Week Worried About Health in the Future Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153331"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 52 Extent During Past Week Limited In Planning Activities In Advance Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153332"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 53 Extent During Past Week Receive Adequate Support from Health Care Professionals Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153333"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 54 Extent During Past Week Information Given About Physical Condition and Treatment is Adequate Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153334"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 55 Extent During Past Week Feel Less Interest in Sex Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5153335"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-PAN26 56 Extent During Past Week Feel Less Sexual Enjoyment Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5306216"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Tumor Debulking Extent Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5523122"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Meningioma Extent Surgical Excision Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|2"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5573434"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 31 Extent During Extent During Past Week Have to Urinate Frequently During Day Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5573435"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 32 Extent During Past Week Have to Urinate Frequently at Night Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5573436"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 33 Extent During Past Week When Feel Urge to Pass Urine Have to Hurry to Get to Toilet Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5573437"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 34 Extent During Past Week Have Difficulty Getting Enough Sleep Because of Need to Get Up Frequently at Night to Urinate Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581156"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 36 Extent During Past Week Have Unintentional Release of Urine Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581157"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 37 Extent During Past Week Have Pain or Burning Feeling When Urinating Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581158"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 38 Extent During Past Week Have Urine Leak from Urostomy Bag Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581159"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 39 Extent During Past Week Have Problem Caring for Urostomy Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581167"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 40 Extent During Past Week Have Irritated Skin Around Urostomy Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581168"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 41 Extent During Past Week Feel Embarrassed Because of Urostomy Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581169"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 42 Extent During Past Week Dependent on Others for Urostomy Care Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581179"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 43 Extent During Past Week Frequently Have to Change Urostomy Bag Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581199"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 44 Extent During Past Week Have Problems with Self-Catherization Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581200"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 45 Extent During Past Week Worried About Health in Future Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581204"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 46 Extent During Past Week Worry About Results of Examinations and Tests Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581210"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 47 Extent During Past Week Worry About Possible Future Treatments Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581215"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 48 Extent During Past Week Have Bloated Feeling in Abdomen Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581225"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 49 Extent During Past Week Have Flatulence or Gas Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581226"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 50 Extent During Past Week Feel Physically Less Attractive as a Result of Illness or Treatment Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581227"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 51 Extent During Past Week Have Been Dissatisfied with Body Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581228"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 52 Extent During Past Week Feel Less Feminine or Masculine as a Result of Illness or Treatment Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581268"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 55 Extent During Past 4 Weeks Have Difficulty Getting or Maintaining an Erection Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581269"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 56 Extent During Past 4 Weeks Have Problem with Ejaculation Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581276"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 57 Extent During Past 4 Weeks Feel Uncomfortable About Being Sexually Intimate Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581281"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 58 Extent During Past 4 Weeks Worry About Contaminating Partner During Sexual Contact Due to Bladder Treatment Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581283"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 60 Extent During Past 4 Weeks Have Dry Vagina or Other Problem During Intercourse Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5581284"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BLM30 Version 1.0 35 Extent During Past Week Have Difficulty Going Out of House Because of Need to be Close to Toilet Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5664732"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Pelvis Disease Extent Prior to Cytoreduction Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|3"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5664770"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Mid-Abdomen Disease Extent Prior to Cytoreduction Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|3"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5664771"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Upper-Abdomen Disease Extent Prior to Cytoreduction Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|3"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5664772"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Pelvis Disease Extent After Cytoreduction Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|2"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5664773"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Mid-Abdomen Disease Extent After to Cytoreduction Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|2"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5664774"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Upper-Abdomen Disease Extent After to Cytoreduction Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|2"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5731896"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Physician Observation Extent Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0 valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5731900"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Physician See As Whole Person Extent Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0 valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5731905"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Quantity Like Physician Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5731914"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Quantity Trust Physician Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5731922"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient is Physician Complete Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5731926"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Quantity Thinking High Physician Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5732897"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Quantity Physician Care Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5734020"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent Feeling Comfort Inquiry Physician Question Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0 valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5734614"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient How Often Comprehension Physician Explanation And Suggestion Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5734720"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Physician Concern Quality of Life Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5734761"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Physician Open Mind Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5734779"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Quantity Time Physician is Moral Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5777077"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Medication Recollect Assessment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5801952"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Important Part Of Therapeutic Procedure Assessment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5805837"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Sufficient Pills At Home To Take Assessment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5805838"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Ability To Swallow Pills Assessment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5805839"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Feeling Sick After Taking Assessment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5805841"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Ability To Recollect To Take Every Day Assessment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5806842"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent True Taking Medication Interferes With Activity Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|7"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5806843"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent True Do Not Want Other People To Observe Taking Medication Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|10"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5806844"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent True Feel Tired Of Taking Medicine Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|5"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5806856"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent True Feel Tired of Living With Medical Condition Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|7"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5807046"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent Spouse Is A Helpful Reminder To Take Chemotherapy Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|8"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5810426"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent Boyfriend Girlfriend Significant Other Is A Helpful Reminder To Take Chemotherapy Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|8"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5810427"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent Other Person Reside With Is A Helpful Reminder To Take Chemotherapy Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|11"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5810629"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent Other Friend Do Not Reside With Is A Helpful Reminder To Take Chemotherapy Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|13"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5810630"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent Parent Guardian Is A Helpful Reminder To Take Chemotherapy Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|9"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5810631"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent Brother Sister Is A Helpful Reminder To Take Chemotherapy Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|9"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5810634"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent Other Family Member Is A Helpful Reminder To Take Chemotherapy Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|9"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5810637"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent Physician And Nurse Is A Helpful Reminder To Take Chemotherapy Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|10"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5810638"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent Myself Is A Helpful Reminder To Take Chemotherapy Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|8"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5810641"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent Other People Are A Helpful Reminder To Take Chemotherapy Assessment Patient Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|8"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5978329"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Agent Dose Level Interrupted Or Not Completed Reason"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|%201"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6003957"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Enneking Musculoskeletal Tumor Society Staging System Tumor Stage"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6032924"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Cancer Prior Therapy Location and/or Extent Text"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6160873"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 31 Extent During Past Week Have Dry Mouth Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161006"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 32 Extent During Past Week Food and Drink Taste Different from Usual Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161354"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 33 Extent During Past Week Have Painful Irritated or Watery Eyes Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161385"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 34 Extent During Past Week Have Lost Any Hair Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161386"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 35 Extent During Past Week Upset by Hair Loss Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161387"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 36 Extent During Past Week Feel Ill or Unwell Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161388"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 37 Extent During Past Week Have Hot Flushes Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161389"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 38 Extent During Past Week Have Headaches Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161390"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 39 Extent During Past Week Felt Physically Less Attractive as Result of Disease or Treatment Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161391"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 40 Extent During Past Week Feel Less Feminine as Result of Disease or Treatment Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161392"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 41 Extent During Past Week Difficult to Look at Self Naked Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161393"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 42 Extent During Past Week Have Been Dissatisfied with Body Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161394"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 43 Extent During Past Week Worried About Health in Future Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6161398"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 47 Extent During Past Week Have Pain in Arm or Shoulder Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6181083"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 48 Extent During Past Week Have Swollen Arm or Hand Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6181084"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 49 Extent During Past Week Have Difficulty Raising or Moving Arm Sideways Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6181085"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 50 Extent During Past Week Have Pain in Area of Affected Breast Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6181086"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 51 Extent During Past Week Area of Affected Breast Swollen Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6181095"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 52 Extent During Past Week Area of Affected Breast Oversensitive Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6181096"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EORTC QLQ-BR23 Version 1.0 53 Extent During Past Week Have Skin Problem on or in Area of Affected Breast Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|4"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "62629"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Dysuria Extent Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6326086"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Ampulla of Vater Cancer Tumor Extension Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6369523"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Need Assistance Reading Hospital Material Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "64163"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease Extent Site"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "64164"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease Extent Other Site"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "64188"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Colorectal Malignant Neoplasm Extent Surgical Resection Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|2"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6422606"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Microscopic Examination Name"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C181477|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "64716"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Malignant Neoplasm Lobular Carcinoma In Situ Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "64739"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Malignant Neoplasm Extent Necrosis Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "65090"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Positive Surgical Margin Malignant Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "65158"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Dysphagia Extent Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6620591"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Microscopic Examination Short Name"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C181477|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6663683"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Clinical Study Population Subgroup Consent Ineligibility Reason"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|%201"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6756943"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Ductal Carcinoma In Situ Nipple Involvement Disease Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6776757"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Carcinoma Extent Centimeter Measurement"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6790131"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Kidney Carcinoma Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6790132"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Kidney Carcinoma Extent Other Specify"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6815891"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Carcinoma Local Disease Extent Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6942252"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Transurethral Resection of Bladder Tumor Extent Disease Response Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7034360"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Radiation Extent"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7063008"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Residual Disease Extent"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7063755"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Radiation Therapy Administration Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7063883"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Clinical Trial Ineligibility Reason"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|%201"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7348003"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Protocol Deviations Domain Trial Screening Criterion Negation Fulfill Reason"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|%201"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7590217"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Procedure Domain Surgery Resection Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7717124"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Loss of Chromosome 1p Detected Finding Chromosome Deletion Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|%202"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7717171"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Loss of Chromosome 19q Detected Chromosome Deletion Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|%202"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7797155"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Biospecimen Tumor Mass Extent Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "8177862"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Head and Neck Neoplasm Stage Grouping Stage Category Extent Disease or Disorder Stage"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "967"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Dose Modification Reason"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C25332|%203"
+      }
+     }
+    ]
+   }
+  }
+ }
+}

@@ -420,7 +420,8 @@ data_element:
   about: >-
     A data element as a caDSR tool returns it: these fields, the platform's own, and the
     sections the caller's include selects; no include returns these fields alone. Names follow
-    the caDSR API's (DataElement), statuses unchanged (A9.1).
+    the caDSR API's (DataElement), statuses unchanged (A9.1). Optional metadata is emitted only
+    when supplied: omitted stays absent, explicit null stays null, without parent backfill.
   fields:
     publicId:
       content: The data element's public id
@@ -433,6 +434,7 @@ data_element:
       of: A4.1
     context:
       content: The context that owns it
+      optional: true
       nullable: true
       of: A3.8.3
     workflowStatus:
@@ -443,34 +445,42 @@ data_element:
       of: A3.8.3
     dateCreated:
       content: When the platform created it, its own value unchanged
+      optional: true
       nullable: true
       of: A3.8.2
     dateModified:
       content: When the platform last modified it, its own value unchanged
+      optional: true
       nullable: true
       of: A3.8.2
     definition:
       content: Its definition unchanged; null means caDSR sent none in the answer that produced this record
+      optional: true
       nullable: true
       of: A4.1
     shortName:
       content: Its short name unchanged; null means caDSR sent none in the answer that produced this record
+      optional: true
       nullable: true
       of: A4.1
     latestVersionIndicator:
       content: Its latest-version indicator unchanged; null means caDSR sent none in the answer that produced this record
+      optional: true
       nullable: true
       of: A3.8.3
     beginDate:
       content: Its begin date unchanged; null means caDSR sent none in the answer that produced this record
+      optional: true
       nullable: true
       of: A3.8.2
     endDate:
       content: Its end date unchanged; null means caDSR sent none in the answer that produced this record
+      optional: true
       nullable: true
       of: A3.8.2
     origin:
       content: Its origin unchanged; null means caDSR sent none in the answer that produced this record
+      optional: true
       nullable: true
       of: A4.1
     referenceDocuments:
@@ -492,9 +502,16 @@ data_element:
       of: get_data_element
     conceptAssociations:
       content: >-
-        The concepts of its data element concept, each { conceptCode, longName, terminology?, role }, role
-        objectClass or property, as the platform's ObjectClass and Property give them, when
-        include selects them
+        API derivation references in source order, without sorting or deduplication, each
+        { conceptCode, longName?, terminology?, primary, displayOrder?, role }. Roles objectClass,
+        property and representationTerm come from ObjectClass, Property and ValueDomain.RepresentationTerm.
+        primary is boolean only from explicit Yes/No (other flags fail closed); displayOrder is
+        an integer parsed from trimmed signed decimal digits (malformed values fail closed,
+        missing stays absent). Neither is inferred from array position; no raw duplicate flags.
+      optional: true
+      of: get_data_element
+    dataElementConcept:
+      content: The data_element_concept identity and component records, without concept lists, when include selects it
       optional: true
       of: get_data_element
     alternateNames:
@@ -505,9 +522,31 @@ data_element:
       content: The classification scheme records it is classified in, when include selects them
       optional: true
       of: get_data_element
+cited_item:
+  title: The cited caDSR component identity
+  about: Own identity and supplied dates, never inherited. Missing dates stay absent; explicit null stays null.
+  fields:
+    publicId: {content: Its own public identifier, of: A1.2}
+    version: {content: Its own version, of: A3.8.3}
+    longName: {content: Its own name, of: A4.1}
+    dateModified: {content: Its own last-modified date, optional: true, nullable: true, of: A3.8.2}
+    beginDate: {content: Its own begin date, optional: true, nullable: true, of: A3.8.2}
+    endDate: {content: Its own end date, optional: true, nullable: true, of: A3.8.2}
+data_element_concept:
+  title: The data element concept citation
+  about: The cited_item fields plus objectClass and property identities; concepts occur only in conceptAssociations.
+  fields:
+    publicId: {content: The DEC public identifier, of: A1.2}
+    version: {content: The DEC version, of: A3.8.3}
+    longName: {content: The DEC name, of: A4.1}
+    dateModified: {content: The DEC last-modified date, optional: true, nullable: true, of: A3.8.2}
+    beginDate: {content: The DEC begin date, optional: true, nullable: true, of: A3.8.2}
+    endDate: {content: The DEC end date, optional: true, nullable: true, of: A3.8.2}
+    objectClass: {content: The object class cited_item with no concepts, of: get_data_element}
+    property: {content: The property cited_item with no concepts, of: get_data_element}
 permissible_value:
   title: The permissible value record
-  about: A permissible value of a value domain, with the value meaning it stands for.
+  about: A permissible value of a value domain, with its own supplied dates and no version of its own.
   fields:
     publicId:
       content: >-
@@ -517,10 +556,15 @@ permissible_value:
     value:
       content: The value as stored
       of: A9.1
+    dateModified: {content: Its own last-modified date, optional: true, nullable: true, of: A3.8.2}
+    beginDate: {content: Its own begin date, optional: true, nullable: true, of: A3.8.2}
+    endDate: {content: Its own end date, optional: true, nullable: true, of: A3.8.2}
     valueMeaning:
       content: >-
-        Its value meaning: { publicId, version, longName, concepts[] }, each concept
-        { conceptCode, longName, terminology?, primary } as the platform gives it (api_concept)
+        Its value meaning: { publicId, version, longName, dateModified?, beginDate?, endDate?, concepts[] },
+        each { conceptCode, longName?, terminology?, primary, displayOrder? }, primary:boolean
+        from explicit Yes/No and optional integer displayOrder, with the same parsing and
+        source-order rules as conceptAssociations. Missing dates stay absent, explicit null stays null.
       of: A9.1
     provenance:
       content: The provenance record, its release in the registry form
@@ -536,6 +580,7 @@ api_concept:
       of: A1.2
     longName:
       content: The upstream longName; null where the API supplies none
+      optional: true
       nullable: true
       of: A4.1
     terminology:
@@ -585,8 +630,11 @@ classification_scheme:
       content: The context that owns it
       of: A7.2
     items:
-      content: Its classification scheme items, each { publicId, version, longName }
+      content: "Its classification scheme items, each { publicId, version, longName, dateModified?, beginDate?, endDate? } with its own supplied dates"
       of: A7.2
+    dateModified: {content: Its own last-modified date, optional: true, nullable: true, of: A3.8.2}
+    beginDate: {content: Its own begin date, optional: true, nullable: true, of: A3.8.2}
+    endDate: {content: Its own end date, optional: true, nullable: true, of: A3.8.2}
     provenance:
       content: The provenance record, its release in the registry form
       of: A4.4
@@ -652,7 +700,10 @@ value_meaning_match:
       of: match_value_meanings
 form:
   title: The form record
-  about: A form as get_form returns it, its status the platform's own (A8.1).
+  about: >-
+    A form as get_form returns it, its status the platform's own (A8.1). Optional metadata
+    omitted upstream stays absent; explicit null stays null. Raw modules/questions retain
+    their own identities, dates and unknown fields without invented dates.
   fields:
     publicId:
       content: The form's public id (the Form API's publicID)
@@ -665,22 +716,27 @@ form:
       of: A4.1
     definition:
       content: Its definition unchanged; null means caDSR sent none in the answer that produced this record
+      optional: true
       nullable: true
       of: A4.1
     type:
       content: Its form type unchanged (CRF, ...); null means caDSR sent none in the answer that produced this record
+      optional: true
       nullable: true
       of: A3.8.3
     beginDate:
       content: Its begin date unchanged; null means caDSR sent none in the answer that produced this record
+      optional: true
       nullable: true
       of: A3.8.2
     endDate:
       content: Its end date unchanged; null means caDSR sent none in the answer that produced this record
+      optional: true
       nullable: true
       of: A3.8.2
     context:
       content: The context that owns it
+      optional: true
       nullable: true
       of: A3.8.3
     workflowStatus:
@@ -691,10 +747,12 @@ form:
       of: A3.8.3
     dateCreated:
       content: When the platform created it, its own value unchanged
+      optional: true
       nullable: true
       of: A3.8.2
     dateModified:
       content: When the platform last modified it, its own value unchanged
+      optional: true
       nullable: true
       of: A3.8.2
     provenance:
@@ -728,7 +786,8 @@ code_map:
       content: "{ publicId, version } of the data element"
       of: A1.2
     crdcName:
-      content: Its CRDC name, as the platform gives it
+      content: Its CRDC name when supplied; explicit null stays null, omitted stays absent
+      optional: true
       of: A9.1
     usedBy:
       content: >-
@@ -755,14 +814,21 @@ data_element_use:
   title: The data element use record
   about: >-
     A data element that uses a concept, as find_data_elements_for_concept returns it: as an
-    object class, property or permissible value concept, main or minor, of the concept or, with
+    object class, property or value meaning of the concept or, with
     expandDescendants, of a descendant. The surface its provenance names answered it; the
     surfaces answer from their own content (the Shared SI graph is an export, the caDSR API is
-    live), so their answers differ, and neither says by which route the concept is used.
+    live), so their answers differ. Roles name every graph-reported path and actual matching
+    concept, with a trimmed integer displayOrder only when supplied; malformed present order
+    fails as upstream_unavailable. The graph supplies no primary flag; use get_data_element
+    for caDSR's primary indicator.
+    Representation-term use is not covered by this route, so absence does not establish non-use.
     Shared SI merges all versions of a CDE into one node: graph-derived data_element_use
     and value_use records have public-ID scope, with no version or value-to-version claim.
     Records from the caDSR API and CRDC crosswalk retain their versioned identities.
   fields:
+    roles:
+      content: "Nonempty, canonically sorted distinct { role: objectClass | property | valueMeaning, conceptCode, displayOrder?: integer } assertions; no primary inference"
+      of: A3.7
     dataElement:
       content: "{ publicId, longName } of the data element"
       of: A1.2

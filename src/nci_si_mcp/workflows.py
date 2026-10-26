@@ -157,6 +157,10 @@ def ground_value(
 ) -> dict[str, Any]:
     """Ground a concept, or a text that names one, in both EVS and caDSR: the concept, the data
     elements and permissible values that use it, and optionally a commons' stored values.
+    Data element uses name every graph role and actual matching conceptCode, with optional
+    integer displayOrder; the graph gives no primary flag, so use get_data_element for
+    caDSR's primary indicator.
+    Representation-term use is not covered by this route, so absence does not establish non-use.
 
     registryRelease is left unset today (C-1).
 

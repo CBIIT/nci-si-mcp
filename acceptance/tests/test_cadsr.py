@@ -158,24 +158,54 @@ def _live_scalar(content, key):
     field = RECORDS["data_element"]["fields"][key]
     value = content.get(key)
     if field.get("nullable"):
-        return key in content and (value is None or isinstance(value, str))
+        return (
+            (key not in content and field.get("optional"))
+            or value is None
+            or isinstance(value, str)
+        )
     return is_name(value)
 
 
 def _own(element):
     """A data element's own fields, provenance aside, as the record names them."""
 
-    return {key: element.get(key) for key in OWN if key != "provenance"}
+    return {key: element[key] for key in OWN if key != "provenance" and key in element}
 
 
 def _concepts(element):
-    """The data element concept's concepts, by code, name and role."""
+    """Ordered API assertions, including representation, with explicit flags and order."""
 
     concept = element["DataElementConcept"]
-    return {
-        (each["conceptCode"], each["longName"], role)
-        for role, part in (("objectClass", "ObjectClass"), ("property", "Property"))
-        for each in concept[part]["Concepts"]
+    components = [
+        ("objectClass", concept["ObjectClass"]),
+        ("property", concept["Property"]),
+        ("representationTerm", element["ValueDomain"]["RepresentationTerm"]),
+    ]
+    return [
+        _derivation(each) | {"role": role} for role, part in components for each in part["Concepts"]
+    ]
+
+
+def _derivation(raw):
+    result = _fields(raw, ("conceptCode", "longName")) | {
+        "primary": raw["primaryIndicator"] == "Yes"
+    }
+    if "evsSource" in raw:
+        result["terminology"] = raw["evsSource"]
+    if "displayOrder" in raw:
+        result["displayOrder"] = int(raw["displayOrder"])
+    return result
+
+
+def _component(raw):
+    return _fields(raw, ("publicId", "version", "longName", "dateModified", "beginDate", "endDate"))
+
+
+def _dec(element):
+    raw = element["DataElementConcept"]
+    return _component(raw) | {
+        "objectClass": _component(raw["ObjectClass"]),
+        "property": _component(raw["Property"]),
     }
 
 
@@ -208,17 +238,18 @@ SCHEME, ITEM = ("publicId", "version", "longName", "context"), ("publicId", "ver
 
 
 def _fields(entry, names):
-    return {name: entry.get(name) for name in names}
+    return {name: entry[name] for name in names if name in entry}
 
 
 def _meaning(meaning):
     """A value meaning by its identity and name, with its concepts by code and name."""
 
-    concepts = [
-        (concept.get("conceptCode"), concept.get("longName"))
-        for concept in meaning.get("Concepts", meaning.get("concepts")) or []
-    ]
-    return _fields(meaning, ("publicId", "version", "longName")), concepts
+    concepts = (
+        [_derivation(row) for row in meaning["Concepts"]]
+        if "Concepts" in meaning
+        else meaning.get("concepts", [])
+    )
+    return _component(meaning), concepts
 
 
 def _returned(content, include):
@@ -230,9 +261,7 @@ def _returned(content, include):
             (value.get("publicId"), value.get("value"), _meaning(value.get("valueMeaning") or {}))
             for value in found
         ],
-        "conceptAssociations": lambda: {
-            (c.get("conceptCode"), c.get("longName"), c.get("role")) for c in found
-        },
+        "conceptAssociations": lambda: found,
         "classificationSchemes": lambda: [
             (_fields(scheme, SCHEME), [_fields(i, ITEM) for i in scheme.get("items", [])])
             for scheme in found
@@ -244,7 +273,9 @@ def _returned(content, include):
 @pytest.mark.tool("get_data_element")
 @pytest.mark.requirement("get_data_element-1")
 @pytest.mark.live_capable
-@pytest.mark.parametrize("include", SECTIONS)
+@pytest.mark.parametrize(
+    "include", [section for section in SECTIONS if section != "dataElementConcept"]
+)
 def test_each_include_returns_its_section_as_the_platform_gives_it(
     tools, target, recorded, include
 ):
@@ -267,6 +298,64 @@ def test_each_include_returns_its_section_as_the_platform_gives_it(
     assert [(entry.get("provenance") or {}).get("release") for entry in nested] == [
         {"registry": "cadsr"}
     ] * len(nested)
+
+
+@pytest.mark.tool("get_data_element")
+@pytest.mark.requirement("get_data_element-1")
+@pytest.mark.parametrize("version", [None, "1"], ids=["latest", "version-1"])
+def test_cited_items_keep_their_own_identity_dates_and_derivations(tools, recorded, version):
+    raw = _element(recorded, VERSION_1 if version else ELEMENT)
+    args = {"version": version} if version else {}
+    content = _ok(
+        tools.call(
+            "get_data_element",
+            {
+                "publicId": DATA_ELEMENT,
+                "include": [
+                    "dataElementConcept",
+                    "permissibleValues",
+                    "conceptAssociations",
+                    "valueDomain",
+                ],
+                **args,
+            },
+        )
+    )
+    assert content.get("dataElementConcept") == _dec(raw)
+    assert content.get("conceptAssociations") == _concepts(raw)
+    assert content.get("valueDomain") == _section(raw, "valueDomain")
+    values = content["permissibleValues"]
+    expected = raw["ValueDomain"]["PermissibleValues"]
+    assert len(values) == len(expected)
+    for value, source in zip(values, expected, strict=True):
+        assert _fields(value, ("publicId", "dateModified", "beginDate", "endDate")) == _fields(
+            source, ("publicId", "dateModified", "beginDate", "endDate")
+        )
+        assert "version" not in value
+        assert _meaning(value["valueMeaning"]) == _meaning(source["ValueMeaning"])
+        assert value["provenance"]["upstream"] == _fields(source, ("publicId", "dateModified"))
+
+
+@pytest.mark.scenario("cadsr/omitted-citation-fields")
+@pytest.mark.tool("get_data_element")
+@pytest.mark.requirement("get_data_element-1")
+def test_omitted_citation_fields_are_absent_and_explicit_null_stays_null(tools):
+    content = _ok(
+        tools.call(
+            "get_data_element",
+            {"publicId": DATA_ELEMENT, "include": ["dataElementConcept", "permissibleValues"]},
+        )
+    )
+    items = [
+        content,
+        content["dataElementConcept"],
+        content["dataElementConcept"]["objectClass"],
+        content["dataElementConcept"]["property"],
+        content["permissibleValues"][0],
+        content["permissibleValues"][0]["valueMeaning"],
+    ]
+    assert ["dateModified" in item for item in items] == [False] * 6
+    assert [item["endDate"] for item in items] == [None] * 6
 
 
 @pytest.mark.tool("get_data_element")
@@ -329,6 +418,18 @@ def test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too(
     expected = {name: form.get(name) for name in named} | {"publicId": form["publicID"]}
     assert {name: content.get(name) for name in named} == expected
     assert content.get("modules") == form["modules"]
+    module = content["modules"][0]
+    question = module["questions"][0]
+    assert _fields(module, ("publicID", "version", "dateModified", "beginDate", "endDate")) == {
+        "publicID": "5406474",
+        "version": "1.0",
+        "dateModified": "2016-08-12",
+    }
+    assert _fields(question, ("publicID", "version", "dateModified", "beginDate", "endDate")) == {
+        "publicID": "5406475",
+        "version": "1.0",
+        "dateModified": "2016-08-12",
+    }
     assert content["provenance"]["upstream"]["version"] == form["version"]
 
 

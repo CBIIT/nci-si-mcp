@@ -69,14 +69,18 @@ class DataElementMetadataTest(MetadataFixture):
         self.assertNotIn("valueDomain", result.structured_content)
         self.assertEqual(self.paths, ["/NCIAPI/1.0/api/DataElement/2200604"])
 
-    def test_absent_and_null_scalars_are_present_null_without_backfill(self):
+    def test_absent_and_null_scalars_stay_distinct_without_backfill(self):
         for extras in ({}, dict.fromkeys(SCALARS)):
             with self.subTest(extras=extras):
                 result = self.answer({"DataElement": data_element(**extras)}, publicId="123")
 
-                self.assertEqual(set(SCALARS) - result.structured_content.keys(), set())
                 self.assertEqual(
-                    {key: result.structured_content[key] for key in SCALARS}, dict.fromkeys(SCALARS)
+                    {
+                        key: result.structured_content[key]
+                        for key in SCALARS
+                        if key in result.structured_content
+                    },
+                    extras,
                 )
                 self.assertFalse(result.is_error)
                 self.assertEqual(self.paths, ["/NCIAPI/1.0/api/DataElement/123"])
@@ -111,8 +115,7 @@ class DataElementMetadataTest(MetadataFixture):
 
         first, second = (match["dataElement"] for match in result.structured_content["matches"])
         self.assertEqual(first["definition"], "Own definition")
-        self.assertEqual(set(SCALARS) - second.keys(), set())
-        self.assertEqual({key: second[key] for key in SCALARS}, dict.fromkeys(SCALARS))
+        self.assertEqual(set(SCALARS) & second.keys(), set())
         self.assertEqual(len(self.paths), 1)
 
     def test_search_preserves_recorded_metadata_without_a_detail_fetch(self):
@@ -148,16 +151,15 @@ class FormAndMatchMetadataTest(MetadataFixture):
                 self.assertNotIn("latestVersionIndicator", content)
                 self.assertEqual(self.paths, ["/NCIFormAPI.v2_0:NciFormApiRad/Form/5406471"])
 
-    def test_form_scalars_are_present_nullable_text_without_backfill(self):
+    def test_form_scalars_are_supplied_nullable_text_without_backfill(self):
         for extras in ({}, dict.fromkeys(FORM_SCALARS), dict.fromkeys(FORM_SCALARS, "")):
             with self.subTest(extras=extras):
                 result = self.answer({"form": form(**extras)}, "get_form", publicId="123")
                 content = result.structured_content
 
-                self.assertEqual(set(FORM_SCALARS) - content.keys(), set())
                 self.assertEqual(
-                    {key: content[key] for key in FORM_SCALARS},
-                    dict.fromkeys(FORM_SCALARS) | extras,
+                    {key: content[key] for key in FORM_SCALARS if key in content},
+                    extras,
                 )
                 self.assertFalse(result.is_error)
                 self.assertEqual(self.paths, ["/NCIFormAPI.v2_0:NciFormApiRad/Form/123"])
@@ -366,7 +368,7 @@ class RequiredNameAndStatusTest(MetadataFixture):
 
                     self.assert_refused(result, malformed, ELEMENT_PATH)
 
-    def test_context_and_dates_stay_null_when_cadsr_omits_them(self):
+    def test_context_and_dates_preserve_absence_and_explicit_null(self):
         calls = (
             ("get_data_element", "DataElement", data_element(), {}),
             ("get_form", "form", form(), {"includeModules": False}),
@@ -380,7 +382,12 @@ class RequiredNameAndStatusTest(MetadataFixture):
                         )
 
                         self.assertFalse(result.is_error)
-                        self.assertIsNone(result.structured_content[field])
+                        self.assertEqual(
+                            {field: result.structured_content[field]}
+                            if field in result.structured_content
+                            else {},
+                            {} if value is MISSING else {field: None},
+                        )
                         self.assertEqual(len(self.paths), 1)
 
     def test_an_empty_name_or_status_is_passed_through_as_sent(self):

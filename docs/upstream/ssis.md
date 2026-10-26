@@ -42,9 +42,9 @@ Platform requirement/operation: **S-5; X-15**.
 Specification requirements: `X-15`, `find_data_elements_for_concept-1`.
 Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/42#issuecomment-5968943275).
 
-**Observation.** Direct SPARQL POST and some plain FILTER regex queries are refused with HTML 403. The issue reports SERVICE and OPTION (TRANSITIVE) refused, while rdfs:subClassOf* works; there is no blanket property-path ban.
+**Observation.** Direct SPARQL POST and some plain FILTER regex queries are refused with HTML 403. The issue reports SERVICE and OPTION (TRANSITIVE) refused, while rdfs:subClassOf* works; there is no blanket property-path ban. Reviewer observation on 26 October 2026 (#365, comment 6417595705): form-encoded POST and GET of a valid GROUP_CONCAT query without an explicit separator each returned Apache HTTP 403 text/html on every attempt, while the same query with an explicit separator returned HTTP 200. Valid SPARQL can therefore be refused based on query text without published rules.
 
-**Reproduction.** Compare recorded form-encoded requests with direct POST and the issue's refused FILTER(regex(str(?p), "date|version|generat|export|created", "i")) probe; use the exact registered query text for regression tests.
+**Reproduction.** Compare recorded form-encoded requests with direct POST and the issue's refused FILTER(regex(str(?p), "date|version|generat|export|created", "i")) probe; also compare form-encoded POST and GET of SELECT (GROUP_CONCAT(?x) AS ?g) WHERE { VALUES ?x { "a" "b" } } with SELECT (GROUP_CONCAT(?x;separator="|") AS ?g) WHERE { VALUES ?x { "a" "b" } }. The former was refused with HTML 403 and the latter returned 200 on 26 October 2026, as reported in #365 comment 6417595705. Use the exact registered query text for regression tests.
 
 **Expected.** Publish accepted constructs/transport forms and return a machine-readable SPARQL refusal distinct from an outage.
 
@@ -58,7 +58,7 @@ Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/ssis-sparql/query-refused.json](../../acceptance/fixtures/recorded/ssis-sparql/query-refused.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `b137d06b4c6ba1660d450366515031519de60486750347d97ec26cd63954db20`.
 - [acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `c1dd168f191478bcd7e2bf71df530b20ef68ec71d142c3b664dcb943ad68b4ff`.
-- [acceptance/request-forms/ssis.md](../../acceptance/request-forms/ssis.md) — document; SHA-256 `9f51a5f78f1fdd22c4dfa0af791920e1a1c426209827102de8aee4aa6199fd1f`.
+- [acceptance/request-forms/ssis.md](../../acceptance/request-forms/ssis.md) — document; SHA-256 `a53debdd95b2fecf05b3a10d672f7ae7e1f88fcb451925c90327cdc739e9f1b3`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -87,7 +87,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/ssis-sparql/graph-identities.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `1766c631d26999e22a5062f00c9fd4c83ddb3ec8150cc02128af1986bb4b84c6`.
-- [docs/upstream/ssis-queries.yaml](../../docs/upstream/ssis-queries.yaml) — document; SHA-256 `cd0976cfc7bc74bf245c3a37ef93f09bc80bd50d9bcea50e4080b57abfc376c4`.
+- [docs/upstream/ssis-queries.yaml](../../docs/upstream/ssis-queries.yaml) — document; SHA-256 `7a9fcb93771bb742e33e782b738ca235c85947729080e5da50cd4fcd322f054f`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -106,11 +106,11 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/3
 
 **Reproduction.** Inspect all version assertions and permissible values on DE2008092 against the API's individual versions; compare value meaning primaryIndicator with main/minor and the raw display_order datatype. Inspect the retained queries and both graph metadata rows separately.
 
-**Expected.** Confirm the merge model and whether per-version publication is planned; explain the value main/minor inversion, refresh cadence and graph lag, and string display_order semantics or publish numeric order.
+**Expected.** Confirm the merge model and whether per-version publication is planned; explain the value main/minor inversion and string display_order semantics or publish numeric order. Add the representation-term concept link and publish and maintain a caDSR graph refresh cadence that addresses the graph lag.
 
 **Impact.** A merged graph cannot establish a CDE version or assign a value to one; version duplicates consume a row cap before distinct public-ID associations are counted.
 
-**Workaround.** Find and grounding use public-ID associations, grouping elements by publicId and distinct values by publicId/value/concept before the sentinel limit. API records keep versions and primary flags; no display_order consumer exists, so no ordering parser is introduced.
+**Workaround.** Find and grounding use public-ID associations, grouping complete encoded role/concept/order tuples by publicId and distinct values by publicId/value/concept before the sentinel limit. Graph roles preserve trimmed integer display order without inferring primary; missing order stays absent and malformed order fails. API records keep versions and primary flags. Representation-term use is not covered by the graph route.
 
 **Acceptance criteria.** Graph associations make no version claim; distinct keys precede maximum-plus-one LIMIT and omissions remain lower bounds. Original recordings and requests remain unchanged; new derived projections and synthetic cap cases are explicitly crafted.
 

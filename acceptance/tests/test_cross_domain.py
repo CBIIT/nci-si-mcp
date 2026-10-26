@@ -363,7 +363,7 @@ def test_non_ncit_references_are_successful_without_invented_concepts(
         )
     )
     assert {key: item for key, item in content.items() if key != "provenance"} == {
-        "conceptReference": {"conceptCode": code, "longName": None, "terminology": source},
+        "conceptReference": {"conceptCode": code, "terminology": source},
         "unresolvedReason": reason,
         "permissibleValue": {
             "dataElement": {"publicId": identifier, "version": "2"},

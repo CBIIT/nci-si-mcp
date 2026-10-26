@@ -1,0 +1,272 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-26",
+ "request": {
+  "surface": "ssis-sparql",
+  "method": "POST",
+  "path": "/sparql",
+  "headers": {
+   "Accept": "application/sparql-results+json"
+  },
+  "form": {
+   "query": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT ?id (MIN(?label) AS ?name)\n  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),\"|\",ENCODE_FOR_URI(STR(?concept)),\"|\",COALESCE(ENCODE_FOR_URI(STR(?order)),\"\"));separator=\" \") AS ?roles)\nWHERE {\n  VALUES ?concept { ncit:C17357 }\n  GRAPH <http://cbiit.nci.nih.gov/caDSR> {\n    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }\n    ?node ?membership ?concept .\n    { ?element mdr:Object_Class ?node . BIND(\"objectClass\" AS ?useRole) }\n    UNION\n    { ?element mdr:Property ?node . BIND(\"property\" AS ?useRole) }\n    UNION\n    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND(\"valueMeaning\" AS ?useRole) }\n    OPTIONAL { ?node cadsr:display_order ?order }\n    ?element cadsr:publicId ?id ;\n      rdfs:label ?label .\n  }\n}\nGROUP BY ?id\nORDER BY ?id\nLIMIT 1001"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "head": {
+    "link": [],
+    "vars": [
+     "id",
+     "name",
+     "roles"
+    ]
+   },
+   "results": {
+    "distinct": false,
+    "ordered": true,
+    "bindings": [
+     {
+      "id": {
+       "type": "literal",
+       "value": "10748236"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Person Reported Gender Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14527213"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Care Team Member Gender Data Source Data Value Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|2"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14527214"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Care Team Member Gender Data Source Data Value Code OMOP Concept Identifier"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|2"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14665558"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Person Gender Identity PCORnet Common Data Model Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14667039"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Care Team Member Gender OMOP Concept Identifier"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15157375"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Person Gender HL7 FHIR Terminology Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2180389"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Transplant Donor Gender Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3111444"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Person Gender Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6144638"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Person Biological Entity Or Sex Gender Code Sentinel CDM Sex Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6144639"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Person Biological Entity Or Sex Gender Code PCORnet CDM Sex Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6144640"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Person Biological Entity Or Sex Gender Code OMOP CDM Gender Concept Identifier"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6333663"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Person Biological Entity Or Sex Gender Code ACT I2B2 CDM Sex Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6365744"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Person Biological Entity Or Sex Gender Code PCORnet CDM Provider Sex Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6381637"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Person Biological Entity Or Sex Gender Code OMOP CDM Provider Gender Concept Identifier"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|1"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6740221"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Household Survey If Answered A Few Times a Year Or More Frequently for the Experience Reason"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7033544"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Gender"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|0"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7318765"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Person Biological Entity Or Sex Gender Code FDA COVID Gender Concept Identifier"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|1"
+      }
+     }
+    ]
+   }
+  }
+ }
+}

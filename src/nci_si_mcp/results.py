@@ -13,6 +13,7 @@ from .validation import (
     DataElementConceptRole,
     DatasetName,
     EdgeType,
+    GraphConceptRole,
     MatchedItemType,
     Polarity,
     ProvenanceSource,
@@ -49,7 +50,7 @@ class CodeMapIdentity(TypedDict):
 
 class CodeMap(TypedDict):
     dataElement: CodeMapIdentity
-    crdcName: str | None
+    crdcName: NotRequired[str | None]
     usedBy: list[str]
     valueLevelBinding: bool
     coverage: int
@@ -211,15 +212,27 @@ class RegistryItemIdentity(TypedDict):
 
 class APIConcept(TypedDict):
     conceptCode: str
-    longName: str | None
+    longName: NotRequired[str | None]
     terminology: NotRequired[str | None]
 
 
 class ValueMeaningConcept(APIConcept):
     primary: bool
+    displayOrder: NotRequired[int]
 
 
-class ValueMeaning(RegistryItemIdentity):
+class CitedItem(RegistryItemIdentity):
+    dateModified: NotRequired[str | None]
+    beginDate: NotRequired[str | None]
+    endDate: NotRequired[str | None]
+
+
+class DataElementConcept(CitedItem):
+    objectClass: CitedItem
+    property: CitedItem
+
+
+class ValueMeaning(CitedItem):
     concepts: list[ValueMeaningConcept]
 
 
@@ -228,28 +241,31 @@ class PermissibleValue(TypedDict):
     value: str
     valueMeaning: ValueMeaning
     provenance: Provenance
+    dateModified: NotRequired[str | None]
+    beginDate: NotRequired[str | None]
+    endDate: NotRequired[str | None]
 
 
-class ClassificationScheme(RegistryItemIdentity):
+class ClassificationScheme(CitedItem):
     context: str
-    items: list[RegistryItemIdentity]
+    items: list[CitedItem]
     provenance: Provenance
 
 
-class ConceptAssociation(APIConcept):
+class ConceptAssociation(ValueMeaningConcept):
     role: DataElementConceptRole
 
 
 class Form(RegistryItemIdentity):
-    definition: str | None
-    type: str | None
-    beginDate: str | None
-    endDate: str | None
-    context: str | None
+    definition: NotRequired[str | None]
+    type: NotRequired[str | None]
+    beginDate: NotRequired[str | None]
+    endDate: NotRequired[str | None]
+    context: NotRequired[str | None]
     workflowStatus: str
     registrationStatus: str
-    dateCreated: str | None
-    dateModified: str | None
+    dateCreated: NotRequired[str | None]
+    dateModified: NotRequired[str | None]
     provenance: Provenance
     instructions: NotRequired[list[dict[str, Any]]]
     classificationSchemes: NotRequired[list[dict[str, Any]]]
@@ -257,17 +273,17 @@ class Form(RegistryItemIdentity):
 
 
 class DataElement(RegistryItemIdentity):
-    definition: str | None
-    shortName: str | None
-    latestVersionIndicator: str | None
-    beginDate: str | None
-    endDate: str | None
-    origin: str | None
-    context: str | None
+    definition: NotRequired[str | None]
+    shortName: NotRequired[str | None]
+    latestVersionIndicator: NotRequired[str | None]
+    beginDate: NotRequired[str | None]
+    endDate: NotRequired[str | None]
+    origin: NotRequired[str | None]
+    context: NotRequired[str | None]
     workflowStatus: str
     registrationStatus: str
-    dateCreated: str | None
-    dateModified: str | None
+    dateCreated: NotRequired[str | None]
+    dateModified: NotRequired[str | None]
     provenance: Provenance
     permissibleValues: NotRequired[list[PermissibleValue]]
     valueDomain: NotRequired[dict[str, Any]]
@@ -275,6 +291,7 @@ class DataElement(RegistryItemIdentity):
     alternateNames: NotRequired[list[dict[str, Any]]]
     classificationSchemes: NotRequired[list[ClassificationScheme]]
     referenceDocuments: NotRequired[list[dict[str, Any]]]
+    dataElementConcept: NotRequired[DataElementConcept]
 
 
 class DataElementHit(TypedDict):
@@ -337,8 +354,15 @@ class GraphValueIdentity(TypedDict):
     publicId: str
 
 
+class GraphConceptUse(TypedDict):
+    role: GraphConceptRole
+    conceptCode: str
+    displayOrder: NotRequired[int]
+
+
 class DataElementUse(TypedDict):
     dataElement: GraphElementIdentity
+    roles: list[GraphConceptUse]
     provenance: Provenance
 
 

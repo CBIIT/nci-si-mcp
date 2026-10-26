@@ -153,14 +153,7 @@ def test_injection_fixtures_carry_hostile_prose_in_the_consumed_source_field(
 
 
 def test_public_id_projections_remove_version_duplicates_without_claiming_complete_captures():
-    for name, count in (("data-elements-c2991", 981), ("data-elements-c2991-descendants", 998)):
-        document = CRAFTED[f"crafted/ssis-public-id/{name}.json"]
-        rows = document["response"]["body"]["results"]["bindings"]
-        assert len(rows) == count
-        assert len({row["id"]["value"] for row in rows}) == count
-        assert all(set(row) == {"id", "name"} for row in rows)
-        assert document["kind"] == "crafted"
-        assert document["derived_from"] == f"recorded/ssis-sparql/{name}.json"
+    assert not any(name.startswith("crafted/ssis-public-id/data-elements-") for name in CRAFTED)
     values = body("crafted/ssis-public-id/values-c20197.json")["results"]["bindings"]
     assert len(values) == 49  # noqa: PLR2004 - independently recounted historical projection
     assert all(set(row) == {"id", "value", "concept"} for row in values)
@@ -170,7 +163,7 @@ def test_synthetic_distinct_cap_has_one_sentinel_not_duplicate_version_rows():
     for document in scenario("ssis/distinct-cap").values():
         rows = document["response"]["body"]["results"]["bindings"]
         assert [row["id"]["value"] for row in rows] == [str(99000000 + i) for i in range(1001)]
-        assert all(set(row) == {"id", "name"} for row in rows)
+        assert all(set(row) == {"id", "name", "roles"} for row in rows)
 
 
 def test_deep_fanout_exceeds_the_node_and_depth_maximums():

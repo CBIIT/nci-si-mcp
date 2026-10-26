@@ -252,7 +252,7 @@ resolve_registry_release-1:
   statement: Without a registry release upstream, published is false, generatedAt is the export's date as the export folder gives it and sourceDistribution the file it dates, with no identifier; with one, published is true and the release is returned; ttlMs 0.
   basis: [resolve_registry_release, registry_release, A3.8, M2.2]
 get_data_element-1:
-  statement: Each include returns its section, and without include the record's own fields alone; the data element's own version and statuses are surfaced; a version given returns that exact numeric version (4 equals 4.0), preserving the request spelling upstream and the returned version string in content and provenance.
+  statement: Each include returns its section, and without include the record's own fields alone; the data element's own version and statuses are surfaced; a version given returns that exact numeric version (4 equals 4.0), preserving the request spelling upstream and the returned version string in content and provenance. Cited items retain their own supplied identity and dates, omitted metadata stays absent and explicit null stays null. dataElementConcept contains only DEC and objectClass/property identities and dates; concepts occur only in conceptAssociations, including representationTerm. API derivations retain source order without deduplication, with primary boolean from explicit Yes/No and optional integer displayOrder, never inferred. Permissible values have own dates but no invented version; provenance is unchanged.
   basis: [get_data_element, data_element, A3.8.3]
 get_data_element-2:
   statement: questionText finds the data element whose preferred question text it is; where several have it, the call is an invalid request naming their public ids, and where none has it, not_found; longName is capability_unavailable until the platform serves that lookup (OP-C02), never an empty result.
@@ -285,7 +285,7 @@ list_contexts-1:
 
 # Cross-domain tools.
 find_data_elements_for_concept-1:
-  statement: The data elements are those the surface named in provenance answers for the exact concept and, with expandDescendants, its descendants too; expansion requires verification of the NCIt hierarchy release.
+  statement: The data elements are those the surface named in provenance answers for the exact concept and, with expandDescendants, its descendants too; expansion requires verification of the NCIt hierarchy release. Each use preserves every distinct graph-reported objectClass, property or valueMeaning role with the actual matching conceptCode and optional trimmed integer displayOrder, canonically sorted independently of aggregate order. Missing order stays absent; malformed present order fails as upstream_unavailable. No primary flag is inferred; representation-term use is not covered by this route.
   basis: [find_data_elements_for_concept, data_element_use, A3.7]
 find_data_elements_for_concept-2:
   statement: With includePermissibleValues the permissible values whose value meaning stands for the concept (or a descendant) are returned as well.
