@@ -148,6 +148,7 @@ class PrimaryAPIProtocolTest(ServerFixture):
         cases = [
             ("LA20347-3", {"evsSource": "LOINC_CODE"}, "non_ncit_source"),
             ("C0009219", {"evsSource": "UMLS_CUI"}, "non_ncit_source"),
+            ("C0009219", {"evsSource": "NCI_META_CUI"}, "non_ncit_source"),
             ("C45255::10000", {"evsSource": "NCI_CONCEPT_CODE"}, "compound_code"),
             ("C45255::10000", {}, "compound_code"),
             ("C25332", {}, "missing_source"),

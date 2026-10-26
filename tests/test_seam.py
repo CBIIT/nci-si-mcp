@@ -810,6 +810,28 @@ class CrossDomainQueryBoundaryTest(unittest.TestCase):
         self.assertEqual(result["code"], "C1")
         self.assertEqual(self.hint, {"ttlMs": 3_600_000, "cacheScope": "public"})
 
+    def test_unresolved_pv_explicit_release_keeps_public_cache_hint(self):
+        self.api_element = primary_element(
+            publicId="123",
+            value="Male",
+            codes=[
+                {
+                    "conceptCode": "C0009219",
+                    "evsSource": "NCI_META_CUI",
+                    "primaryIndicator": "Yes",
+                }
+            ],
+        )
+        # The outer producer must declare its policy even without the child's hint.
+        with patch("nci_si_mcp.cadsr_content.select_cache_hint"):
+            result = self.resolve()
+        self.assertEqual(
+            result["conceptReference"],
+            {"conceptCode": "C0009219", "terminology": "NCI_META_CUI", "longName": None},
+        )
+        self.assertEqual(result["unresolvedReason"], "non_ncit_source")
+        self.assertEqual(self.hint, {"ttlMs": 3_600_000, "cacheScope": "public"})
+
     def test_pv_identifier_rejects_either_other_selector_before_upstream(self):
         for extra in ({"dataElementId": "123"}, {"value": "Male"}):
             with self.subTest(extra=extra):
