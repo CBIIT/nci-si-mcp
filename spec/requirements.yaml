@@ -285,7 +285,7 @@ list_contexts-1:
 
 # Cross-domain tools.
 find_data_elements_for_concept-1:
-  statement: The data elements are those the surface named in provenance answers for the exact concept and, with expandDescendants, its descendants too; expansion requires verification of the NCIt hierarchy release.
+  statement: The data elements are those the surface named in provenance answers for the exact concept and, with expandDescendants, its descendants too; expansion requires verification of the NCIt hierarchy release. Each use preserves every distinct graph-reported objectClass, property or valueMeaning role with the actual matching conceptCode and optional trimmed integer displayOrder, canonically sorted independently of aggregate order. Missing order stays absent; malformed present order fails as upstream_unavailable. No primary flag is inferred; representation-term use is not covered by this route.
   basis: [find_data_elements_for_concept, data_element_use, A3.7]
 find_data_elements_for_concept-2:
   statement: With includePermissibleValues the permissible values whose value meaning stands for the concept (or a descendant) are returned as well.

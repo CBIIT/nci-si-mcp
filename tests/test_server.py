@@ -334,7 +334,11 @@ class ServerTest(ServerFixture):
                 for other in tools
                 if other != name and any(re.search(rf"\b{other}\b", t) for t in texts(tool))
             }
-            self.assertEqual(named, set(), name)
+            expected = {
+                "find_data_elements_for_concept": {"get_data_element"},
+                "ground_value": {"get_data_element"},
+            }.get(name, set())
+            self.assertEqual(named, expected, name)
 
     def test_the_instructions_carry_the_tool_selection_map_and_the_release_rule_once(self, _):
         # Each decision: the tools one line of the map sets side by side, and the wording that

@@ -13,6 +13,7 @@ from .validation import (
     DataElementConceptRole,
     DatasetName,
     EdgeType,
+    GraphConceptRole,
     MatchedItemType,
     Polarity,
     ProvenanceSource,
@@ -337,8 +338,15 @@ class GraphValueIdentity(TypedDict):
     publicId: str
 
 
+class GraphConceptUse(TypedDict):
+    role: GraphConceptRole
+    conceptCode: str
+    displayOrder: NotRequired[int]
+
+
 class DataElementUse(TypedDict):
     dataElement: GraphElementIdentity
+    roles: list[GraphConceptUse]
     provenance: Provenance
 
 

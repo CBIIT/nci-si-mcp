@@ -7,15 +7,20 @@ Graph dates and versions are returned as supplied, never replaced by another sur
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime
 from functools import partial
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
+from urllib.parse import quote, unquote
 
 from .config import Settings
 from .errors import InputValidationError, PlatformError
 from .http_client import HttpClient
+from .results import GraphConceptUse
 from .validation import (
+    GRAPH_CONCEPT_ROLES,
     NCIT_CODE_FORM,
+    GraphConceptRole,
     bounded,
     validate_identifier,
 )
@@ -24,6 +29,8 @@ NCIT_GRAPH = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf"
 CADSR_GRAPH = "http://cbiit.nci.nih.gov/caDSR"
 _GRAPHS = (NCIT_GRAPH, CADSR_GRAPH)
 MAXIMUM = 1000
+_NCIT_NAMESPACE = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#"
+_ROLE_TUPLE_SIZE = 3
 _PREFIXES = """PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
@@ -41,21 +48,25 @@ WHERE {{
 }}
 LIMIT {len(_GRAPHS) + 1}"""
 _ELEMENTS = """SELECT ?id (MIN(?label) AS ?name)
+  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
 WHERE {
   CONCEPT_CLAUSE
   GRAPH <CADSR_GRAPH> {
-    VALUES ?role { cadsr:main_concept cadsr:minor_concept }
-    ?node ?role ?concept .
-    { VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
+    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+    ?node ?membership ?concept .
+    { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
     UNION
-    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
+    { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+    OPTIONAL { ?node cadsr:display_order ?order }
     ?element cadsr:publicId ?id ;
       rdfs:label ?label .
   }
 }
 GROUP BY ?id
 ORDER BY ?id
-""".replace("CADSR_GRAPH", CADSR_GRAPH)
+""".replace("CADSR_GRAPH", CADSR_GRAPH)  # noqa: E501 - exact live-probed SPARQL wire text
 _VALUES = """SELECT DISTINCT ?id ?value ?concept
 WHERE {
   CONCEPT_CLAUSE
@@ -78,6 +89,56 @@ class GraphIdentity(TypedDict):
     graph: str
     date: str
     version: NotRequired[str]
+
+
+def _decode(component: str) -> str:
+    if re.search(r"%(?![0-9a-fA-F]{2})", component):
+        raise _malformed()
+    try:
+        return unquote(component, errors="strict")
+    except UnicodeError:
+        raise _malformed() from None
+
+
+def _role_tuple(token: str) -> GraphConceptUse:
+    parts = token.split("|")
+    if len(parts) != _ROLE_TUPLE_SIZE:
+        raise _malformed()
+    role, concept, order = map(_decode, parts)
+    code = concept.removeprefix(_NCIT_NAMESPACE)
+    if role not in GRAPH_CONCEPT_ROLES or concept == code or not re.fullmatch(NCIT_CODE_FORM, code):
+        raise _malformed()
+    record: GraphConceptUse = {"role": cast("GraphConceptRole", role), "conceptCode": code}
+    if parts[2]:
+        if not re.fullmatch(r"[+-]?[0-9]+", order.strip()):
+            raise _malformed()
+        record["displayOrder"] = int(order.strip())
+    return record
+
+
+def graph_roles(value: str) -> list[GraphConceptUse]:
+    """Decode complete tuples; normalize and deduplicate independently of aggregate order."""
+    if not isinstance(value, str) or not value:
+        raise _malformed()
+    records = [_role_tuple(token) for token in value.split(" ")]
+    unique = {(r["role"], r["conceptCode"], r.get("displayOrder")): r for r in records}
+    return [
+        unique[key]
+        for key in sorted(unique, key=lambda k: (k[0], k[1], k[2] is not None, k[2] or 0))
+    ]
+
+
+def _canonical_roles(value: str) -> str:
+    return " ".join(
+        "|".join(
+            (
+                r["role"],
+                quote(_NCIT_NAMESPACE + r["conceptCode"], safe=""),
+                str(r["displayOrder"]) if "displayOrder" in r else "",
+            )
+        )
+        for r in graph_roles(value)
+    )
 
 
 def _malformed() -> PlatformError:
@@ -185,7 +246,8 @@ class SSISClient:
         query = _ELEMENTS.replace(
             "CONCEPT_CLAUSE", _concept_clause(concept_code, expand_descendants)
         )
-        return self._query(query + f"LIMIT {maximum + 1}", ("id", "name"), maximum + 1)
+        rows = self._query(query + f"LIMIT {maximum + 1}", ("id", "name", "roles"), maximum + 1)
+        return [row | {"roles": _canonical_roles(row["roles"])} for row in rows]
 
     def find_permissible_values(
         self, concept_code: str, *, expand_descendants: bool = False, maximum: int = MAXIMUM

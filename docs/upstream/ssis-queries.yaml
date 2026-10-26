@@ -22,9 +22,9 @@ queries:
     operation: find_data_elements
     args: [C17357]
     kwargs: {expand_descendants: false, maximum: 1000}
-    evidence: crafted/ssis-public-id/data-elements-c17357.json
-    selected: [id, name]
-    required: [id, name]
+    evidence: recorded/ssis-sparql/data-elements-roles-c17357.json
+    selected: [id, name, roles]
+    required: [id, name, roles]
     limit: 1001
     consumers: [find_data_elements_for_concept, ground_value]
     requirements: [find_data_elements_for_concept-1, ground_value-2]
@@ -32,9 +32,9 @@ queries:
     operation: find_data_elements
     args: [C17357]
     kwargs: {expand_descendants: true, maximum: 1000}
-    evidence: crafted/ssis-public-id/data-elements-c17357-descendants.json
-    selected: [id, name]
-    required: [id, name]
+    evidence: recorded/ssis-sparql/data-elements-roles-c17357-descendants.json
+    selected: [id, name, roles]
+    required: [id, name, roles]
     limit: 1001
     consumers: [find_data_elements_for_concept]
     requirements: [find_data_elements_for_concept-1]

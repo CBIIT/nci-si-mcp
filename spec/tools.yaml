@@ -339,6 +339,10 @@ find_data_elements_for_concept:
     permissible values whose value meaning stands for it (the reverse lookup, OP-S04).
     Graph associations identify public IDs only, never CDE versions or value-to-version
     assignments, because Shared SI merges versions. caDSR API item versions remain unchanged.
+    Each use names all graph roles and actual matching concept codes, with optional integer
+    displayOrder; the graph gives no primary flag, so use get_data_element for caDSR's primary
+    indicator (representation-term API expansion: #360).
+    Representation-term use is not covered by this route, so absence does not establish non-use.
     Only descendant expansion compares the effective release (X-22) with the Shared SI NCIt
     graph's: release_mismatch on a difference, release_not_available for an absent version.
     Exact-code queries preserve both actual graph identities and dates, including an optional
@@ -416,6 +420,10 @@ ground_value:
     one provenance envelope naming both content states (release and registry).
     Its Shared SI hops are exact-code queries: graph hierarchy lag or an absent optional version
     does not refuse them; both actual graph identities remain required. EVS content stays pinned.
+    Data element uses name all graph roles and actual matching concept codes, with optional
+    integer displayOrder; the graph gives no primary flag, so use get_data_element for caDSR's
+    primary indicator (representation-term API expansion: #360).
+    Representation-term use is not covered by this route, so absence does not establish non-use.
     Without commons
     there is no storedValues. A text is resolved as search_concepts resolves it with its
     defaults (lexical, limit 10), to its first result, the concept chosen named in the result. Without registryRelease the registry is unpinned, as for

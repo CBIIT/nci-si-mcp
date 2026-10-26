@@ -30,6 +30,14 @@ def sparql_reply(rows):
     return Reply(body=json.dumps({"results": {"bindings": rows}}).encode())
 
 
+def without_roles(rows):
+    return [{key: value for key, value in row.items() if key != "roles"} for row in rows]
+
+
+def plain_rows(rows):
+    return [{key: value["value"] for key, value in row.items()} for row in rows]
+
+
 class SSISClientTest(ServerTestCase):
     def test_distinct_public_id_queries_apply_the_bound_after_the_corrected_keys(self):
         """Given duplicate version assertions, the database must bound public-ID associations."""
@@ -39,15 +47,14 @@ PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX mdr: <http://www.iso.org/11179/MDR#>
 PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
 PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>"""
-        elements = """SELECT ?id (MIN(?label) AS ?name) WHERE {
-CONCEPT_CLAUSE
-GRAPH <http://cbiit.nci.nih.gov/caDSR> {
-VALUES ?role { cadsr:main_concept cadsr:minor_concept }
-?node ?role ?concept .
-{ VALUES ?part { mdr:Object_Class mdr:Property } ?element ?part ?node . }
-UNION { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . }
-?element cadsr:publicId ?id ; rdfs:label ?label .
-} } GROUP BY ?id ORDER BY ?id LIMIT 3"""
+        elements = recording("ssis-sparql/data-elements-roles-c17357.json")["request"]["form"][
+            "query"
+        ]
+        elements = (
+            elements.removeprefix(prefixes + "\n")
+            .replace("VALUES ?concept { ncit:C17357 }", "CONCEPT_CLAUSE")
+            .replace("LIMIT 1001", "LIMIT 3")
+        )
         values = """SELECT DISTINCT ?id ?value ?concept WHERE {
 CONCEPT_CLAUSE
 GRAPH <http://cbiit.nci.nih.gov/caDSR> {
@@ -101,9 +108,9 @@ VALUES ?role { cadsr:main_concept cadsr:minor_concept }
 
     def test_content_queries_preserve_crafted_public_id_projection_rows(self):
         for name, method, argument, options in (
-            ("data-elements-c17357", "find_data_elements", "C17357", {}),
+            ("data-elements-roles-c17357", "find_data_elements", "C17357", {}),
             (
-                "data-elements-c17357-descendants",
+                "data-elements-roles-c17357-descendants",
                 "find_data_elements",
                 "C17357",
                 {"expand_descendants": True},
@@ -127,13 +134,14 @@ VALUES ?role { cadsr:main_concept cadsr:minor_concept }
                 result = getattr(self.ssis(server), method)(argument, **options)
                 rows = fixture["response"]["body"]["results"]["bindings"]
                 self.assertEqual(
-                    result, [{key: value["value"] for key, value in row.items()} for row in rows]
+                    without_roles(result),
+                    plain_rows(without_roles(rows)),
                 )
                 query = parse_qs(server.bodies[0].decode())["query"][0]
-                self.assertNotIn("OPTION", query)
+                self.assertNotIn("TRANSITIVE", query)
 
     def test_maximum_plus_one_retains_the_sentinel_and_rejects_an_unbounded_answer(self):
-        fixture = recording("ssis-sparql/data-elements-c17357.json")
+        fixture = recording("ssis-sparql/data-elements-roles-c17357.json")
         rows = fixture["response"]["body"]["results"]["bindings"]
         server = self.serve(sparql_reply(rows[:3]), sparql_reply(rows[:4]))
         client = self.ssis(server)
@@ -169,10 +177,10 @@ VALUES ?role { cadsr:main_concept cadsr:minor_concept }
                 self.assertEqual(raised.exception.code, "upstream_unavailable")
 
     def test_each_selected_variable_is_required_and_malformed_terms_fail(self):
-        original = recording("ssis-sparql/data-elements-c17357.json")["response"]["body"][
+        original = recording("ssis-sparql/data-elements-roles-c17357.json")["response"]["body"][
             "results"
         ]["bindings"][0]
-        for key in ("id", "name"):
+        for key in ("id", "name", "roles"):
             for term in ("missing", None, {}, {"value": "x"}, {"type": "literal", "value": 4}):
                 with self.subTest(key=key, term=term):
                     row = copy.deepcopy(original)
@@ -282,6 +290,41 @@ class SSISValidationTest(unittest.TestCase):
 
 
 class SSISContractsTest(ServerTestCase):
+    def test_role_encoding_and_present_order_errors_fail_the_client_contract(self):
+        source = recording("ssis-sparql/data-elements-roles-c17357.json")
+        row = source["response"]["body"]["results"]["bindings"][0]
+        prefix = (
+            "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C17357|"
+        )
+        for text in (
+            "",
+            prefix + "bad",
+            prefix + "1.0",
+            prefix + "%20",
+            prefix + "%FF",
+            prefix + "%",
+            prefix + "0|injection",
+            prefix + "%7C",
+            prefix + "%F0%9F%A7%AC",
+        ):
+            with self.subTest(text=text):
+                row["roles"]["value"] = text
+                with self.assertRaises(PlatformError) as raised:
+                    self.ssis(self.serve(sparql_reply([row]))).find_data_elements("C17357")
+                self.assertEqual(raised.exception.code, "upstream_unavailable")
+
+    def test_normalized_roles_are_stable_across_aggregate_order_and_duplicate_spelling(self):
+        source = recording("ssis-sparql/data-elements-roles-c17357.json")
+        row = source["response"]["body"]["results"]["bindings"][0]
+        token = row["roles"]["value"]
+        alternate = token.rsplit("|", 1)[0] + "|%20%2B00%20"
+        row["roles"]["value"] = alternate + " " + token
+        first = self.ssis(self.serve(sparql_reply([row]))).find_data_elements("C17357")
+        row["roles"]["value"] = token + " " + alternate
+        second = self.ssis(self.serve(sparql_reply([row]))).find_data_elements("C17357")
+        self.assertEqual(first, second)
+        self.assertEqual(first[0]["roles"], token)
+
     def ssis(self, server):
         return SSISClient(Settings(ssis_sparql_url=server.url))
 
