@@ -6,6 +6,70 @@ from test_cadsr_metadata import FIXTURES, MetadataFixture, recorded_element
 
 
 class CitedItemsTest(MetadataFixture):
+    def test_scheme_and_item_dates_remain_separate_with_absence_and_null(self):
+        # Given independently dated schemes and items, MCP preserves each owner's dates.
+        body = recorded_element()
+        body["DataElement"]["ClassificationSchemes"] = [
+            {
+                "publicId": "700",
+                "version": "1",
+                "longName": "Dated scheme",
+                "context": "TEST",
+                "dateModified": "2026-01-02",
+                "endDate": None,
+                "ClassificationSchemeItems": [
+                    {
+                        "publicId": "701",
+                        "version": "2",
+                        "longName": "Dated item",
+                        "dateModified": "2025-03-04",
+                        "beginDate": "2024-05-06",
+                        "endDate": "2025-07-08",
+                    }
+                ],
+            },
+            {
+                "publicId": "800",
+                "version": "3",
+                "longName": "Undated scheme",
+                "context": "TEST",
+                "ClassificationSchemeItems": [
+                    {"publicId": "801", "version": "4", "longName": "Undated item"}
+                ],
+            },
+        ]
+        result = self.answer(body, publicId="2200604", include=["classificationSchemes"])
+        self.assertFalse(result.is_error, result.content)
+        first, second = result.structured_content["classificationSchemes"]
+        self.assertEqual(first["dateModified"], "2026-01-02")
+        self.assertIn("endDate", first)
+        self.assertIsNone(first["endDate"])
+        self.assertNotIn("beginDate", first)
+        self.assertEqual(
+            first["items"],
+            [
+                {
+                    "publicId": "701",
+                    "version": "2",
+                    "longName": "Dated item",
+                    "dateModified": "2025-03-04",
+                    "beginDate": "2024-05-06",
+                    "endDate": "2025-07-08",
+                }
+            ],
+        )
+        self.assertNotIn("dateModified", second)
+        self.assertNotIn("endDate", second)
+        self.assertNotIn("beginDate", second)
+        self.assertEqual(
+            second["items"], [{"publicId": "801", "version": "4", "longName": "Undated item"}]
+        )
+        self.assertEqual(
+            first["provenance"]["upstream"],
+            {"publicId": "700", "version": "1", "dateModified": "2026-01-02"},
+        )
+        self.assertEqual(second["provenance"]["upstream"], {"publicId": "800", "version": "3"})
+
     def test_recorded_values_keep_their_own_dates_and_no_version(self):
         result = self.answer(recorded_element(), publicId="2200604", include=["permissibleValues"])
         value = result.structured_content["permissibleValues"][0]

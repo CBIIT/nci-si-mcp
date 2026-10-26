@@ -28,6 +28,23 @@ from test_server import ServerFixture
 
 @patch("nci_si_mcp.server.configure_logging")
 class CaDSRProtocolTest(ServerFixture):
+    def test_code_map_omitted_name_stays_absent_and_explicit_null_stays_null(self, _):
+        # Given two upstream rows, MCP must distinguish omission from explicit null.
+        omitted = code_map("123")
+        del omitted["CRDC Name"]
+        with patch.object(
+            self.context.cadsr,
+            "get_crdc_list",
+            return_value=[omitted, code_map("456", **{"CRDC Name": None})],
+        ):
+            result = self.session(lambda client: client.call_tool("get_code_map", {}))
+        self.assertFalse(result.is_error, result.content)
+        first, second = result.structured_content["codeMaps"]
+        self.assertNotIn("crdcName", first)
+        self.assertIn("crdcName", second)
+        self.assertIsNone(second["crdcName"])
+        self.assertEqual([first["usedBy"], second["usedBy"]], [["CRDC", "CIP"]] * 2)
+
     def test_public_citation_schema_has_exact_optional_include_and_api_roles(self, _):
         listing = self.session(lambda client: client.list_tools())
         tool = next(tool for tool in listing.tools if tool.name == "get_data_element")

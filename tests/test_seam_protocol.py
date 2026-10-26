@@ -207,6 +207,31 @@ class CrossDomainRecordSchemaTest(ServerFixture):
             validator, data, [(("permissibleValues", 0, "dataElement", "publicId"), 123)]
         )
 
+    def test_graph_roles_and_codes_are_required_with_optional_integer_order(self, _):
+        # Given graph role evidence, the advertised MCP schema rejects incomplete assertions.
+        self.context.ssis.elements = [element(123)]
+        validator, data = self.validated("find_data_elements_for_concept", {"conceptCode": "C1"})
+        self.assertEqual(
+            data["dataElements"][0]["roles"],
+            [{"role": "objectClass", "conceptCode": "C1", "displayOrder": 0}],
+        )
+        self.rejects_missing(
+            validator,
+            data,
+            [("dataElements", 0, "roles"), ("dataElements", 0, "roles", 0, "conceptCode")],
+        )
+        self.rejects_types(
+            validator,
+            data,
+            [
+                (("dataElements", 0, "roles", 0, "role"), "representationTerm"),
+                (("dataElements", 0, "roles", 0, "displayOrder"), "0"),
+            ],
+        )
+        without_order = deepcopy(data)
+        del without_order["dataElements"][0]["roles"][0]["displayOrder"]
+        self.assertTrue(validator.is_valid(without_order))
+
     def test_permissible_value_identity_is_required_in_the_concept_output(self, _):
         with patch.object(
             self.context.cadsr,
