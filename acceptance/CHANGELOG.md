@@ -42,14 +42,18 @@ fixture set pinned to NCIt 26.09d.
   Approval: https://github.com/CBIIT/nci-si-mcp/issues/359#issuecomment-6399041641.
 - Phase 33j #366 (X-1, X-6–X-7, X-9, X-13–X-15, X-17–X-18, X-20–X-21,
   P-6, P-9 and the marked EVS, caDSR, cross-domain and workflow requirements): mark
-  231 anonymous cases live-capable, per parameter where contracts differ. Each passed its
-  first real live execution; the full 991-case local run measured 278 passed, 0 failed,
-  713 not_live (baseline 47 / 0 / 944). Remove the redundant prepared prerequisite from
+  229 anonymous cases live-capable, per parameter where contracts differ. All 229 passed
+  in first hosted run 40255800463. Its two no-index failures were misclassified because
+  local verification omitted preparation while the hosted live job prepares an index;
+  reclassify them as d and retain their fixture assertions. Corrected hosted selection
+  expects 276 passed, 0 failed, 710 not_live and 5 skipped; confirmation dispatch is pending.
+  Remove the redundant prepared prerequisite from
   six invalid-retired-value index-mode cases after each passed without preparation.
   All 991 fixture outcomes and all suite assertions remain unchanged. Extend the existing
   two-worker report check to cover marked/scenario siblings; retain failure and drift owners.
   Stored scheduled-main evidence is refreshed only from the first scheduled main run after
-  merge. Approval: https://github.com/CBIIT/nci-si-mcp/issues/366#issuecomment-6405785833.
+  merge. Approvals: https://github.com/CBIIT/nci-si-mcp/issues/366#issuecomment-6405785833
+  and https://github.com/CBIIT/nci-si-mcp/issues/366#issuecomment-6406450495.
 
 <!-- The shape of a release, from the furnished tag on:
 

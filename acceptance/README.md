@@ -254,11 +254,15 @@ synthetic identity, crafted capabilities or guaranteed truncation triggers stay 
 scenario parameters remain excluded even when a sibling is live-capable. Credentialed
 successful calls retain their scenarios.
 
-For #366, all 231 newly selected cases passed their first credential-free live run with two
-workers and no index preparation. A full local 991-case run measured **278 passed, 0 failed,
-713 not_live**, against the same collection's **47 / 0 / 944** baseline. All 991 fixture
-outcomes remained passing. These local checks do not replace the stored scheduled-main
-observation below: its 19 October **46 / 0 / 920** counts describe an older collection.
+For #366, **229 additional cases** remain live-capable. All passed in the first hosted run
+[40255800463](https://github.com/CBIIT/nci-si-mcp/actions/runs/40255800463), whose full result
+was **276 passed, 2 failed, 708 not_live, 5 skipped**. Its two no-index cases were
+misclassified: local verification had no prepare command, while the hosted live job prepares
+an index and does not supply an index-less server. They remain fixture-only (category d).
+The corrected selection expects **276 passed, 0 failed, 710 not_live, 5 skipped** hosted,
+including **29 search_concepts passes**; the confirmation dispatch is pending. All 991 fixture
+outcomes remain passing. The stored scheduled-main observation stays separate: its
+19 October **46 / 0 / 920** counts describe an older collection.
 
 `.github/workflows/acceptance-live.yml` runs by hand (`workflow_dispatch`) and every Monday at
 06:41 UTC; the scheduled run fails when a test that passes on the fixtures fails live. It runs the

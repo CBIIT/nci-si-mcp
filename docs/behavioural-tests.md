@@ -1439,16 +1439,16 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Excessive depth is capped; deeper nodes are absent and continuation beyond the cap is reported as depth truncation. | 1 | [`get_concept_hierarchy-1`](specification.md#requirement-get_concept_hierarchy-1) | [Test](../acceptance/tests/test_evs.py#L795) |
-| Paths preserve recorded source order in fixture mode; live paths start at the requested concept and agree with the returned nodes and release. | 1 | [`get_concept_hierarchy-2`](specification.md#requirement-get_concept_hierarchy-2) | [Test](../acceptance/tests/test_evs.py#L813) |
-| Hierarchy continuation pages reconstruct the source listing without duplicate concepts. | 1 | [`get_concept_hierarchy-3`](specification.md#requirement-get_concept_hierarchy-3) | [Test](../acceptance/tests/test_evs.py#L832) |
+| Excessive depth is capped; deeper nodes are absent and continuation beyond the cap is reported as depth truncation. | 1 | [`get_concept_hierarchy-1`](specification.md#requirement-get_concept_hierarchy-1) | [Test](../acceptance/tests/test_evs.py#L794) |
+| Paths preserve recorded source order in fixture mode; live paths start at the requested concept and agree with the returned nodes and release. | 1 | [`get_concept_hierarchy-2`](specification.md#requirement-get_concept_hierarchy-2) | [Test](../acceptance/tests/test_evs.py#L812) |
+| Hierarchy continuation pages reconstruct the source listing without duplicate concepts. | 1 | [`get_concept_hierarchy-3`](specification.md#requirement-get_concept_hierarchy-3) | [Test](../acceptance/tests/test_evs.py#L831) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_a_depth_above_the_maximum_is_applied_as_the_maximum_and_reported</code> — [source](../acceptance/tests/test_evs.py#L795)
-- <code>acceptance/tests/test_evs.py::test_limit_is_a_page_the_cursor_continues_to_the_end</code> — [source](../acceptance/tests/test_evs.py#L832)
-- <code>acceptance/tests/test_evs.py::test_paths_to_root_are_the_platform_s_paths_in_its_order</code> — [source](../acceptance/tests/test_evs.py#L813)
+- <code>acceptance/tests/test_evs.py::test_a_depth_above_the_maximum_is_applied_as_the_maximum_and_reported</code> — [source](../acceptance/tests/test_evs.py#L794)
+- <code>acceptance/tests/test_evs.py::test_limit_is_a_page_the_cursor_continues_to_the_end</code> — [source](../acceptance/tests/test_evs.py#L831)
+- <code>acceptance/tests/test_evs.py::test_paths_to_root_are_the_platform_s_paths_in_its_order</code> — [source](../acceptance/tests/test_evs.py#L812)
 
 </details>
 
@@ -1466,18 +1466,18 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Count and offset select the correct ordered page even when the source ignores them. | 3 | [`expand_value_set-1`](specification.md#requirement-expand_value_set-1) | [Test](../acceptance/tests/test_evs.py#L693) |
-| Active-only removes inactive members and adjusts the total; default and false selections retain them with their status. | 3 | [`expand_value_set-2`](specification.md#requirement-expand_value_set-2) | [Test](../acceptance/tests/test_evs.py#L715) |
+| Count and offset select the correct ordered page even when the source ignores them. | 3 | [`expand_value_set-1`](specification.md#requirement-expand_value_set-1) | [Test](../acceptance/tests/test_evs.py#L692) |
+| Active-only removes inactive members and adjusts the total; default and false selections retain them with their status. | 3 | [`expand_value_set-2`](specification.md#requirement-expand_value_set-2) | [Test](../acceptance/tests/test_evs.py#L714) |
 
 <details>
 <summary>Exact executable cases (6)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[default]</code> — [source](../acceptance/tests/test_evs.py#L715)
-- <code>acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[false]</code> — [source](../acceptance/tests/test_evs.py#L715)
-- <code>acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[true]</code> — [source](../acceptance/tests/test_evs.py#L715)
-- <code>acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[first]</code> — [source](../acceptance/tests/test_evs.py#L693)
-- <code>acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[last]</code> — [source](../acceptance/tests/test_evs.py#L693)
-- <code>acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[middle]</code> — [source](../acceptance/tests/test_evs.py#L693)
+- <code>acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[default]</code> — [source](../acceptance/tests/test_evs.py#L714)
+- <code>acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[false]</code> — [source](../acceptance/tests/test_evs.py#L714)
+- <code>acceptance/tests/test_evs.py::test_active_only_leaves_out_the_members_marked_inactive[true]</code> — [source](../acceptance/tests/test_evs.py#L714)
+- <code>acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[first]</code> — [source](../acceptance/tests/test_evs.py#L692)
+- <code>acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[last]</code> — [source](../acceptance/tests/test_evs.py#L692)
+- <code>acceptance/tests/test_evs.py::test_count_and_offset_select_the_members_and_total_counts_them_all[middle]</code> — [source](../acceptance/tests/test_evs.py#L692)
 
 </details>
 
@@ -1495,28 +1495,28 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A busy kind is reported as truncated while other requested kinds still contribute results. | 4 | [`get_concept_neighborhood-1`](specification.md#requirement-get_concept_neighborhood-1) | [Test](../acceptance/tests/test_evs.py#L853) |
-| A supplied per-kind allowance limits the nodes that kind contributes and records its truncation. | 2 | [`get_concept_neighborhood-6`](specification.md#requirement-get_concept_neighborhood-6) | [Test](../acceptance/tests/test_evs.py#L883) |
-| A failed call's reported attempts agree with actual requests, including retries; this case does not prove every internal request-budget boundary. | 2 | [`get_concept_neighborhood-5`](specification.md#requirement-get_concept_neighborhood-5) | [Test](../acceptance/tests/test_evs.py#L927) |
-| Renaming a relationship cannot change its negative or positive classification. | 1 | [`get_concept_neighborhood-2`](specification.md#requirement-get_concept_neighborhood-2) | [Test](../acceptance/tests/test_evs.py#L955) |
-| Negative edges remain visible and marked, but traversal beyond them requires explicit inclusion. | 2 | [`get_concept_neighborhood-3`](specification.md#requirement-get_concept_neighborhood-3) | [Test](../acceptance/tests/test_evs.py#L1000) |
-| An excessive node limit is capped and the result reports the applied maximum. | 1 | [`get_concept_neighborhood-4`](specification.md#requirement-get_concept_neighborhood-4) | [Test](../acceptance/tests/test_evs.py#L1028) |
+| A busy kind is reported as truncated while other requested kinds still contribute results. | 4 | [`get_concept_neighborhood-1`](specification.md#requirement-get_concept_neighborhood-1) | [Test](../acceptance/tests/test_evs.py#L852) |
+| A supplied per-kind allowance limits the nodes that kind contributes and records its truncation. | 2 | [`get_concept_neighborhood-6`](specification.md#requirement-get_concept_neighborhood-6) | [Test](../acceptance/tests/test_evs.py#L882) |
+| A failed call's reported attempts agree with actual requests, including retries; this case does not prove every internal request-budget boundary. | 2 | [`get_concept_neighborhood-5`](specification.md#requirement-get_concept_neighborhood-5) | [Test](../acceptance/tests/test_evs.py#L926) |
+| Renaming a relationship cannot change its negative or positive classification. | 1 | [`get_concept_neighborhood-2`](specification.md#requirement-get_concept_neighborhood-2) | [Test](../acceptance/tests/test_evs.py#L954) |
+| Negative edges remain visible and marked, but traversal beyond them requires explicit inclusion. | 2 | [`get_concept_neighborhood-3`](specification.md#requirement-get_concept_neighborhood-3) | [Test](../acceptance/tests/test_evs.py#L999) |
+| An excessive node limit is capped and the result reports the applied maximum. | 1 | [`get_concept_neighborhood-4`](specification.md#requirement-get_concept_neighborhood-4) | [Test](../acceptance/tests/test_evs.py#L1027) |
 
 <details>
 <summary>Exact executable cases (12)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[in-order-associations]</code> — [source](../acceptance/tests/test_evs.py#L853)
-- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[in-order-roles]</code> — [source](../acceptance/tests/test_evs.py#L853)
-- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[reversed-associations]</code> — [source](../acceptance/tests/test_evs.py#L853)
-- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[reversed-roles]</code> — [source](../acceptance/tests/test_evs.py#L853)
-- <code>acceptance/tests/test_evs.py::test_a_node_limit_above_the_maximum_is_applied_as_the_maximum</code> — [source](../acceptance/tests/test_evs.py#L1028)
-- <code>acceptance/tests/test_evs.py::test_budget_per_kind_bounds_the_nodes_each_kind_adds[associations]</code> — [source](../acceptance/tests/test_evs.py#L883)
-- <code>acceptance/tests/test_evs.py::test_budget_per_kind_bounds_the_nodes_each_kind_adds[roles]</code> — [source](../acceptance/tests/test_evs.py#L883)
-- <code>acceptance/tests/test_evs.py::test_negative_edges_are_returned_marked_and_followed_only_when_included[default]</code> — [source](../acceptance/tests/test_evs.py#L1000)
-- <code>acceptance/tests/test_evs.py::test_negative_edges_are_returned_marked_and_followed_only_when_included[included]</code> — [source](../acceptance/tests/test_evs.py#L1000)
-- <code>acceptance/tests/test_evs.py::test_polarity_follows_the_relationship_code_not_its_name</code> — [source](../acceptance/tests/test_evs.py#L955)
-- <code>acceptance/tests/test_evs.py::test_the_attempts_a_failed_call_reports_are_the_requests_it_made[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_evs.py#L927)
-- <code>acceptance/tests/test_evs.py::test_the_attempts_a_failed_call_reports_are_the_requests_it_made[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_evs.py#L927)
+- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[in-order-associations]</code> — [source](../acceptance/tests/test_evs.py#L852)
+- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[in-order-roles]</code> — [source](../acceptance/tests/test_evs.py#L852)
+- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[reversed-associations]</code> — [source](../acceptance/tests/test_evs.py#L852)
+- <code>acceptance/tests/test_evs.py::test_a_kind_that_reaches_its_budget_starves_no_other[reversed-roles]</code> — [source](../acceptance/tests/test_evs.py#L852)
+- <code>acceptance/tests/test_evs.py::test_a_node_limit_above_the_maximum_is_applied_as_the_maximum</code> — [source](../acceptance/tests/test_evs.py#L1027)
+- <code>acceptance/tests/test_evs.py::test_budget_per_kind_bounds_the_nodes_each_kind_adds[associations]</code> — [source](../acceptance/tests/test_evs.py#L882)
+- <code>acceptance/tests/test_evs.py::test_budget_per_kind_bounds_the_nodes_each_kind_adds[roles]</code> — [source](../acceptance/tests/test_evs.py#L882)
+- <code>acceptance/tests/test_evs.py::test_negative_edges_are_returned_marked_and_followed_only_when_included[default]</code> — [source](../acceptance/tests/test_evs.py#L999)
+- <code>acceptance/tests/test_evs.py::test_negative_edges_are_returned_marked_and_followed_only_when_included[included]</code> — [source](../acceptance/tests/test_evs.py#L999)
+- <code>acceptance/tests/test_evs.py::test_polarity_follows_the_relationship_code_not_its_name</code> — [source](../acceptance/tests/test_evs.py#L954)
+- <code>acceptance/tests/test_evs.py::test_the_attempts_a_failed_call_reports_are_the_requests_it_made[get_concept_hierarchy]</code> — [source](../acceptance/tests/test_evs.py#L926)
+- <code>acceptance/tests/test_evs.py::test_the_attempts_a_failed_call_reports_are_the_requests_it_made[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_evs.py#L926)
 
 </details>
 
@@ -1534,16 +1534,16 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Subsets are the concept's published subset associations in source order. | 1 | [`get_concept_subsets-1`](specification.md#requirement-get_concept_subsets-1) | [Test](../acceptance/tests/test_evs.py#L1048) |
-| Mappings preserve recorded source content and order in fixture mode; live mappings carry target identity, relation and matching release provenance. | 1 | [`get_concept_mappings-1`](specification.md#requirement-get_concept_mappings-1) | [Test](../acceptance/tests/test_evs.py#L1075) |
-| Target-terminology filtering uses exact matching, including case. | 1 | [`get_concept_mappings-2`](specification.md#requirement-get_concept_mappings-2) | [Test](../acceptance/tests/test_evs.py#L1095) |
+| Subsets are the concept's published subset associations in source order. | 1 | [`get_concept_subsets-1`](specification.md#requirement-get_concept_subsets-1) | [Test](../acceptance/tests/test_evs.py#L1047) |
+| Mappings preserve recorded source content and order in fixture mode; live mappings carry target identity, relation and matching release provenance. | 1 | [`get_concept_mappings-1`](specification.md#requirement-get_concept_mappings-1) | [Test](../acceptance/tests/test_evs.py#L1074) |
+| Target-terminology filtering uses exact matching, including case. | 1 | [`get_concept_mappings-2`](specification.md#requirement-get_concept_mappings-2) | [Test](../acceptance/tests/test_evs.py#L1094) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_target_terminology_keeps_the_maps_with_that_target_and_no_other</code> — [source](../acceptance/tests/test_evs.py#L1095)
-- <code>acceptance/tests/test_evs.py::test_the_mappings_are_the_concept_s_maps_unchanged_in_order</code> — [source](../acceptance/tests/test_evs.py#L1075)
-- <code>acceptance/tests/test_evs.py::test_the_subsets_are_the_concept_s_subset_associations_in_order</code> — [source](../acceptance/tests/test_evs.py#L1048)
+- <code>acceptance/tests/test_evs.py::test_target_terminology_keeps_the_maps_with_that_target_and_no_other</code> — [source](../acceptance/tests/test_evs.py#L1094)
+- <code>acceptance/tests/test_evs.py::test_the_mappings_are_the_concept_s_maps_unchanged_in_order</code> — [source](../acceptance/tests/test_evs.py#L1074)
+- <code>acceptance/tests/test_evs.py::test_the_subsets_are_the_concept_s_subset_associations_in_order</code> — [source](../acceptance/tests/test_evs.py#L1047)
 
 </details>
 
@@ -1561,15 +1561,15 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Retired entries retain their status and exactly the replacements named by the source. | 2 | [`resolve_retired_code-1`](specification.md#requirement-resolve_retired_code-1) | [Test](../acceptance/tests/test_evs.py#L1146) |
-| Active entries report their status with no replacement. | 1 | [`resolve_retired_code-2`](specification.md#requirement-resolve_retired_code-2) | [Test](../acceptance/tests/test_evs.py#L1174) |
+| Retired entries retain their status and exactly the replacements named by the source. | 2 | [`resolve_retired_code-1`](specification.md#requirement-resolve_retired_code-1) | [Test](../acceptance/tests/test_evs.py#L1145) |
+| Active entries report their status with no replacement. | 1 | [`resolve_retired_code-2`](specification.md#requirement-resolve_retired_code-2) | [Test](../acceptance/tests/test_evs.py#L1173) |
 
 <details>
 <summary>Exact executable cases (3)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_a_retired_code_is_inactive_with_its_status_and_replacements[replaced]</code> — [source](../acceptance/tests/test_evs.py#L1146)
-- <code>acceptance/tests/test_evs.py::test_a_retired_code_is_inactive_with_its_status_and_replacements[unreplaced]</code> — [source](../acceptance/tests/test_evs.py#L1146)
-- <code>acceptance/tests/test_evs.py::test_an_active_code_is_active_with_its_status_and_no_replacement</code> — [source](../acceptance/tests/test_evs.py#L1174)
+- <code>acceptance/tests/test_evs.py::test_a_retired_code_is_inactive_with_its_status_and_replacements[replaced]</code> — [source](../acceptance/tests/test_evs.py#L1145)
+- <code>acceptance/tests/test_evs.py::test_a_retired_code_is_inactive_with_its_status_and_replacements[unreplaced]</code> — [source](../acceptance/tests/test_evs.py#L1145)
+- <code>acceptance/tests/test_evs.py::test_an_active_code_is_active_with_its_status_and_no_replacement</code> — [source](../acceptance/tests/test_evs.py#L1173)
 
 </details>
 
@@ -1587,17 +1587,17 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The recorded catalogue matches exactly in fixture mode; live entries carry code, name, kind, polarity and matching release provenance. | 1 | [`list_relationships-1`](specification.md#requirement-list_relationships-1) | [Test](../acceptance/tests/test_evs.py#L1199) |
-| Catalogue polarity remains correct when source relationship names change. | 1 | [`list_relationships-2`](specification.md#requirement-list_relationships-2) | [Test](../acceptance/tests/test_evs.py#L1227) |
-| Catalogue and neighbourhood calls reject a missing exclusion code and name what is absent. | 2 | [`list_relationships-3`](specification.md#requirement-list_relationships-3) | [Test](../acceptance/tests/test_evs.py#L1251) |
+| The recorded catalogue matches exactly in fixture mode; live entries carry code, name, kind, polarity and matching release provenance. | 1 | [`list_relationships-1`](specification.md#requirement-list_relationships-1) | [Test](../acceptance/tests/test_evs.py#L1198) |
+| Catalogue polarity remains correct when source relationship names change. | 1 | [`list_relationships-2`](specification.md#requirement-list_relationships-2) | [Test](../acceptance/tests/test_evs.py#L1226) |
+| Catalogue and neighbourhood calls reject a missing exclusion code and name what is absent. | 2 | [`list_relationships-3`](specification.md#requirement-list_relationships-3) | [Test](../acceptance/tests/test_evs.py#L1250) |
 
 <details>
 <summary>Exact executable cases (4)</summary>
 
-- <code>acceptance/tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_evs.py#L1251)
-- <code>acceptance/tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[list_relationships]</code> — [source](../acceptance/tests/test_evs.py#L1251)
-- <code>acceptance/tests/test_evs.py::test_a_relationship_s_polarity_follows_its_code_not_its_name</code> — [source](../acceptance/tests/test_evs.py#L1227)
-- <code>acceptance/tests/test_evs.py::test_every_relationship_of_the_catalogue_is_listed_by_code_name_and_kind</code> — [source](../acceptance/tests/test_evs.py#L1199)
+- <code>acceptance/tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[get_concept_neighborhood]</code> — [source](../acceptance/tests/test_evs.py#L1250)
+- <code>acceptance/tests/test_evs.py::test_a_catalogue_without_a_code_of_the_exclusion_set_fails_closed[list_relationships]</code> — [source](../acceptance/tests/test_evs.py#L1250)
+- <code>acceptance/tests/test_evs.py::test_a_relationship_s_polarity_follows_its_code_not_its_name</code> — [source](../acceptance/tests/test_evs.py#L1226)
+- <code>acceptance/tests/test_evs.py::test_every_relationship_of_the_catalogue_is_listed_by_code_name_and_kind</code> — [source](../acceptance/tests/test_evs.py#L1198)
 
 </details>
 

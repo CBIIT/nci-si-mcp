@@ -652,7 +652,6 @@ def test_a_retired_value_outside_the_two_is_invalid_in_index_modes(tools, pinned
 @pytest.mark.tool("search_concepts")
 @pytest.mark.requirement("search_concepts-8")
 @pytest.mark.parametrize("mode", INDEX_MODES)
-@pytest.mark.live_capable
 def test_an_index_mode_without_an_index_is_unavailable(tools, pinned, recorded, mode):
     name = recorded(CURRENT)["response"]["body"]["name"]
 
