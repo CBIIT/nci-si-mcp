@@ -1,6 +1,7 @@
 """Image declarations drive the actual entry point and executable HTTP probes."""
 
 import ast
+import io
 import json
 import os
 import re
@@ -18,6 +19,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
 from typing import ClassVar
+from unittest.mock import call, patch
 
 import yaml
 from scripts import container_smoke
@@ -184,18 +186,20 @@ class ImageProbeTest(unittest.TestCase):
             for line in Path("Dockerfile").read_text().splitlines()
             if line.startswith("EXPOSE ")
         )
-        with ThreadingHTTPServer(("127.0.0.1", int(exposed)), ProbeReply) as server:
-            thread = Thread(target=server.serve_forever)
-            thread.start()
-            try:
-                for expected, command in self.commands():
-                    ProbeReply.status, ProbeReply.requested = HTTPStatus.OK, []
-                    result = self.probe(command, None)
-                    self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertEqual(ProbeReply.requested, [expected])
-            finally:
-                server.shutdown()
-                thread.join()
+        for expected, command in self.commands():
+            response = io.BytesIO()
+            with (
+                self.subTest(path=expected),
+                patch.dict(os.environ, {}, clear=True),
+                patch.object(urllib.request, "urlopen", return_value=response) as opened,
+            ):
+                # Execute the tracked declaration with only its network boundary controlled.
+                exec(compile(command[-1], "<declared-image-probe>", "exec"), {})  # noqa: S102
+                self.assertEqual(
+                    opened.call_args_list,
+                    [call(f"http://127.0.0.1:{exposed}{expected}", timeout=3)],
+                )
+                self.assertTrue(response.closed)
 
     def commands(self):
         declaration = next(
