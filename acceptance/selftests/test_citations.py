@@ -2,8 +2,11 @@
 
 import importlib
 from copy import deepcopy
+from dataclasses import replace
+from http import HTTPStatus
 from pathlib import Path
 from types import SimpleNamespace
+from urllib.error import HTTPError
 
 import pytest
 
@@ -104,3 +107,24 @@ def test_citation_comparison_excludes_names_and_dates():
         check(tools, upstream.base_url("cadsr"))
         assert len(upstream.log()) == 1
     assert len(tools.calls) == 1
+
+
+def test_reference_http_failure_is_one_attempt_and_never_calls_mcp():
+    check = verifier()
+    fixtures = load_fixtures(FIXTURES)
+    key = next(
+        key
+        for key, row in fixtures.ordinary.items()
+        if row.name == "recorded/cadsr/data-element-2200604-version-4.json"
+    )
+    fixture = fixtures.ordinary[key]
+    fixtures.ordinary[key] = replace(
+        fixture, responses=(replace(fixture.responses[0], status=503),)
+    )
+    tools = Tools(answer())
+    with FixtureServer(fixtures) as upstream:
+        with pytest.raises(HTTPError) as failure:
+            check(tools, upstream.base_url("cadsr"))
+        assert failure.value.code == HTTPStatus.SERVICE_UNAVAILABLE
+        assert len(upstream.log()) == 1
+    assert tools.calls == []

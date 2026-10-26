@@ -416,6 +416,31 @@ record:
       fixture: recorded/cadsr/data-element-2200604-version-1.json
       rationale: The same data element at version 1, which carries other names.
       path: /NCIAPI/1.0/api/DataElement/2200604?version=1
+    # Added anonymously, one attempt per endpoint, 26 October 2026; older captures retained.
+    - <<: *cadsr
+      fixture: recorded/cadsr/data-element-2200604-version-4.json
+      rationale: Explicit version 4 for independent API/MCP component citation comparison.
+      path: /NCIAPI/1.0/api/DataElement/2200604?version=4
+    - <<: *cadsr
+      fixture: recorded/cadsr/data-element-2413218.json
+      rationale: Latest version 2 is RETIRED ARCHIVED and Superceded.
+      path: /NCIAPI/1.0/api/DataElement/2413218
+    - <<: *cadsr
+      fixture: recorded/cadsr/data-element-3113185.json
+      rationale: Latest version 3 is DRAFT MOD.
+      path: /NCIAPI/1.0/api/DataElement/3113185
+    - <<: *cadsr
+      fixture: recorded/cadsr/data-element-2180822.json
+      rationale: Normal enumerated domain with month/week/day permissible values.
+      path: /NCIAPI/1.0/api/DataElement/2180822
+    - <<: *cadsr
+      fixture: recorded/cadsr/data-element-14883075.json
+      rationale: Enumerated by Reference with referenceTerminology and an Uberon URI value.
+      path: /NCIAPI/1.0/api/DataElement/14883075
+    - <<: *cadsr
+      fixture: recorded/cadsr/data-element-2179689.json
+      rationale: Confirmed Non-enumerated domain without a permissible-value list.
+      path: /NCIAPI/1.0/api/DataElement/2179689
     - <<: *cadsr
       fixture: recorded/cadsr/data-element-unknown.json
       rationale: >-

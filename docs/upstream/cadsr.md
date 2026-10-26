@@ -2,6 +2,35 @@
 
 Generated from [catalogue.yaml](catalogue.yaml). Read the [evidence boundary](README.md) first.
 
+## cadsr-field-spelling
+
+**Clarify status spellings and Form API field names**
+
+Platform requirement/operation: **OP-C01; OP-C11; OP-M01**.
+Specification requirements: `get_data_element-1`, `get_form-1`.
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/379).
+
+**Observation.** Latest 2413218/v2 supplies registrationStatus Superceded. Form 5406471 supplies publicID and latesetVersionIndicator, unlike DataElement publicId and latestVersionIndicator.
+
+**Reproduction.** Read the linked anonymous DataElement and Form responses without credentials.
+
+**Expected.** Document whether Superceded and Superseded are accepted filter spellings and whether publicID and latesetVersionIndicator are intentional, aliases or planned corrections.
+
+**Impact.** Normalizing spelling or assuming consistent keys can discard or misattribute upstream metadata.
+
+**Workaround.** Pass raw metadata through; registrationStatus remains a free string passed unchanged as a match header. Nonempty search filters remain unsupported under OP-C03.
+
+**Acceptance criteria.** Publish exact accepted spellings and field names, including compatibility expectations; no local normalization or inferred filter support.
+
+Evidence (linked request/response files retain their original form):
+
+- [acceptance/fixtures/recorded/cadsr/data-element-2413218.json](../../acceptance/fixtures/recorded/cadsr/data-element-2413218.json) — recorded on 2026-10-26; GET cadsr /NCIAPI/1.0/api/DataElement/2413218; SHA-256 `04fbdbe474d39a8b0cc5585e3986601329c6e4ba1aa178ce7838d29e5e9de4d4`.
+- [acceptance/fixtures/recorded/cadsr/form-5406471.json](../../acceptance/fixtures/recorded/cadsr/form-5406471.json) — recorded on 2026-10-03; GET cadsr /NCIFormAPI.v2_0:NciFormApiRad/Form/5406471; SHA-256 `25748e394ec5e83898095714c359969906b62c49e1b5f7e4d585638861d8d385`.
+
+| Affected test function | Fixture | Live |
+|---|---|---|
+| `acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too` | 1 passed | 1 not_live |
+
 ## cadsr-concept-sources
 
 **Document concept sources and compound reference semantics**
@@ -240,7 +269,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/cadsr/vm-match-male.json](../../acceptance/fixtures/recorded/cadsr/vm-match-male.json) — recorded on 2026-10-03; POST cadsr /vmMatch/v1/vmMatch; SHA-256 `739daa720101c52a2d6749e112dd98ec2097a8faa5b97c46d40d74824403502e`.
-- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `26da1bd7265ad82e3aac760e38860ba275d20413ff637f13ec6645c3e86f7f4e`.
+- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `e74fcaf07d90c35179f787f7d50dcfcfb7383229a2b9fc075e1e704bc0e384e5`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -332,7 +361,7 @@ Evidence (linked request/response files retain their original form):
 - [acceptance/fixtures/recorded/cadsr/permissible-values.json](../../acceptance/fixtures/recorded/cadsr/permissible-values.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/DataElement/2200604/permissibleValues; SHA-256 `997cf0b7cd6993fbb17387defd88d5cebcecef3376d2215001bfadb018a7037c`.
 - [acceptance/fixtures/recorded/cadsr/permissible-value-9192925.json](../../acceptance/fixtures/recorded/cadsr/permissible-value-9192925.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/permissibleValues/9192925; SHA-256 `1926a89787f0f0f5d2f2d4446622056cbf2e07812938993bb29d25d207981b06`.
 - [acceptance/fixtures/recorded/cadsr/classification-3685569.json](../../acceptance/fixtures/recorded/cadsr/classification-3685569.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/DataElements/Classification; SHA-256 `3b53e54ff1f9f6ef5a1ccd80e1df43bcce7a4ca3903e046f2534e5f10d746d19`.
-- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `26da1bd7265ad82e3aac760e38860ba275d20413ff637f13ec6645c3e86f7f4e`.
+- [acceptance/request-forms/cadsr.md](../../acceptance/request-forms/cadsr.md) — document; SHA-256 `e74fcaf07d90c35179f787f7d50dcfcfb7383229a2b9fc075e1e704bc0e384e5`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|

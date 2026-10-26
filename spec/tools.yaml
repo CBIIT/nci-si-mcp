@@ -216,6 +216,10 @@ get_data_element:
     where none has; longName is capability_unavailable until the platform serves that lookup
     (OP-C02). Item versions compare by exact numeric value (4 equals 4.0); request spelling
     and the upstream version string in content and provenance are preserved.
+    Latest means highest version regardless of workflow or registration status, including
+    retired and draft. valueDomain preserves raw type and referenceTerminology; URI values
+    stay unchanged. Request valueDomain alongside permissibleValues: an empty value list
+    alone does not distinguish non-enumerated from empty enumerated domains.
 search_data_elements:
   title: Data element search
   group: cadsr
@@ -231,6 +235,8 @@ search_data_elements:
     time up to the platform's cap of 1,000 results a query, which truncation reports
     (upstream_cap). semantic and hybrid are capability_unavailable until the platform serves
     them (OP-C04).
+    Nonempty filters are unsupported today (OP-C03); registrationStatus is a free string,
+    including Superceded and Superseded unchanged, not a normalized closed set.
 match_data_elements:
   title: Data element candidates
   group: cadsr
@@ -243,7 +249,8 @@ match_data_elements:
   lists: {entities: 10}
   computed: true
   summary: >-
-    Data elements matched to described entities, scored and rule-attributed, at most
+    registrationStatus is a free-string match header (Standard, Superceded or Superseded),
+    passed unchanged. Data elements matched to described entities are scored and rule-attributed, at most
     matchLimit for each entity; the contract's default is 10, and the maximum of 100 is this
     specification's, the contract stating none. The classificationScheme filter takes both
     publicId and version. modelVariant and similarityThreshold, which the

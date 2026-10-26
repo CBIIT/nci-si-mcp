@@ -131,7 +131,10 @@ class MatchFilters(SearchFilters, total=False):
 _SEARCH_FILTER_TEXTS = {
     "context": "Only data elements of this caDSR context, for example NCIP.",
     "workflowStatus": "Only data elements with this workflow status, for example RELEASED.",
-    "registrationStatus": "Only data elements with this registration status, for example Standard.",
+    "registrationStatus": (
+        "Registration status as a free string, for example Standard, Superceded or Superseded; "
+        "passed unchanged as a match header. Nonempty search filters are unsupported (OP-C03)."
+    ),
     "valueDomainType": "Only data elements with this value domain type, for example Enumerated.",
 }
 describe_fields(SearchFilters, **_SEARCH_FILTER_TEXTS)

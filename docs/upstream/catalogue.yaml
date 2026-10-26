@@ -2,6 +2,20 @@
 # after they have been observed and attributed to the named entry.
 live_failures: {}
 entries:
+  - id: cadsr-field-spelling
+    team: cadsr
+    title: Clarify status spellings and Form API field names
+    platform: OP-C01; OP-C11; OP-M01
+    requirements: [get_data_element-1, get_form-1]
+    tests: ["tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too"]
+    evidence: [acceptance/fixtures/recorded/cadsr/data-element-2413218.json, acceptance/fixtures/recorded/cadsr/form-5406471.json]
+    source: https://github.com/CBIIT/nci-si-mcp/issues/379
+    observation: Latest 2413218/v2 supplies registrationStatus Superceded. Form 5406471 supplies publicID and latesetVersionIndicator, unlike DataElement publicId and latestVersionIndicator.
+    reproduction: Read the linked anonymous DataElement and Form responses without credentials.
+    expected: Document whether Superceded and Superseded are accepted filter spellings and whether publicID and latesetVersionIndicator are intentional, aliases or planned corrections.
+    impact: Normalizing spelling or assuming consistent keys can discard or misattribute upstream metadata.
+    workaround: Pass raw metadata through; registrationStatus remains a free string passed unchanged as a match header. Nonempty search filters remain unsupported under OP-C03.
+    acceptance: Publish exact accepted spellings and field names, including compatibility expectations; no local normalization or inferred filter support.
   - id: evs-status-metadata
     team: evs
     title: Explain DEFAULT and active versus current status semantics
