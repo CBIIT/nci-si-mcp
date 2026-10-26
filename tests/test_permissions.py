@@ -407,30 +407,37 @@ class CompoundPermissionTest(WorkflowFixture):
         self.assertEqual(self.evs.calls, release_reads)
 
     def test_expiry_after_value_resolution_blocks_the_concept_child(self):
-        now = time()
+        def assert_expired(source):
+            now = time()
 
-        def values(*args, **kwargs):
-            nonlocal now
-            now += 120
-            return primary_element(
-                publicId="123",
-                value="Male",
-                codes=[{"conceptCode": "C1", "primaryIndicator": "Yes"}],
-            )
+            def values(*args, **kwargs):
+                nonlocal now
+                now += 120
+                return primary_element(
+                    publicId="123",
+                    value="Male",
+                    codes=[{"conceptCode": "C1", "primaryIndicator": "Yes", **source}],
+                )
 
-        with (
-            authority_scope(
-                authority("get_concept_for_permissible_value", "get_data_element", "get_concept")
-            ),
-            patch("nci_si_mcp.permissions.time", side_effect=lambda: now),
-            patch.object(self.context.cadsr, "get_data_element", side_effect=values),
-        ):
-            result = self.call(
-                "get_concept_for_permissible_value", dataElementId="123", value="Male"
-            )
-        self.assertEqual(set(result), {"error"})
-        self.assertEqual(result["error"]["code"], "permission_denied")
-        self.assertNotIn(("get_concept", "ncit_26.06e", "C1"), self.evs.calls)
+            with (
+                authority_scope(
+                    authority(
+                        "get_concept_for_permissible_value", "get_data_element", "get_concept"
+                    )
+                ),
+                patch("nci_si_mcp.permissions.time", side_effect=lambda: now),
+                patch.object(self.context.cadsr, "get_data_element", side_effect=values),
+            ):
+                result = self.call(
+                    "get_concept_for_permissible_value", dataElementId="123", value="Male"
+                )
+            self.assertEqual(set(result), {"error"})
+            self.assertEqual(result["error"]["code"], "permission_denied")
+            self.assertNotIn(("get_concept", "ncit_26.06e", "C1"), self.evs.calls)
+
+        for source in ({}, {"evsSource": "NCI_CONCEPT_CODE"}):
+            with self.subTest(source=source):
+                assert_expired(source)
 
     def test_expiry_during_release_discovery_blocks_text_search(self):
         now = time()

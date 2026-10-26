@@ -45,8 +45,8 @@ fixture set pinned to NCIt 26.09d.
   229 anonymous cases live-capable, per parameter where contracts differ. All 229 passed
   in first hosted run 40255800463. Its two no-index failures were misclassified because
   local verification omitted preparation while the hosted live job prepares an index;
-  reclassify them as d and retain their fixture assertions. Corrected hosted selection
-  expects 276 passed, 0 failed, 710 not_live and 5 skipped; confirmation dispatch is pending.
+  reclassify them as d and retain their fixture assertions. Green hosted confirmation
+  run 40257975716 observed 276 passed, 0 failed, 710 not_live and 5 skipped.
   Remove the redundant prepared prerequisite from
   six invalid-retired-value index-mode cases after each passed without preparation.
   All 991 fixture outcomes and all suite assertions remain unchanged. Extend the existing
@@ -54,6 +54,15 @@ fixture set pinned to NCIt 26.09d.
   Stored scheduled-main evidence is refreshed only from the first scheduled main run after
   merge. Approvals: https://github.com/CBIIT/nci-si-mcp/issues/366#issuecomment-6405785833
   and https://github.com/CBIIT/nci-si-mcp/issues/366#issuecomment-6406450495.
+- Phase 33j round-one review follow-up (#366): move the live marker from the unsupported
+  terminology test to its `as-prepared` parameter only. Its two index-less variants stay
+  fixture-only, preserving all assertions and leaving 227 net additional live-capable cases
+  from the first hosted run's 229. The follow-up hosted selection expects 274 passed,
+  0 failed, 712 not_live and 5 skipped (991 total); a new milestone Acceptance (live)
+  dispatch is required to confirm it. Preserve both earlier runs and all historical JSON.
+  Clarify that live mode reuses the shared server despite `unprepared`, rather than claiming
+  that every test bearing that marker is necessarily unsuitable for live selection.
+  Review reference: https://github.com/CBIIT/nci-si-mcp/issues/366#issuecomment-6406638151.
 
 <!-- The shape of a release, from the furnished tag on:
 

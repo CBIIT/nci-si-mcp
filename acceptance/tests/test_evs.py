@@ -586,9 +586,12 @@ def test_an_index_search_s_cursor_continues_with_its_next_ranked_items(
 @pytest.mark.parametrize("mode", INDEX_MODES)
 # On a server without an index too: the terminology decides before the index does (-8).
 @pytest.mark.parametrize(
-    "index", ["as-prepared", pytest.param("none", marks=pytest.mark.unprepared)]
+    "index",
+    [
+        pytest.param("as-prepared", marks=pytest.mark.live_capable),
+        pytest.param("none", marks=pytest.mark.unprepared),
+    ],
 )
-@pytest.mark.live_capable
 def test_an_index_mode_for_a_terminology_without_an_index_is_invalid(tools, recorded, mode, index):
     # GO: the index is NCIt's alone.
     row = _listed(recorded, "go")
