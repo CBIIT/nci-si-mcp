@@ -25,6 +25,8 @@ REQUIREMENTS = {
 
 def collect_suite(pytester, monkeypatch):
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "fixture")
+    # Audit the retained full contract, including the interim suspended requirements.
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_REGISTRY_RELEASE", "required")
     # A test that needs the operator's prepare step runs where one is given; collecting runs
     # no command, so any will do.
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_PREPARE", "true")

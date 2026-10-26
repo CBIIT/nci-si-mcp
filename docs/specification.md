@@ -1024,6 +1024,7 @@ given all of them but the credential, besides the fixture settings and a scenari
 | Setting | Format |
 |---|---|
 | `NCI_SI_ACCEPTANCE_MODE` | `fixture` (default) or `live` |
+| `NCI_SI_ACCEPTANCE_REGISTRY_RELEASE` | `optional` (default) or `required`; other values are rejected |
 | `NCI_SI_ACCEPTANCE_SERVER` | The command that starts the server over stdio (default `nci-si-mcp serve`) |
 | `NCI_SI_ACCEPTANCE_PROFILE` | `evs`, `cadsr` or `unified` (default), the profile the server serves |
 | `NCI_SI_ACCEPTANCE_PREPARE` | A shell command line, run once before any test, that builds the index of a server the harness starts |
@@ -1035,6 +1036,42 @@ given all of them but the credential, besides the fixture settings and a scenari
 | `NCI_SI_ACCEPTANCE_STATE_HOOK_TIMEOUT` | Seconds the hook may take to return, and again the endpoint to answer after it (default 60) |
 | `NCI_SI_ACCEPTANCE_PREPARED` | `1`: the operator has prepared the index of a remote server |
 | `NCI_SI_ACCEPTANCE_SECURITY_SERVER` | The command that starts the secured fixture adapter, a loopback HTTP server, for the X-25 to X-28 cases; without it they report NOT RUN |
+
+### Interim registry-release selection
+
+The sponsor's decision on `registryRelease`, `resolve_registry_release` and
+`get_release_alignment` is pending. The harness-only setting above changes no server setting.
+`optional` suspends exactly five retained checks in `test_cadsr.py`: export-date discovery,
+published-release discovery, published-pin transport/attribution, and the two registry cursor
+binding cases. Each is an ordinary skip, never `not_live` or a pass, with this reason:
+`registry-release requirement suspended pending sponsor decision (NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=optional)`.
+`required` runs their existing assertions. Both modes are exercised by deterministic harness
+self-tests in the existing CI selftest jobs; required detects an unpinned response to a pin.
+
+Unpublished/unlisted explicit-pin refusals, registry-only provenance, alignment, Shared SI
+NCIt graph verification and EVS/GDC pinning remain active in both modes. Unsupported explicit
+pins still return `release_not_available`; a listed pin without transport is
+`capability_unavailable`. No identifier is invented or export date attached to newer API content.
+Unpinned caDSR content already works without registry discovery. The 19 October scheduled run
+39214306172 and 25 October run 40178930466 show all 26 inventoried registry/alignment candidates
+as `not_live`, not server release rejections. Measured newly unblocked live tests: none.
+These historical results are retained; no new live probe is part of this change.
+
+Two proposals await the sponsor and are not implemented:
+
+- Richer cited-item metadata. Recording `data-element-2200604.json` has version and
+  `dateModified` on CDE, DEC, VD, VM and representation; PV has `dateModified` but no own
+  version, and prose records PV removals without a version change. Current PV provenance
+  retains supplied `dateModified`; the nested VM projection omits it, DEC identity/metadata
+  is flattened, and included VD metadata passes through. The proposal is to expose the
+  missing item identity/version/last-modified metadata where upstream supplies it.
+- Per-reference NCIt alignment: check every object-class, property, representation and
+  value-meaning concept code for existence and active status in the pinned NCIt release,
+  and report copied-name differences. Current alignment compares content-state dates.
+
+The upstream request is twelve months of retained dated caDSR exports, not a server archive
+or synthetic release. Exact reproduction of set-level answers or items edited in place still
+needs that day's export. See [the caDSR package](../docs/upstream/cadsr.md#cadsr-export-retention).
 
 A remote server is tested over streamable HTTP, and the report records the transport of each run
 (`stdio` or `streamable-http`). The harness cannot set a remote server's environment: the

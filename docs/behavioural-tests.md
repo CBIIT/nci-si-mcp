@@ -1197,19 +1197,19 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 | Unpinned items name the caDSR registry without an invented release identifier or date. | 9 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_crosscutting.py#L243) |
 | Asking for an unpublished registry release fails instead of falling back to unpinned content. | 9 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_crosscutting.py#L259) |
 | Registry status uses the export's reported date and distribution without claiming a published release. | 1 | [`resolve_registry_release-1`](specification.md#requirement-resolve_registry_release-1) | [Test](../acceptance/tests/test_cadsr.py#L111) |
-| A fixture-published registry release is returned as published with its identity. | 1 | [`resolve_registry_release-1`](specification.md#requirement-resolve_registry_release-1) | [Test](../acceptance/tests/test_cadsr.py#L762) |
-| Published-release content requests carry that release and retain its identity and date in provenance. | 1 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_cadsr.py#L776) |
-| A missing release is refused even when the registry publishes other releases. | 1 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_cadsr.py#L798) |
-| A registry continuation token cannot be used with a different release. | 2 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_cadsr.py#L811) |
+| A fixture-published registry release is returned as published with its identity. | 1 | [`resolve_registry_release-1`](specification.md#requirement-resolve_registry_release-1) | [Test](../acceptance/tests/test_cadsr.py#L763) |
+| Published-release content requests carry that release and retain its identity and date in provenance. | 1 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_cadsr.py#L778) |
+| A missing release is refused even when the registry publishes other releases. | 1 | [`X-21`](specification.md#requirement-X-21) | [Test](../acceptance/tests/test_cadsr.py#L801) |
+| A registry continuation token cannot be used with a different release. | 2 | [`X-17`](specification.md#requirement-X-17) | [Test](../acceptance/tests/test_cadsr.py#L814) |
 
 <details>
 <summary>Exact executable cases (24)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_cursor_keeps_the_registry_release_it_was_issued_with[pinned-then-not]</code> — [source](../acceptance/tests/test_cadsr.py#L811)
-- <code>acceptance/tests/test_cadsr.py::test_a_cursor_keeps_the_registry_release_it_was_issued_with[unpinned-then-pinned]</code> — [source](../acceptance/tests/test_cadsr.py#L811)
-- <code>acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_asked_for_and_named_with_its_date</code> — [source](../acceptance/tests/test_cadsr.py#L776)
-- <code>acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_returned</code> — [source](../acceptance/tests/test_cadsr.py#L762)
-- <code>acceptance/tests/test_cadsr.py::test_a_registry_release_cadsr_does_not_list_fails_closed_where_it_lists_some</code> — [source](../acceptance/tests/test_cadsr.py#L798)
+- <code>acceptance/tests/test_cadsr.py::test_a_cursor_keeps_the_registry_release_it_was_issued_with[pinned-then-not]</code> — [source](../acceptance/tests/test_cadsr.py#L814)
+- <code>acceptance/tests/test_cadsr.py::test_a_cursor_keeps_the_registry_release_it_was_issued_with[unpinned-then-pinned]</code> — [source](../acceptance/tests/test_cadsr.py#L814)
+- <code>acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_asked_for_and_named_with_its_date</code> — [source](../acceptance/tests/test_cadsr.py#L778)
+- <code>acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_returned</code> — [source](../acceptance/tests/test_cadsr.py#L763)
+- <code>acceptance/tests/test_cadsr.py::test_a_registry_release_cadsr_does_not_list_fails_closed_where_it_lists_some</code> — [source](../acceptance/tests/test_cadsr.py#L801)
 - <code>acceptance/tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it</code> — [source](../acceptance/tests/test_cadsr.py#L111)
 - <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[get_code_map]</code> — [source](../acceptance/tests/test_crosscutting.py#L243)
 - <code>acceptance/tests/test_crosscutting.py::test_a_cadsr_item_without_a_registry_release_names_the_registry_alone[get_data_element]</code> — [source](../acceptance/tests/test_crosscutting.py#L243)
@@ -1615,29 +1615,29 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| The base record contains its own fields, selected version and source statuses without unrequested nested sections. | 3 | [`get_data_element-1`](specification.md#requirement-get_data_element-1) | [Test](../acceptance/tests/test_cadsr.py#L132) |
-| Each optional section matches recorded content in fixture mode, retains its live shape and registry provenance, and does not add other sections. | 6 | [`get_data_element-1`](specification.md#requirement-get_data_element-1) | [Test](../acceptance/tests/test_cadsr.py#L241) |
-| The fixture question Sex of a Person resolves to its unique full data element. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L269) |
-| The fixture question Date of birth produces an ambiguity error naming candidate public identifiers. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L283) |
-| Unsupported lookup by long name reports capability unavailable. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L301) |
-| Question text with no matching data element reports not found. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L555) |
+| The base record contains its own fields, selected version and source statuses without unrequested nested sections. | 3 | [`get_data_element-1`](specification.md#requirement-get_data_element-1) | [Test](../acceptance/tests/test_cadsr.py#L133) |
+| Each optional section matches recorded content in fixture mode, retains its live shape and registry provenance, and does not add other sections. | 6 | [`get_data_element-1`](specification.md#requirement-get_data_element-1) | [Test](../acceptance/tests/test_cadsr.py#L242) |
+| The fixture question Sex of a Person resolves to its unique full data element. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L270) |
+| The fixture question Date of birth produces an ambiguity error naming candidate public identifiers. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L284) |
+| Unsupported lookup by long name reports capability unavailable. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L302) |
+| Question text with no matching data element reports not found. | 1 | [`get_data_element-2`](specification.md#requirement-get_data_element-2) | [Test](../acceptance/tests/test_cadsr.py#L556) |
 
 <details>
 <summary>Exact executable cases (13)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[latest]</code> — [source](../acceptance/tests/test_cadsr.py#L132)
-- <code>acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-1]</code> — [source](../acceptance/tests/test_cadsr.py#L132)
-- <code>acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-4.0]</code> — [source](../acceptance/tests/test_cadsr.py#L132)
-- <code>acceptance/tests/test_cadsr.py::test_a_long_name_lookup_is_unavailable_never_empty</code> — [source](../acceptance/tests/test_cadsr.py#L301)
-- <code>acceptance/tests/test_cadsr.py::test_a_question_text_no_data_element_has_is_not_found</code> — [source](../acceptance/tests/test_cadsr.py#L555)
-- <code>acceptance/tests/test_cadsr.py::test_a_question_text_one_data_element_has_finds_it</code> — [source](../acceptance/tests/test_cadsr.py#L269)
-- <code>acceptance/tests/test_cadsr.py::test_a_question_text_several_have_is_an_invalid_request_naming_them</code> — [source](../acceptance/tests/test_cadsr.py#L283)
-- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[alternateNames]</code> — [source](../acceptance/tests/test_cadsr.py#L241)
-- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[classificationSchemes]</code> — [source](../acceptance/tests/test_cadsr.py#L241)
-- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[conceptAssociations]</code> — [source](../acceptance/tests/test_cadsr.py#L241)
-- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[permissibleValues]</code> — [source](../acceptance/tests/test_cadsr.py#L241)
-- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[referenceDocuments]</code> — [source](../acceptance/tests/test_cadsr.py#L241)
-- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[valueDomain]</code> — [source](../acceptance/tests/test_cadsr.py#L241)
+- <code>acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[latest]</code> — [source](../acceptance/tests/test_cadsr.py#L133)
+- <code>acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-1]</code> — [source](../acceptance/tests/test_cadsr.py#L133)
+- <code>acceptance/tests/test_cadsr.py::test_a_data_element_is_its_own_fields_alone_with_its_version_and_statuses[version-4.0]</code> — [source](../acceptance/tests/test_cadsr.py#L133)
+- <code>acceptance/tests/test_cadsr.py::test_a_long_name_lookup_is_unavailable_never_empty</code> — [source](../acceptance/tests/test_cadsr.py#L302)
+- <code>acceptance/tests/test_cadsr.py::test_a_question_text_no_data_element_has_is_not_found</code> — [source](../acceptance/tests/test_cadsr.py#L556)
+- <code>acceptance/tests/test_cadsr.py::test_a_question_text_one_data_element_has_finds_it</code> — [source](../acceptance/tests/test_cadsr.py#L270)
+- <code>acceptance/tests/test_cadsr.py::test_a_question_text_several_have_is_an_invalid_request_naming_them</code> — [source](../acceptance/tests/test_cadsr.py#L284)
+- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[alternateNames]</code> — [source](../acceptance/tests/test_cadsr.py#L242)
+- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[classificationSchemes]</code> — [source](../acceptance/tests/test_cadsr.py#L242)
+- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[conceptAssociations]</code> — [source](../acceptance/tests/test_cadsr.py#L242)
+- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[permissibleValues]</code> — [source](../acceptance/tests/test_cadsr.py#L242)
+- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[referenceDocuments]</code> — [source](../acceptance/tests/test_cadsr.py#L242)
+- <code>acceptance/tests/test_cadsr.py::test_each_include_returns_its_section_as_the_platform_gives_it[valueDomain]</code> — [source](../acceptance/tests/test_cadsr.py#L242)
 
 </details>
 
@@ -1655,15 +1655,15 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Unsupported classification, permissible-value lookup and search options return the required unavailable-capability response. | 4 | [`get_permissible_value-1`](specification.md#requirement-get_permissible_value-1), [`list_contexts-1`](specification.md#requirement-list_contexts-1), [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L547) |
+| Unsupported classification, permissible-value lookup and search options return the required unavailable-capability response. | 4 | [`get_permissible_value-1`](specification.md#requirement-get_permissible_value-1), [`list_contexts-1`](specification.md#requirement-list_contexts-1), [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L548) |
 
 <details>
 <summary>Exact executable cases (4)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[classification-schemes]</code> — [source](../acceptance/tests/test_cadsr.py#L547)
-- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[permissible-value]</code> — [source](../acceptance/tests/test_cadsr.py#L547)
-- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[search-hybrid]</code> — [source](../acceptance/tests/test_cadsr.py#L547)
-- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[search-semantic]</code> — [source](../acceptance/tests/test_cadsr.py#L547)
+- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[classification-schemes]</code> — [source](../acceptance/tests/test_cadsr.py#L548)
+- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[permissible-value]</code> — [source](../acceptance/tests/test_cadsr.py#L548)
+- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[search-hybrid]</code> — [source](../acceptance/tests/test_cadsr.py#L548)
+- <code>acceptance/tests/test_cadsr.py::test_a_capability_the_platform_lacks_is_unavailable_never_empty[search-semantic]</code> — [source](../acceptance/tests/test_cadsr.py#L548)
 
 </details>
 
@@ -1681,14 +1681,14 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| A requested page size determines the returned page. | 1 | [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L571) |
-| An upstream-capped search reports its cap and at least one omission without a fabricated total. | 1 | [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L583) |
+| A requested page size determines the returned page. | 1 | [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L572) |
+| An upstream-capped search reports its cap and at least one omission without a fabricated total. | 1 | [`search_data_elements-1`](specification.md#requirement-search_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L584) |
 
 <details>
 <summary>Exact executable cases (2)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_search_s_page_is_the_limit_given</code> — [source](../acceptance/tests/test_cadsr.py#L571)
-- <code>acceptance/tests/test_cadsr.py::test_a_search_the_platform_caps_reports_the_cap_and_no_total</code> — [source](../acceptance/tests/test_cadsr.py#L583)
+- <code>acceptance/tests/test_cadsr.py::test_a_search_s_page_is_the_limit_given</code> — [source](../acceptance/tests/test_cadsr.py#L572)
+- <code>acceptance/tests/test_cadsr.py::test_a_search_the_platform_caps_reports_the_cap_and_no_total</code> — [source](../acceptance/tests/test_cadsr.py#L584)
 
 </details>
 
@@ -1706,29 +1706,29 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Data-element candidates retain the source's scores and matching rules. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L607) |
-| Each input entity keeps its own ordered candidate list. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L631) |
-| Unsupported tuning options and excessive entity input are refused rather than ignored. | 3 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L650) |
-| Each entity returns no more than its requested match limit. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L673) |
-| Both matching operations report a timeout when the fixture response exceeds the matching timeout. | 2 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1), [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L704) |
-| Value-meaning candidates retain source order, rules, item types and concepts, omitting unavailable crosswalks and unsupplied scores. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L391) |
-| A value list above the supported maximum is rejected. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L415) |
-| A candidate without a source concept omits that optional concept instead of inventing one or inserting a null value. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L719) |
+| Data-element candidates retain the source's scores and matching rules. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L608) |
+| Each input entity keeps its own ordered candidate list. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L632) |
+| Unsupported tuning options and excessive entity input are refused rather than ignored. | 3 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L651) |
+| Each entity returns no more than its requested match limit. | 1 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1) | [Test](../acceptance/tests/test_cadsr.py#L674) |
+| Both matching operations report a timeout when the fixture response exceeds the matching timeout. | 2 | [`match_data_elements-1`](specification.md#requirement-match_data_elements-1), [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L705) |
+| Value-meaning candidates retain source order, rules, item types and concepts, omitting unavailable crosswalks and unsupplied scores. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L392) |
+| A value list above the supported maximum is rejected. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L416) |
+| A candidate without a source concept omits that optional concept instead of inventing one or inserting a null value. | 1 | [`match_value_meanings-1`](specification.md#requirement-match_value_meanings-1) | [Test](../acceptance/tests/test_cadsr.py#L720) |
 
 <details>
 <summary>Exact executable cases (11)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_match_with_no_concept_has_none_never_null</code> — [source](../acceptance/tests/test_cadsr.py#L719)
-- <code>acceptance/tests/test_cadsr.py::test_at_most_match_limit_matches_come_for_an_entity</code> — [source](../acceptance/tests/test_cadsr.py#L673)
-- <code>acceptance/tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says</code> — [source](../acceptance/tests/test_cadsr.py#L607)
-- <code>acceptance/tests/test_cadsr.py::test_each_entity_s_matches_are_named_for_it_in_the_order_given</code> — [source](../acceptance/tests/test_cadsr.py#L631)
-- <code>acceptance/tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout[match_data_elements]</code> — [source](../acceptance/tests/test_cadsr.py#L704)
-- <code>acceptance/tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout[match_value_meanings]</code> — [source](../acceptance/tests/test_cadsr.py#L704)
-- <code>acceptance/tests/test_cadsr.py::test_more_values_than_the_tool_takes_is_an_invalid_request</code> — [source](../acceptance/tests/test_cadsr.py#L415)
-- <code>acceptance/tests/test_cadsr.py::test_value_meaning_matches_are_the_platform_s_in_its_order_with_their_rule</code> — [source](../acceptance/tests/test_cadsr.py#L391)
-- <code>acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored[model-variant]</code> — [source](../acceptance/tests/test_cadsr.py#L650)
-- <code>acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored[similarity-threshold]</code> — [source](../acceptance/tests/test_cadsr.py#L650)
-- <code>acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored[too-many-entities]</code> — [source](../acceptance/tests/test_cadsr.py#L650)
+- <code>acceptance/tests/test_cadsr.py::test_a_match_with_no_concept_has_none_never_null</code> — [source](../acceptance/tests/test_cadsr.py#L720)
+- <code>acceptance/tests/test_cadsr.py::test_at_most_match_limit_matches_come_for_an_entity</code> — [source](../acceptance/tests/test_cadsr.py#L674)
+- <code>acceptance/tests/test_cadsr.py::test_data_element_matches_are_scored_and_rule_attributed_as_the_platform_says</code> — [source](../acceptance/tests/test_cadsr.py#L608)
+- <code>acceptance/tests/test_cadsr.py::test_each_entity_s_matches_are_named_for_it_in_the_order_given</code> — [source](../acceptance/tests/test_cadsr.py#L632)
+- <code>acceptance/tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout[match_data_elements]</code> — [source](../acceptance/tests/test_cadsr.py#L705)
+- <code>acceptance/tests/test_cadsr.py::test_matching_slower_than_the_match_timeout_is_a_timeout[match_value_meanings]</code> — [source](../acceptance/tests/test_cadsr.py#L705)
+- <code>acceptance/tests/test_cadsr.py::test_more_values_than_the_tool_takes_is_an_invalid_request</code> — [source](../acceptance/tests/test_cadsr.py#L416)
+- <code>acceptance/tests/test_cadsr.py::test_value_meaning_matches_are_the_platform_s_in_its_order_with_their_rule</code> — [source](../acceptance/tests/test_cadsr.py#L392)
+- <code>acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored[model-variant]</code> — [source](../acceptance/tests/test_cadsr.py#L651)
+- <code>acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored[similarity-threshold]</code> — [source](../acceptance/tests/test_cadsr.py#L651)
+- <code>acceptance/tests/test_cadsr.py::test_what_the_platform_does_not_take_is_an_invalid_request_never_ignored[too-many-entities]</code> — [source](../acceptance/tests/test_cadsr.py#L651)
 
 </details>
 
@@ -1746,20 +1746,20 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Form modules and status match the source, including for a retired form. | 3 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L312) |
-| Requesting a form without modules omits that section. | 1 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L331) |
-| Keyword retrieval is refused with an explanation that an identifier is needed. | 1 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L342) |
-| The contract-defined unknown-form response is interpreted as not found despite HTTP success. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L352) |
+| Form modules and status match the source, including for a retired form. | 3 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L313) |
+| Requesting a form without modules omits that section. | 1 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L332) |
+| Keyword retrieval is refused with an explanation that an identifier is needed. | 1 | [`get_form-1`](specification.md#requirement-get_form-1) | [Test](../acceptance/tests/test_cadsr.py#L343) |
+| The contract-defined unknown-form response is interpreted as not found despite HTTP success. | 1 | [`X-15`](specification.md#requirement-X-15) | [Test](../acceptance/tests/test_cadsr.py#L353) |
 
 <details>
 <summary>Exact executable cases (6)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_form_keyword_is_an_invalid_request_saying_an_identifier_is_needed</code> — [source](../acceptance/tests/test_cadsr.py#L342)
-- <code>acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too[latest]</code> — [source](../acceptance/tests/test_cadsr.py#L312)
-- <code>acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too[version-1.0]</code> — [source](../acceptance/tests/test_cadsr.py#L312)
-- <code>acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too[version-1]</code> — [source](../acceptance/tests/test_cadsr.py#L312)
-- <code>acceptance/tests/test_cadsr.py::test_a_form_without_its_modules_has_none</code> — [source](../acceptance/tests/test_cadsr.py#L331)
-- <code>acceptance/tests/test_cadsr.py::test_an_unknown_form_answered_inside_an_http_200_is_not_found</code> — [source](../acceptance/tests/test_cadsr.py#L352)
+- <code>acceptance/tests/test_cadsr.py::test_a_form_keyword_is_an_invalid_request_saying_an_identifier_is_needed</code> — [source](../acceptance/tests/test_cadsr.py#L343)
+- <code>acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too[latest]</code> — [source](../acceptance/tests/test_cadsr.py#L313)
+- <code>acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too[version-1.0]</code> — [source](../acceptance/tests/test_cadsr.py#L313)
+- <code>acceptance/tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too[version-1]</code> — [source](../acceptance/tests/test_cadsr.py#L313)
+- <code>acceptance/tests/test_cadsr.py::test_a_form_without_its_modules_has_none</code> — [source](../acceptance/tests/test_cadsr.py#L332)
+- <code>acceptance/tests/test_cadsr.py::test_an_unknown_form_answered_inside_an_http_200_is_not_found</code> — [source](../acceptance/tests/test_cadsr.py#L353)
 
 </details>
 
@@ -1777,19 +1777,19 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Each code map preserves data-element identity, values, users, coverage and source fields. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L437) |
-| An absent value binding is reported explicitly with no fabricated values. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L475) |
-| Selecting a context returns its maps without confusing a name with part of another name. | 2 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L486) |
-| A source-system choice outside CRDC is rejected. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L501) |
+| Each code map preserves data-element identity, values, users, coverage and source fields. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L438) |
+| An absent value binding is reported explicitly with no fabricated values. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L476) |
+| Selecting a context returns its maps without confusing a name with part of another name. | 2 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L487) |
+| A source-system choice outside CRDC is rejected. | 1 | [`get_code_map-1`](specification.md#requirement-get_code_map-1) | [Test](../acceptance/tests/test_cadsr.py#L502) |
 
 <details>
 <summary>Exact executable cases (5)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_a_code_map_is_a_data_element_s_values_users_and_coverage</code> — [source](../acceptance/tests/test_cadsr.py#L437)
-- <code>acceptance/tests/test_cadsr.py::test_a_context_selects_the_code_maps_it_uses[CIP]</code> — [source](../acceptance/tests/test_cadsr.py#L486)
-- <code>acceptance/tests/test_cadsr.py::test_a_context_selects_the_code_maps_it_uses[GDC]</code> — [source](../acceptance/tests/test_cadsr.py#L486)
-- <code>acceptance/tests/test_cadsr.py::test_a_data_element_without_value_level_binding_says_so</code> — [source](../acceptance/tests/test_cadsr.py#L475)
-- <code>acceptance/tests/test_cadsr.py::test_a_source_system_other_than_crdc_is_an_invalid_request</code> — [source](../acceptance/tests/test_cadsr.py#L501)
+- <code>acceptance/tests/test_cadsr.py::test_a_code_map_is_a_data_element_s_values_users_and_coverage</code> — [source](../acceptance/tests/test_cadsr.py#L438)
+- <code>acceptance/tests/test_cadsr.py::test_a_context_selects_the_code_maps_it_uses[CIP]</code> — [source](../acceptance/tests/test_cadsr.py#L487)
+- <code>acceptance/tests/test_cadsr.py::test_a_context_selects_the_code_maps_it_uses[GDC]</code> — [source](../acceptance/tests/test_cadsr.py#L487)
+- <code>acceptance/tests/test_cadsr.py::test_a_data_element_without_value_level_binding_says_so</code> — [source](../acceptance/tests/test_cadsr.py#L476)
+- <code>acceptance/tests/test_cadsr.py::test_a_source_system_other_than_crdc_is_an_invalid_request</code> — [source](../acceptance/tests/test_cadsr.py#L502)
 
 </details>
 
@@ -1807,12 +1807,12 @@ This is an inventory, not a passing test report. [Run reports](../acceptance/REA
 
 | Behaviour checked | Cases | Requirements | Evidence |
 |---|---:|---|---|
-| Context names match the source listing and also serve as their identifiers. | 1 | [`list_contexts-1`](specification.md#requirement-list_contexts-1) | [Test](../acceptance/tests/test_cadsr.py#L735) |
+| Context names match the source listing and also serve as their identifiers. | 1 | [`list_contexts-1`](specification.md#requirement-list_contexts-1) | [Test](../acceptance/tests/test_cadsr.py#L736) |
 
 <details>
 <summary>Exact executable cases (1)</summary>
 
-- <code>acceptance/tests/test_cadsr.py::test_the_contexts_are_the_registry_s_context_names</code> — [source](../acceptance/tests/test_cadsr.py#L735)
+- <code>acceptance/tests/test_cadsr.py::test_the_contexts_are_the_registry_s_context_names</code> — [source](../acceptance/tests/test_cadsr.py#L736)
 
 </details>
 

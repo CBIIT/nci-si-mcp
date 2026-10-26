@@ -1,4 +1,4 @@
-"""The README's status table, generated from the expected outcomes.
+"""The README's fixture status and stored scheduled-live observations, generated offline.
 
     pdm run acceptance-status [--check]
 
@@ -13,14 +13,17 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import io
 import json
+import re
 import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 from nci_si_acceptance.expected import EXPECTED
 from nci_si_acceptance.report import (
@@ -33,12 +36,18 @@ from nci_si_acceptance.report import (
     NOT_IMPLEMENTED,
     NOT_RUN,
     PASS,
+    NativeReport,
+    completion_problem,
     tool_outcome,
 )
-from nci_si_acceptance.spec import REQUIRED_TOOLS
+from nci_si_acceptance.requirements import load_requirements
+from nci_si_acceptance.spec import REQUIRED_TOOLS, TOOLS
 
 ACCEPTANCE = EXPECTED.parents[1]
 README = ACCEPTANCE.parent / "README.md"
+LIVE = ACCEPTANCE.parent / "docs/evidence/acceptance-live"
+CATALOGUE = ACCEPTANCE.parent / "docs/upstream/catalogue.yaml"
+GITHUB = "https://github.com/CBIIT/nci-si-mcp"
 BEGIN, END = "<!-- acceptance-status:begin -->", "<!-- acceptance-status:end -->"
 GROUPS = {
     "evs": "EVS tools",
@@ -139,6 +148,145 @@ def render(expected: dict[str, str], attribution: Attribution) -> str:
     return "\n".join([*lines, END])
 
 
+def load_live(directory: Path = LIVE) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Read original native evidence and its reviewed scheduled-main provenance, offline."""
+    raw = (directory / "latest.json").read_bytes()
+    provenance = yaml.safe_load((directory / "latest.yaml").read_text(encoding="utf-8"))
+    if not _valid_provenance(provenance, raw):
+        raise ValueError("Invalid live evidence provenance")
+    report = NativeReport.from_dict(json.loads(raw)).to_dict()
+    if report["mode"] != "live":
+        raise ValueError("Live evidence must contain a live report")
+    return report, provenance
+
+
+def _valid_provenance(value: Any, raw: bytes) -> bool:
+    if not isinstance(value, dict) or set(value) != {
+        "sha256",
+        "run",
+        "artifact",
+        "event",
+        "branch",
+        "sha",
+        "date",
+    }:
+        return False
+    origin = value["event"] == "schedule" and value["branch"] == "main"
+    identifiers = all(type(value[key]) is int and value[key] > 0 for key in ("run", "artifact"))
+    formats = {"sha": r"[0-9a-f]{40}", "date": r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z"}
+    return all(
+        (
+            origin,
+            identifiers,
+            value["sha256"] == hashlib.sha256(raw).hexdigest(),
+            all(_matches(value[key], pattern) for key, pattern in formats.items()),
+        )
+    )
+
+
+def _matches(value: Any, pattern: str) -> bool:
+    return isinstance(value, str) and bool(re.fullmatch(pattern, value))
+
+
+def _entry_tools(entry: dict[str, Any], requirements: dict[str, Any]) -> tuple[set[str], set[str]]:
+    owners = {key.rpartition("-")[0] for key in entry["requirements"]} & TOOLS.keys()
+    basis = {name for key in entry["requirements"] for name in requirements[key]["basis"]}
+    return owners, basis & TOOLS.keys()
+
+
+def skip_contexts() -> dict[str, str]:
+    """Current blocker context, never a reconstruction of a historical skip mechanism.
+
+    Access belongs only to the cited requirement's owner. Capability requests additionally
+    apply to tools explicitly named in its specification basis.
+    """
+    requirements = load_requirements()
+    entries = yaml.safe_load(CATALOGUE.read_text(encoding="utf-8"))["entries"]
+    gaps: dict[str, list[str]] = {}
+    credentials = {}
+    for entry in entries:
+        link = f"[{entry['id']}](docs/upstream/{entry['team']}.md#{entry['id']})"
+        owners, basis = _entry_tools(entry, requirements)
+        if entry["id"] == "cadsr-access":
+            credentials.update(dict.fromkeys(owners, f"credentials not issued ({link})"))
+        else:
+            for name in owners | basis:
+                gaps.setdefault(name, []).append(link)
+    return {
+        name: f"upstream capability gap ({', '.join(links)})" for name, links in gaps.items()
+    } | credentials
+
+
+def _live_counts(rows: list[dict[str, Any]]) -> tuple[int, int, int]:
+    counts = Counter(row["outcome"] for row in rows)
+    return (
+        counts["passed"],
+        sum(counts[kind] for kind in FAILED),
+        sum(counts[kind] for kind in ("not_live", "not_implemented", "skipped")),
+    )
+
+
+def _skip_context(row: dict[str, Any], contexts: dict[str, str]) -> str:
+    if row["outcome"] != "not_live":
+        return "other skip (not not_live)"
+    reason = row.get("not_live_reason")
+    if reason is None:
+        return "unrecorded"
+    if reason == "scenario":
+        return "crafted scenario (fixture-only)"
+    return contexts.get(row["tool"], "not yet probed by this live acceptance run")
+
+
+def _live_row(label: str, rows: list[dict[str, Any]], contexts: dict[str, str]) -> str:
+    passed, failed, skipped = _live_counts(rows)
+    reasons = Counter(
+        _skip_context(row, contexts)
+        for row in rows
+        if row["outcome"] in ("not_live", "not_implemented", "skipped")
+    )
+    shown = "; ".join(f"{count} {reason}" for reason, count in reasons.items()) or "—"
+    return f"| {label} | {passed} / {failed} / {skipped} | {shown} |"
+
+
+def render_live(
+    report: dict[str, Any], provenance: dict[str, Any], contexts: dict[str, str]
+) -> str:
+    """Count stored test rows once, including unattributed gates, preserving failed/partial runs."""
+    problem = completion_problem(report) if "run" in report else "completion unrecorded"
+    completion = f"Incomplete: {problem}" if problem else "Complete"
+    sha, run = provenance["sha"], provenance["run"]
+    lines = [
+        f"Latest stored scheduled main live run: [{run}]({GITHUB}/actions/runs/{run}), "
+        f"{provenance['date']}; commit [{sha[:12]}]({GITHUB}/commit/{sha}). **{completion}**.",
+        f"Report SHA-256: `{provenance['sha256']}`; artifact {provenance['artifact']}.",
+        "",
+        "| Tool | Live passed / failed / skipped | Skip reason / context |",
+        "|---|---|---|",
+    ]
+    rows = list(report["tests"].values())
+    lines += _live_tool_rows(rows, contexts)
+    passed, failed, skipped = _live_counts(rows)
+    lines += [
+        f"| **Total** | **{passed} / {failed} / {skipped}** | |",
+        "",
+        f"{passed} passed / {failed} failed / {skipped} skipped. "
+        "Skipped includes `not_live`, `not_implemented` and ordinary skips; only `not_live` "
+        "has the reason contexts above. Passed validation/refusal tests do not establish "
+        "live content retrieval. Unrecorded reasons are never inferred from current test markers.",
+    ]
+    return "\n".join(lines)
+
+
+def _live_tool_rows(rows: list[dict[str, Any]], contexts: dict[str, str]) -> list[str]:
+    grouped: dict[str | None, list[dict[str, Any]]] = {name: [] for name in REQUIRED_TOOLS}
+    grouped[None] = []
+    for row in rows:
+        grouped.setdefault(row["tool"], []).append(row)
+    unattributed = grouped.pop(None)
+    lines = [_live_row(f"`{name}`", tests, contexts) for name, tests in grouped.items()]
+    return [*lines, _live_row("Unattributed gates", unattributed, contexts)]
+
+
 def current(readme: str, table: str) -> str:
     """The README with the text between the markers replaced by `table`."""
 
@@ -153,6 +301,7 @@ def main(arguments: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Write the README's status table.")
     parser.add_argument("--check", action="store_true", help="write nothing; fail if not current")
     parser.add_argument("--readme", type=Path, default=README, help="the README to write")
+    parser.add_argument("--live-dir", type=Path, default=LIVE, help="stored native live evidence")
     options = parser.parse_args(arguments)
     expected: dict[str, Any] = json.loads(EXPECTED.read_text(encoding="utf-8"))
     readme = options.readme.read_text(encoding="utf-8")
@@ -162,7 +311,10 @@ def main(arguments: list[str] | None = None) -> int:
             f"the expected outcomes and the suite differ in {len(stale)} tests, among them "
             f"{stale[0]}; run the suite and pdm run acceptance-expected update"
         )
-    written = current(readme, render(expected, attribution))
+    live, provenance = load_live(options.live_dir)
+    fixture = render(expected, attribution).removesuffix(END)
+    table = fixture + "\n" + render_live(live, provenance, skip_contexts()) + "\n" + END
+    written = current(readme, table)
     if written == readme:
         return 0
     if options.check:

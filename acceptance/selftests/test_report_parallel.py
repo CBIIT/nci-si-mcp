@@ -39,3 +39,23 @@ def test_a_report_of_a_real_run_attributes_each_test_to_its_tool_and_gate(compli
     assert report["tools"]["get_concepts"]["counts"] == {"passed": len(tool_tests)}
     assert report["tools"]["get_concepts"]["outcome"] == "PASS"
     assert report["tools"]["get_concept"]["counts"] == {}
+
+
+def test_live_skip_reasons_cross_two_worker_boundary_without_an_upstream_call(
+    compliant, monkeypatch
+):
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
+    (compliant.path / "tests" / "test_reasons.py").write_text(
+        'import pytest\npytestmark = pytest.mark.tool("get_form")\n'
+        'def test_fixture_only():\n    pytest.fail("must not execute")\n'
+        '@pytest.mark.scenario("fault")\n'
+        'def test_scenario():\n    pytest.fail("must not execute")\n',
+        encoding="utf-8",
+    )
+    serial = written(compliant, "-k", "test_reasons")
+    parallel = written(compliant, "-k", "test_reasons", "-n", "2")
+    assert {row.get("not_live_reason") for row in parallel["tests"].values()} == {
+        "scenario",
+        "not_live_capable",
+    }
+    assert parallel == serial

@@ -34,6 +34,36 @@ Evidence (linked request/response files retain their original form):
 | `acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_returned` | 1 passed | 1 not_live |
 | `acceptance/tests/test_cadsr.py::test_a_published_registry_release_is_asked_for_and_named_with_its_date` | 1 passed | 1 not_live |
 
+## cadsr-export-retention
+
+**Retain twelve months of dated caDSR exports**
+
+Platform requirement/operation: **C-1; A3.8.2**.
+Specification requirements: `resolve_registry_release-1`, `X-21`.
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/359#issuecomment-6399041641).
+
+**Observation.** The recorded listing names the current releasedCDEsXML-OD.zip; its README states daily updates and refers to an Archive folder for older files. These recordings do not establish immutable dated retrieval or twelve-month retention. The data-element recording describes permissible-value removals without a version change; an item version alone cannot identify content edited in place.
+
+**Reproduction.** Inspect the recorded export listing and README and the change notes in data-element-2200604.json; this request adds no live probe.
+
+**Expected.** Retain at least twelve months of immutable dated exports, with generation timestamps and documented retrieval by date, so a consumer can retrieve the export for the day cited.
+
+**Impact.** Exact reproduction of a set-level answer or an item edited in place needs that day's export; current API responses and item versions do not suffice.
+
+**Workaround.** Report supplied provenance and retrievedAt honestly. The MCP server keeps no export archive and invents no registry identifier. The sponsor's registry-contract decision remains pending.
+
+**Acceptance criteria.** The upstream team demonstrates retrieval of dated exports spanning at least twelve months and documents generation dates, retention and retrieval. The cited existing test covers export-date discovery only, not retention; no executable MCP acceptance case is added for this upstream operational request.
+
+Evidence (linked request/response files retain their original form):
+
+- [acceptance/fixtures/recorded/cadsr-ftp/cde-xml-listing.json](../../acceptance/fixtures/recorded/cadsr-ftp/cde-xml-listing.json) — recorded on 2026-10-03; GET cadsr-ftp /CDE/XML/; SHA-256 `3801e0ce4d9b8e2f1d717affe45fe5bd0d2533079c76e0cdc0736471b26de797`.
+- [acceptance/fixtures/recorded/cadsr-ftp/cde-xml-readme.json](../../acceptance/fixtures/recorded/cadsr-ftp/cde-xml-readme.json) — recorded on 2026-10-03; GET cadsr-ftp /CDE/XML/README; SHA-256 `eb62930ae94a0faa6fb21ce086a22b65f0774c14b155c6fc24af999fee46a60b`.
+- [acceptance/fixtures/recorded/cadsr/data-element-2200604.json](../../acceptance/fixtures/recorded/cadsr/data-element-2200604.json) — recorded on 2026-10-03; GET cadsr /NCIAPI/1.0/api/DataElement/2200604; SHA-256 `14bc9fbd482626b783f7342d4e4eb39e10423471c813cb45e8233c20eccf9bdc`.
+
+| Affected test function | Fixture | Live |
+|---|---|---|
+| `acceptance/tests/test_cadsr.py::test_without_a_registry_release_the_export_date_stands_for_it` | 1 passed | 1 not_live |
+
 ## cadsr-search
 
 **Serve keyword search with named filters and visible caps**

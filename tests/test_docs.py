@@ -278,6 +278,99 @@ class OperationsDocumentationTest(unittest.TestCase):
 
 
 class DocumentationTest(unittest.TestCase):
+    def test_domain_stories_name_the_specification_prompts_and_exact_tool_sequences(self):
+        path = ROOT / "docs/user-acceptance.md"
+        document = path.read_text(encoding="utf-8") if path.exists() else ""
+        prompts = yaml.safe_load(read("spec/prompts.yaml"))
+        stories = re.findall(r"^## Story: `([^`]+)`\n(.*?)(?=\n## |\Z)", document, re.M | re.S)
+
+        self.assertEqual({name for name, _ in stories}, set(prompts))
+        for name, story in stories:
+            with self.subTest(name):
+                tools = re.search(r"^Tools: (.+)$", story, re.M).group(1)
+                self.assertEqual(re.findall(r"`([^`]+)`", tools), prompts[name]["tools"])
+                prompt = re.search(r"^Prompt: (.+)$", story, re.M).group(1)
+                self.assertEqual(
+                    re.findall(r"`([^`]+)`", prompt),
+                    [name, *[argument["name"] for argument in prompts[name]["arguments"]]],
+                )
+                for label in (
+                    "Role",
+                    "Need",
+                    "Benefit",
+                    "Given",
+                    "When",
+                    "Then",
+                    "Pass criteria",
+                    "Role confirms",
+                    "Gaps",
+                    "Evidence",
+                ):
+                    self.assertRegex(story, rf"(?m)^{label}: .+\S")
+
+    def test_uat_records_provider_approval_and_configuration_without_claiming_execution(self):
+        document = read("docs/user-acceptance.md")
+        for statement in (
+            "Status: planned; UAT has not run.",
+            "Owner clarification, 25 October 2026: NCI/NIH approves model providers. "
+            "Any MCP-capable client\n"
+            "using an NCI-approved model provider is a valid UAT environment.",
+            "Decision owner: NCI model-provider/platform owner.",
+            "Known examples include Claude Code (desktop), ChatGPT (Codex) and GitHub Copilot, "
+            "which can\n"
+            "host a local stdio MCP server, and access to AWS Bedrock models through Cloud One. "
+            "These are\n"
+            "examples, not a closed list. Bedrock through Cloud One is a model source, "
+            "not an MCP client;\n"
+            "record the client separately from its provider and model.",
+            "Before each session, confirm and record that the model provider is NCI-approved, "
+            "the model\n"
+            "name and version, the client name and version, and the transport. "
+            "An unapproved provider is\n"
+            "not a valid UAT environment; missing confirmation or configuration details "
+            "block the session.",
+            "A story is accepted only for the client, provider and model configuration "
+            "in its recorded run,\n"
+            "including the client and model versions. Results do not establish acceptance "
+            "for another\n"
+            "client, provider or model configuration.",
+            "Keep one record per story, client/provider/model configuration, participant "
+            "and attempt, with\n"
+            "references to the retained artifacts:",
+            "- `environment`: client name and version, model name and version, "
+            "model provider and NCI\n"
+            "  provider approval reference, model source (such as Bedrock via Cloud One), "
+            "transport, profile,\n"
+            "  server version and commit SHA.",
+        ):
+            self.assertIn(statement, document)
+        self.assertNotRegex(document, r"(?i)permission|approved\s+client")
+        self.assertEqual(
+            bullet_names(section(document, "Evidence record")),
+            [
+                "story",
+                "participant",
+                "environment",
+                "content",
+                "conversation",
+                "trace",
+                "decision",
+            ],
+        )
+
+    def test_readme_explains_client_orchestration_and_links_the_uat_plan(self):
+        readme = read("README.md")
+        for statement in (
+            "The client model holds the conversation and selects tool calls; the prompts guide it.",
+            "The tools are deterministic; the server runs no LLM.",
+            "Workflow tools also bundle their own upstream calls deterministically, "
+            "with provenance.",
+            "[Domain-user stories and UAT plan](docs/user-acceptance.md)",
+            "UAT runs in any MCP-capable client that uses an NCI-approved model provider; "
+            "none has run yet.",
+        ):
+            self.assertIn(statement, readme)
+
     def test_quickstart_introduces_exactly_the_settings_the_code_reads(self):
         setting = re.compile(r"NCI_SI_[A-Z_]+")
         sources = [path.read_text(encoding="utf-8") for path in PACKAGE.glob("*.py")]

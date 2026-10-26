@@ -12,6 +12,8 @@ from nci_si_acceptance.report import (
     UNMATCHED,
     WORKER_TOOLS,
     Collector,
+    NativeReport,
+    ReportFieldError,
     combine,
     main,
     render,
@@ -21,6 +23,9 @@ from nci_si_acceptance.report import (
 )
 from nci_si_acceptance.report import (
     SUITE as SUITE_KEY,
+)
+from nci_si_acceptance.report import (
+    TestResult as NativeTestResult,
 )
 from nci_si_acceptance.spec import REQUIRED_TOOLS
 
@@ -96,6 +101,72 @@ def test_each_test_counts_once_with_its_worst_phase():
     row = report["tools"]["get_concept"]
     assert (row["outcome"], row["counts"]) == ("FAIL", {"failed": 1, "passed": 1})
     assert report["tests"]["t.py::test_a"]["outcome"] == "failed"
+
+
+@pytest.mark.parametrize("reason", ["scenario", "not_live_capable"])
+def test_recorded_skip_reason_roundtrips_and_historical_absence_stays_absent(reason):
+    old = collected((phase("setup", "skipped", skip=LIVE), "get_form", False)) | {"suite": SUITE}
+    new = json.loads(json.dumps(old))
+    new["tests"]["t.py::test_a"]["not_live_reason"] = reason
+    assert NativeReport.from_dict(new).to_dict() == new
+    assert NativeReport.from_dict(old).to_dict() == old
+
+
+@pytest.mark.parametrize("reason", [None, "unknown", 1, [], {}])
+def test_present_invalid_skip_reason_is_rejected(reason):
+    row = {"tool": None, "gate": True, "outcome": LIVE, "unmatched": [], "not_live_reason": reason}
+    with pytest.raises(ReportFieldError, match=r"tests\[0\].not_live_reason"):
+        NativeTestResult.from_dict(row, "tests[0]")
+
+
+def test_skip_reason_is_incompatible_with_a_non_not_live_outcome():
+    row = {
+        "tool": None,
+        "gate": True,
+        "outcome": "passed",
+        "unmatched": [],
+        "not_live_reason": "scenario",
+    }
+    with pytest.raises(ReportFieldError, match="not_live_reason"):
+        NativeTestResult.from_dict(row, "test")
+
+
+@pytest.mark.parametrize("later", ["passed", "failed", "skipped"])
+def test_only_the_winning_phase_owns_the_skip_reason(later):
+    skipped = phase("setup", "skipped", skip=LIVE)
+    skipped.user_properties.append(("not_live_reason", "scenario"))
+    next_phase = phase("call", later)
+    report = collected((skipped, "get_form", False), (next_phase, "get_form", False))
+    row = report["tests"]["t.py::test_a"]
+    assert row == {
+        "tool": "get_form",
+        "gate": False,
+        "unmatched": [],
+        **(
+            {"outcome": LIVE, "not_live_reason": "scenario"}
+            if later == "passed"
+            else {"outcome": later}
+        ),
+    }
+
+
+def test_teardown_error_drops_the_live_skip_reason_carried_by_every_item_phase():
+    phases = [phase("setup", "passed"), phase("call", "skipped"), phase("teardown", "failed")]
+    for report in phases:
+        report.user_properties.extend([(SKIP, LIVE), ("not_live_reason", "scenario")])
+
+    report = collected(*((item, "get_form", False) for item in phases)) | {
+        "mode": "live",
+        "suite": SUITE,
+    }
+
+    assert report["tests"]["t.py::test_a"] == {
+        "tool": "get_form",
+        "gate": False,
+        "outcome": "failed",
+        "unmatched": [],
+    }
+    assert NativeReport.from_dict(json.loads(json.dumps(report))).to_dict() == report
 
 
 def test_a_tool_row_holds_its_verdict_and_counts_and_no_alias_of_the_name():
