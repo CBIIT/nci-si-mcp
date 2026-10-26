@@ -525,14 +525,6 @@ class SeamTest(unittest.TestCase):
                 )
                 self.assertEqual(result["provenance"]["registry"], {"registry": "cadsr"})
 
-    def test_bound_value_without_a_crdc_field_name_is_an_upstream_error(self):
-        rows = self.crosswalk()
-        rows[0]["CRDC Name"] = None
-        with patch.object(self.context.cadsr, "get_crdc_list", return_value=rows):
-            result = self.call("resolve_stored_value", conceptCode="C1", commons="Pediatric Cancer")
-        self.assertEqual(result["error"]["code"], "upstream_unavailable")
-        self.assertEqual(result["error"]["details"]["surface"], "cadsr")
-
     def test_alignment_warns_only_above_threshold_and_preserves_graph_difference(self):
         interval = 28
         self.ssis.graphs[0]["version"] = "26.05d"

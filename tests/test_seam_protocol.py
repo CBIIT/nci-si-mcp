@@ -16,6 +16,43 @@ from test_server import ServerFixture
 
 @patch("nci_si_mcp.server.configure_logging")
 class SeamProtocolTest(ServerFixture):
+    def test_bound_value_without_a_crdc_field_name_is_an_upstream_error(self, _):
+        # Given a valid value before an unnamed bound value, neither route returns partial content.
+        self.context.ssis = FakeSSIS(self.settings)
+        self.context.ssis.elements = [element(123)]
+        self.context.ssis.values = [
+            {"id": "123", "version": "1", "value": "Tumor", "concept": NCIT + "C3262"}
+        ]
+        valid = {
+            "CDE Public ID": "123",
+            "Version": "1",
+            "CRDC Name": "diagnosis",
+            "Used By": "PDC",
+            "permissibleValues": [{"Permissible Value": "Tumor", "Concept Code": "C3262"}],
+        }
+        for tool in ("resolve_stored_value", "ground_value"):
+            for name in ({"CRDC Name": None}, {}):
+                unnamed = {key: value for key, value in valid.items() if key != "CRDC Name"}
+                with (
+                    self.subTest(tool=tool, name=name),
+                    patch.object(
+                        self.context.cadsr, "get_crdc_list", return_value=[valid, unnamed | name]
+                    ),
+                ):
+                    result = self.session(
+                        lambda client, tool=tool: client.call_tool(
+                            tool,
+                            {"conceptCode": "C3262", "commons": "PDC", "release": "26.06e"},
+                        )
+                    )
+                    self.assertTrue(result.is_error, result.content)
+                    data = result.structured_content
+                    self.assertEqual(
+                        data and data.get("error", {}).get("code"), "upstream_unavailable"
+                    )
+                    self.assertEqual(data["error"]["details"], {"surface": "cadsr"})
+                    self.assertEqual(set(data), {"error"})
+
     def test_merged_graph_versions_make_only_public_id_associations(self, _):
         """Given a merged CDE node, finding its uses must not assign its values to a version."""
         self.context.ssis = FakeSSIS(self.settings)
@@ -218,7 +255,11 @@ class CrossDomainRecordSchemaTest(ServerFixture):
         self.rejects_missing(
             validator,
             data,
-            [("dataElements", 0, "roles"), ("dataElements", 0, "roles", 0, "conceptCode")],
+            [
+                ("dataElements", 0, "roles"),
+                ("dataElements", 0, "roles", 0, "conceptCode"),
+                ("dataElements", 0, "roles", 0, "role"),
+            ],
         )
         self.rejects_types(
             validator,
