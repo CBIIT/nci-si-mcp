@@ -506,6 +506,16 @@ provenance directly, without an EVS origin or an `upstream.cadsr` wrapper.
 Secured callers now need `get_data_element` as well as `get_concept`
 child permission. Both are checked before reads, and permission expiry after caDSR blocks EVS.
 
+EVS's `active` flag is not a claim that a concept is current: recorded C65159 is
+`Obsolete_Concept` with `active: true`. Status text is preserved unchanged. Compact EVS
+descendant entries carry neither status nor active; tools that return full node status read
+the concept separately. `resolve_retired_code` copies optional `action` and `date` strings
+from each producing replacement row, without parsing dates or borrowing adjacent events.
+A retirement row without `replacementCode` produces no replacement record.
+
+The fact audit's copied-name/retired-code observation remains context for future alignment
+work; these tools do not compare names across EVS and caDSR to infer a replacement.
+
 An item reached by traversal adds `depth` (an edge has that of the node it reaches; the start
 codes have 0); and, for any item but a start code, `relationship` (`kind` and `name`; for a role
 or association the name is upstream's type, else the edge type, and the `code` is present when

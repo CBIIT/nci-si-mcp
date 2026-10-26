@@ -483,6 +483,8 @@ class Replacement(TypedDict):
     code: str
     terminology: str
     name: str
+    action: NotRequired[str]
+    date: NotRequired[str]
     provenance: Provenance
 
 

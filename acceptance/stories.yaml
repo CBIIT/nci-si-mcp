@@ -307,6 +307,7 @@
   tests:
     tests/test_evs.py::test_a_retired_code_is_inactive_with_its_status_and_replacements: Retired entries retain their status and exactly the replacements named by the source.
     tests/test_evs.py::test_an_active_code_is_active_with_its_status_and_no_replacement: Active entries report their status with no replacement.
+    tests/test_evs.py::test_a_merge_replacement_preserves_its_own_action_and_date: A source-specific merge preserves the producing replacement row's action and date.
 
 - id: relationship-catalogue
   title: Interpret relationships using the release's catalogue

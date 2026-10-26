@@ -896,7 +896,7 @@ HTTP 400 with hostile text in the workflow message field. Crafted, 1 fixture, fo
 
 ### `release/mismatch`
 
-Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 184 fixtures, for A3.4: the content served names another release than the one requested.
+Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 186 fixtures, for A3.4: the content served names another release than the one requested.
 
 ### `upstream/unavailable`
 
