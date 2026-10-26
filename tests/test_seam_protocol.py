@@ -189,13 +189,13 @@ class CrossDomainRecordSchemaTest(ServerFixture):
     def test_value_uses_and_required_provenance_survive_the_public_schema(self, _):
         self.context.ssis.elements = [element(123)]
         self.context.ssis.values = [
-            {"id": "123", "version": "1", "value": "Male", "concept": NCIT + "C3262"}
+            {"id": "123", "version": "1", "value": " Male \t", "concept": NCIT + "C3262"}
         ]
         validator, data = self.validated(
             "find_data_elements_for_concept",
             {"conceptCode": "C3262", "includePermissibleValues": True},
         )
-        self.assertEqual(data["permissibleValues"][0]["value"], "Male")
+        self.assertEqual(data["permissibleValues"][0]["value"], " Male \t")
         self.assertEqual(data["permissibleValues"][0]["conceptCode"], "C3262")
         self.assertEqual(data["permissibleValues"][0]["conceptTerminology"], "ncit")
         self.rejects_missing(

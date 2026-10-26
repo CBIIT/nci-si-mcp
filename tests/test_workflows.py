@@ -69,6 +69,12 @@ class GroundTest(WorkflowFixture):
                 result = self.call(conceptCode="C1")
                 self.assertEqual(len(result["dataElements"]), min(element_count, 1000))
                 self.assertEqual(len(result["permissibleValues"]), min(value_count, 1000))
+                value_use = result["permissibleValues"][0]
+                self.assertEqual(
+                    set(value_use),
+                    {"dataElement", "value", "conceptCode", "conceptTerminology", "provenance"},
+                )
+                self.assertEqual(value_use["dataElement"], {"publicId": "123"})
                 cut = result["truncation"]
                 self.assertEqual(cut["occurred"], max(element_count, value_count) > HOP_MAXIMUM)
                 self.assert_hop_records(cut, element_count, value_count)
