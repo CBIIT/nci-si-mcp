@@ -1,0 +1,317 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-26",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCIAPI/1.0/api/DataElement/2413218",
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "DataElement": {
+    "publicId": "2413218",
+    "version": "2",
+    "longName": "Study Instance Unique Identifier",
+    "shortName": "2647605v1.0:2191273v1.0",
+    "definition": "Unique identifier for the Study.  [Standard-based]",
+    "context": "NCIP",
+    "origin": "DICOM:Digital Imaging and Communications in Medicine",
+    "workflowStatus": "RETIRED ARCHIVED",
+    "registrationStatus": "Superceded",
+    "latestVersionIndicator": "Yes",
+    "beginDate": "2007-01-04",
+    "endDate": "2009-03-08",
+    "changeDescription": "3/9/09 retired-superceded per NCIA Silver Review Reqt; OC changed to C63859; replaced with CDE 2847022v1.0  6/25/07 -CDE updated to support DICOM CDE IE - DICOM Attribute-DICOM VR Rep term format.;  3/22/07 - Assigned CDEs to DICOM-Review Set 1 CSI",
+    "administrativeNotes": null,
+    "unresolvedIssues": null,
+    "deletedIndicator": "No",
+    "createdBy": "CHILLIJ",
+    "dateCreated": "2007-01-04",
+    "modifiedBy": "CHILLIJ",
+    "dateModified": "2009-03-08",
+    "DataElementConcept": {
+     "publicId": "2647605",
+     "version": "1",
+     "longName": "Study Instance Unique Identifier",
+     "shortName": "2430995v1.0:2647316v1.0",
+     "definition": "Research conducted with human subjects or on material of human origin in which an investigator directly interacts with human subjects; includes development of new technologies, mechanism of human diseases, therapy, clinical trials, epidemiology, behavior and health services research._An occurrence of something._The single one of its kind._One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.",
+     "context": "NCIP",
+     "origin": "DICOM:Digital Imaging and Communications in Medicine",
+     "workflowStatus": "RETIRED ARCHIVED",
+     "registrationStatus": "Retired",
+     "latestVersionIndicator": "No",
+     "beginDate": "2007-06-06",
+     "endDate": "2009-02-12",
+     "changeDescription": "2/12/09 DEC retired; new version created for change in OC concept to Image Study (C63859) requested by VCDE Silver Review Teamp; only used by IVI apps.  6/6/07 -DEC created to support DICOM CDE task utilizing IE DICOM Attribute terms.",
+     "administrativeNotes": null,
+     "unresolvedIssues": null,
+     "deletedIndicator": "No",
+     "createdBy": "CHILLIJ",
+     "dateCreated": "2007-06-06",
+     "modifiedBy": "SBR",
+     "dateModified": "2016-06-06",
+     "ObjectClass": {
+      "publicId": "2430995",
+      "version": "1",
+      "longName": "Study",
+      "shortName": "C15206",
+      "definition": "A type of research study that tests how well new medical treatments or other interventions work in people.  Such studies test new methods of screening, prevention, diagnosis, or treatment of a disease.  The study may be carried out in a clinic or other medical facility.  Also called a clinical trial.",
+      "context": "NCIP",
+      "origin": "NCI Thesaurus",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2005-11-18",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "REEVESD",
+      "dateCreated": "2005-11-18",
+      "modifiedBy": "ONEDATA",
+      "dateModified": "2005-11-18",
+      "Concepts": [
+       {
+        "longName": "Clinical Study",
+        "conceptCode": "C15206",
+        "definition": "Research conducted with human subjects or on material of human origin in which an investigator directly interacts with human subjects; includes development of new technologies, study of mechanisms of human diseases, therapy, clinical trials, epidemiologic, behavior, and health services research.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "Yes",
+        "displayOrder": "0"
+       }
+      ]
+     },
+     "Property": {
+      "publicId": "2647316",
+      "version": "1",
+      "longName": "Instance Unique Identifier",
+      "shortName": "C48364:C45282:C25364",
+      "definition": "An occurrence of something.:The single one of its kind.:One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.",
+      "context": "NCIP",
+      "origin": null,
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2007-06-06",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "CHILLIJ",
+      "dateCreated": "2007-06-06",
+      "modifiedBy": "ONEDATA",
+      "dateModified": "2007-06-06",
+      "Concepts": [
+       {
+        "longName": "Instance",
+        "conceptCode": "C48364",
+        "definition": "An occurrence of something.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "No",
+        "displayOrder": "2"
+       },
+       {
+        "longName": "Unique",
+        "conceptCode": "C45282",
+        "definition": "The single one of its kind.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "No",
+        "displayOrder": "1"
+       },
+       {
+        "longName": "Identifier",
+        "conceptCode": "C25364",
+        "definition": "One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "Yes",
+        "displayOrder": "0"
+       }
+      ]
+     },
+     "ConceptualDomain": {
+      "publicId": "2233241",
+      "version": "1",
+      "longName": "Medical Imaging",
+      "shortName": "MEDICAL IMAGING",
+      "definition": "Events, people, materials and activities uniquely defined by medical imaging.  ",
+      "context": "CIP",
+      "origin": "DICOM:Digital Imaging and Communications in Medicine",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2005-06-12",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "REEVESD",
+      "dateCreated": "2005-06-12",
+      "modifiedBy": "SBREXT",
+      "dateModified": "2006-09-13"
+     }
+    },
+    "ValueDomain": {
+     "publicId": "2191273",
+     "version": "1",
+     "longName": "Unique Identifier",
+     "shortName": "UID",
+     "definition": "Unique identifier for an object or person.",
+     "context": "SPOREs",
+     "type": "Non-enumerated",
+     "dataType": "CHARACTER",
+     "minLength": "1",
+     "maxLength": "64",
+     "minValue": null,
+     "maxValue": null,
+     "decimalPlace": null,
+     "origin": null,
+     "workflowStatus": "RELEASED",
+     "registrationStatus": "Application",
+     "latestVersionIndicator": "Yes",
+     "beginDate": "2004-11-08",
+     "endDate": null,
+     "changeDescription": null,
+     "administrativeNotes": null,
+     "unresolvedIssues": null,
+     "deletedIndicator": "No",
+     "createdBy": "REEVESD",
+     "dateCreated": "2004-11-08",
+     "modifiedBy": "GDEEN",
+     "dateModified": "2025-03-13",
+     "ConceptualDomain": {
+      "publicId": "2008532",
+      "version": "1",
+      "longName": "Individuals",
+      "shortName": "INDS",
+      "definition": "the identification of individual people.",
+      "context": "CTEP",
+      "origin": null,
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2002-12-16",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "MSUPLEY",
+      "dateCreated": "2002-12-16",
+      "modifiedBy": "SBR",
+      "dateModified": "2003-10-29"
+     },
+     "RepresentationTerm": {
+      "publicId": "2405190",
+      "version": "1",
+      "longName": "Identifier",
+      "shortName": "C25364",
+      "definition": "One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.",
+      "context": "NCIP",
+      "origin": "NCI Thesaurus",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Standard",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2005-09-15",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "KLINGERK",
+      "dateCreated": "2005-09-15",
+      "modifiedBy": "ONEDATA",
+      "dateModified": "2005-09-15",
+      "Concepts": [
+       {
+        "longName": "Identifier",
+        "conceptCode": "C25364",
+        "definition": "One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "Yes",
+        "displayOrder": "0"
+       }
+      ]
+     }
+    },
+    "ClassificationSchemes": [
+     {
+      "publicId": "2693115",
+      "version": "3",
+      "longName": "NCIA_Model",
+      "context": "NCIP",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "10000239",
+        "version": "1",
+        "longName": "gov.nih.nci.ncia.domain",
+        "context": "NCIP",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     }
+    ],
+    "AlternateNames": [
+     {
+      "name": "Study Instance UID",
+      "type": "DICOM Attribute Name",
+      "context": "NCIP"
+     },
+     {
+      "name": "(0020,000D)",
+      "type": "DICOM_TAG",
+      "context": "NCIP"
+     },
+     {
+      "name": "gov.nih.nci.ncia.domain.Study.studyInstanceUID",
+      "type": "UML Qualified Attr",
+      "context": "NCIP"
+     },
+     {
+      "name": "Study:studyInstanceUID",
+      "type": "UML Class:UML Attr",
+      "context": "NCIP"
+     },
+     {
+      "name": "edu.northwestern.radiology.AIM.Study.instanceUID",
+      "type": "UML Qualified Attr",
+      "context": "NCIP"
+     },
+     {
+      "name": "Study:instanceUID",
+      "type": "UML Class:UML Attr",
+      "context": "NCIP"
+     }
+    ],
+    "ReferenceDocuments": [
+     {
+      "documentName": "Image Study Instance UID",
+      "documentText": "Image Study Instance UID",
+      "documentType": "Preferred Question Text",
+      "url": null,
+      "context": "NCIP"
+     },
+     {
+      "documentName": "2006 DICOM Standard",
+      "documentText": "2006 DICOM Standard - Sections 3, 5 & 6",
+      "documentType": "DATA_ELEMENT_SOURCE",
+      "url": null,
+      "context": "NCIP"
+     }
+    ]
+   },
+   "apiResponse": {
+    "type": "S"
+   }
+  }
+ }
+}

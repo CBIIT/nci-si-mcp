@@ -371,7 +371,8 @@ def get_data_element(
     version: Annotated[
         str | None,
         Described(
-            "Version of the data element, for example 1.0. Leave unset for the latest.",
+            "Version of the data element, for example 1.0. Leave unset for the highest version, "
+            "regardless of workflow or registration status.",
             pattern=ITEM_VERSION_FORM,
         ),
     ] = None,
@@ -401,6 +402,10 @@ def get_data_element(
     conceptAssociations includes representationTerm; all API derivations preserve source order,
     primary from explicit Yes/No and supplied integer displayOrder. Item versions compare
     numerically (4 equals 4.0); request and upstream version spellings are preserved.
+    Latest means highest version, including retired or draft versions. valueDomain preserves raw
+    type and referenceTerminology; URI permissible values stay unchanged. Request valueDomain
+    alongside permissibleValues to distinguish non-enumerated from an empty enumerated domain;
+    an empty values list alone does not establish type.
 
     not_found when no element has that publicId and version or that question text;
     invalid_request naming the candidates when several have the text. longName is not served by

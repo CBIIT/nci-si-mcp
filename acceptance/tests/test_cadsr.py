@@ -11,6 +11,7 @@ from http import HTTPStatus
 
 import pytest
 
+from nci_si_acceptance.citations import verify_citations
 from nci_si_acceptance.results import (
     EXPORT,
     EXPORT_LISTING,
@@ -102,6 +103,68 @@ OWN = [name for name in RECORDS["data_element"]["fields"] if name not in SECTION
 
 def _element(recorded, fixture=ELEMENT):
     return recorded(fixture)["response"]["body"]["DataElement"]
+
+
+@pytest.mark.tool("get_data_element")
+@pytest.mark.requirement("get_data_element-1")
+def test_latest_version_can_be_retired_or_draft(tools, recorded):
+    for identifier, status in [("2413218", "RETIRED ARCHIVED"), ("3113185", "DRAFT MOD")]:
+        raw = _element(recorded, f"recorded/cadsr/data-element-{identifier}.json")
+        assert (raw["latestVersionIndicator"], raw["workflowStatus"]) == ("Yes", status)
+        content = _ok(tools.call("get_data_element", {"publicId": identifier}))
+        assert _own(content) == _own(raw)
+
+
+@pytest.mark.tool("get_data_element")
+@pytest.mark.requirement("get_data_element-1")
+def test_non_enumerated_domain_is_not_inferred_from_empty_values(tools, recorded):
+    for identifier, domain_type in [("2179689", "Non-enumerated"), ("2180822", "Enumerated")]:
+        raw = _element(recorded, f"recorded/cadsr/data-element-{identifier}.json")
+        assert raw["ValueDomain"]["type"] == domain_type
+        content = _ok(
+            tools.call(
+                "get_data_element",
+                {"publicId": identifier, "include": ["valueDomain", "permissibleValues"]},
+            )
+        )
+        assert content["valueDomain"] == _section(raw, "valueDomain")
+        assert len(content["permissibleValues"]) == len(
+            raw["ValueDomain"].get("PermissibleValues", [])
+        )
+        if identifier == "2179689":
+            assert "PermissibleValues" not in raw["ValueDomain"]
+            assert content["permissibleValues"] == []
+
+
+@pytest.mark.tool("get_data_element")
+@pytest.mark.requirement("get_data_element-1")
+def test_reference_enumerated_domain_preserves_terminology_and_uri_values(tools, recorded):
+    raw = _element(recorded, "recorded/cadsr/data-element-14883075.json")
+    domain = raw["ValueDomain"]
+    assert (domain["type"], domain["referenceTerminology"]) == (
+        "Enumerated by Reference",
+        "Uberon|C190111",
+    )
+    assert [row["value"] for row in domain["PermissibleValues"]] == [
+        "http://purl.obolibrary.org/obo/UBERON_0002465"
+    ]
+    content = _ok(
+        tools.call(
+            "get_data_element",
+            {"publicId": "14883075", "include": ["valueDomain", "permissibleValues"]},
+        )
+    )
+    assert content["valueDomain"] == _section(raw, "valueDomain")
+    assert _returned(content, "permissibleValues") == _section(raw, "permissibleValues")
+
+
+@pytest.mark.tool("get_data_element")
+@pytest.mark.requirement("get_data_element-1")
+@pytest.mark.live_capable
+def test_live_component_citations_match_the_explicit_api_version(tools, upstream):
+    base = upstream.base_url("cadsr") if upstream else "https://cadsrapi.cancer.gov/rad"
+    content = verify_citations(tools, base)
+    assert (content["publicId"], content["version"]) == (DATA_ELEMENT, "4")
 
 
 def _ok(result):

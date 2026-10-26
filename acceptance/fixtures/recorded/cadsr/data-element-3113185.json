@@ -1,0 +1,551 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-26",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCIAPI/1.0/api/DataElement/3113185",
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "DataElement": {
+    "publicId": "3113185",
+    "version": "3",
+    "longName": "Imaging Slice Thickness Float or Fixed-point Millimeter Number",
+    "shortName": "IMG_SLICE_THICKNESS",
+    "definition": "Any technology or method that aids in the visualization of any biological process, cell, tissue or organ for use in screening, diagnosis, surgical procedures or therapy.:The dimension between two surfaces of an imaging plane.:DS MM: A string of characters representing either a fixed point number or a floating point number measured in millimeters.",
+    "context": "NCI Standards",
+    "origin": "DICOM:Digital Imaging and Communications in Medicine",
+    "workflowStatus": "DRAFT MOD",
+    "registrationStatus": "Standard",
+    "latestVersionIndicator": "Yes",
+    "beginDate": "2010-06-20",
+    "endDate": null,
+    "changeDescription": "6/27/18 jk chg PQT case to \"Slice Thickness\" to match DICOM Standard.  6/21/17 jk Transferred Context, updated Pref Question, reg status per Round 5 finalization task.  7/1/13 associated with CT Image Acquisition CRF CSI. jc  7/11/12 - removed ACRIN CS/CSI reference in the caBIG context; ACRIN has added a reference in the ACRIN context.  6/25/12 versioned as part of Round 4 CRF review; upd to match 2011 DICOM and AIM modeling requirement. jc   7/11/11 added text short name.  12/2/10 added to PET Emissions Scan CRF CSI.  6/21/10 CDE superceded by CDE 3113183v1.0 as a result of VCDE CDE standard review.  12/16/09 - chg reg status to Proposed  6/21/09 created for UOM Specific VD for DICOM FD Value Representation type to load NCIA v4.4 model.   3/18/08 - updated with latest verson of VD.  no type or size change",
+    "administrativeNotes": "3/25/26 CDE versioned for retired DEC as part of IDC template CDE set.  Retained DICOM VD. jk;\r\n2025-12-29_Added AQT, Alt Name, Designation, Classification per CADSR0005791_RR\r\n10/29/24 per Henry/CodeMap task, add alt table LS;",
+    "unresolvedIssues": null,
+    "deletedIndicator": "No",
+    "createdBy": "JKNABLE",
+    "dateCreated": "2026-03-25",
+    "modifiedBy": "JKNABLE",
+    "dateModified": "2026-03-25",
+    "DataElementConcept": {
+     "publicId": "2413319",
+     "version": "3",
+     "longName": "Imaging Slice Thickness",
+     "shortName": "3061537v1.00:7071833v1.00",
+     "definition": "Any technology or method that aids in the visualization of any biological process, cell, tissue or organ for use in screening, diagnosis, surgical procedures or therapy.:The dimension between two surfaces of an imaging plane.",
+     "context": "NCI Standards",
+     "origin": "DICOM:Digital Imaging and Communications in Medicine",
+     "workflowStatus": "DRAFT MOD",
+     "registrationStatus": "Qualified",
+     "latestVersionIndicator": "Yes",
+     "beginDate": "2007-06-24",
+     "endDate": null,
+     "changeDescription": "5/16/17 transferred context and added CSI, registration status per Round 5 finalization task.  6/25/12 versioned as part of Round 4 CRF review; upd to match 2011 DICOM and AIM modeling requirement.  6/21/09 Released for load of NCIAv4.4 model.  6/24/07 -CDE versioned to support DICOM CDE IE DICOM Attribute-DICOM VR Rep term format.",
+     "administrativeNotes": "3/25/26 CDE versioned for retired DEC as part of IDC template CDE set. incorporated new concept,C106534, for property. jk;",
+     "unresolvedIssues": null,
+     "deletedIndicator": "No",
+     "createdBy": "JKNABLE",
+     "dateCreated": "2026-03-25",
+     "modifiedBy": "JKNABLE",
+     "dateModified": "2026-03-25",
+     "ObjectClass": {
+      "publicId": "3061537",
+      "version": "1",
+      "longName": "Imaging Technique",
+      "shortName": "C17369",
+      "definition": "Tests that produce pictures of areas inside the body.",
+      "context": "NCIP",
+      "origin": "NCI Thesaurus",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2010-04-18",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "MOROZOFA",
+      "dateCreated": "2010-04-18",
+      "modifiedBy": "ONEDATA",
+      "dateModified": "2010-04-18",
+      "Concepts": [
+       {
+        "longName": "Imaging Procedure",
+        "conceptCode": "C17369",
+        "definition": "Any technology or method that aids in the visualization of any biological process, cell, tissue or organ for use in screening, diagnosis, surgical procedures or therapy.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "Yes",
+        "displayOrder": "0"
+       }
+      ]
+     },
+     "Property": {
+      "publicId": "7071833",
+      "version": "1",
+      "longName": "Image Slice Thickness",
+      "shortName": "C106534",
+      "definition": "The dimension between two surfaces of an imaging plane.",
+      "context": "NCIP",
+      "origin": "NCI Thesaurus",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2019-12-05",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "HARTLEYG",
+      "dateCreated": "2019-12-05",
+      "modifiedBy": "ONEDATA",
+      "dateModified": "2019-12-05",
+      "Concepts": [
+       {
+        "longName": "Image Slice Thickness",
+        "conceptCode": "C106534",
+        "definition": "The dimension between two surfaces of an imaging plane.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "Yes",
+        "displayOrder": "0"
+       }
+      ]
+     },
+     "ConceptualDomain": {
+      "publicId": "2233241",
+      "version": "1",
+      "longName": "Medical Imaging",
+      "shortName": "MEDICAL IMAGING",
+      "definition": "Events, people, materials and activities uniquely defined by medical imaging.  ",
+      "context": "CIP",
+      "origin": "DICOM:Digital Imaging and Communications in Medicine",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2005-06-12",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "REEVESD",
+      "dateCreated": "2005-06-12",
+      "modifiedBy": "SBREXT",
+      "dateModified": "2006-09-13"
+     }
+    },
+    "ValueDomain": {
+     "publicId": "3113181",
+     "version": "1",
+     "longName": "Float or Fixed-point Millimeter Number",
+     "shortName": "FLOAT_FIXEDPT_MM_NUM",
+     "definition": "DS MM: A string of characters representing either a fixed point number or a floating point number measured in millimeters.",
+     "context": "NCIP",
+     "type": "Non-enumerated",
+     "dataType": "CHARACTER",
+     "unitOfMeasure": "mm",
+     "minLength": null,
+     "maxLength": "16",
+     "minValue": null,
+     "maxValue": null,
+     "decimalPlace": null,
+     "origin": "DICOM:Digital Imaging and Communications in Medicine",
+     "workflowStatus": "RELEASED",
+     "registrationStatus": "Application",
+     "latestVersionIndicator": "Yes",
+     "beginDate": "2010-06-20",
+     "endDate": null,
+     "changeDescription": "6/20/10 added Fixed Point CUI per VCDE review.   6/29/09 add mm as UOM 6/21/09 created for UOM Specific VD for DICOM DS Value Representation type to load NCIA v4.4 model.  10/27/08 - released post NCIA Interim Rpt Changes;  12/31/07 - chg long & short name to reflect \"floating\" aspect of value domain as indicated in the definition; semantics and max/min length did not change.  6/8/07-typo in def corrected.  6/4/07-Removed 15 decimal requirement.  5/10/07- Changed long to match Rep term qualifiers.  1/6/07-released VD so it can be reused in other imaging CDE.  1/4/07-2006 DICOM Standard - Sections 5 & 6",
+     "administrativeNotes": null,
+     "unresolvedIssues": null,
+     "deletedIndicator": "No",
+     "createdBy": "CHILLIJ",
+     "dateCreated": "2010-06-20",
+     "modifiedBy": "ONEDATA",
+     "dateModified": "2010-06-20",
+     "ConceptualDomain": {
+      "publicId": "2233241",
+      "version": "1",
+      "longName": "Medical Imaging",
+      "shortName": "MEDICAL IMAGING",
+      "definition": "Events, people, materials and activities uniquely defined by medical imaging.  ",
+      "context": "CIP",
+      "origin": "DICOM:Digital Imaging and Communications in Medicine",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2005-06-12",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "REEVESD",
+      "dateCreated": "2005-06-12",
+      "modifiedBy": "SBREXT",
+      "dateModified": "2006-09-13"
+     },
+     "RepresentationTerm": {
+      "publicId": "3113180",
+      "version": "1",
+      "longName": "Float Fixed-point Value Millimeter Number",
+      "shortName": "C48150:C89579:C28251:C25337",
+      "definition": "A number that can have its decimal point in any position.:A real number with a fixed number of digits following the decimal or radix point.:A unit of measure equaling one thousandth of a meter. (NCI):Number; a concept of quantity derived from zero and units; a numeral or string of numerals that is used for identification.",
+      "context": "NCIP",
+      "origin": null,
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2010-06-20",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "CHILLIJ",
+      "dateCreated": "2010-06-20",
+      "modifiedBy": "ONEDATA",
+      "dateModified": "2010-06-20",
+      "Concepts": [
+       {
+        "longName": "Float",
+        "conceptCode": "C48150",
+        "definition": "A number that can have its decimal point in any position.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "No",
+        "displayOrder": "3"
+       },
+       {
+        "longName": "Fixed-Point Number",
+        "conceptCode": "C89579",
+        "definition": "A real number with a fixed number of digits following the decimal or radix point.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "No",
+        "displayOrder": "2"
+       },
+       {
+        "longName": "Millimeter",
+        "conceptCode": "C28251",
+        "definition": "A metric unit of length equal to one thousandth of a meter (10E-3 meter) or approximately 0.03937 inch.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "No",
+        "displayOrder": "1"
+       },
+       {
+        "longName": "Number",
+        "conceptCode": "C25337",
+        "definition": "A numeral or string of numerals expressing value, quantity, or identification.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "Yes",
+        "displayOrder": "0"
+       }
+      ]
+     }
+    },
+    "ClassificationSchemes": [
+     {
+      "publicId": "2614826",
+      "version": "1",
+      "longName": "DICOM",
+      "context": "NCIP",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "2812790",
+        "version": "1",
+        "longName": "DICOM Tag CDEs",
+        "context": "NCIP",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     },
+     {
+      "publicId": "3314514",
+      "version": "1",
+      "longName": "Under Review",
+      "context": "ECOG-ACRIN",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "3428274",
+        "version": "1",
+        "longName": "E2410",
+        "context": "ECOG-ACRIN",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     },
+     {
+      "publicId": "5506115",
+      "version": "1",
+      "longName": "Imaging",
+      "context": "MCL",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "5840791",
+        "version": "1",
+        "longName": "Image Acquisition-Recon",
+        "context": "MCL",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     },
+     {
+      "publicId": "5635300",
+      "version": "1",
+      "longName": "Case Report Form (CRF) Modules",
+      "context": "NCI Standards",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "3163559",
+        "version": "1",
+        "longName": "PET Emissions Scan",
+        "context": "NCI Standards",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       },
+       {
+        "publicId": "5635306",
+        "version": "1",
+        "longName": "CT Image Acquisition",
+        "context": "NCI Standards",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     },
+     {
+      "publicId": "5675695",
+      "version": "1",
+      "longName": "CDEs by Categories",
+      "context": "NCI Standards",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "10000684",
+        "version": "1",
+        "longName": "Imaging",
+        "context": "NCI Standards",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     },
+     {
+      "publicId": "7434158",
+      "version": "1",
+      "longName": "CTEP CDISC Harmonization",
+      "context": "CTEP",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "7590133",
+        "version": "1",
+        "longName": "CTEP CDISC PET Scan",
+        "context": "CTEP",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     },
+     {
+      "publicId": "8064110",
+      "version": "1",
+      "longName": "GC (General Commons)",
+      "context": "CRDC",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "14470388",
+        "version": "1",
+        "longName": "Imaging",
+        "context": "CRDC",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     },
+     {
+      "publicId": "13574489",
+      "version": "1",
+      "longName": "CCDI (Childhood Cancer Data Initiative)",
+      "context": "Pediatric Cancer",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "13594093",
+        "version": "1",
+        "longName": "Sample",
+        "context": "Pediatric Cancer",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       },
+       {
+        "publicId": "13596238",
+        "version": "1",
+        "longName": "Radiology File",
+        "context": "Pediatric Cancer",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     },
+     {
+      "publicId": "17012038",
+      "version": "1",
+      "longName": "IDC (Imaging Data Commons)",
+      "context": "CRDC",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "17012051",
+        "version": "1",
+        "longName": "Radiology",
+        "context": "CRDC",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     }
+    ],
+    "AlternateNames": [
+     {
+      "name": "(0018,0050)",
+      "type": "DICOM_TAG",
+      "context": "NCIP"
+     },
+     {
+      "name": "Slice Thickness",
+      "type": "DICOM Attribute Name",
+      "context": "NCIP"
+     },
+     {
+      "name": "OHSU Knight",
+      "type": "USED_BY",
+      "context": "OHSU Knight"
+     },
+     {
+      "name": "PBTC",
+      "type": "USED_BY",
+      "context": "PBTC"
+     },
+     {
+      "name": "CITN",
+      "type": "USED_BY",
+      "context": "CITN"
+     },
+     {
+      "name": "MCL",
+      "type": "USED_BY",
+      "context": "MCL"
+     },
+     {
+      "name": "radiology_file",
+      "type": "CCDI Table",
+      "context": "Pediatric Cancer"
+     },
+     {
+      "name": "slice_thickness",
+      "type": "CCDI Alt Name",
+      "context": "Pediatric Cancer"
+     },
+     {
+      "name": "performed_imaging_study_sliceThickness",
+      "type": "GC Alt Name",
+      "context": "CRDC"
+     },
+     {
+      "name": "DU_DUORRES_STHICK",
+      "type": "CTEP CDISC CDE",
+      "context": "CTEP"
+     },
+     {
+      "name": "SliceThickness(mm)",
+      "type": "IDC Alt Name",
+      "context": "CRDC"
+     },
+     {
+      "name": "Radiology",
+      "type": "IDC Table",
+      "context": "CRDC"
+     }
+    ],
+    "ReferenceDocuments": [
+     {
+      "documentName": "PQT",
+      "documentText": "Slice Thickness",
+      "documentType": "Preferred Question Text",
+      "url": null,
+      "context": "NCI Standards"
+     },
+     {
+      "documentName": "ACRIN Text",
+      "documentText": "Slice thickness of reconstructed images",
+      "documentType": "Alternate Question Text",
+      "url": null,
+      "context": "ECOG-ACRIN"
+     },
+     {
+      "documentName": "MCL-ImageAcq-1",
+      "documentText": "Nominal reconstructed slice width (mm)",
+      "documentType": "Alternate Question Text",
+      "url": null,
+      "context": "MCL"
+     },
+     {
+      "documentName": "Prior Question Text",
+      "documentText": "Slice Thickness",
+      "documentType": "Alternate Question Text",
+      "url": null,
+      "context": "NCI Standards"
+     },
+     {
+      "documentName": "CRF Text-1",
+      "documentText": "Slice thickness",
+      "documentType": "Alternate Question Text",
+      "url": null,
+      "context": "NCI Standards"
+     },
+     {
+      "documentName": "CTEP Text 1",
+      "documentText": "What was the slice thickness?",
+      "documentType": "Alternate Question Text",
+      "url": null,
+      "context": "CTEP"
+     },
+     {
+      "documentName": "CTEP Text 2",
+      "documentText": "Slice thickness",
+      "documentType": "Alternate Question Text",
+      "url": null,
+      "context": "CTEP"
+     }
+    ]
+   },
+   "apiResponse": {
+    "type": "S"
+   }
+  }
+ }
+}
