@@ -37,7 +37,7 @@ about as long as that command.
 | `pdm run python scripts/upstream_requirements.py` | Regenerate the [upstream requirements packages](docs/upstream/README.md) from the catalogue and measured reports; `--check` verifies them without writing |
 | `pdm run acceptance -n 4 --dist worksteal --report=fixture.json` | The acceptance suite on four workers, with the report CI compares ([the ratchet](acceptance/README.md#ci-the-ratchet-on-expected-outcomes)) |
 | `pdm run acceptance-expected check acceptance/fixture.json` | The report against `acceptance/expected/fixture.json`, test by test |
-| `pdm run acceptance-status` | Regenerate the status table of the README from the expected outcomes |
+| `pdm run acceptance-status` | Regenerate the README status from fixture expected outcomes and stored scheduled-live evidence |
 | `pdm run acceptance-selftest` | The acceptance harness's own tests, on four workers |
 | `pdm run acceptance-index-codes` | Print the sample concept codes the suite indexes before a run |
 | `pdm run acceptance-record` | Re-record `acceptance/fixtures/recorded/` from the live services, under change control |
@@ -256,7 +256,14 @@ version, and the workflow never commits to `main`. If a release is missing altho
 is green, start the Release workflow by hand
 (`gh workflow run release.yml`). Version 1.0.0 is tagged by hand.
 
-For the complete fixture ratchet, supply the furnished secured adapter explicitly:
-`NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py'` alongside the
-index preparation environment. CI sets this for this checkout; successors must supply their
-own adapter. Without it the secured cases report NOT RUN, not a security pass.
+### Complete fixture ratchet
+
+For the complete fixture ratchet, select the registry checks this server supports and supply
+the furnished secured adapter and index preparation explicitly, as CI does:
+
+```bash
+NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=required NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py' NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --dist worksteal --report=fixture.json
+```
+
+The harness default remains `optional`. Successors must supply their own secured adapter;
+without it the secured cases report NOT RUN, not a security pass.

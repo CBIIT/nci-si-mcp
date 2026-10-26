@@ -74,6 +74,7 @@ STATE_HOOK_VARIABLE = "NCI_SI_ACCEPTANCE_STATE_HOOK"
 STATE_HOOK_TIMEOUT_VARIABLE = "NCI_SI_ACCEPTANCE_STATE_HOOK_TIMEOUT"
 PREPARED_VARIABLE = "NCI_SI_ACCEPTANCE_PREPARED"
 SECURITY_SERVER_VARIABLE = "NCI_SI_ACCEPTANCE_SECURITY_SERVER"
+REGISTRY_RELEASE_VARIABLE = "NCI_SI_ACCEPTANCE_REGISTRY_RELEASE"
 # The settings that mean something only for a remote server: naming one without the URL is a
 # usage error, never silently ignored.
 REMOTE_ONLY = (
@@ -130,6 +131,7 @@ class Target:
     # The command of the secured fixture adapter (X-25 to X-28), for a local and a remote target
     # alike: the harness starts it itself beside the server under test.
     security_server: str | None = None
+    registry_release: Literal["required", "optional"] = "optional"
 
     @classmethod
     def from_env(cls) -> Target:
@@ -142,6 +144,7 @@ class Target:
         prepare = _text(PREPARE_VARIABLE)
         bind = _bind(os.environ.get(FIXTURE_BIND_VARIABLE))
         security_server = _text(SECURITY_SERVER_VARIABLE)
+        registry_release = _registry_release()
         if (url := _endpoint()) is None:
             _refuse_remote_only()
             return cls(
@@ -151,6 +154,7 @@ class Target:
                 prepare,
                 fixture_bind=bind,
                 security_server=security_server,
+                registry_release=registry_release,
             )
         return cls(
             mode,
@@ -165,6 +169,7 @@ class Target:
             _seconds(STATE_HOOK_TIMEOUT_VARIABLE, DEFAULT_STATE_HOOK_TIMEOUT_SECONDS),
             _declared(PREPARED_VARIABLE),
             security_server,
+            registry_release,
         )
 
     @property
@@ -177,6 +182,13 @@ class Target:
         or declared prepared by the operator of a remote server."""
 
         return self.prepared if self.url else self.prepare is not None
+
+
+def _registry_release() -> Literal["required", "optional"]:
+    value = os.environ.get(REGISTRY_RELEASE_VARIABLE, "optional")
+    if value not in ("required", "optional"):
+        raise ValueError(f"{REGISTRY_RELEASE_VARIABLE} must be required or optional, not {value!r}")
+    return value
 
 
 def _command() -> list[str]:

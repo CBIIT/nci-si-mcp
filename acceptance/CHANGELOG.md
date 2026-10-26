@@ -35,6 +35,11 @@ fixture set pinned to NCIt 26.09d.
 - Phase 15 review (§5 outcomes, `spec/acceptance.md`): INCOMPLETE also covers a gate that could
   not run (skipped or not implemented); a gate a live run skips by design (fixture mode only)
   leaves its tools as they are. Agreed by the reviewer on #265.
+- Phase 33f #359 (resolve_registry_release-1, X-21, X-17): harness-only optional/required
+  registry selection; optional ordinarily skips five retained discovery/published-pin/cursor
+  checks, required keeps their assertions. Both modes are self-tested in existing CI. Sponsor
+  proposals remain documentation only; no server behavior or historical live report changes.
+  Approval: https://github.com/CBIIT/nci-si-mcp/issues/359#issuecomment-6399041641.
 
 <!-- The shape of a release, from the furnished tag on:
 

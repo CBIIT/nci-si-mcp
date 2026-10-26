@@ -79,6 +79,19 @@ def missing_report():
 
 
 class AcceptanceProjectionTest(unittest.TestCase):
+    def test_additive_live_skip_evidence_preserves_the_strict_companion_projection(self):
+        native = report()
+        key = "tests/test_example.py::test_lookup"
+        native["tests"][key]["outcome"] = "not_live"
+        native["tools"]["lookup"].update(outcome="NOT RUN", counts={"not_live": 1})
+        historical = project(native)
+        native["tests"][key]["not_live_reason"] = "scenario"
+        current = project(native)
+        self.assertEqual(
+            {key: current[key] for key in ("cases", "tools", "counts", "inventory_complete")},
+            {key: historical[key] for key in ("cases", "tools", "counts", "inventory_complete")},
+        )
+
     def test_unknown_report_fields_are_rejected(self):
         with self.assertRaises(EvidenceError):
             project(report() | {"extra": True})

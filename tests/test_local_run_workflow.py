@@ -104,6 +104,12 @@ CI_SERVER_INSTALL = (
     'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
 )
 
+FIXTURE_RUN = """# shellcheck disable=SC2016 # the single quotes are the documented form
+NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=required NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py' NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --dist worksteal --report=fixture.json
+status=$?
+[ "$status" -le 1 ] && [ -s acceptance/fixture.json ] || { echo "::error::The fixture run did not finish (exit status $status)."; exit 1; }
+"""  # noqa: E501
+
 # What exists only in CI, by step name (the whole step) or by exact line, and why.
 CI_ONLY = {
     "Remove the runner's python.org Python (macOS)": "the runner image ships python.org builds "
@@ -873,6 +879,9 @@ class LocalRunWorkflowTest(unittest.TestCase):
         # comparison that judge it.
         shells = {step["name"]: step["shell"] for step in steps() if "shell" in step}
         self.assertEqual(shells, {"Run the acceptance suite against the fixtures": "bash {0}"})
+        self.assertEqual(
+            run_by_name()["Run the acceptance suite against the fixtures"], FIXTURE_RUN
+        )
 
     def test_a_newer_push_replaces_only_a_pull_request_run(self):
         self.assertEqual(

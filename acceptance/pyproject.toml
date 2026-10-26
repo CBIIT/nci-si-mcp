@@ -37,6 +37,7 @@ markers = [
     "scenario(*names): the scenarios active for the test, on a server process of its own",
     "own_server: the test runs on a server process of its own, with nothing cached from others",
     "live_capable: also runs in live mode",
+    "registry_release: retained registry-release requirement, suspended in optional mode",
     "unmatched_upstream: expects upstream requests without a fixture, and checks them itself",
     "prepared: needs what the operator's prepare command produced; NOT RUN without it",
     "unprepared: runs on a server of its own started without what the prepare command produced",

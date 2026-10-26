@@ -2,6 +2,7 @@
 
 import io
 import json
+import shlex
 import subprocess
 import sys
 import unittest
@@ -130,14 +131,41 @@ class HTTPRunnerLifecycleTest(unittest.TestCase):
                 8000,
                 self.directory / "control",
                 report=private,
-                environment={"PATH": "controlled-path", "HOME": "isolated-home"},
+                environment={
+                    "PATH": "controlled-path",
+                    "HOME": "isolated-home",
+                    "NCI_SI_ACCEPTANCE_REGISTRY_RELEASE": "optional",
+                    "NCI_SI_DATA_DIR": "inherited-index",
+                },
             )
         self.assertEqual(result, 0)
         self.assertEqual(self.report.read_text(), "Keep existing engineering result")
         command, environment = observed[0]
         self.assertIn("--report=" + str(private), command)
-        self.assertEqual(environment["HOME"], "isolated-home")
-        self.assertNotIn("AWS_SECRET_ACCESS_KEY", environment)
+        self.assertEqual(
+            environment,
+            {
+                "PATH": "controlled-path",
+                "HOME": "isolated-home",
+                "NCI_SI_ACCEPTANCE_URL": "http://127.0.0.1:8000/mcp",
+                "NCI_SI_ACCEPTANCE_MODE": "fixture",
+                "NCI_SI_ACCEPTANCE_PREPARED": "1",
+                "NCI_SI_ACCEPTANCE_REGISTRY_RELEASE": "required",
+                "NCI_SI_ACCEPTANCE_SECURITY_SERVER": shlex.join(
+                    [sys.executable, str(runner.ROOT / "scripts/permissions_fixture.py")]
+                ),
+                "NCI_SI_ACCEPTANCE_STATE_HOOK": shlex.join(
+                    [
+                        sys.executable,
+                        "-m",
+                        "scripts.acceptance_http",
+                        "state",
+                        str(self.directory / "control"),
+                    ]
+                ),
+                "PYTHONPATH": str(runner.ROOT),
+            },
+        )
 
     def test_cancellation_reaps_the_owned_suite_process_before_propagating(self):
         child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(300)"])

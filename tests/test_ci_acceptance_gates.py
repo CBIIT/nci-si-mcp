@@ -17,6 +17,7 @@ FIXTURE_STEP = "Run the suite against the fixtures"
 # The permission gates (X-25 to X-28) run only with a security server; without one they are
 # unrun, and an unrun gate leaves every tool INCOMPLETE (#265).
 FIXTURE_ENV = {
+    "NCI_SI_ACCEPTANCE_REGISTRY_RELEASE": "required",
     "NCI_SI_ACCEPTANCE_SECURITY_SERVER": "python ../scripts/permissions_fixture.py",
     "NCI_SI_ACCEPTANCE_PREPARE": 'nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")',
 }
@@ -51,6 +52,28 @@ def suite_line(workflow, job, name):
 
 
 class AcceptanceGateWorkflowTest(unittest.TestCase):
+    def test_ci_selftest_job_runs_all_shards_without_overrides(self):
+        job = jobs("ci.yml")["selftest"]
+        self.assertEqual(
+            job["strategy"], {"fail-fast": False, "matrix": {"shard": ["1/3", "2/3", "3/3"]}}
+        )
+        self.assertEqual(job.get("env", {}), {})
+        self.assertEqual(job.get("if", ""), "")
+        self.assertEqual(job.get("needs", []), [])
+        (run,) = [
+            entry
+            for entry in job["steps"]
+            if entry.get("run", "").startswith("pdm run acceptance-selftest ")
+        ]
+        self.assertEqual(
+            run,
+            {
+                "run": "pdm run acceptance-selftest --cov-fail-under=0 "
+                "--junitxml=tmp/test-results/selftest.xml",
+                "env": {"SELFTEST_SHARD": "${{ matrix.shard }}"},
+            },
+        )
+
     def test_anonymous_ssis_contract_step_always_attempts_and_preserves_failure(self):
         uploads = [
             step

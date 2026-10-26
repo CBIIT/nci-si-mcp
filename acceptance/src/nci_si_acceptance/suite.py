@@ -24,6 +24,7 @@ FIXTURE_ONLY = "fixture mode only"
 # The property a skip site sets to say why a test did not run: not_live or not_implemented.
 # The report reads it, never the reason text.
 SKIP = "acceptance_skip"
+NOT_LIVE_REASON = "not_live_reason"
 # A test marked so expects requests without a fixture, and checks them itself.
 UNMATCHED_UPSTREAM = "unmatched_upstream"
 # A test marked so needs what the operator's prepare command produced (the interim index).
@@ -37,6 +38,11 @@ NOT_DECLARED_PREPARED = "NOT RUN: the server is not declared prepared (NCI_SI_AC
 # hook, and one without the index at all.
 NEEDS_STATE_HOOK = "needs a server of its own (NCI_SI_ACCEPTANCE_STATE_HOOK)"
 CANNOT_UNPREPARE = "needs a server without the index, which a remote server cannot be made"
+REGISTRY_RELEASE = "registry_release"
+REGISTRY_SUSPENDED = (
+    "registry-release requirement suspended pending sponsor decision "
+    "(NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=optional)"
+)
 
 
 class UnmatchedUpstream(pytest.fail.Exception):
@@ -57,14 +63,31 @@ def scenarios_of(item: pytest.Item) -> tuple[str, ...]:
     return tuple(name for marker in item.iter_markers(SCENARIO) for name in marker.args)
 
 
+def select_registry_checks(items: list[pytest.Item], required: bool) -> list[pytest.Item]:
+    """Suspend only marked registry requirements; keep them out of later live selection."""
+    if required:
+        return items
+    active = []
+    for item in items:
+        if item.get_closest_marker(REGISTRY_RELEASE) is not None:
+            item.add_marker(pytest.mark.skip(reason=REGISTRY_SUSPENDED))
+        else:
+            active.append(item)
+    return active
+
+
 def skip_fixture_only(items: Iterable[pytest.Item]) -> None:
     """What a live run does: skip every test not marked live-capable, and every scenario."""
 
     skip = pytest.mark.skip(reason=FIXTURE_ONLY)
     for item in items:
-        if item.get_closest_marker(LIVE_CAPABLE) is None or scenarios_of(item):
+        scenario = bool(scenarios_of(item))
+        if scenario or item.get_closest_marker(LIVE_CAPABLE) is None:
             item.add_marker(skip)
             item.user_properties.append((SKIP, "not_live"))
+            item.user_properties.append(
+                (NOT_LIVE_REASON, "scenario" if scenario else "not_live_capable")
+            )
 
 
 def skip_unprepared(items: Iterable[pytest.Item], reason: str = NOT_PREPARED) -> None:

@@ -31,6 +31,28 @@ pdm run spec-render                                  # regenerate docs/specifica
 
 ## Writing a test
 
+### Registry-release selection
+
+`NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=optional|required` is harness-only, defaults to
+`optional`, and rejects every other value. Optional suspends exactly five retained cases:
+export-date discovery, published-release discovery, published-pin transport/attribution,
+and both registry cursor-binding directions. Each reports an ordinary skip with reason
+`registry-release requirement suspended pending sponsor decision (NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=optional)`.
+They remain ordinary skips in live mode too, never `not_live` or executed passes.
+Use `required` to run the existing assertions unchanged:
+
+```bash
+NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=required pdm run acceptance --report=required.json
+```
+
+The marker `registry_release` selects only those cases. Explicit unpublished/unlisted-pin
+refusals, registry-only provenance and date alignment still run, as do NCIt graph, EVS and
+GDC checks. The sponsor's contract decision remains pending; see
+[the scope, measurements and proposals](../spec/acceptance.md#interim-registry-release-selection).
+No live tests were measured as newly unblocked. Deterministic `test_registry_selection.py`
+self-tests exercise both modes in the existing CI shards: required detects unpinned content
+on an actual behavioral assertion, optional records five skips with the exact reason.
+
 To read the behaviours without starting with Python, use these views:
 
 | Reader's question | Where to look |
@@ -243,6 +265,36 @@ setup-placeholder secret is unset in that step, never passed as a credential. A 
 appears in no log, error or result (requirement A7.5); `network.md` names the credentials that
 are absent, never a value.
 
+### README live evidence (local rendering)
+
+`pdm run acceptance-status` renders fixture status and the latest **stored scheduled main**
+live observation; `pdm run acceptance-status --check` fails without writing when it is stale.
+Neither command nor the documentation build contacts upstream services. The live table counts
+the native test rows, including a separate unattributed-gates row, and keeps failures visible.
+A partial latest run is labelled incomplete; it is never replaced by an older green run.
+
+To refresh, a maintainer reviews the latest `schedule` run on `main` of `Acceptance (live)`
+(including failed runs), downloads its `acceptance-live` artifact from GitHub, and copies the
+original `live.json` bytes to `docs/evidence/acceptance-live/latest.json`. Update `latest.yaml`
+with its SHA-256, run and artifact IDs, event, branch, measured commit SHA and run start date
+(UTC ISO timestamp). Then run `pdm run acceptance-status`, review both the evidence and README
+diff, and run `pdm run acceptance-status --check`. No workflow publishes this automatically.
+Missing or invalid evidence is an error, not permission to retain a previous green observation.
+
+New native reports optionally carry `not_live_reason` on `not_live` test rows only:
+`scenario` for a nonempty crafted scenario (takes precedence), otherwise `not_live_capable`
+for a test lacking that marker. The winning test phase owns this evidence. These values do not
+change outcomes, the fixture ratchet or drift rules. Historical absence stays absent and is
+displayed as **unrecorded**; present null, unknown values and incompatible outcomes are rejected.
+The stored 19 October run has 920 such unrecorded reasons, never joined to current markers.
+
+For recorded `not_live_capable` rows, context comes from the existing upstream catalogue and
+specification: owners of `cadsr-access` requirements indicate credentials, then other catalogue
+requests indicate capability gaps (owners and explicit tool basis names), otherwise **not yet
+probed by this live acceptance run**. Scenario precedes all context. These are blocker contexts,
+not proof that every skipped case attempted content retrieval or that upstream was never probed.
+The older [Phase 5 evidence](../docs/evidence/phase-5/acceptance-live.json) stays dated evidence.
+
 ## Layout
 
 `src/nci_si_acceptance/` holds the harness: `client.py` starts the server or connects to it,
@@ -257,7 +309,7 @@ concept, `record.py` records the set from live,
 `craft.py` crafts, in memory, the scenarios EVS does not produce on demand, `register.py` writes the
 register of request forms (`request-forms/`), `expected.py` compares a report with the expected
 outcomes (`expected/fixture.json`) and rewrites them, and `status.py` writes the README's status
-table from them. `results.py` holds what the tests read from a tool's result and from the upstream
+table from them and the stored native live evidence. `results.py` holds what the tests read from a tool's result and from the upstream
 request log, and `stories.py` renders the domain-readable story of every test from `stories.yaml`.
 `fixtures/` holds the fixtures ([fixtures/README.md](fixtures/README.md)), `tests/` the suite,
 `selftests/` the tests of the harness itself.
