@@ -185,6 +185,10 @@ class MutationSourceContractsTest(unittest.TestCase):
                 )
                 for value in (None, 42, "", "  ", "two\nlines")
             )
+            cases.extend(
+                (json.dumps([{**entry, "file": name}]), f"Invalid allowlist path: {name}")
+                for name in ("tests/test_example.py", "src/../../outside.py")
+            )
             for content, message in cases:
                 with self.subTest(content=content):
                     (root / "allow.yaml").write_text(content)
