@@ -7,8 +7,11 @@ import tempfile
 import unittest
 from dataclasses import asdict
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import yaml
+from scripts.validation import mutation_gate
 from scripts.validation.mutation_gate import execute_job
 from scripts.validation.mutation_run import run_domain, selection, snapshot
 from scripts.validation.mutation_source import allowlist, candidates, diff_lines, scope
@@ -244,6 +247,85 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_scheduler_manifest_shares_source_and_keeps_only_selected_test_routes(self):
+        source = "def answer():\n    return True\n"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, source)
+            mutants, _ = candidates("src/example.py", source.encode())
+            mutant = mutants[-1]
+            mapping = {"unit": {"src/example.py": {2: ["tests/test_example.py::test_value|run"]}}}
+            captured = []
+
+            def scheduler(command, cwd, env, timeout, log):
+                manifest = Path(command[-1])
+                captured.append(json.loads(manifest.read_text()))
+                (manifest.parent / "result-0.json").write_text('{"outcome": "KILLED"}')
+                return 0
+
+            with patch.object(mutation_gate, "program", side_effect=scheduler):
+                rows = mutation_gate.schedule(
+                    root, [mutant], mapping, SimpleNamespace(timeout=20, workers=1)
+                )
+            self.assertEqual(rows, [{"outcome": "KILLED"}])
+            self.assertEqual(
+                captured,
+                [
+                    {
+                        "root": str(root),
+                        "sources": {"src/example.py": source},
+                        "mutants": [
+                            {
+                                **mutant.key(),
+                                "line": 2,
+                                "end_line": 2,
+                                "start": mutant.start,
+                                "end": mutant.end,
+                                "after": "False",
+                                "selected": {"unit": ["tests/test_example.py::test_value"]},
+                            }
+                        ],
+                        "timeout": 20,
+                    }
+                ],
+            )
+
+    def test_mutant_report_records_measured_total_and_domain_elapsed_seconds(self):
+        source = "def answer():\n    return True\n"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, source)
+            mutants, _ = candidates("src/example.py", source.encode())
+            manifest = root / "mutations.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "root": str(root),
+                        "mutants": [asdict(mutants[-1])],
+                        "timeout": 20,
+                        "mapping": {
+                            "unit": {
+                                "src/example.py": {2: ["tests/test_example.py::test_value|run"]}
+                            }
+                        },
+                    }
+                )
+            )
+            execute_job(manifest, 0)
+            row = json.loads((root / "result-0.json").read_text())
+            self.assertEqual(
+                set(row) & {"elapsed_seconds", "domains"}, {"elapsed_seconds", "domains"}
+            )
+            self.assertEqual(
+                [
+                    {key: value for key, value in domain.items() if key != "elapsed_seconds"}
+                    for domain in row["domains"]
+                ],
+                [{"domain": "unit", "outcome": "KILLED"}],
+            )
+            self.assertIsInstance(row["elapsed_seconds"], float)
+            self.assertIsInstance(row["domains"][0]["elapsed_seconds"], float)
+
     def test_nested_probe_and_multiple_subtest_failures_credit_exactly_one_outer_kill(self):
         # Given a selected unittest that runs a child probe, when two subtests detect
         # the mutant, then only its outer node owns the kill and child evidence is separate.
