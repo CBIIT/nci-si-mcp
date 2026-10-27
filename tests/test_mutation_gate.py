@@ -2,7 +2,9 @@
 
 import json
 import os
+import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from dataclasses import asdict
@@ -13,7 +15,7 @@ from unittest.mock import patch
 import yaml
 from scripts.validation import mutation_gate
 from scripts.validation.mutation_gate import execute_job
-from scripts.validation.mutation_run import run_domain, selection, snapshot
+from scripts.validation.mutation_run import coverage_map, run_domain, selection, snapshot
 from scripts.validation.mutation_source import allowlist, candidates, diff_lines, scope
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,7 +41,12 @@ def project(root, source, unit="assert example.answer() is True", contract="asse
 
 
 def command(root, *args):
-    result = subprocess.run(  # noqa: S603 - fixed PDM command, owned paths
+    result = cli(root, *args)
+    return result.returncode, [json.loads(line) for line in result.stdout.splitlines()]
+
+
+def cli(root, *args):
+    return subprocess.run(  # noqa: S603 - fixed PDM command, owned paths
         ["pdm", "run", "mutation-gate", "--root", str(root), *args],  # noqa: S607
         cwd=ROOT,
         capture_output=True,
@@ -48,7 +55,6 @@ def command(root, *args):
         check=False,
         env={key: value for key, value in os.environ.items() if not key.startswith("COVERAGE")},
     )
-    return result.returncode, [json.loads(line) for line in result.stdout.splitlines()]
 
 
 class MutationOperatorsTest(unittest.TestCase):
@@ -247,6 +253,151 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_call_typeerror_is_an_error_kill_but_setup_error_is_infrastructure(self):
+        source = "def answer():\n    return True\n"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, source, "example.answer() + 1")
+            baseline, _ = run_domain(root, "unit", [], 20, baseline=True)
+            self.assertEqual(baseline["outcome"], "SURVIVED", baseline)
+            (root / "src/example.py").write_text(source.replace("True", "None"))
+            result, _ = run_domain(root, "unit", [], 20)
+            self.assertEqual(
+                {key: result.get(key) for key in ("outcome", "kind", "node", "phase")},
+                {
+                    "outcome": "KILLED",
+                    "kind": "error",
+                    "node": "tests/test_example.py::test_value",
+                    "phase": "call",
+                },
+            )
+            (root / "tests/conftest.py").write_text(
+                "import pytest, example\n@pytest.fixture(autouse=True)\n"
+                "def setup():\n    example.answer() + 1\n"
+            )
+            result, _ = run_domain(root, "unit", [], 20)
+            self.assertEqual(result["outcome"], "INFRA", result)
+            self.assertEqual(result["failures"][0]["phase"], "setup")
+
+    def test_mixed_subtests_keep_one_owning_error_kill(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n")
+            (root / "tests/test_example.py").write_text(
+                "import unittest, example\nclass Mixed(unittest.TestCase):\n"
+                "    def test_mixed(self):\n"
+                "        with self.subTest(kind='assertion'):\n"
+                "            self.assertIs(example.answer(), True)\n"
+                "        with self.subTest(kind='error'):\n"
+                "            example.answer() + 1\n"
+            )
+            baseline, _ = run_domain(root, "unit", [], 20, baseline=True)
+            self.assertEqual(baseline["outcome"], "SURVIVED", baseline)
+            (root / "src/example.py").write_text("def answer():\n    return None\n")
+            result, data = run_domain(root, "unit", [], 20)
+            self.assertEqual((result["outcome"], result.get("kind")), ("KILLED", "error"))
+            rows = [
+                json.loads(line) for line in data.with_name("events.jsonl").read_text().splitlines()
+            ]
+            self.assertEqual(
+                [row for row in rows if row["outcome"] == "failed"],
+                [
+                    {
+                        "node": "tests/test_example.py::Mixed::test_mixed",
+                        "phase": "call",
+                        "outcome": "failed",
+                        "assertion": False,
+                    }
+                ],
+            )
+
+    def test_mutated_probe_is_subject_but_cannot_corrupt_controller_collection_evidence(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n")
+            package = root / "scripts/validation"
+            package.mkdir(parents=True)
+            (package.parent / "__init__.py").write_text("")
+            (package / "__init__.py").write_text("")
+            original = (ROOT / "scripts/validation/mutation_probe.py").read_text()
+            subject = package / "mutation_probe.py"
+            subject.write_text(original)
+            (root / "tests/test_example.py").write_text(
+                "from pathlib import Path\nfrom types import SimpleNamespace\n"
+                "from scripts.validation import mutation_probe as subject\n"
+                "def test_collection_contract(tmp_path):\n"
+                "    destination = tmp_path / 'subject.jsonl'\n"
+                "    original = subject.DESTINATION\n"
+                "    try:\n"
+                "        subject.DESTINATION = str(destination)\n"
+                "        subject.pytest_collectreport(\n"
+                "            SimpleNamespace(failed=False, nodeid='good'))\n"
+                "    finally:\n"
+                "        subject.DESTINATION = original\n"
+                "    assert not destination.exists()\n"
+            )
+            baseline, _ = run_domain(root, "unit", [], 20, baseline=True)
+            self.assertEqual(baseline["outcome"], "SURVIVED", baseline)
+            subject.write_text(original.replace("destination and report.failed", "destination"))
+            result, data = run_domain(root, "unit", [], 20)
+            self.assertEqual(
+                (result["outcome"], result.get("kind")), ("KILLED", "assertion"), result
+            )
+            events = [
+                json.loads(line) for line in data.with_name("events.jsonl").read_text().splitlines()
+            ]
+            self.assertEqual(
+                [(row["node"], row["phase"]) for row in events],
+                [
+                    ("tests/test_example.py::test_collection_contract", phase)
+                    for phase in ("setup", "call", "teardown")
+                ],
+            )
+
+    def test_baseline_maps_line_executed_only_in_pdm_script_child(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n")
+            (root / "pyproject.toml").write_text(
+                '[project]\nname = "mapping-contract"\nversion = "0.0.0"\n'
+                'requires-python = ">=3.14"\n'
+                '[tool.pytest.ini_options]\npythonpath = ["src"]\n'
+                '[tool.pdm.scripts]\nmutation-gate = "python -m scripts.validation.mutation_gate"\n'
+            )
+            (root / ".pdm-python").write_text(sys.executable)
+            (root / "src/child.py").write_text("# no mutation sites\n")
+            # Use the actual command helper in a snapshot of the invoking project;
+            # its child runs mutation_gate.main while the inner gate remains uninstrumented.
+            (root / "tests/test_example.py").write_text(
+                "from test_mutation_gate import command\nfrom pathlib import Path\n"
+                "def test_child():\n"
+                "    status, rows = command(Path.cwd(), '--paths', 'src/child.py')\n"
+                "    assert (status, rows) == (0, [{'outcome': 'EMPTY', 'mutants': 0}])\n"
+            )
+            # The helper's ROOT must be this snapshot, as it is in a real baseline.
+            (root / "tests/test_mutation_gate.py").write_text(
+                (ROOT / "tests/test_mutation_gate.py")
+                .read_text()
+                .split("class MutationOperatorsTest")[0]
+            )
+            shutil.copytree(ROOT / "scripts", root / "scripts")
+            result, data = run_domain(
+                root, "unit", ["tests/test_example.py::test_child"], 30, baseline=True
+            )
+            self.assertEqual(result["outcome"], "SURVIVED", result)
+            mapping = coverage_map(data, root)
+            line = next(
+                i
+                for i, text in enumerate(
+                    (root / "scripts/validation/mutation_gate.py").read_text().splitlines(), 1
+                )
+                if text.strip() == "args = parser.parse_args(argv)"
+            )
+            self.assertEqual(
+                selection({"unit": mapping}, "scripts/validation/mutation_gate.py", line, line),
+                {"unit": []},
+            )
+
     def test_inherited_probe_child_cannot_append_to_parent_evidence(self):
         # A caller may launch pytest directly, without the gate's environment helper.
         with tempfile.TemporaryDirectory() as temporary:
@@ -477,7 +628,6 @@ class MutationExecutionTest(unittest.TestCase):
             "collection": "raise AssertionError('collection')\n",
             "crash": "import os\ndef test_crash():\n    os._exit(9)\n",
             "skip": "import pytest\ndef test_skip():\n    pytest.skip('absent')\n",
-            "runtime": "def test_runtime():\n    raise RuntimeError('AssertionError is text')\n",
         }
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
