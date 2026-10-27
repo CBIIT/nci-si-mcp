@@ -374,8 +374,7 @@ entries:
     platform: S-3; S-5
     requirements: [find_data_elements_for_concept-1, ground_value-2]
     # Historical graph-provenance owner in the frozen Phase 5 reports, not the status-set owner.
-    # Current owner: tests/test_graph_roles.py::test_graph_status_sets_preserve_unpaired_public_id_evidence.
-    # Mapping that newer owner awaits a catalogue evidence-policy decision; do not invent old outcomes.
+    # The workaround links the post-Phase-5 owner separately from these historical outcomes.
     tests: ["tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states"]
     source: https://github.com/CBIIT/nci-si-mcp/issues/370#issuecomment-6429093919
     evidence: [acceptance/fixtures/recorded/ssis-sparql/data-elements-statuses-c48179.json]
@@ -388,7 +387,10 @@ entries:
     expected: Model each data element version as its own node, or explicitly pair version, administration status and registration status.
     reproduction: Read the retained C48179 status query and inspect outgoing, incoming and axiom assertions of caDSR#DE2672191 without joining independent literals.
     impact: Joining the independent sets invents combinations and cannot identify one version's status pair or a current status.
-    workaround: Return unchanged unpaired workflowStatuses and registrationStatuses on each public-ID use; direct callers needing a version's own pair to get_data_element with an explicit version.
+    workaround: |-
+      Return unchanged unpaired workflowStatuses and registrationStatuses on each public-ID use; direct callers needing a version's own pair to get_data_element with an explicit version.
+
+      Current owning test: [`acceptance/tests/test_graph_roles.py::test_graph_status_sets_preserve_unpaired_public_id_evidence`](../../acceptance/tests/test_graph_roles.py) (post-Phase-5).
     acceptance: A published version-specific model permits the exact status pair to be read without inferred joins; until then preserve unpaired public-ID evidence.
   - id: ssis-public-id-associations
     team: ssis

@@ -112,6 +112,8 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/3
 
 **Workaround.** Return unchanged unpaired workflowStatuses and registrationStatuses on each public-ID use; direct callers needing a version's own pair to get_data_element with an explicit version.
 
+Current owning test: [`acceptance/tests/test_graph_roles.py::test_graph_status_sets_preserve_unpaired_public_id_evidence`](../../acceptance/tests/test_graph_roles.py) (post-Phase-5).
+
 **Acceptance criteria.** A published version-specific model permits the exact status pair to be read without inferred joins; until then preserve unpaired public-ID evidence.
 
 Evidence (linked request/response files retain their original form):
