@@ -363,6 +363,8 @@ class GraphConceptUse(TypedDict):
 class DataElementUse(TypedDict):
     dataElement: GraphElementIdentity
     roles: list[GraphConceptUse]
+    workflowStatuses: NotRequired[list[str]]
+    registrationStatuses: NotRequired[list[str]]
     provenance: Provenance
 
 
@@ -483,6 +485,8 @@ class Replacement(TypedDict):
     code: str
     terminology: str
     name: str
+    action: NotRequired[str]
+    date: NotRequired[str]
     provenance: Provenance
 
 

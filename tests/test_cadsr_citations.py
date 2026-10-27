@@ -6,6 +6,19 @@ from test_cadsr_metadata import FIXTURES, MetadataFixture, recorded_element
 
 
 class CitedItemsTest(MetadataFixture):
+    def test_empty_values_preserve_the_explicit_domain_type(self):
+        # Given either explicit type with no values, MCP must not infer the type from emptiness.
+        for domain_type in ("Enumerated", "Non-enumerated"):
+            with self.subTest(domain_type=domain_type):
+                body = recorded_element()
+                body["DataElement"]["ValueDomain"].update(type=domain_type, PermissibleValues=[])
+                result = self.answer(
+                    body, publicId="2200604", include=["valueDomain", "permissibleValues"]
+                )
+                self.assertFalse(result.is_error, result.content)
+                self.assertEqual(result.structured_content["valueDomain"]["type"], domain_type)
+                self.assertEqual(result.structured_content["permissibleValues"], [])
+
     def test_scheme_and_item_dates_remain_separate_with_absence_and_null(self):
         # Given independently dated schemes and items, MCP preserves each owner's dates.
         body = recorded_element()

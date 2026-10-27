@@ -47,7 +47,7 @@ PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX mdr: <http://www.iso.org/11179/MDR#>
 PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
 PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>"""
-        elements = recording("ssis-sparql/data-elements-roles-c17357.json")["request"]["form"][
+        elements = recording("ssis-sparql/data-elements-statuses-c17357.json")["request"]["form"][
             "query"
         ]
         elements = (
@@ -321,11 +321,17 @@ class SSISContractsTest(ServerTestCase):
         token = row["roles"]["value"]
         alternate = token.rsplit("|", 1)[0] + "|%20%2B00%20"
         row["roles"]["value"] = alternate + " " + token
+        row["workflowStatuses"] = {"type": "literal", "value": "vZ v%41 vZ"}
+        row["registrationStatuses"] = {"type": "literal", "value": "vStandard v"}
         first = self.ssis(self.serve(sparql_reply([row]))).find_data_elements("C17357")
         row["roles"]["value"] = token + " " + alternate
+        row["workflowStatuses"]["value"] = "vA vZ"
+        row["registrationStatuses"]["value"] = "v vStandard"
         second = self.ssis(self.serve(sparql_reply([row]))).find_data_elements("C17357")
         self.assertEqual(first, second)
         self.assertEqual(first[0]["roles"], token)
+        self.assertEqual(first[0]["workflowStatuses"], "vA vZ")
+        self.assertEqual(first[0]["registrationStatuses"], "v vStandard")
 
     def test_same_role_and_concept_preserve_distinct_orders(self):
         source = recording("ssis-sparql/data-elements-roles-c17357.json")

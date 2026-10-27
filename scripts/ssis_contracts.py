@@ -14,7 +14,15 @@ from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import PlatformError
 from nci_si_mcp.http_client import HttpClient, UpstreamError
 from nci_si_mcp.seam import NCIT_NAMESPACE
-from nci_si_mcp.ssis import CADSR_GRAPH, NCIT_GRAPH, SSISClient, _valid_date, graph_roles
+from nci_si_mcp.ssis import (
+    CADSR_GRAPH,
+    NCIT_GRAPH,
+    STATUS_FIELDS,
+    SSISClient,
+    _valid_date,
+    graph_roles,
+    graph_statuses,
+)
 from nci_si_mcp.validation import NCIT_CODE_FORM
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,6 +63,8 @@ def term_value(key: str, term: Any) -> str:
     require(isinstance(term, dict), f"{key}: term must be an object")
     require(term.get("type") in ("uri", "literal", "typed-literal"), f"{key}: invalid term type")
     value = term.get("value")
+    if key in STATUS_FIELDS:
+        require(term.get("type") == "literal", f"{key}: expected aggregate literal")
     require(isinstance(value, str), f"{key}: term value must be a string")
     if key in ("concept", "graph"):
         require(
@@ -76,6 +86,9 @@ def semantics(values: dict[str, str]) -> None:
 
 
 def content_semantics(values: dict[str, str]) -> None:
+    for field in STATUS_FIELDS:
+        if field in values:
+            graph_statuses(values[field])
     if "roles" in values:
         graph_roles(values["roles"])
     if "name" in values:

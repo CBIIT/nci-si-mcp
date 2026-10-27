@@ -2,6 +2,38 @@
 # after they have been observed and attributed to the named entry.
 live_failures: {}
 entries:
+  - id: cadsr-field-spelling
+    team: cadsr
+    title: Clarify status spellings and Form API field names
+    platform: OP-C01; OP-C11; OP-M01
+    requirements: [get_data_element-1, get_form-1]
+    tests: ["tests/test_cadsr.py::test_a_form_returns_its_modules_and_its_status_unchanged_a_retired_one_too"]
+    evidence: [acceptance/fixtures/recorded/cadsr/data-element-2413218.json, acceptance/fixtures/recorded/cadsr/form-5406471.json]
+    source: https://github.com/CBIIT/nci-si-mcp/issues/379
+    observation: Latest 2413218/v2 supplies registrationStatus Superceded. Form 5406471 supplies publicID and latesetVersionIndicator, unlike DataElement publicId and latestVersionIndicator.
+    reproduction: Read the linked anonymous DataElement and Form responses without credentials.
+    expected: Document whether Superceded and Superseded are accepted filter spellings and whether publicID and latesetVersionIndicator are intentional, aliases or planned corrections.
+    impact: Normalizing spelling or assuming consistent keys can discard or misattribute upstream metadata.
+    workaround: Pass raw metadata through; registrationStatus remains a free string passed unchanged as a match header. Nonempty search filters remain unsupported under OP-C03.
+    acceptance: Publish exact accepted spellings and field names, including compatibility expectations; no local normalization or inferred filter support.
+  - id: evs-status-metadata
+    team: evs
+    title: Explain DEFAULT and active versus current status semantics
+    platform: OP-E01; OP-E05; OP-E12
+    requirements: [resolve_retired_code-2]
+    tests: ["tests/test_evs.py::test_an_active_code_is_active_with_its_status_and_no_replacement"]
+    evidence: [acceptance/fixtures/recorded/evs/concept-statuses.json, acceptance/fixtures/recorded/evs/concepts/C4817.json, acceptance/fixtures/recorded/evs/concepts/C65159.json, acceptance/fixtures/recorded/evs/descendants-c4817-level-2.json]
+    source: https://github.com/CBIIT/nci-si-mcp/issues/380
+    observation: >-
+      On 26 October 2026 the pinned conceptStatuses endpoint omitted DEFAULT; recorded
+      C4817 supplies DEFAULT. Newly recorded C65159 supplies Obsolete_Concept and active true.
+      Compact descendants supply no active/status. The fact audit's copied-name/retired-code
+      observation is context for deferred alignment work, not a new cross-system comparison.
+    reproduction: GET /api/v1/metadata/ncit_26.09d/conceptStatuses and the linked pinned concept/descendant requests anonymously.
+    expected: Explain why DEFAULT is absent from the status catalogue, whether active includes obsolete concepts, and which upstream field establishes currentness.
+    impact: A caller treating active as current or the metadata list as exhaustive can misclassify concepts.
+    workaround: Preserve returned active/status exactly; do not inject DEFAULT into metadata or infer currentness from status or copied names.
+    acceptance: Published metadata and documentation explain every supplied concept status and active/current semantics; compact entries remain unclassified unless separately read.
   - id: cadsr-concept-sources
     team: cadsr
     title: Document concept sources and compound reference semantics
@@ -336,6 +368,30 @@ entries:
     workaround: Preserve each graph's identity, parse only supported date forms, compare NCIt version for descendant expansion and never manufacture a registry identifier. PV lookup reads caDSR API primary flags and pinned EVS content, with caDSR and EVS provenance and no Shared SI dependency. The [dependency register](ssis-dependencies.md) records the registered queries and their weekly structural check.
     acceptance: Both graphs return unambiguous identities; missing/duplicate identities fail closed and dates compute the correct interval. Expansion refuses a mismatched NCIt version with release_mismatch or an absent version with release_not_available; exact find and grounding preserve the actual metadata without comparing or backfilling versions.
 
+  - id: ssis-version-status-pairing
+    team: ssis
+    title: Preserve version-specific status pairs
+    platform: S-3; S-5
+    requirements: [find_data_elements_for_concept-1, ground_value-2]
+    # Historical graph-provenance owner in the frozen Phase 5 reports, not the status-set owner.
+    # The workaround links the post-Phase-5 owner separately from these historical outcomes.
+    tests: ["tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states"]
+    source: https://github.com/CBIIT/nci-si-mcp/issues/370#issuecomment-6429093919
+    evidence: [acceptance/fixtures/recorded/ssis-sparql/data-elements-statuses-c48179.json]
+    observation: >-
+      DE2672191 is one graph node with version literals 1 and 2, administration_status
+      RELEASED and RETIRED ARCHIVED, and registration_status Standard and Superceded.
+      Anonymous outgoing, incoming and axiom inspection on 26 October 2026 found no
+      structure tying these literals together. The retained bounded C48179 query
+      records the two independent status sets, not version/status pairs.
+    expected: Model each data element version as its own node, or explicitly pair version, administration status and registration status.
+    reproduction: Read the retained C48179 status query and inspect outgoing, incoming and axiom assertions of caDSR#DE2672191 without joining independent literals.
+    impact: Joining the independent sets invents combinations and cannot identify one version's status pair or a current status.
+    workaround: |-
+      Return unchanged unpaired workflowStatuses and registrationStatuses on each public-ID use; direct callers needing a version's own pair to get_data_element with an explicit version.
+
+      Current owning test: [`acceptance/tests/test_graph_roles.py::test_graph_status_sets_preserve_unpaired_public_id_evidence`](../../acceptance/tests/test_graph_roles.py) (post-Phase-5).
+    acceptance: A published version-specific model permits the exact status pair to be read without inferred joins; until then preserve unpaired public-ID evidence.
   - id: ssis-public-id-associations
     team: ssis
     title: Clarify merged CDE versions and value concept roles

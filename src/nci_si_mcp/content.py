@@ -328,7 +328,8 @@ def resolve_retired_code(
     """Tell whether a code is retired and which concepts replace it.
 
     Returns code, terminology, the platform's active flag, its status text unchanged,
-    replacements (code, name, terminology and provenance each) and provenance. An active concept
+    replacements (code, name, terminology, provenance and optional action/date from the same
+    history row, unchanged) and provenance. An active concept
     has no replacements; a retired one that names none gets []. Status text never decides
     whether a concept is active.
 
@@ -351,10 +352,9 @@ def resolve_retired_code(
 
 def _replacement_record(row: dict[str, Any], release: ReleaseContext, uri: str) -> dict[str, Any]:
     code, name = row.get("replacementCode"), row.get("replacementName")
-    if not isinstance(code, str) or not code:
-        raise EVSResponseError("EVS returned a replacement without its code")
-    if not isinstance(name, str) or not name:
-        raise EVSResponseError("EVS returned a replacement without its name")
+    for key, value in (("code", code), ("name", name)):
+        if not isinstance(value, str) or not value:
+            raise EVSResponseError(f"EVS returned a replacement without its {key}")
     provenance = live_provenance(
         release_ref(release.terminology, release.version, release.date),
         "evs_rest",
@@ -362,12 +362,18 @@ def _replacement_record(row: dict[str, Any], release: ReleaseContext, uri: str) 
         upstream=upstream_origin(row),
         attribution=attribution_of(row, "evs"),
     )
-    return {
+    result = {
         "code": code,
         "terminology": release.terminology,
         "name": name,
         "provenance": provenance,
     }
+    for key in ("action", "date"):
+        if key in row:
+            if not isinstance(row[key], str):
+                raise EVSResponseError(f"EVS returned a replacement with a nontext {key}")
+            result[key] = row[key]
+    return result
 
 
 def get_concepts(

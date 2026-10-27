@@ -122,6 +122,17 @@ NCIt release or an export date, so these cases need no registry-release discover
 that need credentials remain fixture-only. This coverage does not certify all tool modes;
 the report retains every fixture-only case as not run in live mode.
 
+The component citation case independently GETs anonymous DataElement 2200604/v4 once using
+stdlib HTTP, then calls MCP at that explicit version with DEC, associations and value domain.
+It compares each component's own ID/version and derivation code, source, explicit primary
+boolean and integer order. Names and dates are not comparison keys; a mismatch shows both
+dateModified values because content may change in place. The independent reference GET makes
+one attempt; the harness does not repeat the MCP call or comparison after a failure or mismatch.
+The server's normal upstream retry policy still applies within that MCP call.
+Fixture mode uses the separately recorded explicit-version response; the older
+latest and v1 recordings remain intact. A hosted server's rejected caDSR credential remains a
+credential failure; this anonymous reference request adds no credential or fallback.
+
 The live scalar check uses each DataElement field's `nullable` flag in `spec/records.yaml`;
 nullable metadata is text or null when supplied, and optional omitted metadata stays absent. Identity, version and status
 fields remain nonblank text. A null metadata field means the producing answer supplied none;

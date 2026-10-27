@@ -81,6 +81,8 @@ missing argument with HTTP 200 (X-15).
 | OP-E13 | `GET evs /api/v1/concept/ncit_26.09d/C4817/pathsToRoot?include=minimal` | 200 | recorded | The paths from the concept to the root of the hierarchy. | `recorded/evs/paths-to-root.json` |
 | OP-E12 | `GET evs /api/v1/concept/ncit_26.09d/C4817/descendants?maxLevel=2` | 200 | recorded | The descendants of C4817 to two levels (27), each with its level: the route a cohort or hierarchy to depth 2 may take in place of a children walk (expand_cohort's default maxDepth). | `recorded/evs/descendants-c4817-level-2.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C4817/replacements` | 200 | recorded | An active code's replacements, one code. | `recorded/evs/replacement-active.json` |
+| OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C15368/replacements` | 200 | recorded | Source-specific merge replacement with its own action and date. | `recorded/evs/replacement-merge-c15368.json` |
+| OP-E01 | `GET evs /api/v1/metadata/ncit_26.09d/conceptStatuses` | 200 | recorded | Status metadata omits DEFAULT, although concept payloads supply it. | `recorded/evs/concept-statuses.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/C13111/replacements` | 200 | recorded | A retired code the platform names no replacement for: action retire, no replacementCode. | `recorded/evs/replacement-retired.json` |
 | OP-E21 | `GET evs /api/v1/history/ncit_26.09d/replacements?list=C4817` | 200 | recorded | The ?list= batch form, which fails the whole batch on one unknown code. | `recorded/evs/replacements-active.json` |
 | OP-E06 | `GET evs /api/v1/subset/ncit/C177537` | 200 | recorded | The subset by its unpinned path: the pinned path answers 404 today; the payload names its release. | `recorded/evs/subset-gdc-unpinned.json` |
@@ -95,6 +97,12 @@ missing argument with HTTP 200 (X-15).
 | OP-F05 | `GET evs-fhir /ValueSet/$expand?url=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl?fhir_vs=C85492&system-version=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl\|26.09d` | 200; ignores activeOnly, count, offset | crafted for OP-F05: $expand pinned by system-version. EVS answered "Input parameter 'system-version' is not supported" (400) on 2 October 2026 | $expand pinned by system-version, as the operation inventory prescribes (OP-F05), carrying the unpinned answer. | `crafted/OP-F05/expand-c85492.json` |
 | OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/2200604` with `Accept: application/json` | 200 | recorded | A data element, its latest version; its permissible values are in ValueDomain.PermissibleValues, the only form of OP-C07 today (its own path answers 404). The inventory's form is /DataElement?publicId=&version=&registryRelease=. | `recorded/cadsr/data-element-2200604.json` |
 | OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/2200604?version=1` with `Accept: application/json` | 200 | recorded | The same data element at version 1, which carries other names. | `recorded/cadsr/data-element-2200604-version-1.json` |
+| OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/2200604?version=4` with `Accept: application/json` | 200 | recorded | Explicit version 4 for independent API/MCP component citation comparison. | `recorded/cadsr/data-element-2200604-version-4.json` |
+| OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/2413218` with `Accept: application/json` | 200 | recorded | Latest version 2 is RETIRED ARCHIVED and Superceded. | `recorded/cadsr/data-element-2413218.json` |
+| OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/3113185` with `Accept: application/json` | 200 | recorded | Latest version 3 is DRAFT MOD. | `recorded/cadsr/data-element-3113185.json` |
+| OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/2180822` with `Accept: application/json` | 200 | recorded | Normal enumerated domain with month/week/day permissible values. | `recorded/cadsr/data-element-2180822.json` |
+| OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/14883075` with `Accept: application/json` | 200 | recorded | Enumerated by Reference with referenceTerminology and an Uberon URI value. | `recorded/cadsr/data-element-14883075.json` |
+| OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/2179689` with `Accept: application/json` | 200 | recorded | Confirmed Non-enumerated domain without a permissible-value list. | `recorded/cadsr/data-element-2179689.json` |
 | OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/99999999` with `Accept: application/json` | 200 | recorded | An unknown public id: HTTP 200 with DataElement null and apiResponse type I, "No data returned for the input criteria" (X-15, not_found). | `recorded/cadsr/data-element-unknown.json` |
 | OP-C01 | `GET cadsr /NCIAPI/1.0/api/DataElement/notanumber` with `Accept: application/json` | 200 | recorded | A public id that is no number: HTTP 200 with DataElement null and apiResponse type E, "Parameter 'publicId' must be a number." (X-15, invalid_request). | `recorded/cadsr/data-element-refused.json` |
 | OP-C07 | `GET cadsr /NCIAPI/1.0/api/DataElement/2200604/permissibleValues` with `Accept: application/json` | 404 | recorded | The inventory's path for a data element's permissible values answers 404; they come inside the data element. | `recorded/cadsr/permissible-values.json` |
@@ -142,6 +150,16 @@ missing argument with HTTP 200 (X-15).
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | crafted for A3.7.1 and M6.1; bounded identities or remaining shared result capacity plus one sentinel. | Bounded query under the shared result cap; reuses the recorded answer as crafted. | `crafted/ssis-sparql/values-c4817-bounded.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The data elements that use Disease or Disorder (C2991), 1,001 rows: ground_value's data element hop reaches its bound. | `recorded/ssis-sparql/data-elements-c2991.json` |
 | OP-S04 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | The permissible values that stand for Disease or Disorder (C2991), 461 rows: ground_value's value hop, complete while the data element hop is cut. | `recorded/ssis-sparql/values-c2991.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #370: anonymous public-ID role and unpaired status evidence. | `recorded/ssis-sparql/data-elements-statuses-c116977.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #370: anonymous public-ID role and unpaired status evidence. | `recorded/ssis-sparql/data-elements-statuses-c17357-descendants.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #370: anonymous public-ID role and unpaired status evidence. | `recorded/ssis-sparql/data-elements-statuses-c17357.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #370: anonymous public-ID role and unpaired status evidence. | `recorded/ssis-sparql/data-elements-statuses-c25332-descendants.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #370: anonymous public-ID role and unpaired status evidence. | `recorded/ssis-sparql/data-elements-statuses-c25332.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #370: anonymous public-ID role and unpaired status evidence. | `recorded/ssis-sparql/data-elements-statuses-c2991-descendants.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #370: anonymous public-ID role and unpaired status evidence. | `recorded/ssis-sparql/data-elements-statuses-c2991.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #370: anonymous public-ID role and unpaired status evidence. | `recorded/ssis-sparql/data-elements-statuses-c4817.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #370: anonymous public-ID role and unpaired status evidence. | `recorded/ssis-sparql/data-elements-statuses-c48179.json` |
+| OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #370: anonymous public-ID role and unpaired status evidence. | `recorded/ssis-sparql/data-elements-statuses-c49508.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #365: newly recorded public-ID query with complete graph role tuples. | `recorded/ssis-sparql/data-elements-roles-c17357.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #365: newly recorded expanded role query for Gender. | `recorded/ssis-sparql/data-elements-roles-c17357-descendants.json` |
 | OP-S01 | `POST ssis-sparql /sparql` with `Accept: application/sparql-results+json`, form `query` (below) | 200 | recorded | #365: newly recorded empty role query. | `recorded/ssis-sparql/data-elements-roles-c116977.json` |
@@ -501,6 +519,356 @@ WHERE {
   }
 }
 ORDER BY ?id ?version ?value ?concept
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-statuses-c116977.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id (MIN(?label) AS ?name)
+  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?workflowStatus),CONCAT("v",ENCODE_FOR_URI(STR(?workflowStatus))),"");separator=" ") AS ?workflowStatuses)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?registrationStatus),CONCAT("v",ENCODE_FOR_URI(STR(?registrationStatus))),"");separator=" ") AS ?registrationStatuses)
+WHERE {
+  VALUES ?concept { ncit:C116977 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+    ?node ?membership ?concept .
+    { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+    UNION
+    { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+    OPTIONAL { ?node cadsr:display_order ?order }
+    ?element cadsr:publicId ?id ;
+      rdfs:label ?label .
+    OPTIONAL { ?element mdr:administration_status ?workflowStatus }
+    OPTIONAL { ?element mdr:registration_status ?registrationStatus }
+  }
+}
+GROUP BY ?id
+ORDER BY ?id
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-statuses-c17357-descendants.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id (MIN(?label) AS ?name)
+  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?workflowStatus),CONCAT("v",ENCODE_FOR_URI(STR(?workflowStatus))),"");separator=" ") AS ?workflowStatuses)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?registrationStatus),CONCAT("v",ENCODE_FOR_URI(STR(?registrationStatus))),"");separator=" ") AS ?registrationStatuses)
+WHERE {
+  GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> { ?concept rdfs:subClassOf* ncit:C17357 . }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+    ?node ?membership ?concept .
+    { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+    UNION
+    { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+    OPTIONAL { ?node cadsr:display_order ?order }
+    ?element cadsr:publicId ?id ;
+      rdfs:label ?label .
+    OPTIONAL { ?element mdr:administration_status ?workflowStatus }
+    OPTIONAL { ?element mdr:registration_status ?registrationStatus }
+  }
+}
+GROUP BY ?id
+ORDER BY ?id
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-statuses-c17357.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id (MIN(?label) AS ?name)
+  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?workflowStatus),CONCAT("v",ENCODE_FOR_URI(STR(?workflowStatus))),"");separator=" ") AS ?workflowStatuses)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?registrationStatus),CONCAT("v",ENCODE_FOR_URI(STR(?registrationStatus))),"");separator=" ") AS ?registrationStatuses)
+WHERE {
+  VALUES ?concept { ncit:C17357 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+    ?node ?membership ?concept .
+    { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+    UNION
+    { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+    OPTIONAL { ?node cadsr:display_order ?order }
+    ?element cadsr:publicId ?id ;
+      rdfs:label ?label .
+    OPTIONAL { ?element mdr:administration_status ?workflowStatus }
+    OPTIONAL { ?element mdr:registration_status ?registrationStatus }
+  }
+}
+GROUP BY ?id
+ORDER BY ?id
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-statuses-c25332-descendants.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id (MIN(?label) AS ?name)
+  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?workflowStatus),CONCAT("v",ENCODE_FOR_URI(STR(?workflowStatus))),"");separator=" ") AS ?workflowStatuses)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?registrationStatus),CONCAT("v",ENCODE_FOR_URI(STR(?registrationStatus))),"");separator=" ") AS ?registrationStatuses)
+WHERE {
+  GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> { ?concept rdfs:subClassOf* ncit:C25332 . }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+    ?node ?membership ?concept .
+    { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+    UNION
+    { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+    OPTIONAL { ?node cadsr:display_order ?order }
+    ?element cadsr:publicId ?id ;
+      rdfs:label ?label .
+    OPTIONAL { ?element mdr:administration_status ?workflowStatus }
+    OPTIONAL { ?element mdr:registration_status ?registrationStatus }
+  }
+}
+GROUP BY ?id
+ORDER BY ?id
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-statuses-c25332.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id (MIN(?label) AS ?name)
+  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?workflowStatus),CONCAT("v",ENCODE_FOR_URI(STR(?workflowStatus))),"");separator=" ") AS ?workflowStatuses)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?registrationStatus),CONCAT("v",ENCODE_FOR_URI(STR(?registrationStatus))),"");separator=" ") AS ?registrationStatuses)
+WHERE {
+  VALUES ?concept { ncit:C25332 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+    ?node ?membership ?concept .
+    { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+    UNION
+    { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+    OPTIONAL { ?node cadsr:display_order ?order }
+    ?element cadsr:publicId ?id ;
+      rdfs:label ?label .
+    OPTIONAL { ?element mdr:administration_status ?workflowStatus }
+    OPTIONAL { ?element mdr:registration_status ?registrationStatus }
+  }
+}
+GROUP BY ?id
+ORDER BY ?id
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-statuses-c2991-descendants.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id (MIN(?label) AS ?name)
+  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?workflowStatus),CONCAT("v",ENCODE_FOR_URI(STR(?workflowStatus))),"");separator=" ") AS ?workflowStatuses)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?registrationStatus),CONCAT("v",ENCODE_FOR_URI(STR(?registrationStatus))),"");separator=" ") AS ?registrationStatuses)
+WHERE {
+  GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf> { ?concept rdfs:subClassOf* ncit:C2991 . }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+    ?node ?membership ?concept .
+    { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+    UNION
+    { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+    OPTIONAL { ?node cadsr:display_order ?order }
+    ?element cadsr:publicId ?id ;
+      rdfs:label ?label .
+    OPTIONAL { ?element mdr:administration_status ?workflowStatus }
+    OPTIONAL { ?element mdr:registration_status ?registrationStatus }
+  }
+}
+GROUP BY ?id
+ORDER BY ?id
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-statuses-c2991.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id (MIN(?label) AS ?name)
+  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?workflowStatus),CONCAT("v",ENCODE_FOR_URI(STR(?workflowStatus))),"");separator=" ") AS ?workflowStatuses)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?registrationStatus),CONCAT("v",ENCODE_FOR_URI(STR(?registrationStatus))),"");separator=" ") AS ?registrationStatuses)
+WHERE {
+  VALUES ?concept { ncit:C2991 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+    ?node ?membership ?concept .
+    { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+    UNION
+    { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+    OPTIONAL { ?node cadsr:display_order ?order }
+    ?element cadsr:publicId ?id ;
+      rdfs:label ?label .
+    OPTIONAL { ?element mdr:administration_status ?workflowStatus }
+    OPTIONAL { ?element mdr:registration_status ?registrationStatus }
+  }
+}
+GROUP BY ?id
+ORDER BY ?id
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-statuses-c4817.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id (MIN(?label) AS ?name)
+  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?workflowStatus),CONCAT("v",ENCODE_FOR_URI(STR(?workflowStatus))),"");separator=" ") AS ?workflowStatuses)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?registrationStatus),CONCAT("v",ENCODE_FOR_URI(STR(?registrationStatus))),"");separator=" ") AS ?registrationStatuses)
+WHERE {
+  VALUES ?concept { ncit:C4817 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+    ?node ?membership ?concept .
+    { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+    UNION
+    { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+    OPTIONAL { ?node cadsr:display_order ?order }
+    ?element cadsr:publicId ?id ;
+      rdfs:label ?label .
+    OPTIONAL { ?element mdr:administration_status ?workflowStatus }
+    OPTIONAL { ?element mdr:registration_status ?registrationStatus }
+  }
+}
+GROUP BY ?id
+ORDER BY ?id
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-statuses-c48179.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id (MIN(?label) AS ?name)
+  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?workflowStatus),CONCAT("v",ENCODE_FOR_URI(STR(?workflowStatus))),"");separator=" ") AS ?workflowStatuses)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?registrationStatus),CONCAT("v",ENCODE_FOR_URI(STR(?registrationStatus))),"");separator=" ") AS ?registrationStatuses)
+WHERE {
+  VALUES ?concept { ncit:C48179 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+    ?node ?membership ?concept .
+    { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+    UNION
+    { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+    OPTIONAL { ?node cadsr:display_order ?order }
+    ?element cadsr:publicId ?id ;
+      rdfs:label ?label .
+    OPTIONAL { ?element mdr:administration_status ?workflowStatus }
+    OPTIONAL { ?element mdr:registration_status ?registrationStatus }
+  }
+}
+GROUP BY ?id
+ORDER BY ?id
+LIMIT 1001
+```
+
+### `recorded/ssis-sparql/data-elements-statuses-c49508.json`: `query`
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX mdr: <http://www.iso.org/11179/MDR#>
+PREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>
+PREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+SELECT ?id (MIN(?label) AS ?name)
+  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?workflowStatus),CONCAT("v",ENCODE_FOR_URI(STR(?workflowStatus))),"");separator=" ") AS ?workflowStatuses)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?registrationStatus),CONCAT("v",ENCODE_FOR_URI(STR(?registrationStatus))),"");separator=" ") AS ?registrationStatuses)
+WHERE {
+  VALUES ?concept { ncit:C49508 }
+  GRAPH <http://cbiit.nci.nih.gov/caDSR> {
+    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }
+    ?node ?membership ?concept .
+    { ?element mdr:Object_Class ?node . BIND("objectClass" AS ?useRole) }
+    UNION
+    { ?element mdr:Property ?node . BIND("property" AS ?useRole) }
+    UNION
+    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND("valueMeaning" AS ?useRole) }
+    OPTIONAL { ?node cadsr:display_order ?order }
+    ?element cadsr:publicId ?id ;
+      rdfs:label ?label .
+    OPTIONAL { ?element mdr:administration_status ?workflowStatus }
+    OPTIONAL { ?element mdr:registration_status ?registrationStatus }
+  }
+}
+GROUP BY ?id
+ORDER BY ?id
 LIMIT 1001
 ```
 
@@ -1057,7 +1425,7 @@ Each request: An unknown release answers 404 on every content path: the server f
 
 ### `release/mismatch`
 
-Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 184 fixtures, for A3.4: the content served names another release than the one requested.
+Every payload that reports the pinned release names 26.08e instead, the unpinned forms included; release discovery is left as recorded. Crafted, 186 fixtures, for A3.4: the content served names another release than the one requested.
 
 ### `release/two-latest`
 

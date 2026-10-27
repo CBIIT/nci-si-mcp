@@ -1356,7 +1356,7 @@ def _association_key(item: dict[str, Any]) -> tuple[str, ...]:
 
 def _current_graph_source(recorded: Recorded, file: str, projections: Documents) -> dict[str, Any]:
     if Path(file).name.startswith("data-elements-"):
-        return recorded(file.replace("data-elements-", "data-elements-roles-"))
+        return recorded(file.replace("data-elements-", "data-elements-statuses-"))
     return projections[f"crafted/ssis-public-id/{Path(file).name}"]
 
 
@@ -1423,7 +1423,7 @@ def ssis_distinct_cap(recorded: Recorded) -> Documents:
 
 def ssis_missing_order(recorded: Recorded) -> Documents:
     """Missing order cannot currently be obtained live; remove it from recorded evidence."""
-    source = recorded("recorded/ssis-sparql/data-elements-roles-c17357.json")
+    source = recorded("recorded/ssis-sparql/data-elements-statuses-c17357.json")
     row = source["response"]["body"]["results"]["bindings"][0]
     row["roles"]["value"] = row["roles"]["value"].rsplit("|", 1)[0] + "|"
     return {

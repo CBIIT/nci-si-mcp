@@ -21,8 +21,8 @@ from test_http_client import Reply, ServerTestCase
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = (
     "crafted/ssis-sparql/graph-identities-bounded.json",
-    "recorded/ssis-sparql/data-elements-roles-c17357.json",
-    "recorded/ssis-sparql/data-elements-roles-c17357-descendants.json",
+    "recorded/ssis-sparql/data-elements-statuses-c17357.json",
+    "recorded/ssis-sparql/data-elements-statuses-c17357-descendants.json",
     "crafted/ssis-public-id/values-c20197.json",
     "crafted/ssis-public-id/values-c17357-descendants.json",
 )
@@ -58,6 +58,29 @@ def passed():
 
 
 class SSISContractCommandTest(ServerTestCase):
+    def test_status_aggregate_drift_fails_but_omitted_and_empty_evidence_passes(self):
+        for field in ("workflowStatuses", "registrationStatuses"):
+            for term, error in (
+                ("missing", None),
+                ({"type": "literal", "value": ""}, None),
+                ({"type": "literal", "value": "v v%20DRAFT%20"}, None),
+                ({"type": "uri", "value": "vRELEASED"}, f"{field}: expected aggregate literal"),
+                ({"type": "literal", "value": "RELEASED"}, "upstream_unavailable"),
+                ({"type": "literal", "value": "v%FF"}, "upstream_unavailable"),
+            ):
+                with self.subTest(field=field, term=term):
+                    payloads = bodies()
+                    row = payloads[1]["results"]["bindings"][0]
+                    row.pop(field, None)
+                    if term != "missing":
+                        row[field] = term
+                    result, _ = self.command(payloads)
+                    expected = passed()
+                    if error:
+                        expected[1] = {"id": "elements-exact", "status": "fail", "error": error}
+                    self.assertEqual(json.loads(result.stdout), expected)
+                    self.assertEqual(result.returncode, int(error is not None))
+
     def test_partial_role_binding_fails_and_still_reports_all_five(self):
         for value in (None, "valueMeaning|bad|0"):
             with self.subTest(value=value):
@@ -154,7 +177,8 @@ class SSISContractCommandTest(ServerTestCase):
         expected[1] = {
             "id": "elements-exact",
             "status": "fail",
-            "error": "head.vars must be exactly: id, name, roles",
+            "error": "head.vars must be exactly: id, name, roles, "
+            "workflowStatuses, registrationStatuses",
         }
         self.assertEqual(result.stdout, json.dumps(expected, indent=2) + "\n")
         self.assertEqual(result.returncode, 1, result.stderr)

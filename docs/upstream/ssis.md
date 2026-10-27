@@ -58,7 +58,7 @@ Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/ssis-sparql/query-refused.json](../../acceptance/fixtures/recorded/ssis-sparql/query-refused.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `b137d06b4c6ba1660d450366515031519de60486750347d97ec26cd63954db20`.
 - [acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities-direct.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `c1dd168f191478bcd7e2bf71df530b20ef68ec71d142c3b664dcb943ad68b4ff`.
-- [acceptance/request-forms/ssis.md](../../acceptance/request-forms/ssis.md) — document; SHA-256 `a53debdd95b2fecf05b3a10d672f7ae7e1f88fcb451925c90327cdc739e9f1b3`.
+- [acceptance/request-forms/ssis.md](../../acceptance/request-forms/ssis.md) — document; SHA-256 `5efbe44a24d2b326683068515baa6982eb42708469e72ccc640dc35752ea380b`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
@@ -87,12 +87,42 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 Evidence (linked request/response files retain their original form):
 
 - [acceptance/fixtures/recorded/ssis-sparql/graph-identities.json](../../acceptance/fixtures/recorded/ssis-sparql/graph-identities.json) — recorded on 2026-10-03; POST ssis-sparql /sparql; SHA-256 `1766c631d26999e22a5062f00c9fd4c83ddb3ec8150cc02128af1986bb4b84c6`.
-- [docs/upstream/ssis-queries.yaml](../../docs/upstream/ssis-queries.yaml) — document; SHA-256 `7a9fcb93771bb742e33e782b738ca235c85947729080e5da50cd4fcd322f054f`.
+- [docs/upstream/ssis-queries.yaml](../../docs/upstream/ssis-queries.yaml) — document; SHA-256 `db0d14898c22c061e16167583c1c195123a458983c7d5198999c9a57f79c6a34`.
 
 | Affected test function | Fixture | Live |
 |---|---|---|
 | `acceptance/tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states` | 1 passed | 1 not_live |
 | `acceptance/tests/test_cross_domain.py::test_every_dataset_is_dated_with_the_largest_interval_and_a_warning_above_the_threshold` | 2 passed | 2 not_live |
+
+## ssis-version-status-pairing
+
+**Preserve version-specific status pairs**
+
+Platform requirement/operation: **S-3; S-5**.
+Specification requirements: `find_data_elements_for_concept-1`, `ground_value-2`.
+Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/370#issuecomment-6429093919).
+
+**Observation.** DE2672191 is one graph node with version literals 1 and 2, administration_status RELEASED and RETIRED ARCHIVED, and registration_status Standard and Superceded. Anonymous outgoing, incoming and axiom inspection on 26 October 2026 found no structure tying these literals together. The retained bounded C48179 query records the two independent status sets, not version/status pairs.
+
+**Reproduction.** Read the retained C48179 status query and inspect outgoing, incoming and axiom assertions of caDSR#DE2672191 without joining independent literals.
+
+**Expected.** Model each data element version as its own node, or explicitly pair version, administration status and registration status.
+
+**Impact.** Joining the independent sets invents combinations and cannot identify one version's status pair or a current status.
+
+**Workaround.** Return unchanged unpaired workflowStatuses and registrationStatuses on each public-ID use; direct callers needing a version's own pair to get_data_element with an explicit version.
+
+Current owning test: [`acceptance/tests/test_graph_roles.py::test_graph_status_sets_preserve_unpaired_public_id_evidence`](../../acceptance/tests/test_graph_roles.py) (post-Phase-5).
+
+**Acceptance criteria.** A published version-specific model permits the exact status pair to be read without inferred joins; until then preserve unpaired public-ID evidence.
+
+Evidence (linked request/response files retain their original form):
+
+- [acceptance/fixtures/recorded/ssis-sparql/data-elements-statuses-c48179.json](../../acceptance/fixtures/recorded/ssis-sparql/data-elements-statuses-c48179.json) — recorded on 2026-10-26; POST ssis-sparql /sparql; SHA-256 `29634826a576f476e4265e782751b903176ede8518cffb15ed77a6a58fe34575`.
+
+| Affected test function | Fixture | Live |
+|---|---|---|
+| `acceptance/tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states` | 1 passed | 1 not_live |
 
 ## ssis-public-id-associations
 

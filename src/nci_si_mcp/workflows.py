@@ -160,6 +160,9 @@ def ground_value(
     Data element uses name every graph role and actual matching conceptCode, with optional
     integer displayOrder; the graph gives no primary flag, so use get_data_element for
     caDSR's primary indicator.
+    Optional workflowStatuses and registrationStatuses are unchanged sorted sets across
+    the graph's merged versions, unpaired and possibly mixed. For one version's own
+    status pair, call get_data_element with that explicit version.
     Representation-term use is not covered by this route, so absence does not establish non-use.
 
     registryRelease is left unset today (C-1).

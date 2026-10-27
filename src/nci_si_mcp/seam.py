@@ -33,7 +33,7 @@ from .parameters import (
 from .permissions import require, require_operation
 from .release import ReleaseContext, resolve_evs_release, served_evs_release
 from .release_selection import implicit_selection, select
-from .ssis import NCIT_GRAPH, GraphIdentity, graph_roles
+from .ssis import NCIT_GRAPH, STATUS_FIELDS, GraphIdentity, graph_roles, graph_statuses
 from .validation import (
     ITEM_VERSION_FORM,
     NCIT_CODE_FORM,
@@ -145,6 +145,11 @@ def _element_use(row: dict[str, str], provenance: dict[str, Any]) -> dict[str, A
     return {
         "dataElement": _identity(row) | {"longName": _text(row.get("name"), "data-element name")},
         "roles": graph_roles(row.get("roles", "")),
+        **{
+            field: statuses
+            for field in STATUS_FIELDS
+            if (statuses := graph_statuses(row.get(field, "")))
+        },
         "provenance": provenance,
     }
 
@@ -273,6 +278,9 @@ def find_data_elements_for_concept(
 
     Shared SI merges CDE versions: graph associations identify a public ID only, never
     a version or a value-to-version assignment. caDSR API records keep their item versions.
+    Optional workflowStatuses and registrationStatuses are unchanged sorted sets across
+    merged versions, unpaired and possibly mixed. For one version's own status pair,
+    call get_data_element with that explicit version.
     Roles name every graph path and actual matching conceptCode without inferring a primary flag,
     with optional trimmed integer displayOrder. Use get_data_element for caDSR's primary
     indicator.

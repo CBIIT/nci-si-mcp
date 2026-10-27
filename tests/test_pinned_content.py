@@ -71,6 +71,9 @@ class PinnedClientTest(unittest.TestCase):
         with patch.object(client.http, "get_json", return_value=compact) as request:
             actual = client.get_descendants("A/B", 2, release("old", terminology="other"))
         self.assertEqual(actual, compact)
+        self.assertNotIn("active", actual[0])
+        self.assertNotIn("conceptStatus", actual[0])
+        self.assertNotIn("status", actual[0])
         self.assertEqual(
             request.call_args.args,
             ("/api/v1/concept/other_old/A%2FB/descendants", {"maxLevel": 2}),

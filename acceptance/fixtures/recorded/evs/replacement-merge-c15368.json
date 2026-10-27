@@ -1,0 +1,22 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-26",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/history/ncit_26.09d/C15368/replacements"
+ },
+ "response": {
+  "status": 200,
+  "body": [
+   {
+    "code": "C15368",
+    "name": "Treatment",
+    "action": "merge",
+    "date": "2006-02-24",
+    "replacementCode": "C49236",
+    "replacementName": "Therapeutic Procedure"
+   }
+  ]
+ }
+}

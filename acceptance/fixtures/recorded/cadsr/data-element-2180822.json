@@ -1,0 +1,439 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-26",
+ "request": {
+  "surface": "cadsr",
+  "method": "GET",
+  "path": "/NCIAPI/1.0/api/DataElement/2180822",
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "DataElement": {
+    "publicId": "2180822",
+    "version": "1",
+    "longName": "Treatment Available Administered Time UOM",
+    "shortName": "TX_AVAIL_ADM_TM_UOM",
+    "definition": "the unit of time corresponding the numeric value given to indicate the length of time until the next treatment procedure is given to a patient.",
+    "context": "CTEP",
+    "origin": null,
+    "workflowStatus": "RELEASED",
+    "registrationStatus": "Qualified",
+    "latestVersionIndicator": "Yes",
+    "beginDate": "2004-02-02",
+    "endDate": null,
+    "changeDescription": null,
+    "administrativeNotes": null,
+    "unresolvedIssues": null,
+    "deletedIndicator": "No",
+    "createdBy": "CAMPBELB",
+    "dateCreated": "2004-02-02",
+    "modifiedBy": "CAMPBELB",
+    "dateModified": "2005-01-19",
+    "DataElementConcept": {
+     "publicId": "2195874",
+     "version": "1",
+     "longName": "Treatment Available Administered",
+     "shortName": "TX_AVAIL_ADM",
+     "definition": "information related to the treatment available to be administered.",
+     "context": "CTEP",
+     "origin": null,
+     "workflowStatus": "RELEASED",
+     "registrationStatus": "Application",
+     "latestVersionIndicator": "Yes",
+     "beginDate": "2005-01-18",
+     "endDate": null,
+     "changeDescription": null,
+     "administrativeNotes": null,
+     "unresolvedIssues": null,
+     "deletedIndicator": "No",
+     "createdBy": "CAMPBELB",
+     "dateCreated": "2005-01-18",
+     "modifiedBy": "SBR",
+     "dateModified": "2016-06-06",
+     "ObjectClass": {
+      "publicId": "2176930",
+      "version": "1",
+      "longName": "Treatment",
+      "shortName": "Treatment",
+      "definition": "An action or administration of therapeutic agents to produce an effect that is intended to alter the course of a pathologic process.",
+      "context": "CTEP",
+      "origin": "NCI Thesaurus",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2002-10-29",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "SBREXT",
+      "dateCreated": "2002-10-29",
+      "modifiedBy": "SBR",
+      "dateModified": "2005-03-29",
+      "Concepts": [
+       {
+        "longName": "Therapy",
+        "conceptCode": "C15368",
+        "definition": "An action or administration of therapeutic agents to produce an effect that is intended to alter the course of a pathologic process.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "Yes",
+        "displayOrder": "0"
+       }
+      ]
+     },
+     "Property": {
+      "publicId": "2207846",
+      "version": "1",
+      "longName": "Available Administered",
+      "shortName": "C25429:C25382",
+      "definition": "Available; obtainable or accessible and ready for use or service.:Given.",
+      "context": "NCIP",
+      "origin": "NCI Thesaurus",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2005-03-29",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "SBR",
+      "dateCreated": "2005-03-29",
+      "modifiedBy": "SBR",
+      "dateModified": "2005-03-29",
+      "Concepts": [
+       {
+        "longName": "Availability",
+        "conceptCode": "C25429",
+        "definition": "The quality of being obtainable or accessible and ready for use or service.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "No",
+        "displayOrder": "1"
+       },
+       {
+        "longName": "Administered",
+        "conceptCode": "C25382",
+        "definition": "The act of having given something (e.g., a medication or test).",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "Yes",
+        "displayOrder": "0"
+       }
+      ]
+     },
+     "ConceptualDomain": {
+      "publicId": "2008538",
+      "version": "1",
+      "longName": "Therapies",
+      "shortName": "TX",
+      "definition": "actions or administration of therapeutic agents to produce an effect that is intended to alter the course of a pathologic process (NCI).",
+      "context": "CTEP",
+      "origin": null,
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2002-12-18",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "MSUPLEY",
+      "dateCreated": "2002-12-18",
+      "modifiedBy": "SBR",
+      "dateModified": "2003-10-29"
+     }
+    },
+    "ValueDomain": {
+     "publicId": "2180821",
+     "version": "1",
+     "longName": "Treatment Time UOM",
+     "shortName": "TX_TM_UOM",
+     "definition": "information relating to treatment time.",
+     "context": "CTEP",
+     "type": "Enumerated",
+     "dataType": "CHARACTER",
+     "minLength": null,
+     "maxLength": "6",
+     "minValue": null,
+     "maxValue": null,
+     "decimalPlace": null,
+     "origin": null,
+     "workflowStatus": "RELEASED",
+     "registrationStatus": "Application",
+     "latestVersionIndicator": "Yes",
+     "beginDate": "2004-02-02",
+     "endDate": null,
+     "changeDescription": null,
+     "administrativeNotes": null,
+     "unresolvedIssues": null,
+     "deletedIndicator": "No",
+     "createdBy": "CAMPBELB",
+     "dateCreated": "2004-02-02",
+     "modifiedBy": "REEVESD",
+     "dateModified": "2013-11-20",
+     "PermissibleValues": [
+      {
+       "publicId": "8851361",
+       "value": "months",
+       "valueDescription": "MONTHS",
+       "origin": null,
+       "beginDate": "2004-02-02",
+       "endDate": null,
+       "deletedIndicator": "No",
+       "createdBy": "CAMPBELB",
+       "dateCreated": "2004-02-02",
+       "modifiedBy": "SBR",
+       "dateModified": "2005-03-29",
+       "ValueMeaning": {
+        "publicId": "2565824",
+        "version": "1",
+        "longName": "MONTHS",
+        "shortName": "2565824",
+        "definition": "months",
+        "context": "NCIP",
+        "origin": null,
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application",
+        "latestVersionIndicator": "Yes",
+        "beginDate": "2003-03-25",
+        "endDate": null,
+        "changeDescription": null,
+        "administrativeNotes": null,
+        "unresolvedIssues": null,
+        "deletedIndicator": "No",
+        "createdBy": "MEDVEDOH",
+        "dateCreated": "2003-03-25",
+        "modifiedBy": "SBREXT",
+        "dateModified": "2007-11-07"
+       }
+      },
+      {
+       "publicId": "8851362",
+       "value": "weeks",
+       "valueDescription": "Weeks",
+       "origin": null,
+       "beginDate": "2004-01-06",
+       "endDate": null,
+       "deletedIndicator": "No",
+       "createdBy": "CAMPBELB",
+       "dateCreated": "2004-02-02",
+       "modifiedBy": "SBR",
+       "dateModified": "2005-03-29",
+       "ValueMeaning": {
+        "publicId": "2562323",
+        "version": "1",
+        "longName": "Weeks",
+        "shortName": "2562323",
+        "definition": "Any period of seven consecutive days.",
+        "context": "NCIP",
+        "origin": null,
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application",
+        "latestVersionIndicator": "Yes",
+        "beginDate": "2002-08-09",
+        "endDate": null,
+        "changeDescription": null,
+        "administrativeNotes": null,
+        "unresolvedIssues": null,
+        "deletedIndicator": "No",
+        "createdBy": "JASUR",
+        "dateCreated": "2002-08-09",
+        "modifiedBy": "REEVESD",
+        "dateModified": "2013-11-20",
+        "Concepts": [
+         {
+          "longName": "Week",
+          "conceptCode": "C29844",
+          "definition": "Any period of seven consecutive days.",
+          "evsSource": "NCI_CONCEPT_CODE",
+          "primaryIndicator": "Yes",
+          "displayOrder": "0"
+         }
+        ]
+       }
+      },
+      {
+       "publicId": "8851363",
+       "value": "days",
+       "valueDescription": "Days",
+       "origin": null,
+       "beginDate": "2004-01-06",
+       "endDate": null,
+       "deletedIndicator": "No",
+       "createdBy": "CAMPBELB",
+       "dateCreated": "2004-02-02",
+       "modifiedBy": "SBR",
+       "dateModified": "2005-03-29",
+       "ValueMeaning": {
+        "publicId": "2567323",
+        "version": "1",
+        "longName": "Days",
+        "shortName": "2567323",
+        "definition": "Days",
+        "context": "NCIP",
+        "origin": null,
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application",
+        "latestVersionIndicator": "Yes",
+        "beginDate": "2003-11-14",
+        "endDate": null,
+        "changeDescription": null,
+        "administrativeNotes": null,
+        "unresolvedIssues": null,
+        "deletedIndicator": "No",
+        "createdBy": "SBREXT",
+        "dateCreated": "2003-11-14",
+        "modifiedBy": "ONEDATA",
+        "dateModified": "2003-11-14"
+       }
+      }
+     ],
+     "ConceptualDomain": {
+      "publicId": "2008541",
+      "version": "1",
+      "longName": "Numbers",
+      "shortName": "NUMS",
+      "definition": "the set of non-negative integers.",
+      "context": "CTEP",
+      "origin": null,
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2002-12-19",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "MSUPLEY",
+      "dateCreated": "2002-12-19",
+      "modifiedBy": "SBR",
+      "dateModified": "2003-10-29"
+     },
+     "RepresentationTerm": {
+      "publicId": "2208100",
+      "version": "1",
+      "longName": "Time Unit of Measure",
+      "shortName": "C25207:C25709",
+      "definition": "the continuum of experience in which events pass from the future through the present to the past.:A named quantity in terms of which other quantities are measured or specified used as a standard measurement of same kinds, such as pound or kilogram in measuring weight. (NCI)",
+      "context": "NCIP",
+      "origin": "NCI Thesaurus",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "latestVersionIndicator": "Yes",
+      "beginDate": "2005-03-29",
+      "endDate": null,
+      "changeDescription": null,
+      "administrativeNotes": null,
+      "unresolvedIssues": null,
+      "deletedIndicator": "No",
+      "createdBy": "SBR",
+      "dateCreated": "2005-03-29",
+      "modifiedBy": "ONEDATA",
+      "dateModified": "2005-03-29",
+      "Concepts": [
+       {
+        "longName": "Time",
+        "conceptCode": "C25207",
+        "definition": "The continuum of experience in which events pass from the future through the present to the past.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "No",
+        "displayOrder": "1"
+       },
+       {
+        "longName": "Unit of Measure",
+        "conceptCode": "C25709",
+        "definition": "A named quantity in terms of which other quantities are measured or specified, used as a standard measurement of like kinds.",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "primaryIndicator": "Yes",
+        "displayOrder": "0"
+       }
+      ]
+     }
+    },
+    "ClassificationSchemes": [
+     {
+      "publicId": "2008587",
+      "version": "2",
+      "longName": "Type of Disease",
+      "context": "CTEP",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "2811913",
+        "version": "1",
+        "longName": "Lymphoma",
+        "context": "CTEP",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     },
+     {
+      "publicId": "2008589",
+      "version": "2",
+      "longName": "Type of Category",
+      "context": "CTEP",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "2811955",
+        "version": "1",
+        "longName": "Follow-up",
+        "context": "CTEP",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     },
+     {
+      "publicId": "2008594",
+      "version": "2.31",
+      "longName": "Trial Type Usages (CDE Disease Committees)",
+      "context": "CTEP",
+      "workflowStatus": "RELEASED",
+      "registrationStatus": "Application",
+      "ClassificationSchemeItems": [
+       {
+        "publicId": "2811943",
+        "version": "1",
+        "longName": "Hodgkin's Lymphoma",
+        "context": "CTEP",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       },
+       {
+        "publicId": "2811944",
+        "version": "1",
+        "longName": "NonHodgkins Lymphoma",
+        "context": "CTEP",
+        "workflowStatus": "RELEASED",
+        "registrationStatus": "Application"
+       }
+      ]
+     }
+    ],
+    "ReferenceDocuments": [
+     {
+      "documentName": "CRF Text",
+      "documentText": "Units",
+      "documentType": "Preferred Question Text",
+      "url": null,
+      "context": "CTEP"
+     }
+    ]
+   },
+   "apiResponse": {
+    "type": "S"
+   }
+  }
+ }
+}

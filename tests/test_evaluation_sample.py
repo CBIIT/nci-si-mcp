@@ -47,8 +47,8 @@ class RecordedEvaluationTests(unittest.TestCase):
             report = json.loads(json.dumps(evaluated.evaluation_report))
             self.assertTrue(report["passed"])
             self.assertEqual(report["gold_codes_not_indexed"], [])
-            # The workflow fixtures add 19 recorded cohort descendants to the sample.
-            self.assertEqual(report["concept_count"], 165)
+            # Includes 19 cohort descendants and two source-specific status/history concepts.
+            self.assertEqual(report["concept_count"], 167)
             self.assertEqual(report["evaluation_version"], "test-only-ncit-v1")
             self.assertEqual(report["release"], "26.09d")
             self.assertEqual(report["embedding_dimensions"], 128)

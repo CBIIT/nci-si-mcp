@@ -1,0 +1,19 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-26",
+ "request": {
+  "surface": "evs",
+  "method": "GET",
+  "path": "/api/v1/metadata/ncit_26.09d/conceptStatuses"
+ },
+ "response": {
+  "status": 200,
+  "body": [
+   "Header_Concept",
+   "Retired_Concept",
+   "Obsolete_Concept",
+   "Provisional_Concept",
+   "Concept_Pending_Approval"
+  ]
+ }
+}
