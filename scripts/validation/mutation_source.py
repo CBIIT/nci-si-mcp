@@ -224,6 +224,7 @@ def enclosing_context(node: ast.AST, child: ast.AST, owner: ast.AST | None):
 
 def candidates(path: str, source: bytes) -> tuple[list[Mutant], list[dict]]:
     tree = ast.parse(source)
+    guards = entry_guards(tree)
     result, diagnostics = [], []
     for node, parent, qualname, owner, site in nodes(tree):
         if not isinstance(node, (ast.expr, ast.stmt)):
@@ -231,7 +232,7 @@ def candidates(path: str, source: bytes) -> tuple[list[Mutant], list[dict]]:
         for operator, after in replacements(node, parent):
             start, end, before = segment(source, node)
             changed = source[:start] + after.encode() + source[end:]
-            rejected = rejection(node, after, changed, path)
+            rejected = candidate_rejection(node, after, changed, path, guards)
             if rejected:
                 diagnostics.append(
                     {"file": path, "line": node.lineno, "operator": operator, **rejected}
@@ -255,6 +256,37 @@ def candidates(path: str, source: bytes) -> tuple[list[Mutant], list[dict]]:
                 )
             )
     return result, diagnostics
+
+
+def entry_guards(tree: ast.Module) -> set[int]:
+    return {
+        id(node.test) for node in tree.body if isinstance(node, ast.If) and entry_guard(node.test)
+    }
+
+
+def candidate_rejection(
+    node: ast.AST, after: str, changed: bytes, path: str, guards: set[int]
+) -> dict:
+    if id(node) in guards:
+        return {"outcome": "REJECTED", "reason": "entry-point guard"}
+    return rejection(node, after, changed, path)
+
+
+def entry_guard(node: ast.AST) -> bool:
+    match node:
+        case ast.Compare(
+            left=ast.Name(id="__name__"),
+            ops=[ast.Eq()],
+            comparators=[ast.Constant(value="__main__")],
+        ):
+            return True
+        case ast.Compare(
+            left=ast.Constant(value="__main__"),
+            ops=[ast.Eq()],
+            comparators=[ast.Name(id="__name__")],
+        ):
+            return True
+    return False
 
 
 def rejection(node: ast.AST, after: str, changed: bytes, path: str) -> dict:
