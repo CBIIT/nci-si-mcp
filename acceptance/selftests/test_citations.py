@@ -85,6 +85,7 @@ class Tools:
             ("conceptCode", "C999"),
             ("terminology", "other"),
             ("primary", False),
+            ("displayOrder", 1),
             ("displayOrder", "0"),
         )
     ],

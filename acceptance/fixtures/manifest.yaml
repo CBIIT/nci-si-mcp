@@ -1924,8 +1924,8 @@ record:
        C99249, C172980, C178487, C178488, C179848, C186676, C186727, C200419,
        C20197]   # Male, the concept a permissible value stands for (get_concept_for_permissible_value)
 
-    # The concepts on C4817's paths to the root that no other list records: a traversal reads
-    # the nodes it reaches for their status (the node record, get_concept_hierarchy-2).
+    # C4817's otherwise unrecorded ancestors supply traversal node status
+    # (get_concept_hierarchy-2). C15368 and C65159 are separate replacement/status examples.
     minimal: [C3262, C3263, C3264, C3810, C7057, C7062, C9305, C27551, C27574, C15368, C65159]
 
     # Recorded at 26.09d on 6 October 2026: depth-two cohort descendants, including

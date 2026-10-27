@@ -126,8 +126,10 @@ The component citation case independently GETs anonymous DataElement 2200604/v4 
 stdlib HTTP, then calls MCP at that explicit version with DEC, associations and value domain.
 It compares each component's own ID/version and derivation code, source, explicit primary
 boolean and integer order. Names and dates are not comparison keys; a mismatch shows both
-dateModified values because content may change in place. Network failures and mismatches are
-never retried. Fixture mode uses the separately recorded explicit-version response; the older
+dateModified values because content may change in place. The independent reference GET makes
+one attempt; the harness does not repeat the MCP call or comparison after a failure or mismatch.
+The server's normal upstream retry policy still applies within that MCP call.
+Fixture mode uses the separately recorded explicit-version response; the older
 latest and v1 recordings remain intact. A hosted server's rejected caDSR credential remains a
 credential failure; this anonymous reference request adds no credential or fallback.
 
