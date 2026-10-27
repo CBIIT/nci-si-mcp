@@ -87,6 +87,8 @@ setup) and a `domains` list of measured test-run durations and outcomes. The sch
 each source once, span/replacement edits and preselected test routes; it does not duplicate
 the baseline coverage map per worker. Multiple unittest subtest reports become one owning
 call record; any non-assertion subtest failure keeps that call an infrastructure failure.
+The probe consumes its launch-only evidence destination at configuration; only declared
+xdist workers receive it, so nested pytest programs cannot append to the parent's records.
 
 | Level | What exercises it here |
 | --- | --- |

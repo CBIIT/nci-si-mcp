@@ -7,12 +7,26 @@ from pathlib import Path
 import pytest
 
 CALLS = pytest.StashKey[list[dict]]()
+DESTINATION: str | None = None
+
+
+def pytest_configure(config):
+    global DESTINATION  # noqa: PLW0603 - one pytest invocation owns the process-local sink
+    # Consume the launch-only variable: arbitrary child pytest invocations must not
+    # inherit this run's destination. Only explicit xdist workers share its sink.
+    destination = os.environ.pop("MUTATION_EVIDENCE", None)
+    DESTINATION = getattr(config, "workerinput", {}).get("mutation_evidence", destination)
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_configure_node(node):
+    node.workerinput["mutation_evidence"] = DESTINATION
 
 
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_makereport(item, call):
     report = yield
-    destination = os.environ.get("MUTATION_EVIDENCE")
+    destination = DESTINATION
     if destination:
         assertion = (
             report.when == "call"
@@ -45,7 +59,7 @@ def call_evidence(rows: list[dict]) -> dict:
 
 
 def pytest_collectreport(report):
-    destination = os.environ.get("MUTATION_EVIDENCE")
+    destination = DESTINATION
     if destination and report.failed:
         with Path(destination).open("a") as stream:
             stream.write(
