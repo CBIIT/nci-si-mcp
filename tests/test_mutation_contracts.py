@@ -467,6 +467,48 @@ class MutationVerdictContractsTest(unittest.TestCase):
 
 
 class MutationEvidenceContractsTest(unittest.TestCase):
+    def test_import_validation_kill_requires_traceback_through_the_mutated_file(self):
+        cases = (
+            (
+                "flag = True\nif not flag:\n    raise TypeError('invalid table')\n"
+                "def answer():\n    return flag\n",
+                None,
+                "KILLED",
+            ),
+            (
+                "flag = True\ndef answer():\n    return flag\n",
+                "import example\nif not example.flag:\n    raise TypeError('unrelated collector')\n"
+                "def test_value():\n    assert example.answer()\n",
+                "INFRA",
+            ),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            for text, test, outcome in cases:
+                with self.subTest(outcome=outcome):
+                    project(root, text)
+                    if test:
+                        (root / "tests/test_example.py").write_text(test)
+                    baseline, _ = runner.run_domain(root, "unit", [], 20, baseline=True)
+                    self.assertEqual(baseline["outcome"], "SURVIVED", baseline)
+                    mutants, _ = source.candidates("src/example.py", text.encode())
+                    mutant = next(m for m in mutants if m.line == 1)
+                    path = root / "mutations.json"
+                    mapping = {"unit": {"src/example.py": {1: [""]}}}
+                    path.write_text(json.dumps(gate.manifest_data(root, [mutant], mapping, 20)))
+                    gate.execute_job(path, 0)
+                    row = json.loads((root / "result-0.json").read_text())
+                    self.assertEqual(row["outcome"], outcome, row)
+                    if outcome == "KILLED":
+                        self.assertEqual(
+                            {name: row[name] for name in ("kind", "phase", "node")},
+                            {
+                                "kind": "import",
+                                "phase": "collection",
+                                "node": "tests/test_example.py",
+                            },
+                        )
+
     def test_probe_configuration_consumes_launch_sink_and_passes_only_explicit_worker_sink(self):
         with (
             patch.object(probe, "DESTINATION", None),
