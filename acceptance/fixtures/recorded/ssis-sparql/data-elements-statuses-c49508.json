@@ -1,0 +1,5426 @@
+{
+ "kind": "recorded",
+ "recorded_on": "2026-10-26",
+ "request": {
+  "surface": "ssis-sparql",
+  "method": "POST",
+  "path": "/sparql",
+  "headers": {
+   "Accept": "application/sparql-results+json"
+  },
+  "form": {
+   "query": "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX dc: <http://purl.org/dc/elements/1.1/>\nPREFIX mdr: <http://www.iso.org/11179/MDR#>\nPREFIX cadsr: <http://cbiit.nci.nih.gov/caDSR#>\nPREFIX ncit: <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>\nSELECT ?id (MIN(?label) AS ?name)\n  (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),\"|\",ENCODE_FOR_URI(STR(?concept)),\"|\",COALESCE(ENCODE_FOR_URI(STR(?order)),\"\"));separator=\" \") AS ?roles)\n  (GROUP_CONCAT(DISTINCT IF(BOUND(?workflowStatus),CONCAT(\"v\",ENCODE_FOR_URI(STR(?workflowStatus))),\"\");separator=\" \") AS ?workflowStatuses)\n  (GROUP_CONCAT(DISTINCT IF(BOUND(?registrationStatus),CONCAT(\"v\",ENCODE_FOR_URI(STR(?registrationStatus))),\"\");separator=\" \") AS ?registrationStatuses)\nWHERE {\n  VALUES ?concept { ncit:C49508 }\n  GRAPH <http://cbiit.nci.nih.gov/caDSR> {\n    VALUES ?membership { cadsr:main_concept cadsr:minor_concept }\n    ?node ?membership ?concept .\n    { ?element mdr:Object_Class ?node . BIND(\"objectClass\" AS ?useRole) }\n    UNION\n    { ?element mdr:Property ?node . BIND(\"property\" AS ?useRole) }\n    UNION\n    { ?value cadsr:has_concept ?node . ?element mdr:permitted_value ?value . BIND(\"valueMeaning\" AS ?useRole) }\n    OPTIONAL { ?node cadsr:display_order ?order }\n    ?element cadsr:publicId ?id ;\n      rdfs:label ?label .\n    OPTIONAL { ?element mdr:administration_status ?workflowStatus }\n    OPTIONAL { ?element mdr:registration_status ?registrationStatus }\n  }\n}\nGROUP BY ?id\nORDER BY ?id\nLIMIT 1001"
+  }
+ },
+ "response": {
+  "status": 200,
+  "body": {
+   "head": {
+    "link": [],
+    "vars": [
+     "id",
+     "name",
+     "roles",
+     "workflowStatuses",
+     "registrationStatuses"
+    ]
+   },
+   "results": {
+    "distinct": false,
+    "ordered": true,
+    "bindings": [
+     {
+      "id": {
+       "type": "literal",
+       "value": "10235386"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Nodule Internal Feature Large Pericystic Space Yes No Unknown Data Not Available Indicator"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|2"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vDRAFT%20NEW"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "13279286"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Diagnosis Primary Anatomic Site"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vDRAFT%20NEW"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "13300820"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Tumor/Lesion Identification Supplemental Qualifiers Dataset Large Mediastinal Lymphadenopathy Present Yes No Not Applicable Indicator"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|3"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "13361747"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Surgical Procedure Performed Anatomic Site"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vDRAFT%20NEW"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "13378791"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease Metastasis Anatomic Site"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vDRAFT%20NEW"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14706558"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Laboratory Procedure Character Result in Standard Unit PCORnet Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vDRAFT%20NEW"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14764871"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Health Status Assessment Character Result or Finding in Standard Format PCORnet Common Data Model Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vDRAFT%20NEW"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "14764912"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Health Status Assessment Clinical Character Result or Finding in Standard Format PCORnet Common Data Model Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vDRAFT%20NEW"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15024665"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Large Meal Taken Yes No Indicator"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "objectClass|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|1"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15024666"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Large Meal Taken Time"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "objectClass|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|1"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "15024702"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Large Meal Taken Quantity Details Text"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "objectClass|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|1"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "16990197"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Tumor Identifier Domain Nodal Involvement Extent Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178138"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Family Assessment Required Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178142"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Toxicity Assessment Response Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178144"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Symptomatic Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178148"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Friends Patient intimacy Assessment Quality of Life Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178335"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Family Patient Communication Assessment Quality of Life Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178337"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Partner Patient Intimacy Assessment Quality of Life Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178344"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Despondency Assessment Quality of Life Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178350"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Worry Patient Deterioration Assessment Quality of Life Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178352"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Work Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178354"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Occupation Satisfaction Assessment Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178356"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Life Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178375"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Hobby Satisfaction Assessment"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178411"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178437"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Dyspnea Assessment Response"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178439"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Appearance Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178441"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Limb Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178443"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Sexually Attractive Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178445"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Hair Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178447"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Family Assessment Development Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178450"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Distress Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178458"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Weight Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178460"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Feminine Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178462"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Dyspepsia Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178463"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Heartburn Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178473"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Vomiting Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178484"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Flatulence Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178486"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Mouth Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178488"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Diarrhea Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178490"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Dermal Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178492"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Numbness Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178494"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Fever Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178496"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Constipation Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178498"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Pruritus Assessment Genitalia Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178500"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Emotional Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178502"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Vaginal Assessment Discharge Response"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178504"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Vaginal Assessment Dryness Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178506"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Muscle Cramp Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178508"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Extremity Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178511"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Vigorous Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178513"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Movement Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178514"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Long Walking Difficulty Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178515"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Short Walking Difficulty Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178516"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Mobile Assessment Short Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178518"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Household Activity Support Assessment Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178521"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Vitality Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178522"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Lethargy Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2178523"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Vitality Assessment Reduced Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED vRETIRED%20ARCHIVED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified vSuperceded"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2180199"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Lymphoma Lymph Node Large Diameter Indicator"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|1"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2180201"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Lymphoma Chest Large Diameter Ind-3"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|1"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2194641"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Large Tumor Nodal Head and Neck Site"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "objectClass|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|1"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2479606"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Pediatric Dental Treatment Plan Large Temporary Dental Restoration Importance Weight Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|2"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2482530"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Adult Dental Treatment Plan Large Dental Restoration Importance Weight Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|2"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2624138"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Person Urine Ketone Measurement Result"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2666680"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Disease Therapy Payment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2666687"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Memory Dysfunction Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "2950100"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Finding Present Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3079286"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Biomarker Test Result Interpretation Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%204"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196696"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Size Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196697"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Texture Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196698"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Arm Heavy Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196699"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Nipple Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196700"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Shoulder Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196701"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Arm Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196702"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Pain Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196703"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Lifting Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196704"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Fit Shoulder Clothing Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196705"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Tenderness Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196706"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Shoulder Joint Stiffness Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196707"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Shape Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196708"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Elevation Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196709"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Scar Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196829"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Shoulder Pain Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196830"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Arm Pain Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196831"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Arm Swelling Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196832"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Swelling Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196834"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Arm Joint Stiffness Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196835"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Undergarment Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196836"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Sensitivity Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3196943"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Reconstruction Comparison Fit Clothing Assessment Status"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212306"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Urinary Problem Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212307"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Urinary Problem Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212317"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Urinary Problem Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212318"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Urinary Problem Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212319"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Urinary Problem Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212320"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Urinary Problem Overall Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212321"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Defecation Urgency Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212322"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Increased Defecation Frequency Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212323"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Defecation Incontinence Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212324"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Bloody Feces Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212325"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Abdominal Pelvic Rectal Pain Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212326"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Overall Bowel Function Problem Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212334"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Hot Flashes Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212336"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Breast Tenderness Enlargement Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212337"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Feeling Depression Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212338"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Lack Energy Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3212339"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Past 4 Week Weight Change Severity Code"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3278755"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Occupation Past Year Average Physical Activity Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%203"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3342755"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Low Blood Cell Count Sickness Evaluation Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3342940"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Quality of Life Time Disruption Assessment Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3342955"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Quality of Life Method Disruption Assessment Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3342960"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Number Chemotherapy Cycle Assessment Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3342965"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Quality of Life Number Therapeutic Procedure Weekly Assessment Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3447855"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Hepatocellular Carcinoma Large Size Ind-2"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|1"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3630351"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Cosmetic Status Breast Size Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3630352"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Cosmetic Status Breast Texture Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3630353"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Cosmetic Status Nipple Appearance Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3630359"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Cosmetic Status Breast Shape Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3630366"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Cosmetic Status Breast Elevation Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3630367"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Cosmetic Status Fit Of Bra Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3630368"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Cosmetic Status Fit Of Clothing Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "3872271"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Tissue Donor And/Or Hematopoietic Cell Graft Test Transplantation Transmission Genetic Disease or Disorder Finding Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038052"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Quality of Life Defecation Urgency Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038053"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Defecation Frequency Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038071"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Anal Incontinence Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038091"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Blood Feces Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038111"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Overall Libido Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038112"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Hot Flashes Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038113"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Breast Swelling Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038131"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Depression Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038132"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Fatigue Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038133"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Weight Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038134"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Overall Urinary Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038135"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Quality of Life Urine Leakage Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038136"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Quality of Life Urine Pain Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038137"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Overall Bowel Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038138"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Abdominal Pain Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038139"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Quality of Life Urinary Frequency Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038140"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Quality of Life Incomplete Urination Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038141"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Quality of Life Hematuria Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038142"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Diarrhea Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038143"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Erection Function Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4038144"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Ejaculation Function Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4047491"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Malignant Neoplasm Deep Fibromatosis/Desmoid Tumor Large Size Evaluation Yes No Indicator"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|2"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4076100"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Awakening Urination Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4076109"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Prostate Defecation Urgency Problem Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4076171"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Sex Behavior Libido Occurrence Assessment Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4076177"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Alopecia Assessment Past 4 Week Problem Severity Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4385892"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Post-Treatment Breast pain Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4385893"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Post Radiation Therapy Fatigue Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4478771"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Urethral Discharge Amount Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4637534"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Large Mediastinal Lymphadenopathy Diagnosis Yes No Unknown Not Applicable Indicator"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "objectClass|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|2"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743131"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Cosmetic Status Scar Tissue Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743331"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Functional Status Shoulder Movement Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743351"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Functional Status Arm Movement Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743371"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Functional Status Ability to Lift Objects Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743391"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Functional Status Shoulder Stiffness Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743411"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Functional Status Shoulder Pain Score Difference 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743431"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Functional Status Arm Pain Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743451"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Functional Status Arm Stiffness Score Difference 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743471"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Breast Specific Pain Status Breast Pain Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743472"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Breast Specific Pain Status Breast Tenderness Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743473"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Breast Specific Pain Status Breast Sensitivity Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743474"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Other Status Arm Swelling Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743475"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Other Status Breast Swelling Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743476"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Other Status Rib Pain Difference Score 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "4743491"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Breast Cancer Treatment Outcomes Scale Other Status Breast Skin Color Score Difference 4 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5027556"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Large T-Cell Transformation Occurrence Yes No Indicator"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "objectClass|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|1"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5027592"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Large T-Cell Transformation Occurrence Body System Anatomic Site Names"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "objectClass|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|1"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105636"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 6A Past 4 Weeks How Big a Problem is Dripping or Leaking Urine Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105637"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 6B Past 4 Weeks How Big a Problem is Pain or Burning on Urination Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105638"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 6C Past 4 Weeks How Big a Problem is Bleeding with Urination Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105639"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 6D Past 4 Weeks How Big a Problem is Weak Urine Stream or Incomplete Emptying Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105654"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 6E Past 4 Weeks How Big a Problem is Waking Up to Urinate Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105655"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 6F Past 4 Weeks How Big a Problem is the Need to Urinate Frequently During the Day Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105656"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 7 Past 4 Weeks Overall How Big a Problem is Urinary Function Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105677"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 15A Past 4 Weeks How Big a Problem is Urgency to Have Bowel Movement Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105678"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 15B Past 4 Weeks How Big a Problem is Increased Frequency of Bowel Movements Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105679"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 15C Past 4 Weeks How Big a Problem is Watery Bowel Movements Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105680"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 15D Past 4 Weeks How Big a Problem is Losing Control of Stools Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105681"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 15 E Past 4 Weeks How Big a Problem is Bloody Stools Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105682"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 15F Past 4 Weeks How Big a Problem is Abdominal, Pelvic, or Rectal Pain Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105718"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 16 Past 4 Weeks Overall How Big a Problem Have Your Bowel Habits Been Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105758"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 24A Past 4 Weeks How Big a Problem is Your Level of Sexual Desire Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105759"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 24B Past 4 Weeks How Big a Problem is Your Ability to Have an Erection Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105760"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 24C Past 4 Weeks How Big a Problem is Your Ability to Reach an Orgasm Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105761"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 25 Past 4 Weeks Overall How Big a Problem is Your Sexual Function or Lack of Sexual Function Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105771"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 31A Past 4 Weeks How Big a Problem Are Hot Flashes Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105772"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 31B Past 4 Weeks How Big a Problem is Breast Tenderness or Enlargement Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105792"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 31C Past 4 Weeks How Big a Problem is Loss of Body Hair Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105793"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 31D Past 4 Weeks How Big a Problem is Feeling Depressed Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105811"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 31E Past 4 Weeks How Big a Problem is Lack of Energy Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5105812"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Expanded Prostate Cancer Index Composite 31F Past 4 Weeks How Big a Problem is Your Change in Body Weight Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5731896"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Physician Observation Extent Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5731900"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Physician See As Whole Person Extent Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5731905"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Quantity Like Physician Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5731914"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Quantity Trust Physician Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5731922"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient is Physician Complete Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5731926"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Quantity Thinking High Physician Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5732897"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Quantity Physician Care Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5734020"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Extent Feeling Comfort Inquiry Physician Question Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5734614"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient How Often Comprehension Physician Explanation And Suggestion Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5734720"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Physician Concern Quality of Life Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5734761"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Physician Open Mind Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5734779"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Quantity Time Physician is Moral Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5777077"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Medication Recollect Assessment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5794524"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Agent Too Large To Swallow Severity Problem QOL Experience Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|4"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5801952"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Important Part Of Therapeutic Procedure Assessment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5805837"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Sufficient Pills At Home To Take Assessment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5805838"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Ability To Swallow Pills Assessment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5805839"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Feeling Sick After Taking Assessment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "5805841"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Chemotherapy Ability To Recollect To Take Every Day Assessment Assessment Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6335703"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Ascites Fluid Volume Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6335720"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Pleural Effusion Fluid Volume Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vQualified"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6369523"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Patient Need Assistance Reading Hospital Material Response Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6474948"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Blastic Phase Criterion Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6680190"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Tissue Donor Potential Transfer Disease or Disorder Genetic Carrier Finding Type"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6755661"
+      },
+      "name": {
+       "type": "literal",
+       "value": "This Period Nebulizer Report Large Greater Than Specified Percentage Dose Number"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|4"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "6821792"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Tumor Size Size Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7074700"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Urinate Frequently During the Day Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7074704"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Hot Flashes Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7074713"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Overall Problem Urinary Function Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7074731"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Urgency to Have Bowel Movement Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7074779"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Pain or Burning on Urination Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7074835"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Increased Frequency of Bowel Movements Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7074839"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Dripping or Leaking Urine Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7074845"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Overall Problem Bowel Habits Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7166651"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-CP Questionnaire 1 Past 4 Weeks Overall Problem Urinary Function Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7166959"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-CP Questionnaire 8 Past 4 Weeks Rectal Pain or Urgency of Bowel Movements Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7166960"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC Past 4 Weeks Overall How Big a Problem Have Your Bowel Habits Been Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7167031"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-CP Questionnaire 14 Past 4 Weeks Problem Lack of Sexual Function Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7167032"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-CP Questionnaire 15 Past 4 Weeks Hot Flashes or Breast Tenderness Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7204053"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Weak Urine Stream or Incomplete Emptying Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7204054"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Bleeding With Urination Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7204055"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Losing Control of Stools Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7204056"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Bloody Stools Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7204059"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Overall Problem Sexual Function Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7204060"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Breast Tender or Enlargement Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7204061"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Feeling Depressed Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7204062"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Lack of Energy Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7204063"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Change in Body Weight Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7204212"
+      },
+      "name": {
+       "type": "literal",
+       "value": "EPIC-26 - Abdominal or Pelvic or Rectal Pain Score 5 Point Scale"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|%201"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vStandard"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7351584"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Tumor Identifier Domain Neoplasm Size Category"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "valueMeaning|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|0"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     },
+     {
+      "id": {
+       "type": "literal",
+       "value": "7619729"
+      },
+      "name": {
+       "type": "literal",
+       "value": "Lymphoma Lymph Node Large Diameter Lymph Node Diameter Large Indicator"
+      },
+      "roles": {
+       "type": "literal",
+       "value": "property|http%3A%2F%2Fncicb.nci.nih.gov%2Fxml%2Fowl%2FEVS%2FThesaurus.owl%23C49508|1"
+      },
+      "workflowStatuses": {
+       "type": "literal",
+       "value": "vRELEASED"
+      },
+      "registrationStatuses": {
+       "type": "literal",
+       "value": "vApplication"
+      }
+     }
+    ]
+   }
+  }
+ }
+}

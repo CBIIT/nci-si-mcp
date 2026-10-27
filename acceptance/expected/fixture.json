@@ -924,6 +924,7 @@
   "tests/test_graph_roles.py::test_every_matching_graph_role_and_actual_concept_is_preserved[descendants]": "passed",
   "tests/test_graph_roles.py::test_every_matching_graph_role_and_actual_concept_is_preserved[exact]": "passed",
   "tests/test_graph_roles.py::test_graph_main_at_order_one_never_claims_primary": "passed",
+  "tests/test_graph_roles.py::test_graph_status_sets_preserve_unpaired_public_id_evidence": "passed",
   "tests/test_graph_roles.py::test_grounding_preserves_the_same_complete_role_record": "passed",
   "tests/test_graph_roles.py::test_missing_graph_order_stays_absent": "passed",
   "tests/test_permissions.py::test_a_guessed_tool_is_refused_without_upstream_reads_or_sensitive_logs": "passed",

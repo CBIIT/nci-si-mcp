@@ -241,6 +241,7 @@ ignore_names = [
     "crdcName", "usedBy", "valueLevelBinding", "coverage", "codeMaps",
     "conceptTerminology", "dataElements", "permissibleValue", "storedValues", "confidence",
     "intervalDays", "displayOrder",
+    "workflowStatuses", "registrationStatuses",
     "perHop", "permissibleValueAlignment", "sampleValues",
     # Benchmark record fields are read by dataclasses.asdict and the transport field selector.
     "elapsedMs", "resultBytes", "responseCode", "outboundRequests", "httpRequests",

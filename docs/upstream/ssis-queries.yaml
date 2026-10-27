@@ -22,8 +22,8 @@ queries:
     operation: find_data_elements
     args: [C17357]
     kwargs: {expand_descendants: false, maximum: 1000}
-    evidence: recorded/ssis-sparql/data-elements-roles-c17357.json
-    selected: [id, name, roles]
+    evidence: recorded/ssis-sparql/data-elements-statuses-c17357.json
+    selected: [id, name, roles, workflowStatuses, registrationStatuses]
     required: [id, name, roles]
     limit: 1001
     consumers: [find_data_elements_for_concept, ground_value]
@@ -32,8 +32,8 @@ queries:
     operation: find_data_elements
     args: [C17357]
     kwargs: {expand_descendants: true, maximum: 1000}
-    evidence: recorded/ssis-sparql/data-elements-roles-c17357-descendants.json
-    selected: [id, name, roles]
+    evidence: recorded/ssis-sparql/data-elements-statuses-c17357-descendants.json
+    selected: [id, name, roles, workflowStatuses, registrationStatuses]
     required: [id, name, roles]
     limit: 1001
     consumers: [find_data_elements_for_concept]
