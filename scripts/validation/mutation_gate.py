@@ -64,14 +64,15 @@ def measure(
     if not selected:
         return {"outcome": "NO_TESTS", "domains": []}
     timings = []
+    result = {}
     for domain, tests in selected.items():
         result, _ = run_domain(scratch, domain, tests, timeout, mutated_file=mutated_file)
         timings.append({key: result[key] for key in ("domain", "outcome", "elapsed_seconds")})
+        if domain == "fixture":
+            result["confirmation"] = "fixture"
         if result["outcome"] != "SURVIVED":
             return {**result, "domains": timings}
-    result, _ = run_domain(scratch, "fixture", [], timeout, mutated_file=mutated_file)
-    timings.append({key: result[key] for key in ("domain", "outcome", "elapsed_seconds")})
-    result["confirmation"] = "fixture"
+    result["confirmation"] = "fixture" if "fixture" in selected else "unreached"
     return {**result, "domains": timings}
 
 

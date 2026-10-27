@@ -178,7 +178,7 @@ def run_domain(
         str(scratch / directory),
         *(selected or [default]),
     ]
-    args += coverage_args(scratch, work, baseline, domain, env)
+    args += coverage_args(scratch, work, baseline, env)
     if domain == "fixture":
         env.update(FIXTURE)
         args += ["--report=fixture.json"]
@@ -193,10 +193,8 @@ def run_domain(
     return result, work / ".coverage"
 
 
-def coverage_args(
-    scratch: Path, work: Path, baseline: bool, domain: str, env: dict[str, str]
-) -> list[str]:
-    if not baseline or domain == "fixture":
+def coverage_args(scratch: Path, work: Path, baseline: bool, env: dict[str, str]) -> list[str]:
+    if not baseline:
         return ["--no-cov"]
     config = work / ".coveragerc"
     env["COVERAGE_PROCESS_START"] = str(config)
@@ -241,8 +239,7 @@ def baseline(root: Path, timeout: float, *, timings: list[dict] | None = None) -
                 )
             if outcome["outcome"] != "SURVIVED":
                 raise ValueError(f"Baseline {domain} failed: {outcome}")
-            if domain != "fixture":
-                result[domain] = coverage_map(data, scratch)
+            result[domain] = coverage_map(data, scratch)
     return result
 
 

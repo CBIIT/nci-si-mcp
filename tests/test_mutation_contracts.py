@@ -80,11 +80,16 @@ class MutationCliContractsTest(unittest.TestCase):
             results = [row for row in rows if "site" in row]
             self.assertEqual(status, 1, rows)
             for row in results:
-                self.assertEqual(row.get("fallback_domains"), ["unit"] if row["line"] == 1 else [])
+                self.assertEqual(
+                    row.get("fallback_domains"), ["fixture", "unit"] if row["line"] == 1 else []
+                )
             fallback_count = sum(row["line"] == 1 for row in results)
             self.assertGreater(fallback_count, 0)
             self.assertEqual(rows[-1].get("fallback_count"), fallback_count)
-            self.assertEqual(rows[-1].get("fallback_domains"), {"unit": fallback_count})
+            self.assertEqual(
+                rows[-1].get("fallback_domains"),
+                {"unit": fallback_count, "fixture": fallback_count},
+            )
             self.assertGreater(rows[-1]["counts"]["NO_TESTS"], 0)
             seconds = runner_seconds(results)
             self.assertEqual(rows[-1].get("runner_seconds"), seconds)
@@ -862,7 +867,7 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                 runner.baseline(root, 30)
             project(root, "def answer():\n    return True\n")
             mapping = runner.baseline(root, 30)
-            self.assertEqual(set(mapping), {"unit", "selftest"})
+            self.assertEqual(set(mapping), {"unit", "selftest", "fixture"})
             self.assertEqual(
                 runner.selection(mapping, "src/example.py", 2, 2),
                 {"unit": ["tests/test_example.py::test_value"]},
@@ -889,7 +894,11 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                     "    assert example.answer() is True"
                 ),
             )
-            selected = {"unit": ["tests/test_example.py::test_value"], "selftest": []}
+            selected = {
+                "unit": ["tests/test_example.py::test_value"],
+                "selftest": [],
+                "fixture": ["tests/test_contract.py::test_contract"],
+            }
             confirmation = gate.measure(root, selected, 30)
             self.assertEqual(
                 (confirmation["outcome"], confirmation["confirmation"]), ("SURVIVED", "fixture")

@@ -281,6 +281,36 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_prepared_fixture_stdio_rpc_reaches_source_with_honest_setup_fallback(self):
+        # A session-scoped MCP child keeps its spawn-time setup context even
+        # when this test's later RPC executes a handler for the first time.
+        node = (
+            "tests/test_evs.py::test_a_discovered_release_identifies_the_concept_and_its_provenance"
+        )
+        with snapshot(ROOT) as scratch:
+            result, data = run_domain(scratch, "fixture", [node], 120, baseline=True)
+            self.assertEqual(result["outcome"], "SURVIVED", result)
+            mapping = coverage_map(data, scratch)
+            source = "src/nci_si_mcp/content.py"
+            line = next(
+                number
+                for number, text in enumerate((scratch / source).read_text().splitlines(), 1)
+                if text.strip() == "code = _code(code, terminology)"
+            )
+            self.assertEqual(set(mapping[source][line]), {f"{node}|setup"})
+            self.assertEqual(selection({"fixture": mapping}, source, line, line), {"fixture": []})
+            self.assertFalse(
+                any(
+                    mapping.get(f"scripts/validation/{name}.py", {})
+                    for name in (
+                        "mutation_gate",
+                        "mutation_run",
+                        "mutation_source",
+                        "mutation_probe",
+                    )
+                )
+            )
+
     def test_unreached_fixture_survivor_never_launches_a_confirmation_process(self):
         # Given a unit-only call, the full fixture baseline still runs, but no
         # mutant may launch a fixture process that cannot execute the changed line.
@@ -289,13 +319,18 @@ class MutationExecutionTest(unittest.TestCase):
             project(
                 root, "def answer():\n    return True\n", "assert example.answer() is not Ellipsis"
             )
+            (root / "acceptance/tests/test_contract.py").write_text(
+                "def test_contract():\n    assert 1 == 1\n"
+            )
             log = root / "fixture-calls.jsonl"
             (root / "acceptance/conftest.py").write_text(
-                "import json, sys\nfrom pathlib import Path\n"
+                "import json, os\nfrom pathlib import Path\n"
                 "def pytest_addoption(parser):\n    parser.addoption('--report')\n"
                 "def pytest_sessionstart(session):\n"
+                "    if os.environ.get('NCI_SI_ACCEPTANCE_MODE') != 'fixture':\n        return\n"
                 f"    with Path({str(log)!r}).open('a') as stream:\n"
-                "        stream.write(json.dumps(sys.argv) + '\\n')\n"
+                "        stream.write(json.dumps(session.config.getoption('cov_context'))"
+                " + '\\n')\n"
             )
             status, rows = command(root, "--paths", "src/example.py")
             survivors = mutant_rows(rows)
@@ -309,7 +344,7 @@ class MutationExecutionTest(unittest.TestCase):
             launches = json_lines(log)
             # One controller plus its four workers belong to the mandatory baseline.
             self.assertEqual(len(launches), 5, launches)
-            self.assertTrue(all("--cov-context=test" in launch for launch in launches))
+            self.assertEqual(launches, ["test"] * 5)
 
     def test_fixture_only_child_line_selects_its_one_owner_and_kills_without_unit_coverage(self):
         # Given a line reached only in a fixture test's real child program, run
@@ -756,7 +791,7 @@ class MutationExecutionTest(unittest.TestCase):
                 {row["node"] for row in events}, {"tests/test_example.py::Outer::test_nested"}
             )
 
-    def test_uncovered_sites_fail_no_tests_and_reviewed_survivors_still_get_fixture_confirmation(
+    def test_uncovered_sites_fail_no_tests_and_reviewed_survivors_record_unreached_fixture(
         self,
     ):
         source = "def answer():\n    return True\n"
@@ -780,7 +815,7 @@ class MutationExecutionTest(unittest.TestCase):
             self.assertEqual(status, 0, rows)
             allowed = [row for row in rows if row["outcome"] == "ALLOWLISTED"]
             self.assertEqual(len(allowed), 3)
-            self.assertEqual({row["confirmation"] for row in allowed}, {"fixture"})
+            self.assertEqual({row["confirmation"] for row in allowed}, {"unreached"})
 
     def test_fixture_owns_a_kill_when_units_only_execute_the_value(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -889,9 +924,9 @@ class MutationExecutionTest(unittest.TestCase):
 
 
 class MutationCommandTest(unittest.TestCase):
-    def test_an_unkilled_mutant_fails_with_source_and_fixture_confirmation(self):
+    def test_an_unkilled_mutant_fails_with_source_and_unreached_fixture(self):
         # Given an executed return whose value neither domain checks, when the gate runs,
-        # then it reports the survivor after trying the fixture owner, and fails closed.
+        # then it records the unreached fixture domain and fails closed.
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             files = {
@@ -932,5 +967,5 @@ class MutationCommandTest(unittest.TestCase):
             self.assertEqual(survivors[0]["line"], 2)
             self.assertEqual(survivors[0]["before"], "True")
             self.assertEqual(survivors[0]["after"], "False")
-            self.assertEqual(survivors[0]["confirmation"], "fixture")
+            self.assertEqual(survivors[0]["confirmation"], "unreached")
             self.assertEqual((root / "src/example.py").read_bytes(), before)

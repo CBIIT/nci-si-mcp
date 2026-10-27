@@ -60,8 +60,8 @@ milestone. The gate's nested self-tests require the larger timeout.
 
 Before launching mutants, every nonempty shard requires clean unit, harness self-test and
 prepared fixture baselines. Any baseline failure names its domain and fails the gate, even
-when the acceptance ratchet expects that failure. Only unit and self-test baselines collect
-coverage contexts for test selection; the fixture baseline checks readiness without coverage.
+when the acceptance ratchet expects that failure. All three baselines collect coverage contexts
+for test selection, including server child processes in the prepared fixture baseline.
 The shard summary's `baseline_domains` records each domain's outcome and measured seconds.
 
 Beyond the server and the suite, the repository holds the documentation site, the validation
@@ -148,6 +148,13 @@ Baseline Python children inherit their parent's test-phase coverage context. Cal
 select their exact owning tests; spans with only import/setup/teardown contexts run the whole
 domain. Unrecognized contexts fail mapping. Each result names its `fallback_domains`; shard
 summaries count fallback mutants overall and per domain, alongside outcomes and kill kinds.
+Domains run in unit, self-test, then fixture order, stopping when a mutant is detected.
+Fixture confirmation runs only tests whose baseline contexts reach the mutated lines;
+`confirmation: unreached` records a survivor with no fixture reach and no fixture run.
+`NO_TESTS` means no domain reached the lines, including fixture-only coverage.
+Long-lived fixture servers retain the setup context present when they start; later RPCs
+cannot inherit changes to the parent's environment. Their setup-only lines therefore use
+the whole-fixture fallback, counted like the other domains, rather than claiming per-RPC ownership.
 `runner_seconds_by_domain`, `runner_seconds` and `runner_hours` sum measured mutant test-process
 durations, excluding baseline and scratch setup; they are distinct from shard wall time.
 
