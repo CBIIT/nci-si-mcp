@@ -122,6 +122,8 @@ class MutationOperatorsTest(unittest.TestCase):
                 "if": "github.event_name == 'pull_request' && github.base_ref == 'main'",
                 "permissions": {"contents": "read"},
                 "runs-on": "ubuntu-24.04",
+                "timeout-minutes": 300,
+                "strategy": {"fail-fast": False, "matrix": {"shard": [1, 2, 3]}},
                 "steps": [
                     {
                         "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -137,8 +139,12 @@ class MutationOperatorsTest(unittest.TestCase):
                         "env": {
                             "BASE_SHA": "${{ github.event.pull_request.base.sha }}",
                             "HEAD_SHA": "${{ github.event.pull_request.head.sha }}",
+                            "SHARD": "${{ matrix.shard }}/3",
                         },
-                        "run": 'pdm run mutation-gate --base "$BASE_SHA" --head "$HEAD_SHA" -n 2',
+                        "run": (
+                            'pdm run mutation-gate --base "$BASE_SHA" --head "$HEAD_SHA" '
+                            '--shard "$SHARD" -n 2'
+                        ),
                     },
                 ],
             },

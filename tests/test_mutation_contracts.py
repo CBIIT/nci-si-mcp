@@ -1,6 +1,7 @@
 """Caller-visible edge contracts left uncovered by the gate's subprocess tests."""
 
 import ast
+import hashlib
 import io
 import json
 import os
@@ -14,6 +15,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+import yaml
 from coverage import CoverageData
 from scripts.validation import mutation_gate as gate
 from scripts.validation import mutation_probe as probe
@@ -40,7 +42,100 @@ def git(root, *args):
     ).strip()
 
 
+def result_key(row):
+    return json.dumps(
+        {
+            name: row[name]
+            for name in ("file", "qualname", "operator", "site", "context", "original", "mutated")
+        },
+        sort_keys=True,
+    )
+
+
 class MutationCliContractsTest(unittest.TestCase):
+    def test_shard_union_covers_every_stable_key_once_and_preserves_survivor_verdict(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            text = "def answer():\n    return True\n"
+            project(root, text, "assert example.answer() is not Ellipsis")
+            mutants, _ = source.candidates("src/example.py", text.encode())
+            expected = {json.dumps(m.key(), sort_keys=True) for m in mutants}
+            observed = []
+            for index in (1, 2, 3):
+                status, rows = command(root, "--paths", "src/example.py", "--shard", f"{index}/3")
+                self.assertEqual(status, 1, rows)
+                catalogue = rows[1]
+                results = [row for row in rows if "site" in row]
+                self.assertEqual(
+                    catalogue,
+                    {
+                        "outcome": "CATALOGUE",
+                        "shard": f"{index}/3",
+                        "full_mutants": len(mutants),
+                        "shard_mutants": len(results),
+                    },
+                )
+                for row in results:
+                    key = result_key(row)
+                    observed.append(key)
+                    self.assertEqual(
+                        int(hashlib.sha256(key.encode()).hexdigest(), 16) % 3 + 1, index
+                    )
+                summary = rows[-1]
+                self.assertEqual(summary["outcome"], "SUMMARY")
+                self.assertEqual(summary["counts"], {"SURVIVED": len(results)})
+                self.assertEqual(summary["kill_kinds"], {"assertion": 0, "error": 0, "import": 0})
+            self.assertEqual(set(observed), expected)
+            self.assertEqual(len(observed), len(expected))
+
+    def test_invalid_shards_are_usage_errors(self):
+        for value in ("0/3", "4/3", "1/0", "-1/3", "1", "a/3", "1/2/3"):
+            with self.subTest(value=value):
+                result = cli(Path.cwd(), f"--shard={value}")
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(
+                    result.stderr.splitlines()[-1],
+                    "python -m scripts.validation.mutation_gate: error: argument --shard: "
+                    "expected K/N with 1 <= K <= N",
+                )
+
+    def test_empty_shard_reports_full_count_and_stale_entries_still_fail(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            text = "def answer():\n    return True\n"
+            project(root, text)
+            mutants, _ = source.candidates("src/example.py", text.encode())
+            occupied = {
+                int(source.digest(json.dumps(m.key(), sort_keys=True)), 16) % 100 + 1
+                for m in mutants
+            }
+            empty = next(index for index in range(1, 101) if index not in occupied)
+            status, rows = command(root, "--paths", "src/example.py", "--shard", f"{empty}/100")
+            self.assertEqual(status, 0, rows)
+            self.assertEqual(
+                rows[-1],
+                {
+                    "outcome": "EMPTY",
+                    "mutants": 0,
+                    "shard": f"{empty}/100",
+                    "full_mutants": 3,
+                    "shard_mutants": 0,
+                },
+            )
+            entry = {**mutants[0].key(), "context": "stale", "reason": "Reviewed equivalent."}
+            (root / "allow.yaml").write_text(yaml.safe_dump([entry]))
+            status, rows = command(
+                root,
+                "--paths",
+                "src/example.py",
+                "--shard",
+                f"{empty}/100",
+                "--allowlist",
+                "allow.yaml",
+            )
+            self.assertEqual(status, 2)
+            self.assertIn("Stale", rows[-1]["message"])
+
     def test_real_main_reports_every_kill_and_returns_the_scheduler_verdict(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
