@@ -13,6 +13,7 @@ from pathlib import Path
 from time import monotonic
 
 from coverage import CoverageData
+from pytest import ExitCode
 from scripts.processes import stop
 
 DOMAINS = {
@@ -98,7 +99,7 @@ def program(command: list[str], cwd: Path, env: dict[str, str], timeout: float, 
             stop(process, group=True)
 
 
-def classify(status: int | None, evidence: Path) -> dict:
+def classify(status: int | None, evidence: Path, mutated_file: Path | None = None) -> dict:
     if status is None:
         return {"outcome": "TIMEOUT"}
     rows = (
@@ -106,12 +107,12 @@ def classify(status: int | None, evidence: Path) -> dict:
         if evidence.exists()
         else []
     )
-    return evidence_outcome(status, rows)
+    return evidence_outcome(status, rows, mutated_file)
 
 
-def evidence_outcome(status: int, rows: list[dict]) -> dict:
+def evidence_outcome(status: int, rows: list[dict], mutated_file: Path | None = None) -> dict:
     failed = [row for row in rows if row["outcome"] == "failed"]
-    kill = call_kill(status, failed)
+    kill = call_kill(status, failed) or import_kill(status, failed, mutated_file)
     if kill:
         return kill
     if status not in (0, 5) or failed:
@@ -135,8 +136,25 @@ def call_kill(status: int, failed: list[dict]) -> dict:
     return {}
 
 
+def import_kill(status: int, failed: list[dict], mutated_file: Path | None) -> dict:
+    if status != ExitCode.INTERRUPTED or not mutated_file or len(failed) != 1:
+        return {}
+    row = failed[0]
+    if row["phase"] != "collection" or row.get("exception", "").startswith("SystemExit"):
+        return {}
+    if str(mutated_file.resolve()) not in row.get("traceback_paths", []):
+        return {}
+    return {"outcome": "KILLED", "kind": "import", "phase": "collection", "node": row["node"]}
+
+
 def run_domain(
-    scratch: Path, domain: str, selected: list[str], timeout: float, *, baseline: bool = False
+    scratch: Path,
+    domain: str,
+    selected: list[str],
+    timeout: float,
+    *,
+    baseline: bool = False,
+    mutated_file: Path | None = None,
 ) -> tuple[dict, Path]:
     directory, default = DOMAINS[domain]
     work = Path(tempfile.mkdtemp(prefix=f"evidence-{domain}-", dir=scratch.parent))
@@ -168,7 +186,7 @@ def run_domain(
     started = monotonic()
     status = program(args, scratch / directory, env, timeout, log)
     elapsed = monotonic() - started
-    result = classify(status, evidence)
+    result = classify(status, evidence, mutated_file)
     if baseline and result["outcome"] == "KILLED":
         result["outcome"] = "INFRA"
     result.update(domain=domain, log=log.read_text(errors="replace"), elapsed_seconds=elapsed)

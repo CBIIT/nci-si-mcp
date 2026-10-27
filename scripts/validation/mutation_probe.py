@@ -69,10 +69,25 @@ def pytest_collectreport(report):
                         "phase": "collection",
                         "outcome": "failed",
                         "assertion": False,
+                        **collection_traceback(report),
                     }
                 )
                 + "\n"
             )
+
+
+def collection_traceback(report) -> dict:
+    representation = getattr(report, "longrepr", None)
+    traceback = getattr(representation, "reprtraceback", None)
+    if traceback is None:
+        return {}
+    paths = [
+        str(Path(entry.reprfileloc.path).resolve())
+        for entry in traceback.reprentries
+        if getattr(entry, "reprfileloc", None) is not None
+    ]
+    crash = getattr(representation, "reprcrash", None)
+    return {"traceback_paths": paths, "exception": getattr(crash, "message", "")}
 
 
 class MutationItem(pytest.Item):

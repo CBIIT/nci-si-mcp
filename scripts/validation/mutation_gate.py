@@ -41,7 +41,7 @@ def execute_job(path: Path, index: int) -> None:
             target.write_bytes(
                 original[: mutant.start] + mutant.after.encode() + original[mutant.end :]
             )
-            result = measure(scratch, item["selected"], jobs["timeout"])
+            result = measure(scratch, item["selected"], jobs["timeout"], mutated_file=target)
         finally:
             target.write_bytes(original)
             if digest(target.read_bytes().hex()) != digest(original.hex()):
@@ -50,16 +50,18 @@ def execute_job(path: Path, index: int) -> None:
     (path.parent / f"result-{index}.json").write_text(json.dumps(row))
 
 
-def measure(scratch: Path, selected: dict, timeout: float) -> dict:
+def measure(
+    scratch: Path, selected: dict, timeout: float, *, mutated_file: Path | None = None
+) -> dict:
     if not selected:
         return {"outcome": "NO_TESTS", "domains": []}
     timings = []
     for domain, tests in selected.items():
-        result, _ = run_domain(scratch, domain, tests, timeout)
+        result, _ = run_domain(scratch, domain, tests, timeout, mutated_file=mutated_file)
         timings.append({key: result[key] for key in ("domain", "outcome", "elapsed_seconds")})
         if result["outcome"] != "SURVIVED":
             return {**result, "domains": timings}
-    result, _ = run_domain(scratch, "fixture", [], timeout)
+    result, _ = run_domain(scratch, "fixture", [], timeout, mutated_file=mutated_file)
     timings.append({key: result[key] for key in ("domain", "outcome", "elapsed_seconds")})
     result["confirmation"] = "fixture"
     return {**result, "domains": timings}
