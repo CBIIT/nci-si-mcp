@@ -53,6 +53,23 @@ def result_key(row):
 
 
 class MutationCliContractsTest(unittest.TestCase):
+    def test_seed_and_comment_line_shifts_preserve_shard_membership_across_processes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            text = "def answer():\n    return True\n"
+            project(root, text)
+            first_status, first = command(root, "--paths", "src/example.py", "--shard", "1/3")
+            (root / "src/example.py").write_text("# moved\n\n" + text)
+            second_status, second = command(
+                root, "--paths", "src/example.py", "--shard", "1/3", "--seed", "79"
+            )
+            self.assertEqual((first_status, second_status), (0, 0), (first, second))
+            self.assertEqual(
+                [result_key(row) for row in first if "site" in row],
+                [result_key(row) for row in second if "site" in row],
+            )
+            self.assertEqual(first[1], second[1])
+
     def test_shard_union_covers_every_stable_key_once_and_preserves_survivor_verdict(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
@@ -467,6 +484,25 @@ class MutationVerdictContractsTest(unittest.TestCase):
 
 
 class MutationEvidenceContractsTest(unittest.TestCase):
+    def test_system_exit_and_internal_errors_never_become_import_kills(self):
+        target = Path("src/example.py").resolve()
+        failure = {
+            "node": "tests/test_example.py",
+            "phase": "collection",
+            "outcome": "failed",
+            "assertion": False,
+            "traceback_paths": [str(target)],
+            "exception": "SystemExit: 1",
+        }
+        for status in (1, 2, 3):
+            with self.subTest(status=status):
+                self.assertEqual(
+                    runner.evidence_outcome(status, [failure], target),
+                    {"outcome": "INFRA", "status": status, "failures": [failure]},
+                )
+        failure["exception"] = "TypeError: invalid table"
+        self.assertEqual(runner.evidence_outcome(3, [failure], target)["outcome"], "INFRA")
+
     def test_import_validation_kill_requires_traceback_through_the_mutated_file(self):
         cases = (
             (
