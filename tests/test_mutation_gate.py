@@ -44,6 +44,18 @@ def command(root, *args):
     return result.returncode, [json.loads(line) for line in result.stdout.splitlines()]
 
 
+def mutant_rows(rows):
+    return [row for row in rows if "site" in row]
+
+
+def domain_routes(rows):
+    return [[run["domain"] for run in row["domains"]] for row in rows]
+
+
+def json_lines(path):
+    return [json.loads(line) for line in path.read_text().splitlines()]
+
+
 def cli(root, *args):
     return subprocess.run(  # noqa: S603 - fixed PDM command, owned paths
         ["pdm", "run", "mutation-gate", "--root", str(root), *args],  # noqa: S607
@@ -269,6 +281,79 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_unreached_fixture_survivor_never_launches_a_confirmation_process(self):
+        # Given a unit-only call, the full fixture baseline still runs, but no
+        # mutant may launch a fixture process that cannot execute the changed line.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(
+                root, "def answer():\n    return True\n", "assert example.answer() is not Ellipsis"
+            )
+            log = root / "fixture-calls.jsonl"
+            (root / "acceptance/conftest.py").write_text(
+                "import json, sys\nfrom pathlib import Path\n"
+                "def pytest_addoption(parser):\n    parser.addoption('--report')\n"
+                "def pytest_sessionstart(session):\n"
+                f"    with Path({str(log)!r}).open('a') as stream:\n"
+                "        stream.write(json.dumps(sys.argv) + '\\n')\n"
+            )
+            status, rows = command(root, "--paths", "src/example.py")
+            survivors = mutant_rows(rows)
+            self.assertEqual(status, 1, rows)
+            self.assertEqual({row["outcome"] for row in survivors}, {"SURVIVED"})
+            self.assertEqual({row.get("confirmation") for row in survivors}, {"unreached"})
+            self.assertEqual(
+                domain_routes(survivors),
+                [["unit"]] * 3,
+            )
+            launches = json_lines(log)
+            # One controller plus its four workers belong to the mandatory baseline.
+            self.assertEqual(len(launches), 5, launches)
+            self.assertTrue(all("--cov-context=test" in launch for launch in launches))
+
+    def test_fixture_only_child_line_selects_its_one_owner_and_kills_without_unit_coverage(self):
+        # Given a line reached only in a fixture test's real child program, run
+        # that owner alone after the clean three-domain baseline, never NO_TESTS.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n", "assert True")
+            log = root / "fixture-calls.jsonl"
+            (root / "acceptance/conftest.py").write_text(
+                "import json\nfrom pathlib import Path\n"
+                "def pytest_addoption(parser):\n    parser.addoption('--report')\n"
+                "def pytest_runtest_logreport(report):\n"
+                "    if report.when == 'call':\n"
+                f"        with Path({str(log)!r}).open('a') as stream:\n"
+                "            stream.write(json.dumps(report.nodeid) + '\\n')\n"
+            )
+            (root / "acceptance/tests/test_contract.py").write_text(
+                "import subprocess, sys\n"
+                "def test_contract():\n"
+                "    child = subprocess.run([sys.executable, '-c', "
+                "'import example; print(example.answer())'], capture_output=True, text=True)\n"
+                "    assert child.returncode == 0, child.stderr\n"
+                "    assert child.stdout.strip() == 'True'\n"
+                "def test_unrelated():\n    assert True\n"
+            )
+            status, rows = command(root, "--paths", "src/example.py")
+            results = mutant_rows(rows)
+            self.assertEqual(status, 0, rows)
+            self.assertEqual({row["outcome"] for row in results}, {"KILLED"})
+            self.assertEqual(
+                {row["node"] for row in results}, {"tests/test_contract.py::test_contract"}
+            )
+            self.assertEqual({row["confirmation"] for row in results}, {"fixture"})
+            self.assertEqual([row["fallback_domains"] for row in results], [[], [], []])
+            self.assertEqual(
+                domain_routes(results),
+                [["fixture"]] * 3,
+            )
+            calls = json_lines(log)
+            # xdist's worker and controller both report baseline calls; serial
+            # confirmations report once. Unrelated calls belong only to baseline.
+            self.assertEqual(calls.count("tests/test_contract.py::test_unrelated"), 2)
+            self.assertEqual(calls.count("tests/test_contract.py::test_contract"), 5)
+
     def test_subject_probe_plugin_labels_real_child_phases_and_restores_parent_context(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
