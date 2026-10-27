@@ -3,6 +3,7 @@
 import ast
 import io
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -131,6 +132,67 @@ class MutationCliContractsTest(unittest.TestCase):
 
 
 class MutationSourceContractsTest(unittest.TestCase):
+    def test_git_snapshot_keeps_history_and_dirty_bytes_in_an_independent_object_database(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "flag = True\n")
+            git(root, "init", "-q")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "initial")
+            head = git(root, "rev-parse", "HEAD")
+            (root / "src/example.py").write_text("flag = False\n")
+            (root / "untracked.txt").write_text("untracked")
+            with runner.snapshot(root) as scratch:
+                self.assertEqual(git(scratch, "rev-parse", "HEAD"), head)
+                self.assertEqual((scratch / "src/example.py").read_text(), "flag = False\n")
+                self.assertEqual((scratch / "untracked.txt").read_text(), "untracked")
+                original_object = root / ".git/objects" / head[:2] / head[2:]
+                copied_object = scratch / ".git/objects" / head[:2] / head[2:]
+                self.assertNotEqual(original_object.stat().st_ino, copied_object.stat().st_ino)
+                git(scratch, "add", ".")
+                git(scratch, "commit", "-qm", "scratch only")
+            self.assertFalse(scratch.exists())
+            self.assertEqual(git(root, "rev-parse", "HEAD"), head)
+            self.assertEqual(
+                git(root, "status", "--porcelain"), "M src/example.py\n?? untracked.txt"
+            )
+
+    def test_broken_git_snapshot_fails_without_yielding_a_historyless_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project(root, "flag = True\n")
+            (root / ".git").write_text("gitdir: absent\n")
+            with self.assertRaises(subprocess.CalledProcessError), runner.snapshot(root):
+                self.fail("An invalid repository must not yield a snapshot")
+            self.assertEqual((root / "src/example.py").read_text(), "flag = True\n")
+
+    def test_invalid_allowlist_shapes_and_values_fail_closed_at_the_cli(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            entry = {
+                **source.candidates("src/example.py", b"flag = True\n")[0][0].key(),
+                "reason": "Reviewed equivalent.",
+            }
+            cases = [
+                ("[", f"Malformed allowlist YAML: {root / 'allow.yaml'}"),
+                ("{}", "Allowlist must be a YAML list"),
+            ]
+            cases.extend(
+                (
+                    json.dumps([{**entry, "reason": value}]),
+                    "Allowlist values must be nonempty single-line strings",
+                )
+                for value in (None, 42, "", "  ", "two\nlines")
+            )
+            for content, message in cases:
+                with self.subTest(content=content):
+                    (root / "allow.yaml").write_text(content)
+                    self.assertEqual(
+                        command(root, "--paths", "src/example.py", "--allowlist", "allow.yaml"),
+                        (2, [{"outcome": "INFRA", "message": message}]),
+                    )
+
     def test_changed_sites_use_merge_base_and_include_multiline_intersections_only(self):
         # Given diverged refs, changes unique to base must not enter the head's scope.
         with tempfile.TemporaryDirectory() as directory:
@@ -194,6 +256,35 @@ class MutationSourceContractsTest(unittest.TestCase):
 
 
 class MutationVerdictContractsTest(unittest.TestCase):
+    def test_restoration_readback_mismatch_raises_without_publishing_a_success_record(self):
+        # A filesystem can return bytes other than those just written. The worker
+        # must fail closed even when its domain result would otherwise be publishable.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            mutants = source.candidates("src/example.py", (root / "src/example.py").read_bytes())[0]
+            path = root / "mutations.json"
+            path.write_text(json.dumps(gate.manifest_data(root, mutants[:1], {}, 20)))
+            read_bytes = Path.read_bytes
+            reads = []
+
+            def readback(target):
+                value = read_bytes(target)
+                if target.name == "example.py" and target != root / "src/example.py":
+                    reads.append(value)
+                    return value if len(reads) == 1 else b"corrupt readback"
+                return value
+
+            with (
+                patch.object(Path, "read_bytes", readback),
+                self.assertRaisesRegex(ValueError, "^Scratch restoration failed: src/example.py$"),
+            ):
+                gate.execute_job(path, 0)
+            self.assertFalse((root / "result-0.json").exists())
+            self.assertEqual(
+                (root / "src/example.py").read_text(), "def answer():\n    return True\n"
+            )
+
     def test_only_exact_reviewed_survivors_are_exempt_and_timeout_is_reported_separately(self):
         mutant = source.candidates("src/example.py", b"def answer():\n    return True\n")[0][-1]
         entry = {**mutant.key(), "reason": "Reviewed equivalent."}
@@ -226,6 +317,77 @@ class MutationVerdictContractsTest(unittest.TestCase):
 
 
 class MutationEvidenceContractsTest(unittest.TestCase):
+    def test_probe_configuration_consumes_launch_sink_and_passes_only_explicit_worker_sink(self):
+        with (
+            patch.object(probe, "DESTINATION", None),
+            patch.dict(os.environ, {"MUTATION_EVIDENCE": "launch.jsonl"}),
+        ):
+            probe.pytest_configure(SimpleNamespace())
+            self.assertEqual(probe.DESTINATION, "launch.jsonl")
+            self.assertNotIn("MUTATION_EVIDENCE", os.environ)
+            node = SimpleNamespace(workerinput={"other": "retained"})
+            probe.pytest_configure_node(node)
+            self.assertEqual(
+                node.workerinput, {"other": "retained", "mutation_evidence": "launch.jsonl"}
+            )
+            probe.pytest_configure(
+                SimpleNamespace(workerinput={"mutation_evidence": "worker.jsonl"})
+            )
+            self.assertEqual(probe.DESTINATION, "worker.jsonl")
+            probe.pytest_configure(SimpleNamespace())
+            self.assertIsNone(probe.DESTINATION)
+
+    def test_report_hook_writes_one_aggregated_call_between_setup_and_teardown(self):
+        # Given real pytest hook inputs, reports retain their identity and the JSON
+        # consumer receives one owning call, including mixed unittest subtest failures.
+        cases = (
+            ([("passed", None)], "passed", False),
+            ([("failed", AssertionError()), ("passed", None)], "failed", True),
+            ([("failed", pytest.fail.Exception()), ("failed", TypeError())], "failed", False),
+            ([("skipped", None)], "skipped", False),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            for calls, outcome, assertion in cases:
+                with self.subTest(calls=calls), patch.object(probe, "DESTINATION", str(path)):
+                    path.unlink(missing_ok=True)
+                    item = SimpleNamespace(stash=pytest.Stash())
+                    reports = [("setup", "passed", None)]
+                    reports += [("call", value, error) for value, error in calls]
+                    reports += [("teardown", "passed", None)]
+                    for phase, value, error in reports:
+                        report = SimpleNamespace(nodeid="owner", when=phase, outcome=value)
+                        call = SimpleNamespace(
+                            excinfo=None if error is None else SimpleNamespace(value=error)
+                        )
+                        hook = probe.pytest_runtest_makereport(item, call)
+                        next(hook)
+                        with self.assertRaises(StopIteration) as finished:
+                            hook.send(report)
+                        self.assertIs(finished.exception.value, report)
+                    self.assertEqual(
+                        [json.loads(line) for line in path.read_text().splitlines()],
+                        [
+                            {"node": "owner", "phase": phase, "outcome": value, "assertion": flag}
+                            for phase, value, flag in (
+                                ("setup", "passed", False),
+                                ("call", outcome, assertion),
+                                ("teardown", "passed", False),
+                            )
+                        ],
+                    )
+
+    def test_disabled_report_sink_preserves_report_without_stashing_or_writing(self):
+        item = SimpleNamespace(stash=pytest.Stash())
+        report = SimpleNamespace(when="call", outcome="failed", nodeid="owner")
+        with patch.object(probe, "DESTINATION", None):
+            hook = probe.pytest_runtest_makereport(item, SimpleNamespace(excinfo=None))
+            next(hook)
+            with self.assertRaises(StopIteration) as finished:
+                hook.send(report)
+            self.assertIs(finished.exception.value, report)
+            self.assertNotIn(probe.CALLS, item.stash)
+
     def test_pytest_collector_accepts_only_manifest_name_and_enumerates_exact_job_indices(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "mutations.json"
@@ -239,6 +401,30 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                 with self.subTest(jobs=jobs):
                     path.write_text(json.dumps({"mutants": jobs}))
                     self.assertEqual([item.name for item in collector.collect()], expected)
+
+    def test_collected_job_executes_its_manifest_index_and_publishes_restored_result(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            mutants = source.candidates("src/example.py", (root / "src/example.py").read_bytes())[0]
+            path = root / "mutations.json"
+            path.write_text(json.dumps(gate.manifest_data(root, mutants, {}, 20)))
+            config = pytest.Config.fromdictargs({}, [])
+            self.addCleanup(config._ensure_unconfigure)
+            collector = probe.pytest_collect_file(path, pytest.Session.from_config(config))
+            items = list(collector.collect())
+            items[1].runtest()
+            result = json.loads((root / "result-1.json").read_text())
+            self.assertEqual(
+                {key: result[key] for key in ("operator", "outcome", "restored", "domains")},
+                {
+                    "operator": mutants[1].operator,
+                    "outcome": "NO_TESTS",
+                    "restored": True,
+                    "domains": [],
+                },
+            )
+            self.assertFalse((root / "result-0.json").exists())
 
     def test_collection_evidence_records_only_failures_and_never_credits_an_assertion(self):
         with tempfile.TemporaryDirectory() as directory:
