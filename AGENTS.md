@@ -316,6 +316,11 @@ Rules learned the hard way:
   `ps` and stop it by its process id.
 - A wait loop ends when the file or process it watches is gone, and never matches its own
   command line (`pgrep -f` on a string in the loop does).
+- Before a run projected to take over an hour (mutation, live audit, benchmark), run about 20
+  items of that run's own workload, break down where the time goes and explain every outlier.
+  Launch the full run only with the projection from that sample stated in the issue.
+- When a run falls more than 25% behind its projection, find the cause before waiting longer;
+  a new estimate is not a cause.
 - Name roles, never people, in code, issues and pull requests.
 - Licence and attribution text is passed through from what the upstream API returns; the server
   keeps no licence data of its own. A licence key or credential is never logged or committed.
