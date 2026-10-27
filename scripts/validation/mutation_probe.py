@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+CALLS = pytest.StashKey[list[dict]]()
+
 
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_makereport(item, call):
@@ -23,9 +25,23 @@ def pytest_runtest_makereport(item, call):
             "outcome": report.outcome,
             "assertion": assertion,
         }
-        with Path(destination).open("a") as stream:
-            stream.write(json.dumps(row) + "\n")
+        if report.when == "call":
+            item.stash.setdefault(CALLS, []).append(row)
+        else:
+            with Path(destination).open("a") as stream:
+                if report.when == "teardown" and CALLS in item.stash:
+                    stream.write(json.dumps(call_evidence(item.stash[CALLS])) + "\n")
+                stream.write(json.dumps(row) + "\n")
     return report
+
+
+def call_evidence(rows: list[dict]) -> dict:
+    # pytest 9 reports each unittest subtest before the enclosing call completes.
+    # Retain one call per item; a non-assertion failure must never become a kill.
+    failed = [row for row in rows if row["outcome"] == "failed"]
+    if failed:
+        return {**failed[0], "assertion": all(row["assertion"] for row in failed)}
+    return next((row for row in rows if row["outcome"] == "passed"), rows[0])
 
 
 def pytest_collectreport(report):
