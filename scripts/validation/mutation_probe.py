@@ -51,7 +51,7 @@ def pytest_runtest_makereport(item, call):
 
 def call_evidence(rows: list[dict]) -> dict:
     # pytest 9 reports each unittest subtest before the enclosing call completes.
-    # Retain one call per item; a non-assertion failure must never become a kill.
+    # Retain one call per item; mixed failures are error kills, not assertion kills.
     failed = [row for row in rows if row["outcome"] == "failed"]
     if failed:
         return {**failed[0], "assertion": all(row["assertion"] for row in failed)}

@@ -257,6 +257,12 @@ adding exclusion pathspecs for generated files.
       Run `pdm run mutation-gate` before the PR; fix every survivor or record a reviewed equivalent
       in `scripts/validation/mutation-allowlist.yaml` with its reason. Timeouts are reported
       separately and count as killed by policy, not as assertion-strength evidence.
+      A single selected owning call that passed the baseline is `KILLED` when it fails,
+      with `kind: assertion` or `kind: error`; mixed subtest failures are `error`.
+      Setup, collection, teardown, internal and baseline failures stay infrastructure errors.
+      Evidence collection loads an immutable controller copy, even when testing the probe.
+      `NO_TESTS` is never allowlisted: close reachable gaps at their owning boundary and
+      remove verified dead code. Only equivalent `SURVIVED` mutants can be allowlisted.
       A behavioural change without a red commit is a finding; check its quoted failure. Identify the claim's
       caller scenario, owning interface and test, plausible regression, and observed
       assertion failure under the original defect or a restored targeted mutation. Distinguish

@@ -87,7 +87,8 @@ class MutationCliContractsTest(unittest.TestCase):
                     self.assertEqual(result.returncode, 2)
                     self.assertEqual(
                         result.stderr.splitlines()[-1],
-                        "mutation_gate.py: error: timeout and workers must be positive",
+                        "python -m scripts.validation.mutation_gate: error: "
+                        "timeout and workers must be positive",
                     )
 
     def test_legitimate_empty_module_succeeds_without_starting_baselines(self):
@@ -268,9 +269,9 @@ class MutationEvidenceContractsTest(unittest.TestCase):
             (1, [{**failure, "phase": "collection"}]),
         ):
             with self.subTest(status=status, failures=failures):
-                self.assertEqual(runner.assertion_kill(status, failures), {})
+                self.assertEqual(runner.call_kill(status, failures), {})
         self.assertEqual(
-            runner.assertion_kill(1, [failure]),
+            runner.call_kill(1, [failure]),
             {
                 "outcome": "KILLED",
                 "node": "tests/test_x.py::test_x",

@@ -1,7 +1,6 @@
 """The mutation command measures assertion sensitivity without editing its caller."""
 
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -53,7 +52,6 @@ def cli(root, *args):
         text=True,
         timeout=180,
         check=False,
-        env={key: value for key, value in os.environ.items() if not key.startswith("COVERAGE")},
     )
 
 
@@ -709,11 +707,6 @@ class MutationCommandTest(unittest.TestCase):
             result = subprocess.run(  # noqa: S603 - fixed project command, owned fixture path
                 ["pdm", "run", "mutation-gate", "--root", str(root), "--paths", "src/example.py"],  # noqa: S607
                 cwd=ROOT,
-                env={
-                    key: value
-                    for key, value in os.environ.items()
-                    if not key.startswith("COVERAGE")
-                },
                 capture_output=True,
                 text=True,
                 timeout=120,

@@ -111,7 +111,7 @@ def classify(status: int | None, evidence: Path) -> dict:
 
 def evidence_outcome(status: int, rows: list[dict]) -> dict:
     failed = [row for row in rows if row["outcome"] == "failed"]
-    kill = assertion_kill(status, failed)
+    kill = call_kill(status, failed)
     if kill:
         return kill
     if status not in (0, 5) or failed:
@@ -124,9 +124,14 @@ def successful_calls(rows: list[dict]) -> dict:
     return {"outcome": "SURVIVED" if calls else "NO_TESTS"}
 
 
-def assertion_kill(status: int, failed: list[dict]) -> dict:
-    if status == 1 and len(failed) == 1 and failed[0]["assertion"]:
-        return {"outcome": "KILLED", "node": failed[0]["node"], "phase": "call"}
+def call_kill(status: int, failed: list[dict]) -> dict:
+    if status == 1 and len(failed) == 1 and failed[0]["phase"] == "call":
+        return {
+            "outcome": "KILLED",
+            "node": failed[0]["node"],
+            "phase": "call",
+            "kind": "assertion" if failed[0]["assertion"] else "error",
+        }
     return {}
 
 
@@ -135,16 +140,19 @@ def run_domain(
 ) -> tuple[dict, Path]:
     directory, default = DOMAINS[domain]
     work = Path(tempfile.mkdtemp(prefix=f"evidence-{domain}-", dir=scratch.parent))
+    # Keep instrumentation independent of the subject, including probe self-mutations.
+    shutil.copyfile(Path(__file__).with_name("mutation_probe.py"), work / "_mutation_evidence.py")
     env = environment(scratch, work)
     evidence = work / "events.jsonl"
     env["MUTATION_EVIDENCE"] = str(evidence)
     env["COVERAGE_FILE"] = str(work / ".coverage")
     args = [
         sys.executable,
-        "-m",
-        "pytest",
+        "-c",
+        f"import sys; sys.path.insert(0, {str(work)!r}); "
+        "import pytest; raise SystemExit(pytest.main(sys.argv[1:]))",
         "-p",
-        "scripts.validation.mutation_probe",
+        "_mutation_evidence",
         "-n",
         "4" if baseline and domain == "selftest" else "0",
         "-x",
@@ -152,14 +160,7 @@ def run_domain(
         str(scratch / directory),
         *(selected or [default]),
     ]
-    if baseline:
-        config = work / ".coveragerc"
-        config.write_text("[run]\nbranch = True\ncore = ctrace\npatch = subprocess\n")
-        args += [f"--cov-config={config}"]
-        args += [f"--cov={scratch / name}" for name in ("src", "scripts", "acceptance/src")]
-        args += ["--cov-context=test", "--cov-fail-under=0", "--cov-report="]
-    else:
-        args += ["--no-cov"]
+    args += coverage_args(scratch, work, baseline)
     if domain == "fixture":
         env.update(FIXTURE)
         args += ["--report=fixture.json"]
@@ -168,8 +169,24 @@ def run_domain(
     status = program(args, scratch / directory, env, timeout, log)
     elapsed = monotonic() - started
     result = classify(status, evidence)
+    if baseline and result["outcome"] == "KILLED":
+        result["outcome"] = "INFRA"
     result.update(domain=domain, log=log.read_text(errors="replace"), elapsed_seconds=elapsed)
     return result, work / ".coverage"
+
+
+def coverage_args(scratch: Path, work: Path, baseline: bool) -> list[str]:
+    if not baseline:
+        return ["--no-cov"]
+    config = work / ".coveragerc"
+    config.write_text("[run]\nbranch = True\ncore = ctrace\npatch = subprocess\n")
+    return [
+        f"--cov-config={config}",
+        *(f"--cov={scratch / name}" for name in ("src", "scripts", "acceptance/src")),
+        "--cov-context=test",
+        "--cov-fail-under=0",
+        "--cov-report=",
+    ]
 
 
 def coverage_map(data_file: Path, scratch: Path) -> dict[str, dict[int, list[str]]]:
