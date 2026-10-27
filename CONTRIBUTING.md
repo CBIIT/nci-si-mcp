@@ -27,6 +27,7 @@ about as long as that command.
 | `pdm run test` | The whole suite, with the coverage minimum |
 | `pdm run pytest tests/test_index.py -k name` | A selection of tests, without the minimum |
 | `pdm run lint` | Ruff and basedpyright: the fast check while you work |
+| `pdm run mutation-gate` | Kill every changed-site Python mutant before a PR; `--paths src/package/module.py` checks a whole module; review survivors with the printed AST keys in `scripts/validation/mutation-allowlist.yaml` |
 | `pdm run fmt` | Format with Ruff |
 | `pdm run lock` | Refresh every Python group to the newest version admitted by the five-day release-age policy |
 | `pdm run github-setup` | Create missing workflow credential names with safe placeholders; never overwrite existing names |

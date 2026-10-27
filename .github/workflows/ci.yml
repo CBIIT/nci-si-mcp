@@ -17,6 +17,25 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  mutation:
+    name: mutation (diff)
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+      - name: Mutate every changed Python site
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: pdm run mutation-gate --base "$BASE_SHA" --head "$HEAD_SHA" -n 2
+
   changes:
     name: image selection
     runs-on: ubuntu-24.04
@@ -390,6 +409,7 @@ jobs:
 
   coverage-badges:
     name: publish coverage badges
+    # mutation is PR-only; its deliberate main skip must not suppress publication.
     needs: [changes, quality, test, coverage, acceptance, acceptance-http, image, documentation, companions, coverage-badges-render]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
