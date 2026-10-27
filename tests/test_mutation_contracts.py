@@ -556,6 +556,26 @@ class MutationVerdictContractsTest(unittest.TestCase):
 
 
 class MutationEvidenceContractsTest(unittest.TestCase):
+    def test_phase_hooks_preserve_hook_result_and_restore_environment(self):
+        phases = (
+            (probe.pytest_runtest_setup, "setup"),
+            (probe.pytest_runtest_call, "run"),
+            (probe.pytest_runtest_teardown, "teardown"),
+        )
+        with patch.dict(os.environ, {"MUTATION_COVERAGE_CONTEXT": "parent"}):
+            for hook, phase in phases:
+                with self.subTest(phase=phase):
+                    invocation = hook(SimpleNamespace(nodeid="tests/x.py::test_x"))
+                    next(invocation)
+                    self.assertEqual(
+                        os.environ["MUTATION_COVERAGE_CONTEXT"], f"tests/x.py::test_x|{phase}"
+                    )
+                    result = object()
+                    with self.assertRaises(StopIteration) as finished:
+                        invocation.send(result)
+                    self.assertIs(finished.exception.value, result)
+                    self.assertEqual(os.environ["MUTATION_COVERAGE_CONTEXT"], "parent")
+
     def test_child_context_restores_environment_on_failed_phases_and_inner_runs_strip_it(self):
         keys = ("MUTATION_COVERAGE_CONTEXT", "COVERAGE_PROCESS_CONFIG", "COVERAGE_PROCESS_START")
         for initial in ({}, dict(zip(keys, ("previous", "serialized", "config"), strict=True))):
