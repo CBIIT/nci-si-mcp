@@ -2,12 +2,54 @@
 
 import json
 import os
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
 
 CALLS = pytest.StashKey[list[dict]]()
 DESTINATION: str | None = None
+
+
+@contextmanager
+def child_context(item, phase):
+    # Each xdist worker has its own environment; subprocess coverage reads the
+    # static context at startup, while pytest-cov labels this interpreter dynamically.
+    name = "MUTATION_COVERAGE_CONTEXT"
+    previous = os.environ.get(name)
+    serialized = os.environ.get("COVERAGE_PROCESS_CONFIG")
+    # coverage 7.16 passes an already-expanded config to subprocesses. Prefer
+    # rereading our config so each child expands this phase's context instead.
+    if os.environ.get("COVERAGE_PROCESS_START"):
+        os.environ.pop("COVERAGE_PROCESS_CONFIG", None)
+    os.environ[name] = f"{item.nodeid}|{phase}"
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop(name, None)
+        else:
+            os.environ[name] = previous
+        if serialized is not None:
+            os.environ["COVERAGE_PROCESS_CONFIG"] = serialized
+
+
+@pytest.hookimpl(wrapper=True, tryfirst=True)
+def pytest_runtest_setup(item):
+    with child_context(item, "setup"):
+        return (yield)
+
+
+@pytest.hookimpl(wrapper=True, tryfirst=True)
+def pytest_runtest_call(item):
+    with child_context(item, "run"):
+        return (yield)
+
+
+@pytest.hookimpl(wrapper=True, tryfirst=True)
+def pytest_runtest_teardown(item):
+    with child_context(item, "teardown"):
+        return (yield)
 
 
 def pytest_configure(config):

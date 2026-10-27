@@ -269,6 +269,105 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_subject_probe_plugin_labels_real_child_phases_and_restores_parent_context(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n")
+            shutil.copytree(ROOT / "scripts", root / "scripts")
+            (root / "tests/test_nested.py").write_text(
+                "import os, pytest\n"
+                "@pytest.fixture\ndef phase():\n"
+                "    assert os.environ['MUTATION_COVERAGE_CONTEXT'] == "
+                "'tests/test_nested.py::test_phases|setup'\n"
+                "    yield\n"
+                "    assert os.environ['MUTATION_COVERAGE_CONTEXT'] == "
+                "'tests/test_nested.py::test_phases|teardown'\n"
+                "def test_phases(phase):\n"
+                "    assert os.environ['MUTATION_COVERAGE_CONTEXT'] == "
+                "'tests/test_nested.py::test_phases|run'\n"
+            )
+            (root / "tests/conftest.py").write_text(
+                "import os\ndef pytest_runtest_logfinish(nodeid):\n"
+                "    if nodeid.endswith('test_phases'):\n"
+                "        assert os.environ['MUTATION_COVERAGE_CONTEXT'] == "
+                "'tests/test_example.py::test_plugin|run'\n"
+            )
+            (root / "tests/test_example.py").write_text(
+                "import subprocess, sys\ndef test_plugin():\n"
+                "    result = subprocess.run([sys.executable, '-m', 'pytest', '-p', "
+                "'scripts.validation.mutation_probe', '--no-cov', '-n', '0', "
+                "'tests/test_nested.py'], capture_output=True, text=True)\n"
+                "    assert result.returncode == 0, result.stdout + result.stderr\n"
+            )
+            result, data = run_domain(
+                root, "unit", ["tests/test_example.py::test_plugin"], 30, baseline=True
+            )
+            self.assertEqual(result["outcome"], "SURVIVED", result)
+            mapping = coverage_map(data, root)
+            for name in ("pytest_runtest_setup", "pytest_runtest_call", "pytest_runtest_teardown"):
+                mutants, _ = candidates(
+                    "scripts/validation/mutation_probe.py",
+                    (root / "scripts/validation/mutation_probe.py").read_bytes(),
+                )
+                routes = mutation_gate.manifest_data(
+                    root, [m for m in mutants if m.qualname == name], {"unit": mapping}, 30
+                )
+                self.assertEqual(
+                    [row["selected"] for row in routes["mutants"]],
+                    [{"unit": ["tests/test_example.py::test_plugin"]}] * len(routes["mutants"]),
+                )
+
+    def test_python_module_children_keep_each_xdist_owners_phase_and_inprocess_selection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n")
+            (root / "src/child.py").write_text(
+                "import sys\ndef first():\n    return True\n"
+                "def second():\n    return True\n"
+                "if __name__ == '__main__':\n    print(globals()[sys.argv[1]]())\n"
+            )
+            (root / "acceptance/selftests/test_harness.py").write_text(
+                "import subprocess, sys, example\nimport pytest\n"
+                "def launch(name):\n"
+                "    result = subprocess.run([sys.executable, '-m', 'child', name], "
+                "capture_output=True, text=True, check=True)\n"
+                "    assert result.stdout.strip() == 'True'\n"
+                "@pytest.fixture\ndef child_fixture():\n"
+                "    launch('first')\n    yield\n    launch('second')\n"
+                "def test_first():\n    launch('first')\n    assert example.answer()\n"
+                "def test_second():\n    launch('second')\n"
+                "def test_phases(child_fixture):\n    assert True\n"
+            )
+            result, data = run_domain(root, "selftest", [], 30, baseline=True)
+            self.assertEqual(result["outcome"], "SURVIVED", result)
+            mapping = coverage_map(data, root)
+            self.assertEqual(
+                selection({"selftest": mapping}, "src/child.py", 3, 3),
+                {"selftest": ["selftests/test_harness.py::test_first"]},
+            )
+            self.assertEqual(
+                selection({"selftest": mapping}, "src/child.py", 5, 5),
+                {"selftest": ["selftests/test_harness.py::test_second"]},
+            )
+            self.assertEqual(
+                selection({"selftest": mapping}, "src/example.py", 2, 2),
+                {"selftest": ["selftests/test_harness.py::test_first"]},
+            )
+            self.assertEqual(
+                set(mapping["src/child.py"][3]),
+                {
+                    "selftests/test_harness.py::test_first|run",
+                    "selftests/test_harness.py::test_phases|setup",
+                },
+            )
+            self.assertEqual(
+                set(mapping["src/child.py"][5]),
+                {
+                    "selftests/test_harness.py::test_second|run",
+                    "selftests/test_harness.py::test_phases|teardown",
+                },
+            )
+
     def test_call_typeerror_is_an_error_kill_but_setup_error_is_infrastructure(self):
         source = "def answer():\n    return True\n"
         with tempfile.TemporaryDirectory() as temporary:
@@ -411,6 +510,17 @@ class MutationExecutionTest(unittest.TestCase):
             self.assertEqual(
                 selection({"unit": mapping}, "scripts/validation/mutation_gate.py", line, line),
                 {"unit": ["tests/test_example.py::test_child"]},
+            )
+            mutants, _ = candidates(
+                "scripts/validation/mutation_gate.py",
+                (root / "scripts/validation/mutation_gate.py").read_bytes(),
+            )
+            child_only = [m for m in mutants if m.qualname == "main" and m.before == "return 0"]
+            self.assertEqual(len(child_only), 3)
+            routes = mutation_gate.manifest_data(root, child_only, {"unit": mapping}, 30)
+            self.assertEqual(
+                [row["selected"] for row in routes["mutants"]],
+                [{"unit": ["tests/test_example.py::test_child"]}] * 3,
             )
 
     def test_inherited_probe_child_cannot_append_to_parent_evidence(self):

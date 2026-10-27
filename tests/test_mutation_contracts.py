@@ -56,6 +56,18 @@ def runner_seconds(rows):
     return sum(domain["elapsed_seconds"] for row in rows for domain in row["domains"])
 
 
+def seconds_by_domain(rows):
+    return {
+        name: sum(
+            domain["elapsed_seconds"]
+            for row in rows
+            for domain in row["domains"]
+            if domain["domain"] == name
+        )
+        for name in ("unit", "fixture")
+    }
+
+
 class MutationCliContractsTest(unittest.TestCase):
     def test_summary_counts_fallback_mutants_by_domain_and_measured_runner_hours(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -79,7 +91,7 @@ class MutationCliContractsTest(unittest.TestCase):
             self.assertEqual(rows[-1].get("runner_hours"), seconds / 3600)
             self.assertEqual(
                 rows[-1].get("runner_seconds_by_domain"),
-                {"unit": seconds},
+                seconds_by_domain(results),
             )
 
     def test_preexisting_fixture_failure_stops_the_gate_before_any_mutant_is_credited(self):
@@ -544,6 +556,23 @@ class MutationVerdictContractsTest(unittest.TestCase):
 
 
 class MutationEvidenceContractsTest(unittest.TestCase):
+    def test_child_context_restores_environment_on_failed_phases_and_inner_runs_strip_it(self):
+        keys = ("MUTATION_COVERAGE_CONTEXT", "COVERAGE_PROCESS_CONFIG", "COVERAGE_PROCESS_START")
+        for initial in ({}, dict(zip(keys, ("previous", "serialized", "config"), strict=True))):
+            with self.subTest(initial=initial), patch.dict(os.environ, initial, clear=True):
+                with (
+                    self.assertRaisesRegex(RuntimeError, "phase failed"),
+                    probe.child_context(SimpleNamespace(nodeid="tests/x.py::test_x"), "run"),
+                ):
+                    self.assertEqual(
+                        os.environ["MUTATION_COVERAGE_CONTEXT"], "tests/x.py::test_x|run"
+                    )
+                    self.assertNotIn("COVERAGE_PROCESS_CONFIG", os.environ)
+                    inner = runner.environment(Path("source"), Path("work"))
+                    self.assertEqual({key: inner[key] for key in keys if key in inner}, {})
+                    raise RuntimeError("phase failed")
+                self.assertEqual(dict(os.environ), initial)
+
     def test_collection_hook_serializes_canonical_traceback_paths_and_exception_type(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory).resolve() / "events.jsonl"

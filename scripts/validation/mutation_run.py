@@ -178,7 +178,7 @@ def run_domain(
         str(scratch / directory),
         *(selected or [default]),
     ]
-    args += coverage_args(scratch, work, baseline, domain)
+    args += coverage_args(scratch, work, baseline, domain, env)
     if domain == "fixture":
         env.update(FIXTURE)
         args += ["--report=fixture.json"]
@@ -193,14 +193,24 @@ def run_domain(
     return result, work / ".coverage"
 
 
-def coverage_args(scratch: Path, work: Path, baseline: bool, domain: str) -> list[str]:
+def coverage_args(
+    scratch: Path, work: Path, baseline: bool, domain: str, env: dict[str, str]
+) -> list[str]:
     if not baseline or domain == "fixture":
         return ["--no-cov"]
     config = work / ".coveragerc"
-    config.write_text("[run]\nbranch = True\ncore = ctrace\npatch = subprocess\n")
+    env["COVERAGE_PROCESS_START"] = str(config)
+    sources = [str(scratch / name) for name in ("src", "scripts", "acceptance/src")]
+    config.write_text(
+        "[run]\nbranch = True\ncore = ctrace\npatch = subprocess\n"
+        "context = ${MUTATION_COVERAGE_CONTEXT-}\n"
+        + "source =\n    "
+        + "\n    ".join(sources)
+        + "\n"
+    )
     return [
         f"--cov-config={config}",
-        *(f"--cov={scratch / name}" for name in ("src", "scripts", "acceptance/src")),
+        *(f"--cov={source}" for source in sources),
         "--cov-context=test",
         "--cov-fail-under=0",
         "--cov-report=",
@@ -242,12 +252,23 @@ def selection(mapping: dict, file: str, line: int, end_line: int) -> dict[str, l
         contexts = line_contexts(files.get(file, {}), line, end_line)
         if not contexts:
             continue
-        # Empty/import, setup/teardown and child contexts cannot safely narrow a domain.
-        if any(not context.endswith("|run") for context in contexts):
-            result[domain] = []
-        else:
-            result[domain] = sorted({context.removesuffix("|run") for context in contexts})
+        result[domain] = context_tests(contexts)
     return result
+
+
+def context_tests(contexts: set[str]) -> list[str]:
+    tests = set()
+    for context in contexts:
+        if not context:
+            continue
+        node, separator, phase = context.rpartition("|")
+        if not separator or "::" not in node or phase not in {"run", "setup", "teardown"}:
+            raise ValueError(f"Unrecognized coverage context: {context!r}")
+        if phase == "run":
+            tests.add(node)
+    # Import/setup/teardown alone have no call owner. When calls exist, retain
+    # their exact owners even if the same span also contains declarations.
+    return sorted(tests)
 
 
 def line_contexts(lines: dict, start: int, end: int) -> set[str]:

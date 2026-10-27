@@ -144,6 +144,12 @@ A collection exception whose traceback reaches the mutated file is a `kind: impo
 kill after a clean baseline. Unrelated collection failures, `SystemExit`, setup,
 teardown, internal and baseline failures stay infrastructure errors.
 Evidence collection loads an immutable controller copy, even when testing the probe.
+Baseline Python children inherit their parent's test-phase coverage context. Call contexts
+select their exact owning tests; spans with only import/setup/teardown contexts run the whole
+domain. Unrecognized contexts fail mapping. Each result names its `fallback_domains`; shard
+summaries count fallback mutants overall and per domain, alongside outcomes and kill kinds.
+`runner_seconds_by_domain`, `runner_seconds` and `runner_hours` sum measured mutant test-process
+durations, excluding baseline and scratch setup; they are distinct from shard wall time.
 
 Mutation JSON rows record monotonic `elapsed_seconds` for the whole mutant (including scratch
 setup) and a `domains` list of measured test-run durations and outcomes. The scheduler stores

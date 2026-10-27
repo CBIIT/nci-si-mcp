@@ -46,7 +46,15 @@ def execute_job(path: Path, index: int) -> None:
             target.write_bytes(original)
             if digest(target.read_bytes().hex()) != digest(original.hex()):
                 raise ValueError(f"Scratch restoration failed: {mutant.file}")
-    row = {**asdict(mutant), **result, "restored": True, "elapsed_seconds": monotonic() - started}
+    row = {
+        **asdict(mutant),
+        **result,
+        "fallback_domains": sorted(
+            domain for domain, tests in item["selected"].items() if not tests
+        ),
+        "restored": True,
+        "elapsed_seconds": monotonic() - started,
+    }
     (path.parent / f"result-{index}.json").write_text(json.dumps(row))
 
 
@@ -198,12 +206,29 @@ def report_results(rows: list[dict], exemptions: list[dict], args, started: floa
                     "counts": dict(counts),
                     "kill_kinds": {kind: kinds[kind] for kind in ("assertion", "error", "import")},
                     "baseline_domains": args.baseline_domains,
+                    **execution_costs(rows),
                     "elapsed_seconds": monotonic() - started,
                 },
                 sort_keys=True,
             )
         )
     return status
+
+
+def execution_costs(rows: list[dict]) -> dict:
+    fallbacks = Counter(domain for row in rows for domain in row["fallback_domains"])
+    seconds = Counter()
+    for row in rows:
+        for domain in row["domains"]:
+            seconds[domain["domain"]] += domain["elapsed_seconds"]
+    total = sum(seconds.values())
+    return {
+        "fallback_count": sum(bool(row["fallback_domains"]) for row in rows),
+        "fallback_domains": dict(fallbacks),
+        "runner_seconds_by_domain": dict(seconds),
+        "runner_seconds": total,
+        "runner_hours": total / 3600,
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
