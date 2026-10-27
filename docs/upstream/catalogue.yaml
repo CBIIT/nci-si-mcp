@@ -368,6 +368,25 @@ entries:
     workaround: Preserve each graph's identity, parse only supported date forms, compare NCIt version for descendant expansion and never manufacture a registry identifier. PV lookup reads caDSR API primary flags and pinned EVS content, with caDSR and EVS provenance and no Shared SI dependency. The [dependency register](ssis-dependencies.md) records the registered queries and their weekly structural check.
     acceptance: Both graphs return unambiguous identities; missing/duplicate identities fail closed and dates compute the correct interval. Expansion refuses a mismatched NCIt version with release_mismatch or an absent version with release_not_available; exact find and grounding preserve the actual metadata without comparing or backfilling versions.
 
+  - id: ssis-version-status-pairing
+    team: ssis
+    title: Preserve version-specific status pairs
+    platform: S-3; S-5
+    requirements: [find_data_elements_for_concept-1, ground_value-2]
+    tests: ["tests/test_cross_domain.py::test_an_answer_of_the_shared_si_service_names_both_graphs_and_both_content_states"]
+    source: https://github.com/CBIIT/nci-si-mcp/issues/370#issuecomment-6429093919
+    evidence: [acceptance/fixtures/recorded/ssis-sparql/data-elements-statuses-c48179.json]
+    observation: >-
+      DE2672191 is one graph node with version literals 1 and 2, administration_status
+      RELEASED and RETIRED ARCHIVED, and registration_status Standard and Superceded.
+      Anonymous outgoing, incoming and axiom inspection on 26 October 2026 found no
+      structure tying these literals together. The retained bounded C48179 query
+      records the two independent status sets, not version/status pairs.
+    expected: Model each data element version as its own node, or explicitly pair version, administration status and registration status.
+    reproduction: Read the retained C48179 status query and inspect outgoing, incoming and axiom assertions of caDSR#DE2672191 without joining independent literals.
+    impact: Joining the independent sets invents combinations and cannot identify one version's status pair or a current status.
+    workaround: Return unchanged unpaired workflowStatuses and registrationStatuses on each public-ID use; direct callers needing a version's own pair to get_data_element with an explicit version.
+    acceptance: A published version-specific model permits the exact status pair to be read without inferred joins; until then preserve unpaired public-ID evidence.
   - id: ssis-public-id-associations
     team: ssis
     title: Clarify merged CDE versions and value concept roles

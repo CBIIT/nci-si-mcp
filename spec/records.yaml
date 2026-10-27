@@ -833,10 +833,19 @@ data_element_use:
     Shared SI merges all versions of a CDE into one node: graph-derived data_element_use
     and value_use records have public-ID scope, with no version or value-to-version claim.
     Records from the caDSR API and CRDC crosswalk retain their versioned identities.
+    workflowStatuses and registrationStatuses are unpaired, possibly mixed sets across
+    merged versions, never a current-status selection. For one version's own status pair,
+    call get_data_element with that explicit version.
   fields:
     roles:
       content: "Nonempty, canonically sorted distinct { role: objectClass | property | valueMeaning, conceptCode, displayOrder?: integer } assertions; no primary inference"
       of: A3.7
+    workflowStatuses:
+      content: "Optional sorted distinct unchanged mdr:administration_status strings; absent when no assertion, preserving an actual empty literal"
+      of: A1.2
+    registrationStatuses:
+      content: "Optional sorted distinct unchanged mdr:registration_status strings; unpaired with workflowStatuses and absent when no assertion"
+      of: A1.2
     dataElement:
       content: "{ publicId, longName } of the data element"
       of: A1.2

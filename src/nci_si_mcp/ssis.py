@@ -29,6 +29,7 @@ NCIT_GRAPH = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.rdf"
 CADSR_GRAPH = "http://cbiit.nci.nih.gov/caDSR"
 _GRAPHS = (NCIT_GRAPH, CADSR_GRAPH)
 MAXIMUM = 1000
+STATUS_FIELDS = ("workflowStatuses", "registrationStatuses")
 _NCIT_NAMESPACE = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#"
 _ROLE_TUPLE_SIZE = 3
 _PREFIXES = """PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -49,6 +50,8 @@ WHERE {{
 LIMIT {len(_GRAPHS) + 1}"""
 _ELEMENTS = """SELECT ?id (MIN(?label) AS ?name)
   (GROUP_CONCAT(DISTINCT CONCAT(ENCODE_FOR_URI(?useRole),"|",ENCODE_FOR_URI(STR(?concept)),"|",COALESCE(ENCODE_FOR_URI(STR(?order)),""));separator=" ") AS ?roles)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?workflowStatus),CONCAT("v",ENCODE_FOR_URI(STR(?workflowStatus))),"");separator=" ") AS ?workflowStatuses)
+  (GROUP_CONCAT(DISTINCT IF(BOUND(?registrationStatus),CONCAT("v",ENCODE_FOR_URI(STR(?registrationStatus))),"");separator=" ") AS ?registrationStatuses)
 WHERE {
   CONCEPT_CLAUSE
   GRAPH <CADSR_GRAPH> {
@@ -62,6 +65,8 @@ WHERE {
     OPTIONAL { ?node cadsr:display_order ?order }
     ?element cadsr:publicId ?id ;
       rdfs:label ?label .
+    OPTIONAL { ?element mdr:administration_status ?workflowStatus }
+    OPTIONAL { ?element mdr:registration_status ?registrationStatus }
   }
 }
 GROUP BY ?id
@@ -92,7 +97,30 @@ class GraphIdentity(TypedDict):
 
 
 def _decode(component: str) -> str:
-    return unquote(component)
+    if re.search(r"%(?![0-9A-Fa-f]{2})", component):
+        raise _malformed()
+    try:
+        return unquote(component, errors="strict")
+    except UnicodeDecodeError as exc:
+        raise _malformed() from exc
+
+
+def graph_statuses(value: str) -> list[str]:
+    """Decode unpaired sets without trimming text; v alone is an actual empty literal."""
+    tokens = [token for token in value.split(" ") if token]
+    if any(not token.startswith("v") for token in tokens):
+        raise _malformed()
+    return sorted({_decode(token[1:]) for token in tokens})
+
+
+def _canonical_element(row: dict[str, str]) -> dict[str, str]:
+    result = row | {"roles": _canonical_roles(row["roles"])}
+    for field in STATUS_FIELDS:
+        if field in row:
+            result[field] = " ".join(
+                "v" + quote(text, safe="") for text in graph_statuses(row[field])
+            )
+    return result
 
 
 def _role_tuple(token: str) -> GraphConceptUse:
@@ -149,11 +177,13 @@ def _list(payload: Any, key: str, item_type: type) -> list[Any]:
     return value
 
 
-def _term(term: Any) -> str:
+def _term(term: Any, key: str) -> str:
     if not isinstance(term, dict) or term.get("type") not in ("uri", "literal", "typed-literal"):
         raise _malformed()
     value = term.get("value")
     if not isinstance(value, str):
+        raise _malformed()
+    if key in STATUS_FIELDS and term["type"] != "literal":
         raise _malformed()
     return value
 
@@ -161,7 +191,7 @@ def _term(term: Any) -> str:
 def _binding(row: dict[str, Any], required: tuple[str, ...]) -> dict[str, str]:
     if not all(key in row for key in required):
         raise _malformed()
-    return {key: _term(value) for key, value in row.items()}
+    return {key: _term(value, key) for key, value in row.items()}
 
 
 def _concept_clause(code: str, expand: bool) -> str:
@@ -240,7 +270,7 @@ class SSISClient:
             "CONCEPT_CLAUSE", _concept_clause(concept_code, expand_descendants)
         )
         rows = self._query(query + f"LIMIT {maximum + 1}", ("id", "name", "roles"), maximum + 1)
-        return [row | {"roles": _canonical_roles(row["roles"])} for row in rows]
+        return [_canonical_element(row) for row in rows]
 
     def find_permissible_values(
         self, concept_code: str, *, expand_descendants: bool = False, maximum: int = MAXIMUM

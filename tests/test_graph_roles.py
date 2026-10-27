@@ -15,6 +15,68 @@ FIXTURES = Path(__file__).resolve().parents[1] / "acceptance/fixtures/recorded/s
 
 
 class GraphRoleProtocolTest(ServerFixture):
+    def status_result(self, terms):
+        source = recording("ssis-sparql/data-elements-statuses-c17357.json")["response"]["body"]
+        row = source["results"]["bindings"][0]
+        row.pop("workflowStatuses", None)
+        row.pop("registrationStatuses", None)
+        row.update(terms)
+        source["results"]["bindings"] = [row]
+        identities = recording("ssis-sparql/graph-identities.json")["response"]["body"]
+        self.context.ssis = SSISClient(self.settings)
+
+        async def call(client):
+            return await client.call_tool(
+                "find_data_elements_for_concept", {"conceptCode": "C17357"}
+            )
+
+        with patch.object(
+            self.context.ssis.sparql_http, "post_form", side_effect=[identities, source]
+        ):
+            return self.session(call)
+
+    def test_status_text_preserves_empty_literal_spacing_and_encoded_delimiters(self):
+        cases = (
+            ({}, {}),
+            ({"type": "literal", "value": ""}, {}),
+            ({"type": "literal", "value": "v"}, {"workflowStatuses": [""]}),
+            (
+                {
+                    "type": "literal",
+                    "value": "vSuperceded vSuperseded v%20DRAFT%20 "
+                    "v%7C%25%F0%9F%A7%AC vSuperceded v",
+                },
+                {"workflowStatuses": ["", " DRAFT ", "Superceded", "Superseded", "|%🧬"]},
+            ),
+        )
+        for term, expected in cases:
+            with self.subTest(term=term):
+                result = self.status_result({"workflowStatuses": term} if term else {})
+                self.assertFalse(result.is_error, result.content)
+                use = result.structured_content["dataElements"][0]
+                self.assertEqual(
+                    {key: value for key, value in use.items() if key.endswith("Statuses")},
+                    expected,
+                )
+
+    def test_malformed_status_terms_fail_through_the_mcp_error_path(self):
+        terms = (
+            None,
+            {"type": "uri", "value": "vRELEASED"},
+            {"type": "literal", "value": 4},
+            {"type": "literal", "value": "RELEASED"},
+            {"type": "literal", "value": "v%"},
+            {"type": "literal", "value": "v%FF"},
+        )
+        for field in ("workflowStatuses", "registrationStatuses"):
+            for term in terms:
+                with self.subTest(field=field, term=term):
+                    result = self.status_result({field: term})
+                    self.assertTrue(result.is_error)
+                    self.assertEqual(
+                        result.structured_content["error"]["code"], "upstream_unavailable"
+                    )
+
     def test_graph_status_sets_preserve_unpaired_public_id_evidence(self):
         """Given merged DE2672191, finding it retains both independent status sets."""
         source = recording("ssis-sparql/data-elements-statuses-c48179.json")
@@ -76,7 +138,7 @@ class GraphRoleWireTest(ServerTestCase):
         for suffix, expand in (("", False), ("-descendants", True)):
             with self.subTest(expand=expand):
                 source = json.loads(
-                    (FIXTURES / f"data-elements-roles-c25332{suffix}.json").read_text()
+                    (FIXTURES / f"data-elements-statuses-c25332{suffix}.json").read_text()
                 )
                 server = self.serve(Reply(body=b'{"results":{"bindings":[]}}'))
                 client = SSISClient(Settings(ssis_sparql_url=server.url))
