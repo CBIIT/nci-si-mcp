@@ -484,6 +484,30 @@ class MutationVerdictContractsTest(unittest.TestCase):
 
 
 class MutationEvidenceContractsTest(unittest.TestCase):
+    def test_collection_hook_serializes_canonical_traceback_paths_and_exception_type(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory).resolve() / "events.jsonl"
+            try:
+                raise TypeError("invalid table")
+            except TypeError:
+                representation = pytest.ExceptionInfo.from_current().getrepr()
+            report = SimpleNamespace(
+                failed=True, nodeid="tests/test_example.py", longrepr=representation
+            )
+            with patch.object(probe, "DESTINATION", str(path)):
+                probe.pytest_collectreport(report)
+            self.assertEqual(
+                json.loads(path.read_text()),
+                {
+                    "node": "tests/test_example.py",
+                    "phase": "collection",
+                    "outcome": "failed",
+                    "assertion": False,
+                    "traceback_paths": [str(Path(__file__).resolve())],
+                    "exception": "TypeError: invalid table",
+                },
+            )
+
     def test_system_exit_and_internal_errors_never_become_import_kills(self):
         target = Path("src/example.py").resolve()
         failure = {
