@@ -8,6 +8,7 @@ import random
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
 from time import monotonic
@@ -99,7 +100,9 @@ def schedule(root: Path, mutants: list[Mutant], mapping: dict, args) -> list[dic
     with tempfile.TemporaryDirectory(prefix="mutation-jobs-") as temporary:
         work = Path(temporary)
         manifest = work / "mutations.json"
-        manifest.write_text(json.dumps(manifest_data(root, mutants, mapping, args.timeout)))
+        data = manifest_data(root, mutants, mapping, args.timeout)
+        data.update(getattr(args, "catalogue", {}))
+        manifest.write_text(json.dumps(data))
         config = work / "pytest.ini"
         config.write_text("[pytest]\n")
         command = [
@@ -146,7 +149,62 @@ def exemption_matches(key: dict, exemptions: list[dict]) -> list[dict]:
     ]
 
 
+def shard_argument(value: str) -> tuple[int, int]:
+    try:
+        index, count = map(int, value.split("/"))
+        if 1 <= index <= count:
+            return index, count
+    except ValueError:
+        pass
+    raise argparse.ArgumentTypeError("expected K/N with 1 <= K <= N")
+
+
+def partition(mutants: list[Mutant], shard: tuple[int, int]) -> list[Mutant]:
+    index, count = shard
+    return [
+        mutant
+        for mutant in mutants
+        if int(digest(json.dumps(mutant.key(), sort_keys=True)), 16) % count + 1 == index
+    ]
+
+
+def shard_catalogue(mutants: list[Mutant], args) -> list[Mutant]:
+    args.catalogue = {}
+    if args.shard is None:
+        return mutants
+    selected = partition(mutants, args.shard)
+    index, count = args.shard
+    args.catalogue = {
+        "shard": f"{index}/{count}",
+        "full_mutants": len(mutants),
+        "shard_mutants": len(selected),
+    }
+    print(json.dumps({"outcome": "CATALOGUE", **args.catalogue}, sort_keys=True))
+    return selected
+
+
+def report_results(rows: list[dict], exemptions: list[dict], args, started: float) -> int:
+    status = verdict(rows, exemptions)
+    if args.shard is not None:
+        counts = Counter(row["outcome"] for row in rows)
+        kinds = Counter(row.get("kind") for row in rows if row["outcome"] == "KILLED")
+        print(
+            json.dumps(
+                {
+                    "outcome": "SUMMARY",
+                    **args.catalogue,
+                    "counts": dict(counts),
+                    "kill_kinds": {kind: kinds[kind] for kind in ("assertion", "error", "import")},
+                    "elapsed_seconds": monotonic() - started,
+                },
+                sort_keys=True,
+            )
+        )
+    return status
+
+
 def main(argv: list[str] | None = None) -> int:
+    started = monotonic()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--paths", nargs="+", default=[])
@@ -159,6 +217,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--baseline-timeout", type=float, default=1800)
     parser.add_argument("-n", "--workers", type=int, default=1)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--shard", type=shard_argument, metavar="K/N")
     args = parser.parse_args(argv)
     if min(args.timeout, args.baseline_timeout) <= 0 or args.workers < 1:
         parser.error("timeout and workers must be positive")
@@ -169,12 +228,13 @@ def main(argv: list[str] | None = None) -> int:
         mutants, diagnostics = collect(root, scope(root, args.paths, args.base, args.head))
         for row in diagnostics:
             print(json.dumps(row, sort_keys=True))
+        mutants = shard_catalogue(mutants, args)
         if not mutants:
-            print(json.dumps({"outcome": "EMPTY", "mutants": 0}))
+            print(json.dumps({"outcome": "EMPTY", "mutants": 0, **args.catalogue}))
             return 0
         random.Random(args.seed).shuffle(mutants)  # noqa: S311 - reproducible scheduling
         mapping = baseline(root, args.baseline_timeout)
-        return verdict(schedule(root, mutants, mapping, args), exemptions)
+        return report_results(schedule(root, mutants, mapping, args), exemptions, args, started)
     except (ValueError, OSError, subprocess.SubprocessError, SyntaxError) as error:
         print(json.dumps({"outcome": "INFRA", "message": str(error)}))
         return 2

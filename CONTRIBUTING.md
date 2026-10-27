@@ -28,6 +28,15 @@ about as long as that command.
 | `pdm run pytest tests/test_index.py -k name` | A selection of tests, without the minimum |
 | `pdm run lint` | Ruff and basedpyright: the fast check while you work |
 | `pdm run mutation-gate` | Kill every changed-site Python mutant before a PR; `--paths src/package/module.py` checks a whole module; review survivors with the printed AST keys in `scripts/validation/mutation-allowlist.yaml` |
+
+CI runs the complete mutation catalogue as three stable-key hash partitions, each with two
+workers and a 300-minute timeout: `--shard 1/3 -n 2`, `--shard 2/3 -n 2` and
+`--shard 3/3 -n 2`. All three must pass; a job timeout fails. Shard JSON lines report
+full/selected counts and a final outcome/kill-kind summary with elapsed seconds. An empty
+partition reports `EMPTY`; allowlist freshness is checked before partitioning. The measured
+144-mutant Phase 33k diff took 73m22s unsharded; projected shard times were 31–37 minutes
+(including baseline overhead, excluding contention), targeting under 60 minutes for a typical
+milestone. The gate's nested self-tests require the larger timeout.
 | `pdm run fmt` | Format with Ruff |
 | `pdm run lock` | Refresh every Python group to the newest version admitted by the five-day release-age policy |
 | `pdm run github-setup` | Create missing workflow credential names with safe placeholders; never overwrite existing names |

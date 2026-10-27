@@ -19,6 +19,11 @@ concurrency:
 jobs:
   mutation:
     name: mutation (diff)
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
     permissions:
       contents: read
@@ -34,7 +39,8 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: pdm run mutation-gate --base "$BASE_SHA" --head "$HEAD_SHA" -n 2
+          SHARD: ${{ matrix.shard }}/3
+        run: pdm run mutation-gate --base "$BASE_SHA" --head "$HEAD_SHA" --shard "$SHARD" -n 2
 
   changes:
     name: image selection
