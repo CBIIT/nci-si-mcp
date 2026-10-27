@@ -28,21 +28,6 @@ about as long as that command.
 | `pdm run pytest tests/test_index.py -k name` | A selection of tests, without the minimum |
 | `pdm run lint` | Ruff and basedpyright: the fast check while you work |
 | `pdm run mutation-gate` | Kill every changed-site Python mutant before a PR; `--paths src/package/module.py` checks a whole module; review survivors with the printed AST keys in `scripts/validation/mutation-allowlist.yaml` |
-
-CI runs the complete mutation catalogue as three stable-key hash partitions, each with two
-workers and a 300-minute timeout: `--shard 1/3 -n 2`, `--shard 2/3 -n 2` and
-`--shard 3/3 -n 2`. All three must pass; a job timeout fails. Shard JSON lines report
-full/selected counts and a final outcome/kill-kind summary with elapsed seconds. An empty
-partition reports `EMPTY`; allowlist freshness is checked before partitioning. The measured
-144-mutant Phase 33k diff took 73m22s unsharded; projected shard times were 31–37 minutes
-(including baseline overhead, excluding contention), targeting under 60 minutes for a typical
-milestone. The gate's nested self-tests require the larger timeout.
-
-Before launching mutants, every nonempty shard requires clean unit, harness self-test and
-prepared fixture baselines. Any baseline failure names its domain and fails the gate, even
-when the acceptance ratchet expects that failure. Only unit and self-test baselines collect
-coverage contexts for test selection; the fixture baseline checks readiness without coverage.
-The shard summary's `baseline_domains` records each domain's outcome and measured seconds.
 | `pdm run fmt` | Format with Ruff |
 | `pdm run lock` | Refresh every Python group to the newest version admitted by the five-day release-age policy |
 | `pdm run github-setup` | Create missing workflow credential names with safe placeholders; never overwrite existing names |
@@ -63,6 +48,21 @@ The shard summary's `baseline_domains` records each domain's outcome and measure
 | `pdm run spec-render` | Regenerate [docs/specification.md](docs/specification.md) from `spec/`, after any change there |
 | `pdm run quickstart-tools` | Regenerate the table of tools in [QUICKSTART.md](QUICKSTART.md) from `spec/tools.yaml`; `--check` verifies it |
 | `pandoc -f gfm docs/specification.md -o specification.docx` | The Word copy of the specification, a build product: never committed or edited |
+
+CI runs the complete mutation catalogue as three stable-key hash partitions, each with two
+workers and a 300-minute timeout: `--shard 1/3 -n 2`, `--shard 2/3 -n 2` and
+`--shard 3/3 -n 2`. All three must pass; a job timeout fails. Shard JSON lines report
+full/selected counts and a final outcome/kill-kind summary with elapsed seconds. An empty
+partition reports `EMPTY`; allowlist freshness is checked before partitioning. The measured
+144-mutant Phase 33k diff took 73m22s unsharded; projected shard times were 31–37 minutes
+(including baseline overhead, excluding contention), targeting under 60 minutes for a typical
+milestone. The gate's nested self-tests require the larger timeout.
+
+Before launching mutants, every nonempty shard requires clean unit, harness self-test and
+prepared fixture baselines. Any baseline failure names its domain and fails the gate, even
+when the acceptance ratchet expects that failure. Only unit and self-test baselines collect
+coverage contexts for test selection; the fixture baseline checks readiness without coverage.
+The shard summary's `baseline_domains` records each domain's outcome and measured seconds.
 
 Beyond the server and the suite, the repository holds the documentation site, the validation
 companion and the benchmark tooling; these are their entry points.
@@ -96,14 +96,6 @@ The outside-in review rules are in [AGENTS.md](AGENTS.md#outside-in-test-design-
 This preserves the
 [test pyramid](https://testing.googleblog.com/2015/04/just-say-no-to-more-end-to-end-tests.html);
 parameterized contract cases do not need an arbitrary ratio of test counts.
-
-Mutation JSON rows record monotonic `elapsed_seconds` for the whole mutant (including scratch
-setup) and a `domains` list of measured test-run durations and outcomes. The scheduler stores
-each source once, span/replacement edits and preselected test routes; it does not duplicate
-the baseline coverage map per worker. Multiple unittest subtest reports become one owning
-call record; any non-assertion subtest failure keeps that call an infrastructure failure.
-The probe consumes its launch-only evidence destination at configuration; only declared
-xdist workers receive it, so nested pytest programs cannot append to the parent's records.
 
 | Level | What exercises it here |
 | --- | --- |
@@ -142,6 +134,23 @@ deleted paths and both sides of renames; changes confined to `tests/` can avoid 
 builds. Acceptance self-tests are packaged in Admin, and public documentation and checked
 source links feed the companion site. The root README also feeds server wheel metadata.
 Other CI gates are unchanged.
+
+### Mutation gate
+
+A single selected owning call that passed the baseline is `KILLED` when it fails,
+with `kind: assertion` or `kind: error`. Multiple unittest subtest reports become one owning
+call record; mixed assertion and error subtest failures are `KILLED` with `kind: error`.
+A collection exception whose traceback reaches the mutated file is a `kind: import`
+kill after a clean baseline. Unrelated collection failures, `SystemExit`, setup,
+teardown, internal and baseline failures stay infrastructure errors.
+Evidence collection loads an immutable controller copy, even when testing the probe.
+
+Mutation JSON rows record monotonic `elapsed_seconds` for the whole mutant (including scratch
+setup) and a `domains` list of measured test-run durations and outcomes. The scheduler stores
+each source once, span/replacement edits and preselected test routes; it does not duplicate
+the baseline coverage map per worker. The probe consumes its launch-only evidence destination
+at configuration; only declared xdist workers receive it, so nested pytest programs cannot
+append to the parent's records.
 
 ## Coverage badges
 

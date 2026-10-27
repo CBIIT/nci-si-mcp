@@ -254,17 +254,11 @@ adding exclusion pathspecs for generated files.
    2. **Silent failures:** swallowed exceptions, broad `except`, fallbacks that hide an error,
       results that look complete but are not.
    3. **Tests:** apply the outside-in rules below to every changed behavioral claim.
-      Run `pdm run mutation-gate` before the PR; fix every survivor or record a reviewed equivalent
-      in `scripts/validation/mutation-allowlist.yaml` with its reason. Timeouts are reported
-      separately and count as killed by policy, not as assertion-strength evidence.
-      A single selected owning call that passed the baseline is `KILLED` when it fails,
-      with `kind: assertion` or `kind: error`; mixed subtest failures are `error`.
-      A collection exception whose traceback reaches the mutated file is a `kind: import`
-      kill after a clean baseline; unrelated collection failures, `SystemExit`, setup,
-      teardown, internal and baseline failures stay infrastructure errors.
-      Evidence collection loads an immutable controller copy, even when testing the probe.
+      Run `pdm run mutation-gate` before the PR; fix every survivor or allowlist a reviewed
+      equivalent `SURVIVED` mutant in `scripts/validation/mutation-allowlist.yaml` with its reason.
       `NO_TESTS` is never allowlisted: close reachable gaps at their owning boundary and
-      remove verified dead code. Only equivalent `SURVIVED` mutants can be allowlisted.
+      remove verified dead code. Timeouts count as killed by policy, not as assertion-strength
+      evidence. See [CONTRIBUTING.md](CONTRIBUTING.md#mutation-gate) for classification and execution details.
       A behavioural change without a red commit is a finding; check its quoted failure. Identify the claim's
       caller scenario, owning interface and test, plausible regression, and observed
       assertion failure under the original defect or a restored targeted mutation. Distinguish
