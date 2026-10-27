@@ -793,6 +793,7 @@ class MutationEvidenceContractsTest(unittest.TestCase):
             project(
                 root,
                 "def answer():\n    return True\n",
+                "assert example.answer() is not Ellipsis",
                 contract=(
                     "import os\n"
                     "    assert {key: os.environ.get(key) for key in "
@@ -803,7 +804,8 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                     "'NCI_SI_ACCEPTANCE_SECURITY_SERVER': "
                     "'python ../scripts/permissions_fixture.py', "
                     "'NCI_SI_ACCEPTANCE_PREPARE': "
-                    "'nci-si-mcp index-sample $(cat \"$NCI_SI_ACCEPTANCE_INDEX_CODES\")'}"
+                    "'nci-si-mcp index-sample $(cat \"$NCI_SI_ACCEPTANCE_INDEX_CODES\")'}\n"
+                    "    assert example.answer() is True"
                 ),
             )
             selected = {"unit": ["tests/test_example.py::test_value"], "selftest": []}
@@ -811,8 +813,7 @@ class MutationEvidenceContractsTest(unittest.TestCase):
             self.assertEqual(
                 (confirmation["outcome"], confirmation["confirmation"]), ("SURVIVED", "fixture")
             )
-            contract = root / "acceptance/tests/test_contract.py"
-            contract.write_text(contract.read_text() + "    assert False\n")
+            (root / "src/example.py").write_text("def answer():\n    return False\n")
             result = gate.measure(root, selected, 30)
             self.assertEqual(
                 {key: result[key] for key in ("outcome", "domain", "node", "confirmation")},
@@ -827,7 +828,9 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                 [(row["domain"], row["outcome"]) for row in result["domains"]],
                 [("unit", "SURVIVED"), ("selftest", "SURVIVED"), ("fixture", "KILLED")],
             )
-            (root / "tests/test_example.py").write_text("def test_value():\n    assert False\n")
+            (root / "tests/test_example.py").write_text(
+                "import example\ndef test_value():\n    assert example.answer() is True\n"
+            )
             result = gate.measure(root, selected, 30)
             self.assertEqual((result["outcome"], result["domain"]), ("KILLED", "unit"))
             self.assertEqual([row["domain"] for row in result["domains"]], ["unit"])

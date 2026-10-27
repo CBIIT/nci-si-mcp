@@ -37,6 +37,12 @@ partition reports `EMPTY`; allowlist freshness is checked before partitioning. T
 144-mutant Phase 33k diff took 73m22s unsharded; projected shard times were 31–37 minutes
 (including baseline overhead, excluding contention), targeting under 60 minutes for a typical
 milestone. The gate's nested self-tests require the larger timeout.
+
+Before launching mutants, every nonempty shard requires clean unit, harness self-test and
+prepared fixture baselines. Any baseline failure names its domain and fails the gate, even
+when the acceptance ratchet expects that failure. Only unit and self-test baselines collect
+coverage contexts for test selection; the fixture baseline checks readiness without coverage.
+The shard summary's `baseline_domains` records each domain's outcome and measured seconds.
 | `pdm run fmt` | Format with Ruff |
 | `pdm run lock` | Refresh every Python group to the newest version admitted by the five-day release-age policy |
 | `pdm run github-setup` | Create missing workflow credential names with safe placeholders; never overwrite existing names |

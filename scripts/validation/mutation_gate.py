@@ -197,6 +197,7 @@ def report_results(rows: list[dict], exemptions: list[dict], args, started: floa
                     **args.catalogue,
                     "counts": dict(counts),
                     "kill_kinds": {kind: kinds[kind] for kind in ("assertion", "error", "import")},
+                    "baseline_domains": args.baseline_domains,
                     "elapsed_seconds": monotonic() - started,
                 },
                 sort_keys=True,
@@ -235,7 +236,8 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"outcome": "EMPTY", "mutants": 0, **args.catalogue}))
             return 0
         random.Random(args.seed).shuffle(mutants)  # noqa: S311 - reproducible scheduling
-        mapping = baseline(root, args.baseline_timeout)
+        args.baseline_domains = []
+        mapping = baseline(root, args.baseline_timeout, timings=args.baseline_domains)
         return report_results(schedule(root, mutants, mapping, args), exemptions, args, started)
     except (ValueError, OSError, subprocess.SubprocessError, SyntaxError) as error:
         print(json.dumps({"outcome": "INFRA", "message": str(error)}))

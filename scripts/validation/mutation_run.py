@@ -172,13 +172,13 @@ def run_domain(
         "-p",
         "_mutation_evidence",
         "-n",
-        "4" if baseline and domain == "selftest" else "0",
+        "4" if baseline and domain in ("selftest", "fixture") else "0",
         "-x",
         "--rootdir",
         str(scratch / directory),
         *(selected or [default]),
     ]
-    args += coverage_args(scratch, work, baseline)
+    args += coverage_args(scratch, work, baseline, domain)
     if domain == "fixture":
         env.update(FIXTURE)
         args += ["--report=fixture.json"]
@@ -193,8 +193,8 @@ def run_domain(
     return result, work / ".coverage"
 
 
-def coverage_args(scratch: Path, work: Path, baseline: bool) -> list[str]:
-    if not baseline:
+def coverage_args(scratch: Path, work: Path, baseline: bool, domain: str) -> list[str]:
+    if not baseline or domain == "fixture":
         return ["--no-cov"]
     config = work / ".coveragerc"
     config.write_text("[run]\nbranch = True\ncore = ctrace\npatch = subprocess\n")
@@ -220,14 +220,19 @@ def coverage_map(data_file: Path, scratch: Path) -> dict[str, dict[int, list[str
     return result
 
 
-def baseline(root: Path, timeout: float) -> dict:
+def baseline(root: Path, timeout: float, *, timings: list[dict] | None = None) -> dict:
     result = {}
     with snapshot(root) as scratch:
-        for domain in ("unit", "selftest"):
+        for domain in ("unit", "selftest", "fixture"):
             outcome, data = run_domain(scratch, domain, [], timeout, baseline=True)
+            if timings is not None:
+                timings.append(
+                    {key: outcome[key] for key in ("domain", "outcome", "elapsed_seconds")}
+                )
             if outcome["outcome"] != "SURVIVED":
                 raise ValueError(f"Baseline {domain} failed: {outcome}")
-            result[domain] = coverage_map(data, scratch)
+            if domain != "fixture":
+                result[domain] = coverage_map(data, scratch)
     return result
 
 
