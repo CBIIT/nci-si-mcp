@@ -301,13 +301,18 @@ class MutationExecutionTest(unittest.TestCase):
                 json.dumps(
                     {
                         "root": str(root),
-                        "mutants": [asdict(mutants[-1])],
-                        "timeout": 20,
-                        "mapping": {
-                            "unit": {
-                                "src/example.py": {2: ["tests/test_example.py::test_value|run"]}
+                        "sources": {"src/example.py": source},
+                        "mutants": [
+                            {
+                                **{
+                                    key: value
+                                    for key, value in asdict(mutants[-1]).items()
+                                    if key != "before"
+                                },
+                                "selected": {"unit": ["tests/test_example.py::test_value"]},
                             }
-                        },
+                        ],
+                        "timeout": 20,
                     }
                 )
             )
@@ -480,15 +485,18 @@ class MutationExecutionTest(unittest.TestCase):
                         json.dumps(
                             {
                                 "root": str(root),
-                                "mutants": [asdict(mutant)],
-                                "timeout": timeout,
-                                "mapping": {
-                                    "unit": {
-                                        "src/example.py": {
-                                            2: ["tests/test_example.py::test_value|run"]
-                                        }
+                                "sources": {"src/example.py": source},
+                                "mutants": [
+                                    {
+                                        **{
+                                            key: value
+                                            for key, value in asdict(mutant).items()
+                                            if key != "before"
+                                        },
+                                        "selected": {"unit": ["tests/test_example.py::test_value"]},
                                     }
-                                },
+                                ],
+                                "timeout": timeout,
                             }
                         )
                     )

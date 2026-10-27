@@ -10,6 +10,7 @@ import sys
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
+from time import monotonic
 
 from scripts.processes import exit_on_sigterm
 from scripts.validation.mutation_run import (
@@ -24,8 +25,14 @@ from scripts.validation.mutation_source import Mutant, allowlist, candidates, di
 
 
 def execute_job(path: Path, index: int) -> None:
+    started = monotonic()
     jobs = json.loads(path.read_text())
-    mutant = Mutant(**jobs["mutants"][index])
+    item = jobs["mutants"][index]
+    source = jobs["sources"][item["file"]].encode()
+    mutant = Mutant(
+        **{key: value for key, value in item.items() if key != "selected"},
+        before=source[item["start"] : item["end"]].decode(),
+    )
     with snapshot(Path(jobs["root"])) as scratch:
         target = scratch / mutant.file
         original = target.read_bytes()
@@ -33,26 +40,28 @@ def execute_job(path: Path, index: int) -> None:
             target.write_bytes(
                 original[: mutant.start] + mutant.after.encode() + original[mutant.end :]
             )
-            result = measure(scratch, mutant, jobs)
+            result = measure(scratch, item["selected"], jobs["timeout"])
         finally:
             target.write_bytes(original)
             if digest(target.read_bytes().hex()) != digest(original.hex()):
                 raise ValueError(f"Scratch restoration failed: {mutant.file}")
-    row = {**asdict(mutant), **result, "restored": True}
+    row = {**asdict(mutant), **result, "restored": True, "elapsed_seconds": monotonic() - started}
     (path.parent / f"result-{index}.json").write_text(json.dumps(row))
 
 
-def measure(scratch: Path, mutant: Mutant, jobs: dict) -> dict:
-    selected = selection(jobs["mapping"], mutant.file, mutant.line, mutant.end_line)
+def measure(scratch: Path, selected: dict, timeout: float) -> dict:
     if not selected:
-        return {"outcome": "NO_TESTS"}
+        return {"outcome": "NO_TESTS", "domains": []}
+    timings = []
     for domain, tests in selected.items():
-        result, _ = run_domain(scratch, domain, tests, jobs["timeout"])
+        result, _ = run_domain(scratch, domain, tests, timeout)
+        timings.append({key: result[key] for key in ("domain", "outcome", "elapsed_seconds")})
         if result["outcome"] != "SURVIVED":
-            return result
-    result, _ = run_domain(scratch, "fixture", [], jobs["timeout"])
+            return {**result, "domains": timings}
+    result, _ = run_domain(scratch, "fixture", [], timeout)
+    timings.append({key: result[key] for key in ("domain", "outcome", "elapsed_seconds")})
     result["confirmation"] = "fixture"
-    return result
+    return {**result, "domains": timings}
 
 
 def collect(root: Path, selected: dict) -> tuple[list[Mutant], list[dict]]:
@@ -69,20 +78,28 @@ def collect(root: Path, selected: dict) -> tuple[list[Mutant], list[dict]]:
     return mutants, diagnostics
 
 
+def manifest_data(root: Path, mutants: list[Mutant], mapping: dict, timeout: float) -> dict:
+    return {
+        "root": str(root),
+        "sources": {
+            file: (root / file).read_bytes().decode() for file in sorted({m.file for m in mutants})
+        },
+        "mutants": [
+            {
+                **{key: value for key, value in asdict(mutant).items() if key != "before"},
+                "selected": selection(mapping, mutant.file, mutant.line, mutant.end_line),
+            }
+            for mutant in mutants
+        ],
+        "timeout": timeout,
+    }
+
+
 def schedule(root: Path, mutants: list[Mutant], mapping: dict, args) -> list[dict]:
     with tempfile.TemporaryDirectory(prefix="mutation-jobs-") as temporary:
         work = Path(temporary)
         manifest = work / "mutations.json"
-        manifest.write_text(
-            json.dumps(
-                {
-                    "root": str(root),
-                    "mutants": list(map(asdict, mutants)),
-                    "mapping": mapping,
-                    "timeout": args.timeout,
-                }
-            )
-        )
+        manifest.write_text(json.dumps(manifest_data(root, mutants, mapping, args.timeout)))
         config = work / "pytest.ini"
         config.write_text("[pytest]\n")
         command = [

@@ -10,6 +10,7 @@ import sys
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
+from time import monotonic
 
 from coverage import CoverageData
 from scripts.processes import stop
@@ -163,9 +164,11 @@ def run_domain(
         env.update(FIXTURE)
         args += ["--report=fixture.json"]
     log = work / "pytest.log"
+    started = monotonic()
     status = program(args, scratch / directory, env, timeout, log)
+    elapsed = monotonic() - started
     result = classify(status, evidence)
-    result.update(domain=domain, log=log.read_text(errors="replace"))
+    result.update(domain=domain, log=log.read_text(errors="replace"), elapsed_seconds=elapsed)
     return result, work / ".coverage"
 
 

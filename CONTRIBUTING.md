@@ -82,6 +82,12 @@ This preserves the
 [test pyramid](https://testing.googleblog.com/2015/04/just-say-no-to-more-end-to-end-tests.html);
 parameterized contract cases do not need an arbitrary ratio of test counts.
 
+Mutation JSON rows record monotonic `elapsed_seconds` for the whole mutant (including scratch
+setup) and a `domains` list of measured test-run durations and outcomes. The scheduler stores
+each source once, span/replacement edits and preselected test routes; it does not duplicate
+the baseline coverage map per worker. Multiple unittest subtest reports become one owning
+call record; any non-assertion subtest failure keeps that call an infrastructure failure.
+
 | Level | What exercises it here |
 | --- | --- |
 | Unit | Parsers, validation, ranking, truncation and report verdicts in `tests/` and `acceptance/selftests/` |
