@@ -132,6 +132,57 @@ class MutationCliContractsTest(unittest.TestCase):
 
 
 class MutationSourceContractsTest(unittest.TestCase):
+    def test_only_exact_module_entry_point_comparisons_are_rejected(self):
+        for comparison in ("__name__ == '__main__'", "'__main__' == __name__"):
+            with self.subTest(comparison=comparison):
+                snippet = (
+                    f"if {comparison}:\n    launch()\nelse:\n    fallback()\n"
+                    f"def inner(value=1):\n    if {comparison}:\n        return value == 1\n"
+                )
+                mutants, diagnostics = source.candidates("scripts/example.py", snippet.encode())
+                self.assertEqual([m.operator for m in mutants if m.line == 1], [])
+                self.assertEqual(
+                    [row for row in diagnostics if row.get("reason") == "entry-point guard"],
+                    [
+                        {
+                            "file": "scripts/example.py",
+                            "line": 1,
+                            "operator": operator,
+                            "outcome": "REJECTED",
+                            "reason": "entry-point guard",
+                        }
+                        for operator in ("comparison:0", "comparison:negate")
+                    ],
+                )
+
+    def test_guard_body_else_and_nested_name_checks_remain_candidates(self):
+        mutants, _ = source.candidates(
+            "scripts/example.py",
+            b"if __name__ == '__main__':\n    launch()\nelse:\n    fallback()\n"
+            b"def inner():\n    if __name__ == '__main__':\n        return True\n",
+        )
+        self.assertEqual(
+            {(m.line, m.operator) for m in mutants if m.operator == "call:remove"},
+            {(2, "call:remove"), (4, "call:remove")},
+        )
+        self.assertEqual(
+            {m.qualname for m in mutants if m.before == "__name__ == '__main__'"}, {"inner"}
+        )
+
+    def test_other_module_name_comparisons_remain_candidates(self):
+        for comparison in (
+            "__name__ != '__main__'",
+            "name == '__main__'",
+            "__name__ == 'other'",
+            "__name__ == '__main__' == value",
+        ):
+            with self.subTest(comparison=comparison):
+                mutants, diagnostics = source.candidates(
+                    "scripts/example.py", f"if {comparison}:\n    launch()\n".encode()
+                )
+                self.assertTrue([m for m in mutants if m.line == 1])
+                self.assertEqual(diagnostics, [])
+
     def test_git_snapshot_keeps_history_and_dirty_bytes_in_an_independent_object_database(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
