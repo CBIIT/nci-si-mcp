@@ -53,6 +53,27 @@ def result_key(row):
 
 
 class MutationCliContractsTest(unittest.TestCase):
+    def test_preexisting_fixture_failure_stops_the_gate_before_any_mutant_is_credited(self):
+        # Given clean unit/self-test suites and an already failing fixture test,
+        # the CLI must reject the baseline rather than credit that failure as a kill.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(
+                root,
+                "def answer():\n    return True\n",
+                "assert example.answer() is not Ellipsis",
+                "assert 1 == 2",
+            )
+            status, rows = command(root, "--paths", "src/example.py")
+            self.assertEqual(status, 2, rows)
+            self.assertEqual([row["outcome"] for row in rows], ["NO_OP", "INFRA"])
+            self.assertIn("Baseline fixture failed:", rows[-1]["message"])
+            self.assertIn("'outcome': 'INFRA'", rows[-1]["message"])
+            self.assertIn("tests/test_contract.py::test_contract", rows[-1]["message"])
+            self.assertEqual(
+                (root / "src/example.py").read_text(), "def answer():\n    return True\n"
+            )
+
     def test_seed_and_comment_line_shifts_preserve_shard_membership_across_processes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
@@ -102,8 +123,18 @@ class MutationCliContractsTest(unittest.TestCase):
                 self.assertEqual(summary["outcome"], "SUMMARY")
                 self.assertEqual(summary["counts"], {"SURVIVED": len(results)})
                 self.assertEqual(summary["kill_kinds"], {"assertion": 0, "error": 0, "import": 0})
+                self.assert_clean_baseline_timings(summary)
             self.assertEqual(set(observed), expected)
             self.assertEqual(len(observed), len(expected))
+
+    def assert_clean_baseline_timings(self, summary):
+        self.assertIn("baseline_domains", summary)
+        self.assertEqual(
+            [(row["domain"], row["outcome"]) for row in summary["baseline_domains"]],
+            [(domain, "SURVIVED") for domain in ("unit", "selftest", "fixture")],
+        )
+        for row in summary["baseline_domains"]:
+            self.assertIsInstance(row["elapsed_seconds"], float)
 
     def test_invalid_shards_are_usage_errors(self):
         for value in ("0/3", "4/3", "1/0", "-1/3", "1", "a/3", "1/2/3"):
