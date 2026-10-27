@@ -244,7 +244,7 @@ class MutationOperatorsTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 scope(root, ["tests/test_example.py"], "unused", "unused")
 
-    def test_contexts_are_domain_qualified_and_setup_or_child_contexts_use_whole_domain(self):
+    def test_contexts_are_domain_qualified_and_only_unattributed_lines_use_whole_domain(self):
         mapping = {
             "unit": {"src/a.py": {2: ["tests/test_a.py::test_a|run"]}},
             "selftest": {"src/a.py": {2: ["tests/test_a.py::test_a|setup", ""]}},
@@ -254,6 +254,18 @@ class MutationOperatorsTest(unittest.TestCase):
             {"unit": ["tests/test_a.py::test_a"], "selftest": []},
         )
         self.assertEqual(selection(mapping, "src/a.py", 9, 9), {})
+        for contexts in (
+            ["", "tests/test_a.py::test_a|run"],
+            ["tests/test_a.py::test_a|setup", "tests/test_a.py::test_a|run"],
+            ["tests/test_a.py::test_a|teardown", "tests/test_a.py::test_a|run"],
+        ):
+            with self.subTest(contexts=contexts):
+                self.assertEqual(
+                    selection({"unit": {"src/a.py": {2: contexts}}}, "src/a.py", 2, 2),
+                    {"unit": ["tests/test_a.py::test_a"]},
+                )
+        with self.assertRaisesRegex(ValueError, "Unrecognized coverage context"):
+            selection({"unit": {"src/a.py": {2: ["unknown"]}}}, "src/a.py", 2, 2)
 
 
 class MutationExecutionTest(unittest.TestCase):
@@ -377,6 +389,7 @@ class MutationExecutionTest(unittest.TestCase):
                 "def test_child():\n"
                 "    status, rows = command(Path.cwd(), '--paths', 'src/child.py')\n"
                 "    assert (status, rows) == (0, [{'outcome': 'EMPTY', 'mutants': 0}])\n"
+                "def test_unrelated():\n    assert True\n"
             )
             # The helper's ROOT must be this snapshot, as it is in a real baseline.
             (root / "tests/test_mutation_gate.py").write_text(
@@ -385,9 +398,7 @@ class MutationExecutionTest(unittest.TestCase):
                 .split("class MutationOperatorsTest")[0]
             )
             shutil.copytree(ROOT / "scripts", root / "scripts")
-            result, data = run_domain(
-                root, "unit", ["tests/test_example.py::test_child"], 30, baseline=True
-            )
+            result, data = run_domain(root, "unit", [], 30, baseline=True)
             self.assertEqual(result["outcome"], "SURVIVED", result)
             mapping = coverage_map(data, root)
             line = next(
@@ -399,7 +410,7 @@ class MutationExecutionTest(unittest.TestCase):
             )
             self.assertEqual(
                 selection({"unit": mapping}, "scripts/validation/mutation_gate.py", line, line),
-                {"unit": []},
+                {"unit": ["tests/test_example.py::test_child"]},
             )
 
     def test_inherited_probe_child_cannot_append_to_parent_evidence(self):

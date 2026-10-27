@@ -52,7 +52,36 @@ def result_key(row):
     )
 
 
+def runner_seconds(rows):
+    return sum(domain["elapsed_seconds"] for row in rows for domain in row["domains"])
+
+
 class MutationCliContractsTest(unittest.TestCase):
+    def test_summary_counts_fallback_mutants_by_domain_and_measured_runner_hours(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(
+                root,
+                "flag = True\ndef answer():\n    return True\ndef unused():\n    return True\n",
+            )
+            status, rows = command(root, "--paths", "src/example.py", "--shard", "1/1")
+            results = [row for row in rows if "site" in row]
+            self.assertEqual(status, 1, rows)
+            for row in results:
+                self.assertEqual(row.get("fallback_domains"), ["unit"] if row["line"] == 1 else [])
+            fallback_count = sum(row["line"] == 1 for row in results)
+            self.assertGreater(fallback_count, 0)
+            self.assertEqual(rows[-1].get("fallback_count"), fallback_count)
+            self.assertEqual(rows[-1].get("fallback_domains"), {"unit": fallback_count})
+            self.assertGreater(rows[-1]["counts"]["NO_TESTS"], 0)
+            seconds = runner_seconds(results)
+            self.assertEqual(rows[-1].get("runner_seconds"), seconds)
+            self.assertEqual(rows[-1].get("runner_hours"), seconds / 3600)
+            self.assertEqual(
+                rows[-1].get("runner_seconds_by_domain"),
+                {"unit": seconds},
+            )
+
     def test_preexisting_fixture_failure_stops_the_gate_before_any_mutant_is_credited(self):
         # Given clean unit/self-test suites and an already failing fixture test,
         # the CLI must reject the baseline rather than credit that failure as a kill.
@@ -765,7 +794,10 @@ class MutationEvidenceContractsTest(unittest.TestCase):
             data.write()
             mapping = runner.coverage_map(data_file, scratch)
             self.assertEqual(mapping, {"src/x.py": {2: ["tests/test_x.py::test_x|run"], 3: [""]}})
-            self.assertEqual(runner.selection({"unit": mapping}, "src/x.py", 2, 3), {"unit": []})
+            self.assertEqual(
+                runner.selection({"unit": mapping}, "src/x.py", 2, 3),
+                {"unit": ["tests/test_x.py::test_x"]},
+            )
 
     def test_baseline_failure_names_the_domain_and_cannot_become_a_successful_map(self):
         with tempfile.TemporaryDirectory() as directory:
