@@ -244,6 +244,49 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_nested_probe_and_multiple_subtest_failures_credit_exactly_one_outer_kill(self):
+        # Given a selected unittest that runs a child probe, when two subtests detect
+        # the mutant, then only its outer node owns the kill and child evidence is separate.
+        source = "def answer():\n    return True\n"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, source)
+            project(root / "nested", source)
+            (root / "tests/test_example.py").write_text(
+                "import unittest, example\nfrom pathlib import Path\n"
+                "from scripts.validation.mutation_run import run_domain\n"
+                "class Outer(unittest.TestCase):\n"
+                "    def test_nested(self):\n"
+                "        result, data = run_domain(Path('nested').resolve(), 'unit', [], 20)\n"
+                "        self.assertEqual(result['outcome'], 'SURVIVED')\n"
+                "        for value in (1, 2):\n"
+                "            with self.subTest(value=value):\n"
+                "                self.assertIs(example.answer(), True)\n"
+            )
+            (root / "src/example.py").write_text(source.replace("True", "False"))
+            result, data = run_domain(
+                root, "unit", ["tests/test_example.py::Outer::test_nested"], 30
+            )
+            self.assertEqual(result["outcome"], "KILLED", result)
+            self.assertEqual(result["node"], "tests/test_example.py::Outer::test_nested")
+            events = [
+                json.loads(line) for line in data.with_name("events.jsonl").read_text().splitlines()
+            ]
+            self.assertEqual(
+                [row for row in events if row["outcome"] == "failed"],
+                [
+                    {
+                        "node": "tests/test_example.py::Outer::test_nested",
+                        "phase": "call",
+                        "outcome": "failed",
+                        "assertion": True,
+                    }
+                ],
+            )
+            self.assertEqual(
+                {row["node"] for row in events}, {"tests/test_example.py::Outer::test_nested"}
+            )
+
     def test_uncovered_sites_fail_no_tests_and_reviewed_survivors_still_get_fixture_confirmation(
         self,
     ):
