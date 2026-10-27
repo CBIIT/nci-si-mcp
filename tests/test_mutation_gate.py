@@ -49,6 +49,13 @@ def command(root, *args):
 
 
 class MutationOperatorsTest(unittest.TestCase):
+    def test_fixed_function_context_hash_matches_the_ci_interpreter_contract(self):
+        mutants, _ = candidates("src/example.py", b"def answer():\n    return True\n")
+        self.assertEqual(
+            {mutant.context for mutant in mutants},
+            {"a0b3ebdc264a10cfed0053301d6d73c06f2e16170d397107ffbc7ba0a3a6be81"},
+        )
+
     def test_multiline_expression_sites_compile_and_module_keys_survive_statement_line_shifts(self):
         source = b"flag = (True\n        and False)\n"
         mutants, _ = candidates("src/example.py", source)
