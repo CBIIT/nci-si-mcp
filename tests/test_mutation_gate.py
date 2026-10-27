@@ -247,6 +247,27 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_inherited_probe_child_cannot_append_to_parent_evidence(self):
+        # A caller may launch pytest directly, without the gate's environment helper.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n")
+            (root / "tests/test_child.py").write_text("def test_child():\n    assert True\n")
+            (root / "tests/test_example.py").write_text(
+                "import subprocess, sys\ndef test_outer():\n"
+                "    child = subprocess.run([sys.executable, '-m', 'pytest', '-p', "
+                "'scripts.validation.mutation_probe', '--no-cov', '-n', '0', "
+                "'tests/test_child.py'], capture_output=True)\n"
+                "    assert child.returncode == 0\n"
+                "    assert False, 'outer mutation detected'\n"
+            )
+            result, data = run_domain(root, "unit", ["tests/test_example.py::test_outer"], 30)
+            self.assertEqual(result["outcome"], "KILLED", result)
+            events = [
+                json.loads(line) for line in data.with_name("events.jsonl").read_text().splitlines()
+            ]
+            self.assertEqual({row["node"] for row in events}, {"tests/test_example.py::test_outer"})
+
     def test_scheduler_manifest_shares_source_and_keeps_only_selected_test_routes(self):
         source = "def answer():\n    return True\n"
         with tempfile.TemporaryDirectory() as temporary:
