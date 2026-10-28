@@ -1,1 +1,160 @@
-[]
+# Original survivor row 3: 5dcabdfe9341960f91ba4ddbf51e484d3703255311a60738455cf725ddb4caaf
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_run.py"
+  qualname: "import_kill"
+  operator: "return:None"
+  site: "/body/3/body/0"
+  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
+  mutated: "e19ede9f5e840ec5e9c3ca6096c7341b0458e6c5c14c80709062e61900e94f51"
+  reason: "At the unrelated-traceback return, evidence_outcome uses call_kill(...) or import_kill(...), then only if kill; both values fall through to the same INFRA record. No gate caller indexes or serializes this rejected-kill sentinel."
+# Original survivor row 9: d076c9764692c9dfb4e0e9691e6bf3244c291c4cf2a43bf0cb1c5dba0b9eb555
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_gate.py"
+  qualname: "main"
+  operator: "return:False"
+  site: "/body/17/body/4/body/1"
+  context: "d7f22b7ca11b9081f2aff9fb404ec07c973859954e3b221983c63ce2d90fcdcf"
+  original: "b2bbc444950f9b0b0b967dc529eb889a7cf0d4003be033124fc090f4e1571b48"
+  mutated: "f5536f3bcd07de6521df23e5ac1e0ad1b443ac79485b5f4ed71373fd170b3670"
+  reason: "This empty-catalogue branch is consumed by sys.exit(main()) in the real PDM command. False produces the identical successful process status; JSON EMPTY output is unchanged. No production caller inspects the Python return's concrete type."
+# Original survivor row 16: 4e24807872adca1379fd81a33bd0e062efa83c4d9ef04d563d3c7b014861306a
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_run.py"
+  qualname: "import_kill"
+  operator: "return:False"
+  site: "/body/0/body/0"
+  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
+  mutated: "f5536f3bcd07de6521df23e5ac1e0ad1b443ac79485b5f4ed71373fd170b3670"
+  reason: "The status/file/count guard's rejection is consumed only as a falsey “no import kill” by evidence_outcome; False and the empty dict cause identical fallthrough classification and output."
+# Original survivor row 21: 0d978f17a981db55c3b61951f574389126b502c8235def2e3a4907145f03dce5
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_run.py"
+  qualname: "import_kill"
+  operator: "boolean:drop:2"
+  site: "/body/0/test/0"
+  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  original: "d2f0962a3f3ea5da90153dfebdeeee32823862dd2599506b351fa727348d717c"
+  mutated: "44859559af203ad85694111a674339458078fd2be750b3315790cdd97b07429c"
+  reason: "run_domain supplies -x and serial mutant execution; an import failure stops collection at its first failing collector, producing one failed collection row. Reviewer comment [6442572635](https://github.com/CBIIT/nci-si-mcp/issues/341#issuecomment-6442572635)'s M16 discussion approves leaving this guard. This is not a blanket claim about arbitrary fabricated evidence."
+# Original survivor row 22: f4964e28177144a12ffdf0d3cd8422a484ad916910c7e6b6c7d47a39ae12f409
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_run.py"
+  qualname: "import_kill"
+  operator: "return:None"
+  site: "/body/0/body/0"
+  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
+  mutated: "e19ede9f5e840ec5e9c3ca6096c7341b0458e6c5c14c80709062e61900e94f51"
+  reason: "At the status/file/count rejection, None is tested only for truthiness by evidence_outcome. It selects the identical INFRA/successful-calls path as the original empty dict; it never becomes the output record."
+# Original survivor row 30: 8a5da13ad6cdfbb56d99cd3815edb4c24e9d41eabc4042cdfe73f664c991aa54
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_source.py"
+  qualname: "Mutant"
+  operator: "boolean:literal"
+  site: "/decorator_list/0/keywords/0/value/0"
+  context: "0217d6d0cfd0ed7f0cd79917b3a1b4fd1242da53a97d4b2b835b2ecc387d8fb4"
+  original: "fc49e3ff31db631b11fdae65c1243eea50afe64ff7f1cddca82c434c55e40498"
+  mutated: "4ea452198b8a9e3a518725a04c0294ecccdcfe575822eeaacf94532a6a03055f"
+  reason: "This is dataclass frozen=True. All constructed Mutant records are read, converted with asdict, or queried by key; none is assigned to, deleted from or used as a hash key. Removing assignment protection does not change any current caller's catalogue, freshness or verdict. This would cease to be equivalent if a mutable-record consumer were introduced."
+# Original survivor row 31: aaf93b62d58856198b28e917e85a3f81aeeb6541ec1547cb9da3462ff9a6dc50
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_source.py"
+  qualname: "entry_guard"
+  operator: "return:None"
+  site: "/body/1"
+  context: "0beb6f91a4fe7607af8672058f266a7de2c43e9fcefeac9ad69e9105e6cfad56"
+  original: "dd863ea504e8543d2fb185a820aa7e2cf2d0ceddec9c835185a3510fc2ab463d"
+  mutated: "e19ede9f5e840ec5e9c3ca6096c7341b0458e6c5c14c80709062e61900e94f51"
+  reason: "Only entry_guards consumes the nonmatching pattern result, as an if entry_guard(node.test) filter. Both values leave the same nonguard node out of the guard-ID set; neither is serialized."
+# Original survivor row 45: 1ee5e3e7012d84833fa9916592a7304e1d94466599181a1e11c5ccea101cb2d7
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_run.py"
+  qualname: "import_kill"
+  operator: "return:False"
+  site: "/body/2/body/0"
+  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
+  mutated: "f5536f3bcd07de6521df23e5ac1e0ad1b443ac79485b5f4ed71373fd170b3670"
+  reason: "The wrong-phase/SystemExit rejection returns a falsey sentinel only to evidence_outcome's truthiness check. False and empty dict both preserve the same final INFRA record."
+# Original survivor row 50: 7bd9b0466fecb6a8ce86e6171bf317cd29f6aaf32121259c7e6c9dc8df18fe2b
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_run.py"
+  qualname: "import_kill"
+  operator: "return:False"
+  site: "/body/3/body/0"
+  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
+  mutated: "f5536f3bcd07de6521df23e5ac1e0ad1b443ac79485b5f4ed71373fd170b3670"
+  reason: "An unrelated traceback's empty return is not exposed: evidence_outcome tests it for truthiness, then emits the same INFRA. False has exactly the same effect for that caller."
+# Original survivor row 53: 6466ca736a42a992c485b46eba0067412bafe78cc4ed27331c087ad553a33910
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_run.py"
+  qualname: "import_kill"
+  operator: "return:None"
+  site: "/body/2/body/0"
+  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
+  mutated: "e19ede9f5e840ec5e9c3ca6096c7341b0458e6c5c14c80709062e61900e94f51"
+  reason: "Wrong-phase/SystemExit rejection is consumed only as falsey by evidence_outcome. None changes neither the resulting error classification nor any JSON field."
+# Original survivor row 59: ec6fad2c8459774c6da07876e89709246a3da60a79673f425f622d3d636b0d04
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_run.py"
+  qualname: "import_kill"
+  operator: "string:key-mode-setting"
+  site: "/body/2/test/0/values/1/func/0/value/0/args/1"
+  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  original: "773412cc3dbeacb25b2c0fd071c17c08962a2023cc5d2d64841d48b07313d3ac"
+  mutated: "e982e1646ac11e074c7dffd12765e2e0f9985e851cd588ef98b42b816c2a51b9"
+  reason: "This is the default value for a missing exception string. Neither \"\" nor \"__mutated\" starts with SystemExit, so the phase/traceback decision is unchanged whether the field is absent or present. It is not a key rename."
+# Original survivor row 65: 2c92fb935a2575b81e0a96d2111f0d4708196869252fed108c6253d3666345c1
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_source.py"
+  qualname: "rejection"
+  operator: "return:None"
+  site: "/body/4"
+  context: "f89daa14989bebf3967ec9bf7b14e15e188fe7239a806a4586e7be70f3d0dc9e"
+  original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
+  mutated: "e19ede9f5e840ec5e9c3ca6096c7341b0458e6c5c14c80709062e61900e94f51"
+  reason: "candidate_rejection returns it unchanged and candidates only checks if rejected; empty dict and None both append the identical valid candidate rather than a diagnostic. No production caller consumes the concrete acceptance sentinel."
+# Original survivor row 67: 9f85aedd0dc0d412407f32a19f887f9e03f9577711f8cb2c1e5645c0bc98c58e
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_probe.py"
+  qualname: "pytest_runtest_makereport"
+  operator: "boolean:drop:0"
+  site: "/body/2/body/2/orelse/0/body/0/test/0"
+  context: "bd6970f5c845ccfdcca3d78c2fe6d6ef13c639808ae47426f20c919a753728d5"
+  original: "feee7f2492ba159f63d0f174c16cdb2fbefd3d93eb7df97fe0ec8f67cfdd9f1a"
+  mutated: "aaa3429b0ad9c526bd3e7439a44858ee7f5c54387a52561934eefa83022d7712"
+  reason: "In this else block reports are setup or teardown. Setup precedes all call/subtest reports, so no CALLS stash yet exists; teardown is precisely when an existing stash must be flushed. Call reports take the preceding branch. No actual pytest phase gains an extra flush."
+# Original survivor row 74: cec923a3866bf5f51cc85dc6c656ff63923c276ee3d07f403ae3eeda96f47be5
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_gate.py"
+  qualname: "main"
+  operator: "return:None"
+  site: "/body/17/body/4/body/1"
+  context: "d7f22b7ca11b9081f2aff9fb404ec07c973859954e3b221983c63ce2d90fcdcf"
+  original: "b2bbc444950f9b0b0b967dc529eb889a7cf0d4003be033124fc090f4e1571b48"
+  mutated: "e19ede9f5e840ec5e9c3ca6096c7341b0458e6c5c14c80709062e61900e94f51"
+  reason: "An empty catalogue still prints the identical EMPTY row; sys.exit(None) succeeds exactly like sys.exit(0). There is no production Python caller relying on an integer from this branch."
+# Original survivor row 77: fca42654b1ac6eba4d1e96de96737a5094b82ecc45b42df6cbdb8bd260f61ae5
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_source.py"
+  qualname: "string_role"
+  operator: "return:None"
+  site: "/body/2/body/0"
+  context: "c7b5b41f10ca4c7197df22c5a7c618e7eaf7f19901becbf99951d74adaeeeb7a"
+  original: "dd863ea504e8543d2fb185a820aa7e2cf2d0ceddec9c835185a3510fc2ab463d"
+  mutated: "e19ede9f5e840ec5e9c3ca6096c7341b0458e6c5c14c80709062e61900e94f51"
+  reason: "For a string not under Dict, Subscript or Call, only constants consumes this result in an and predicate. Both reject the same non-role string; no caller serializes or compares the concrete bool/None value."
+# Original survivor row 80: 8e8421a7800b4e8ed3eeffa052d5b775824e273a68d3c65bc3b9134b84be0a21
+# Approved: #341 comments 6461317582 and 6461467469.
+- file: "scripts/validation/mutation_source.py"
+  qualname: "rejection"
+  operator: "return:False"
+  site: "/body/4"
+  context: "f89daa14989bebf3967ec9bf7b14e15e188fe7239a806a4586e7be70f3d0dc9e"
+  original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
+  mutated: "f5536f3bcd07de6521df23e5ac1e0ad1b443ac79485b5f4ed71373fd170b3670"
+  reason: "A valid candidate's acceptance sentinel travels through candidate_rejection and is tested only in if rejected. False and empty dict both append the identical candidate with no diagnostic."
