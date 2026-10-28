@@ -206,8 +206,8 @@ def shard_argument(value: str) -> tuple[int, int]:
         index, count = map(int, value.split("/"))
         if 1 <= index <= count:
             return index, count
-    except ValueError:
-        pass
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("expected K/N with 1 <= K <= N") from error
     raise argparse.ArgumentTypeError("expected K/N with 1 <= K <= N")
 
 
