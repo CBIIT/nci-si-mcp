@@ -260,14 +260,14 @@ class MutationCliContractsTest(unittest.TestCase):
             self.assertEqual(status, 1, rows)
             for row in results:
                 self.assertEqual(
-                    row.get("fallback_domains"), ["fixture", "unit"] if row["line"] == 1 else []
+                    row.get("fallback_domains"), ["fixture"] if row["line"] == 1 else []
                 )
             fallback_count = sum(row["line"] == 1 for row in results)
             self.assertGreater(fallback_count, 0)
             self.assertEqual(rows[-1].get("fallback_count"), fallback_count)
             self.assertEqual(
                 rows[-1].get("fallback_domains"),
-                {"unit": fallback_count, "fixture": fallback_count},
+                {"fixture": fallback_count},
             )
             self.assertGreater(rows[-1]["counts"]["NO_TESTS"], 0)
             seconds = runner_seconds(results)

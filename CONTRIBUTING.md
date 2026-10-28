@@ -141,12 +141,16 @@ A single selected owning call that passed the baseline is `KILLED` when it fails
 with `kind: assertion` or `kind: error`. Multiple unittest subtest reports become one owning
 call record; mixed assertion and error subtest failures are `KILLED` with `kind: error`.
 A collection exception whose traceback reaches the mutated file is a `kind: import`
-kill after a clean baseline. Unrelated collection failures, `SystemExit`, setup,
+kill after a clean baseline, including pytest's exit 4 when precise node selection cannot
+collect that node because of the mutated import. Exit 4 without that collection evidence
+stays infrastructure failure. Unrelated collection failures, `SystemExit`, setup,
 teardown, internal and baseline failures stay infrastructure errors.
 Evidence collection loads an immutable controller copy, even when testing the probe.
 Baseline Python children inherit their parent's test-phase coverage context. Call contexts
-select their exact owning tests; spans with only import/setup/teardown contexts run the whole
-domain. Unrecognized contexts fail mapping. Each result names its `fallback_domains`; shard
+select their exact owning tests. A span with the empty import/collection context selects all
+call owners in that domain that execute any line of the same file, so consumers of constants
+and decorators need not repeat imports. With no identifiable call owner, the whole domain runs.
+Unrecognized contexts fail mapping. Each result names its `fallback_domains`; shard
 summaries count fallback mutants overall and per domain, alongside outcomes and kill kinds.
 Domains run in unit, self-test, then fixture order, stopping when a mutant is detected.
 Fixture confirmation runs only tests whose baseline contexts reach the mutated lines;

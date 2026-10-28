@@ -143,7 +143,11 @@ def call_kill(status: int, failed: list[dict]) -> dict:
 
 
 def import_kill(status: int, failed: list[dict], mutated_file: Path | None) -> dict:
-    if status != ExitCode.INTERRUPTED or not mutated_file or len(failed) != 1:
+    if (
+        status not in (ExitCode.INTERRUPTED, ExitCode.USAGE_ERROR)
+        or not mutated_file
+        or len(failed) != 1
+    ):
         return {}
     row = failed[0]
     if row["phase"] != "collection" or row.get("exception", "").startswith("SystemExit"):
@@ -252,9 +256,13 @@ def baseline(root: Path, timeout: float, *, timings: list[dict] | None = None) -
 def selection(mapping: dict, file: str, line: int, end_line: int) -> dict[str, list[str]]:
     result = {}
     for domain, files in mapping.items():
-        contexts = line_contexts(files.get(file, {}), line, end_line)
+        lines = files.get(file, {})
+        contexts = line_contexts(lines, line, end_line)
         if not contexts:
             continue
+        if "" in contexts:
+            # Collection imports cannot identify every consumer of constants or decorators.
+            contexts = {context for values in lines.values() for context in values}
         result[domain] = context_tests(contexts)
     return result
 
@@ -269,8 +277,7 @@ def context_tests(contexts: set[str]) -> list[str]:
             raise ValueError(f"Unrecognized coverage context: {context!r}")
         if phase == "run":
             tests.add(node)
-    # Import/setup/teardown alone have no call owner. When calls exist, retain
-    # their exact owners even if the same span also contains declarations.
+    # Import/setup/teardown alone have no call owner and retain the whole-domain fallback.
     return sorted(tests)
 
 

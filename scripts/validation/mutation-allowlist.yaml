@@ -4,10 +4,10 @@
   qualname: "import_kill"
   operator: "return:None"
   site: "/body/3/body/0"
-  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  context: "10ca826ff33141585ff462fd4a277a7f6742af0bbab49a8f7a5d6abc2aa07221"
   original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
   mutated: "e19ede9f5e840ec5e9c3ca6096c7341b0458e6c5c14c80709062e61900e94f51"
-  reason: "At the unrelated-traceback return, evidence_outcome uses call_kill(...) or import_kill(...), then only if kill; both values fall through to the same INFRA record. No gate caller indexes or serializes this rejected-kill sentinel."
+  reason: "Re-examined for exit 4: an unrelated traceback still rejects the import kill; returning None instead of {} remains falsey to evidence_outcome and produces the same INFRA for both accepted collection statuses."
 # Original survivor row 9: d076c9764692c9dfb4e0e9691e6bf3244c291c4cf2a43bf0cb1c5dba0b9eb555
 # Approved: #341 comments 6461317582 and 6461467469.
 - file: "scripts/validation/mutation_gate.py"
@@ -24,30 +24,20 @@
   qualname: "import_kill"
   operator: "return:False"
   site: "/body/0/body/0"
-  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  context: "10ca826ff33141585ff462fd4a277a7f6742af0bbab49a8f7a5d6abc2aa07221"
   original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
   mutated: "f5536f3bcd07de6521df23e5ac1e0ad1b443ac79485b5f4ed71373fd170b3670"
-  reason: "The status/file/count guard's rejection is consumed only as a falsey “no import kill” by evidence_outcome; False and the empty dict cause identical fallthrough classification and output."
-# Original survivor row 21: 0d978f17a981db55c3b61951f574389126b502c8235def2e3a4907145f03dce5
-# Approved: #341 comments 6461317582 and 6461467469.
-- file: "scripts/validation/mutation_run.py"
-  qualname: "import_kill"
-  operator: "boolean:drop:2"
-  site: "/body/0/test/0"
-  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
-  original: "d2f0962a3f3ea5da90153dfebdeeee32823862dd2599506b351fa727348d717c"
-  mutated: "44859559af203ad85694111a674339458078fd2be750b3315790cdd97b07429c"
-  reason: "run_domain supplies -x and serial mutant execution; an import failure stops collection at its first failing collector, producing one failed collection row. Reviewer comment [6442572635](https://github.com/CBIIT/nci-si-mcp/issues/341#issuecomment-6442572635)'s M16 discussion approves leaving this guard. This is not a blanket claim about arbitrary fabricated evidence."
+  reason: "Re-examined for exit 4: rejection by the expanded status/file/count guard still reaches only evidence_outcome's truthiness check. False and {} both preserve the same final classification, including INFRA for exit 4 without collection evidence."
 # Original survivor row 22: f4964e28177144a12ffdf0d3cd8422a484ad916910c7e6b6c7d47a39ae12f409
 # Approved: #341 comments 6461317582 and 6461467469.
 - file: "scripts/validation/mutation_run.py"
   qualname: "import_kill"
   operator: "return:None"
   site: "/body/0/body/0"
-  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  context: "10ca826ff33141585ff462fd4a277a7f6742af0bbab49a8f7a5d6abc2aa07221"
   original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
   mutated: "e19ede9f5e840ec5e9c3ca6096c7341b0458e6c5c14c80709062e61900e94f51"
-  reason: "At the status/file/count rejection, None is tested only for truthiness by evidence_outcome. It selects the identical INFRA/successful-calls path as the original empty dict; it never becomes the output record."
+  reason: "Re-examined for exit 4: None at the expanded status/file/count rejection is still a falsey no-kill sentinel, never a result record; evidence_outcome emits the same INFRA or successful-call result as {}."
 # Original survivor row 30: 8a5da13ad6cdfbb56d99cd3815edb4c24e9d41eabc4042cdfe73f664c991aa54
 # Approved: #341 comments 6461317582 and 6461467469.
 - file: "scripts/validation/mutation_source.py"
@@ -74,40 +64,40 @@
   qualname: "import_kill"
   operator: "return:False"
   site: "/body/2/body/0"
-  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  context: "10ca826ff33141585ff462fd4a277a7f6742af0bbab49a8f7a5d6abc2aa07221"
   original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
   mutated: "f5536f3bcd07de6521df23e5ac1e0ad1b443ac79485b5f4ed71373fd170b3670"
-  reason: "The wrong-phase/SystemExit rejection returns a falsey sentinel only to evidence_outcome's truthiness check. False and empty dict both preserve the same final INFRA record."
+  reason: "Re-examined for exit 4: wrong-phase and SystemExit rejection is unchanged after accepting status 4; False and {} both fall through evidence_outcome to the identical INFRA record."
 # Original survivor row 50: 7bd9b0466fecb6a8ce86e6171bf317cd29f6aaf32121259c7e6c9dc8df18fe2b
 # Approved: #341 comments 6461317582 and 6461467469.
 - file: "scripts/validation/mutation_run.py"
   qualname: "import_kill"
   operator: "return:False"
   site: "/body/3/body/0"
-  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  context: "10ca826ff33141585ff462fd4a277a7f6742af0bbab49a8f7a5d6abc2aa07221"
   original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
   mutated: "f5536f3bcd07de6521df23e5ac1e0ad1b443ac79485b5f4ed71373fd170b3670"
-  reason: "An unrelated traceback's empty return is not exposed: evidence_outcome tests it for truthiness, then emits the same INFRA. False has exactly the same effect for that caller."
+  reason: "Re-examined for exit 4: the unchanged unrelated-traceback guard returns False instead of {}; either is falsey and produces the same INFRA under status 2 or 4 without exposing the sentinel."
 # Original survivor row 53: 6466ca736a42a992c485b46eba0067412bafe78cc4ed27331c087ad553a33910
 # Approved: #341 comments 6461317582 and 6461467469.
 - file: "scripts/validation/mutation_run.py"
   qualname: "import_kill"
   operator: "return:None"
   site: "/body/2/body/0"
-  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  context: "10ca826ff33141585ff462fd4a277a7f6742af0bbab49a8f7a5d6abc2aa07221"
   original: "99539d16b3c55a78e0ab0338d294ed31e812ad2d3fb18d6983c893234f79bcb3"
   mutated: "e19ede9f5e840ec5e9c3ca6096c7341b0458e6c5c14c80709062e61900e94f51"
-  reason: "Wrong-phase/SystemExit rejection is consumed only as falsey by evidence_outcome. None changes neither the resulting error classification nor any JSON field."
+  reason: "Re-examined for exit 4: None from the unchanged wrong-phase/SystemExit rejection remains falsey to evidence_outcome, preserving INFRA and every JSON field for the newly accepted status as well as status 2."
 # Original survivor row 59: ec6fad2c8459774c6da07876e89709246a3da60a79673f425f622d3d636b0d04
 # Approved: #341 comments 6461317582 and 6461467469.
 - file: "scripts/validation/mutation_run.py"
   qualname: "import_kill"
   operator: "string:key-mode-setting"
   site: "/body/2/test/0/values/1/func/0/value/0/args/1"
-  context: "26167d50650dc4901f7fd4adcca8e331dc663039a3ad6e86cb26322e72c52d97"
+  context: "10ca826ff33141585ff462fd4a277a7f6742af0bbab49a8f7a5d6abc2aa07221"
   original: "773412cc3dbeacb25b2c0fd071c17c08962a2023cc5d2d64841d48b07313d3ac"
   mutated: "e982e1646ac11e074c7dffd12765e2e0f9985e851cd588ef98b42b816c2a51b9"
-  reason: "This is the default value for a missing exception string. Neither \"\" nor \"__mutated\" starts with SystemExit, so the phase/traceback decision is unchanged whether the field is absent or present. It is not a key rename."
+  reason: "Re-examined for exit 4: the missing exception-string default changes from empty to __mutated; neither starts with SystemExit. The unchanged collection-phase and mutated-traceback checks therefore make the same decision for status 4 as for status 2."
 # Original survivor row 65: 2c92fb935a2575b81e0a96d2111f0d4708196869252fed108c6253d3666345c1
 # Approved: #341 comments 6461317582 and 6461467469.
 - file: "scripts/validation/mutation_source.py"
