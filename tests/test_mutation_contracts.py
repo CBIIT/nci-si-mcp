@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stdout, suppress
 from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
@@ -534,6 +534,30 @@ class MutationSourceContractsTest(unittest.TestCase):
 
 
 class MutationVerdictContractsTest(unittest.TestCase):
+    def test_controller_cleanup_error_records_infra_restores_source_and_allows_next_job(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            mutants, _ = source.candidates("src/example.py", (root / "src/example.py").read_bytes())
+            mapping = {"unit": {"src/example.py": {2: ["tests/test_example.py::test_value|run"]}}}
+            path = root / "mutations.json"
+            path.write_text(json.dumps(gate.manifest_data(root, mutants, mapping, 20)))
+            with (
+                patch.object(gate, "run_domain", side_effect=PermissionError("cleanup denied")),
+                suppress(PermissionError),  # Require durable evidence even if it propagates.
+            ):
+                gate.execute_job(path, 0)
+            self.assertTrue((root / "result-0.json").exists(), "cleanup failure lost its record")
+            first = json.loads((root / "result-0.json").read_text())
+            self.assertEqual(first["outcome"], "INFRA")
+            self.assertTrue(first["restored"])
+            self.assertIn("cleanup denied", first["message"])
+            gate.execute_job(path, 1)
+            self.assertEqual(json.loads((root / "result-1.json").read_text())["outcome"], "KILLED")
+            self.assertEqual(
+                (root / "src/example.py").read_text(), "def answer():\n    return True\n"
+            )
+
     def test_restoration_readback_mismatch_raises_without_publishing_a_success_record(self):
         # A filesystem can return bytes other than those just written. The worker
         # must fail closed even when its domain result would otherwise be publishable.
