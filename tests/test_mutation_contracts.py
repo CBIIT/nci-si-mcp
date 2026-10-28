@@ -5,7 +5,9 @@ import hashlib
 import io
 import json
 import os
+import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -69,6 +71,38 @@ def seconds_by_domain(rows):
 
 
 class MutationCliContractsTest(unittest.TestCase):
+    def test_scheduler_failure_retains_completed_keys_and_marks_each_missing_job_infra(self):
+        # Given one broken controller job, the remaining completed evidence must
+        # survive the scheduler's nonzero exit, with an explicit missing-job record.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            (root / "broken_job.py").write_text(
+                "import pytest\n@pytest.hookimpl(tryfirst=True)\n"
+                "def pytest_runtest_call(item):\n"
+                "    if item.name == '0':\n        raise RuntimeError('controller defect')\n"
+            )
+            mutants, _ = source.candidates("src/example.py", (root / "src/example.py").read_bytes())
+
+            def launch(command, cwd, env, timeout, log):
+                return runner.program([*command, "-p", "broken_job"], cwd, env, timeout, log)
+
+            with (
+                patch.object(gate, "program", side_effect=launch),
+                self.assertRaises(ValueError) as failed,
+            ):
+                gate.schedule(root, mutants, {}, SimpleNamespace(timeout=20, workers=1))
+            rows = getattr(failed.exception, "rows", [])
+            self.assertEqual(len(rows), len(mutants))
+            self.assertEqual(
+                [result_key(row) for row in rows],
+                [json.dumps(m.key(), sort_keys=True) for m in mutants],
+            )
+            self.assertEqual([row["outcome"] for row in rows], ["INFRA", "NO_TESTS", "NO_TESTS"])
+            self.assertFalse(rows[0]["restored"])
+            self.assertIn("controller defect", rows[0]["log"])
+            self.assertTrue(all(row["restored"] for row in rows[1:]))
+
     def test_summary_counts_fallback_mutants_by_domain_and_measured_runner_hours(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
@@ -561,6 +595,81 @@ class MutationVerdictContractsTest(unittest.TestCase):
 
 
 class MutationEvidenceContractsTest(unittest.TestCase):
+    def test_session_disabling_mutant_is_detected_without_losing_controller_evidence(self):
+        # Given the real session-disabling operator, the immutable controller must
+        # retain the owning call failure and restore its subject, not lose the job.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            shutil.copytree(Path(gate.__file__).parents[1], root / "scripts")
+            target = root / "scripts/validation/mutation_run.py"
+            original = target.read_bytes()
+            (root / "tests/test_example.py").write_text(
+                "import os, sys\nfrom pathlib import Path\n"
+                "from scripts.validation.mutation_run import program\n"
+                "def test_owned_session(tmp_path):\n"
+                "    marker = tmp_path / 'group'\n"
+                "    status = program([sys.executable, '-c', "
+                '"import os,sys; from pathlib import Path; '
+                'Path(sys.argv[1]).write_text(str(os.getpid() == os.getpgrp()))", '
+                "str(marker)], Path.cwd(), dict(os.environ), 5, tmp_path / 'child.log')\n"
+                "    assert status == 0\n"
+                "    assert marker.read_text() == 'True'\n"
+            )
+            baseline, data = runner.run_domain(root, "unit", [], 20, baseline=True)
+            self.assertEqual(baseline["outcome"], "SURVIVED", baseline)
+            mutants, _ = source.candidates("scripts/validation/mutation_run.py", original)
+            mutant = next(
+                m
+                for m in mutants
+                if m.qualname == "program"
+                and m.before == "True"
+                and m.operator == "boolean:literal"
+            )
+            mapping = {"unit": runner.coverage_map(data, root)}
+            rows = gate.schedule(root, [mutant], mapping, SimpleNamespace(timeout=20, workers=1))
+            self.assertEqual(
+                [(row["outcome"], row.get("phase"), row.get("node")) for row in rows],
+                [("KILLED", "call", "tests/test_example.py::test_owned_session")],
+            )
+            self.assertTrue(rows[0]["restored"])
+            self.assertEqual(target.read_bytes(), original)
+
+    def test_program_rejects_nonowned_group_before_waiting_and_reaps_only_its_child(self):
+        # A session-less child shares our protected group. No group signal is
+        # authorized, even when the caller's requested launch contract is broken.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            popen = subprocess.Popen
+            children = []
+
+            def without_session(*args, **kwargs):
+                kwargs["start_new_session"] = False
+                child = popen(*args, **kwargs)
+                children.append(child)
+                return child
+
+            try:
+                with (
+                    patch.object(runner.subprocess, "Popen", side_effect=without_session),
+                    patch("scripts.processes.os.killpg") as group_signal,
+                    self.assertRaisesRegex(ValueError, "does not own its process group"),
+                ):
+                    runner.program(
+                        [sys.executable, "-c", "pass"],
+                        root,
+                        dict(os.environ),
+                        0.1,
+                        root / "child.log",
+                    )
+                self.assertEqual(group_signal.call_args_list, [])
+                self.assertIsNotNone(children[0].poll())
+            finally:
+                for child in children:
+                    if child.poll() is None:
+                        child.kill()
+                    child.wait(timeout=5)
+
     def test_phase_hooks_preserve_hook_result_and_restore_environment(self):
         phases = (
             (probe.pytest_runtest_setup, "setup"),
