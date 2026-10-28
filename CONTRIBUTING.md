@@ -164,6 +164,10 @@ each source once, span/replacement edits and preselected test routes; it does no
 the baseline coverage map per worker. The probe consumes its launch-only evidence destination
 at configuration; only declared xdist workers receive it, so nested pytest programs cannot
 append to the parent's records.
+Each controller child must lead its own process group before it is waited on; a broken
+launch contract reaps only the direct child and fails. Scheduler failure exits as infrastructure
+failure while retaining every completed candidate row and emitting an explicit `INFRA` row for
+each missing result. A missing row never counts as a kill or verified scratch restoration.
 
 ## Coverage badges
 

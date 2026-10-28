@@ -91,12 +91,18 @@ def program(command: list[str], cwd: Path, env: dict[str, str], timeout: float, 
             stderr=subprocess.STDOUT,
             start_new_session=True,
         )
+        owned_group = False
         try:
+            owned_group = os.getpgid(process.pid) == process.pid
+            if not owned_group:
+                raise ValueError(f"Child {process.pid} does not own its process group")
             return process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             return None
         finally:
-            stop(process, group=True)
+            # Never translate a broken launch contract into a signal to another
+            # group. The direct Popen child is still ours to terminate and reap.
+            stop(process, group=owned_group)
 
 
 def classify(status: int | None, evidence: Path, mutated_file: Path | None = None) -> dict:

@@ -25,6 +25,14 @@ from scripts.validation.mutation_run import (
 from scripts.validation.mutation_source import Mutant, allowlist, candidates, digest, scope
 
 
+class SchedulerError(ValueError):
+    """A failed controller, carrying all completed and explicitly missing results."""
+
+    def __init__(self, message: str, rows: list[dict]):
+        super().__init__(message)
+        self.rows = rows
+
+
 def execute_job(path: Path, index: int) -> None:
     started = monotonic()
     jobs = json.loads(path.read_text())
@@ -34,25 +42,30 @@ def execute_job(path: Path, index: int) -> None:
         **{key: value for key, value in item.items() if key != "selected"},
         before=source[item["start"] : item["end"]].decode(),
     )
-    with snapshot(Path(jobs["root"])) as scratch:
-        target = scratch / mutant.file
-        original = target.read_bytes()
-        try:
-            target.write_bytes(
-                original[: mutant.start] + mutant.after.encode() + original[mutant.end :]
-            )
-            result = measure(scratch, item["selected"], jobs["timeout"], mutated_file=target)
-        finally:
-            target.write_bytes(original)
-            if digest(target.read_bytes().hex()) != digest(original.hex()):
-                raise ValueError(f"Scratch restoration failed: {mutant.file}")
+    restored = False
+    try:
+        with snapshot(Path(jobs["root"])) as scratch:
+            target = scratch / mutant.file
+            original = target.read_bytes()
+            try:
+                target.write_bytes(
+                    original[: mutant.start] + mutant.after.encode() + original[mutant.end :]
+                )
+                result = measure(scratch, item["selected"], jobs["timeout"], mutated_file=target)
+            finally:
+                target.write_bytes(original)
+                if digest(target.read_bytes().hex()) != digest(original.hex()):
+                    raise ValueError(f"Scratch restoration failed: {mutant.file}")
+                restored = True
+    except (OSError, subprocess.SubprocessError) as error:
+        result = {"outcome": "INFRA", "message": str(error), "domains": []}
     row = {
         **asdict(mutant),
         **result,
         "fallback_domains": sorted(
             domain for domain, tests in item["selected"].items() if not tests
         ),
-        "restored": True,
+        "restored": restored,
         "elapsed_seconds": monotonic() - started,
     }
     (path.parent / f"result-{index}.json").write_text(json.dumps(row))
@@ -130,14 +143,43 @@ def schedule(root: Path, mutants: list[Mutant], mapping: dict, args) -> list[dic
             str(manifest),
         ]
         env = environment(root, work)
-        status = program(
-            command, work, env, args.timeout * (len(mutants) + 2) * 3, work / "scheduler.log"
-        )
-        if status != 0:
-            raise ValueError(f"Mutant scheduler failed: {(work / 'scheduler.log').read_text()}")
-        return [
-            json.loads((work / f"result-{index}.json").read_text()) for index in range(len(mutants))
-        ]
+        try:
+            status = program(
+                command, work, env, args.timeout * (len(mutants) + 2) * 3, work / "scheduler.log"
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            rows = scheduler_rows(work, mutants, data, str(error))
+            raise SchedulerError(f"Mutant scheduler failed: {error}", rows) from error
+        log = (work / "scheduler.log").read_text()
+        rows = scheduler_rows(work, mutants, data, log)
+        if status != 0 or any(not row["restored"] for row in rows):
+            raise SchedulerError(f"Mutant scheduler failed: {log}", rows)
+        return rows
+
+
+def scheduler_rows(work: Path, mutants: list[Mutant], data: dict, log: str) -> list[dict]:
+    rows = []
+    for index, mutant in enumerate(mutants):
+        result = work / f"result-{index}.json"
+        if result.exists():
+            rows.append(json.loads(result.read_text()))
+        else:
+            rows.append(
+                {
+                    **asdict(mutant),
+                    "outcome": "INFRA",
+                    "message": "Controller produced no result for this candidate",
+                    "log": log,
+                    "restored": False,
+                    "domains": [],
+                    "fallback_domains": sorted(
+                        name
+                        for name, tests in data["mutants"][index]["selected"].items()
+                        if not tests
+                    ),
+                }
+            )
+    return rows
 
 
 def verdict(rows: list[dict], exemptions: list[dict]) -> int:
@@ -252,6 +294,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("timeout and workers must be positive")
     root = args.root.resolve()
     exit_on_sigterm()
+    exemptions = []
     try:
         exemptions = allowlist(root, root / args.allowlist)
         mutants, diagnostics = collect(root, scope(root, args.paths, args.base, args.head))
@@ -265,6 +308,10 @@ def main(argv: list[str] | None = None) -> int:
         args.baseline_domains = []
         mapping = baseline(root, args.baseline_timeout, timings=args.baseline_domains)
         return report_results(schedule(root, mutants, mapping, args), exemptions, args, started)
+    except SchedulerError as error:
+        report_results(error.rows, exemptions, args, started)
+        print(json.dumps({"outcome": "INFRA", "message": str(error)}))
+        return 2
     except (ValueError, OSError, subprocess.SubprocessError, SyntaxError) as error:
         print(json.dumps({"outcome": "INFRA", "message": str(error)}))
         return 2

@@ -677,14 +677,17 @@ class MutationExecutionTest(unittest.TestCase):
             def scheduler(command, cwd, env, timeout, log):
                 manifest = Path(command[-1])
                 captured.append(json.loads(manifest.read_text()))
-                (manifest.parent / "result-0.json").write_text('{"outcome": "KILLED"}')
+                log.write_text("")
+                (manifest.parent / "result-0.json").write_text(
+                    '{"outcome": "KILLED", "restored": true}'
+                )
                 return 0
 
             with patch.object(mutation_gate, "program", side_effect=scheduler):
                 rows = mutation_gate.schedule(
                     root, [mutant], mapping, SimpleNamespace(timeout=20, workers=1)
                 )
-            self.assertEqual(rows, [{"outcome": "KILLED"}])
+            self.assertEqual(rows, [{"outcome": "KILLED", "restored": True}])
             self.assertEqual(
                 captured,
                 [
