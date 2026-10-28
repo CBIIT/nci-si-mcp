@@ -155,7 +155,9 @@ summaries count fallback mutants overall and per domain, alongside outcomes and 
 Domains run in unit, self-test, then fixture order, stopping when a mutant is detected.
 Fixture confirmation runs only tests whose baseline contexts reach the mutated lines;
 `confirmation: unreached` records a survivor with no fixture reach and no fixture run.
-`NO_TESTS` means no domain reached the lines, including fixture-only coverage.
+`NO_TESTS` means no domain covered the mutated span, or a selected domain run produced no
+passed owning call. It fails the gate and cannot be allowlisted; inspect selection and call
+evidence before concluding the code is unreachable.
 Long-lived fixture servers retain the setup context present when they start; later RPCs
 cannot inherit changes to the parent's environment. Their setup-only lines therefore use
 the whole-fixture fallback, counted like the other domains, rather than claiming per-RPC ownership.

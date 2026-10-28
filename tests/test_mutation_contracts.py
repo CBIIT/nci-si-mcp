@@ -756,7 +756,16 @@ class MutationSourceContractsTest(unittest.TestCase):
 
     def test_comparison_and_boolean_catalogues_have_exact_declared_replacements(self):
         comparisons = {
+            "a == b": {"comparison:0": "(a) != (b)", "comparison:negate": "not (a == b)"},
+            "a != b": {"comparison:0": "(a) == (b)", "comparison:negate": "not (a != b)"},
             "a < b": {"comparison:0": "(a) >= (b)", "comparison:negate": "not (a < b)"},
+            "a <= b": {"comparison:0": "(a) > (b)", "comparison:negate": "not (a <= b)"},
+            "a > b": {"comparison:0": "(a) <= (b)", "comparison:negate": "not (a > b)"},
+            "a >= b": {"comparison:0": "(a) < (b)", "comparison:negate": "not (a >= b)"},
+            "a is b": {"comparison:0": "(a) is not (b)", "comparison:negate": "not (a is b)"},
+            "a is not b": {"comparison:0": "(a) is (b)", "comparison:negate": "not (a is not b)"},
+            "a in b": {"comparison:0": "(a) not in (b)", "comparison:negate": "not (a in b)"},
+            "a not in b": {"comparison:0": "(a) in (b)", "comparison:negate": "not (a not in b)"},
             "a < b <= c": {
                 "comparison:0": "(a) >= (b) <= (c)",
                 "comparison:1": "(a) < (b) > (c)",
@@ -812,27 +821,93 @@ class MutationSourceContractsTest(unittest.TestCase):
                 )
 
     def test_comparison_replacements_preserve_untargeted_chain_links(self):
+        same, equal, different = [], [], [1]
+        numbers = ((1, 2, 3), (2, 2, 3), (3, 2, 3), (1, 3, 2))
+        identities = (
+            (same, same, same),
+            (same, same, equal),
+            (same, equal, equal),
+            (same, equal, different),
+        )
+        members = ((1, [1], None), (2, [1], None), (1, [], None), (2, [2], None))
         comparison_truth = {
-            "a < b": {
-                "comparison:0": [False, True, True, False],
-                "comparison:negate": [False, True, True, False],
-            },
-            "a < b <= c": {
-                "comparison:0": [False, True, True, False],
-                "comparison:1": [False, False, False, True],
-                "comparison:negate": [False, True, True, True],
-            },
+            "a < b": (
+                numbers,
+                {
+                    "comparison:0": [False, True, True, False],
+                    "comparison:negate": [False, True, True, False],
+                },
+            ),
+            "a < b <= c": (
+                numbers,
+                {
+                    "comparison:0": [False, True, True, False],
+                    "comparison:1": [False, False, False, True],
+                    "comparison:negate": [False, True, True, True],
+                },
+            ),
+            "a is b": (
+                identities,
+                {
+                    "comparison:0": [False, False, True, True],
+                    "comparison:negate": [False, False, True, True],
+                },
+            ),
+            "a is not b": (
+                identities,
+                {
+                    "comparison:0": [True, True, False, False],
+                    "comparison:negate": [True, True, False, False],
+                },
+            ),
+            "a is b is not c": (
+                identities,
+                {
+                    "comparison:0": [False, False, False, True],
+                    "comparison:1": [True, False, False, False],
+                    "comparison:negate": [True, False, True, True],
+                },
+            ),
+            "a in b": (
+                members,
+                {
+                    "comparison:0": [False, True, True, False],
+                    "comparison:negate": [False, True, True, False],
+                },
+            ),
+            "a not in b": (
+                members,
+                {
+                    "comparison:0": [True, False, False, True],
+                    "comparison:negate": [True, False, False, True],
+                },
+            ),
+            "a in b not in c": (
+                ((1, [1], [[1]]), (1, [1], []), (2, [1], [[1]]), (2, [1], [])),
+                {
+                    "comparison:0": [False, False, False, True],
+                    "comparison:1": [True, False, False, False],
+                    "comparison:negate": [True, False, True, True],
+                },
+            ),
+            "0 < a <= 3": (
+                ((-1, 0, 0), (0, 0, 0), (2, 0, 0), (4, 0, 0)),
+                {
+                    "comparison:0": [True, True, False, False],
+                    "comparison:1": [False, False, False, True],
+                    "comparison:negate": [True, True, False, True],
+                },
+            ),
         }
-        for expression, operators in comparison_truth.items():
+        for expression, (arguments, operators) in comparison_truth.items():
             mutants, _ = source.candidates("src/example.py", f"value = {expression}".encode())
             for mutant in mutants:
+                if not mutant.operator.startswith("comparison:"):
+                    continue
                 namespace = {}
                 exec(f"def variant(a, b, c):\n    return {mutant.after}", namespace)  # noqa: S102
                 self.assertEqual(
-                    [
-                        namespace["variant"](*args)
-                        for args in ((1, 2, 3), (2, 2, 3), (3, 2, 3), (1, 3, 2))
-                    ],
+                    [namespace["variant"](*args) for args in arguments],
                     operators[mutant.operator],
                 )
 
