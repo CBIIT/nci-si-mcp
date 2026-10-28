@@ -276,8 +276,19 @@ class MutationOperatorsTest(unittest.TestCase):
                     selection({"unit": {"src/a.py": {2: contexts}}}, "src/a.py", 2, 2),
                     {"unit": ["tests/test_a.py::test_a"]},
                 )
-        with self.assertRaisesRegex(ValueError, "Unrecognized coverage context"):
-            selection({"unit": {"src/a.py": {2: ["unknown"]}}}, "src/a.py", 2, 2)
+        for context in (
+            "unknown",
+            "tests/x.py|run",
+            "tests/x.py::test_x|unknown",
+            "tests/x.py::test_x",
+            "tests/x.py::test_x|",
+        ):
+            for contexts in ([context], ["tests/test_a.py::test_a|run", context]):
+                with self.subTest(contexts=contexts), self.assertRaises(ValueError) as failed:
+                    selection({"unit": {"src/a.py": {2: contexts}}}, "src/a.py", 2, 2)
+                self.assertEqual(
+                    str(failed.exception), f"Unrecognized coverage context: {context!r}"
+                )
 
 
 class MutationExecutionTest(unittest.TestCase):
@@ -407,7 +418,20 @@ class MutationExecutionTest(unittest.TestCase):
                 "'tests/test_nested.py::test_phases|run'\n"
             )
             (root / "tests/conftest.py").write_text(
-                "import os\ndef pytest_runtest_logfinish(nodeid):\n"
+                "import os, pytest, subprocess, sys\n"
+                "def check_child(item, phase):\n"
+                "    if not item.nodeid.endswith('test_phases'): return\n"
+                "    child = subprocess.run([sys.executable, '-c', "
+                "\"import os; print(os.environ.get('MUTATION_COVERAGE_CONTEXT'))\"], "
+                "capture_output=True, text=True, check=True)\n"
+                "    assert child.stdout.strip() == item.nodeid + '|' + phase\n"
+                "@pytest.hookimpl(wrapper=True)\n"
+                "def pytest_runtest_call(item):\n"
+                "    check_child(item, 'run')\n    return (yield)\n"
+                "@pytest.hookimpl(wrapper=True)\n"
+                "def pytest_runtest_teardown(item):\n"
+                "    check_child(item, 'teardown')\n    return (yield)\n"
+                "def pytest_runtest_logfinish(nodeid):\n"
                 "    if nodeid.endswith('test_phases'):\n"
                 "        assert os.environ['MUTATION_COVERAGE_CONTEXT'] == "
                 "'tests/test_example.py::test_plugin|run'\n"
@@ -750,6 +774,39 @@ class MutationExecutionTest(unittest.TestCase):
             )
             self.assertIsInstance(row["elapsed_seconds"], float)
             self.assertIsInstance(row["domains"][0]["elapsed_seconds"], float)
+            self.assertEqual(row["fallback_domains"], [])
+            self.assertEqual(
+                set(row),
+                set(asdict(mutants[-1]))
+                | {
+                    "outcome",
+                    "node",
+                    "phase",
+                    "kind",
+                    "domain",
+                    "log",
+                    "elapsed_seconds",
+                    "domains",
+                    "fallback_domains",
+                    "restored",
+                },
+            )
+            for selected, expected in (({"unit": []}, ["unit"]), ({}, [])):
+                jobs = json.loads(manifest.read_text())
+                jobs["mutants"][0]["selected"] = selected
+                manifest.write_text(json.dumps(jobs))
+                execute_job(manifest, 0)
+                result = json.loads((root / "result-0.json").read_text())
+                self.assertEqual(result["fallback_domains"], expected)
+                self.assertIsInstance(result["elapsed_seconds"], float)
+                self.assertGreaterEqual(result["elapsed_seconds"], 0)
+                self.assertTrue(result["restored"])
+            self.assertEqual(
+                set(result),
+                set(asdict(mutants[-1]))
+                | {"outcome", "domains", "fallback_domains", "restored", "elapsed_seconds"},
+            )
+            self.assertEqual((result["outcome"], result["domains"]), ("NO_TESTS", []))
 
     def test_nested_probe_and_multiple_subtest_failures_credit_exactly_one_outer_kill(self):
         # Given a selected unittest that runs a child probe, when two subtests detect

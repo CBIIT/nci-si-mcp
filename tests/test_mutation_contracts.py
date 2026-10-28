@@ -3,9 +3,11 @@
 import ast
 import hashlib
 import io
+import itertools
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -13,6 +15,7 @@ import unittest
 from contextlib import redirect_stdout, suppress
 from dataclasses import asdict
 from pathlib import Path
+from time import monotonic, sleep
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -70,7 +73,149 @@ def seconds_by_domain(rows):
     }
 
 
+def subject_pytest(root, sink=True):
+    env = dict(os.environ)
+    env.pop("MUTATION_EVIDENCE", None)
+    if sink:
+        env["MUTATION_EVIDENCE"] = str(root / "subject.jsonl")
+    return subprocess.run(  # noqa: S603 - real subject plugin, owned offline fixture
+        [
+            sys.executable,
+            "-c",
+            f"import sys; sys.path.insert(0, {str(Path(gate.__file__).parents[2])!r}); "
+            "import pytest; raise SystemExit(pytest.main(sys.argv[1:]))",
+            "-p",
+            "no:xdist.plugin",
+            "-p",
+            "scripts.validation.mutation_probe",
+            "--no-cov",
+            "-q",
+            "tests",
+        ],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+
+
+def events(root):
+    return [json.loads(line) for line in (root / "subject.jsonl").read_text().splitlines()]
+
+
+def wait_for(predicate, seconds=15):
+    deadline = monotonic() + seconds
+    while not predicate():
+        if monotonic() >= deadline:
+            return False
+        sleep(0.02)
+    return True
+
+
+def running(pid):
+    result = subprocess.run(  # noqa: S603 - owned PID, read-only process status
+        ["ps", "-o", "stat=", "-p", str(pid)],  # noqa: S607
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.returncode == 0 and not result.stdout.strip().startswith("Z")
+
+
+def terminate_group(pid):
+    with suppress(ProcessLookupError):
+        os.killpg(pid, signal.SIGKILL)
+
+
+def malformed_entries(entry):
+    shapes = [None, 42, "entry", list(entry), {**entry, "extra": "bad"}]
+    shapes.extend(
+        {key: value for key, value in entry.items() if key != missing} for missing in entry
+    )
+    return [(json.dumps([shape]), "Malformed allowlist entry fields") for shape in shapes]
+
+
 class MutationCliContractsTest(unittest.TestCase):
+    def test_seed_controls_actual_job_launch_order_without_changing_results(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            marker = root / "launches.jsonl"
+            (root / "tests/test_example.py").write_text(
+                "import json, example\nfrom pathlib import Path\ndef test_value():\n"
+                "    value = example.answer()\n"
+                f"    with Path({str(marker)!r}).open('a') as stream:\n"
+                "        stream.write(json.dumps(value) + '\\n')\n"
+                "    assert value is True\n"
+            )
+            results = []
+            for seed, expected in (
+                (0, [True, None, False, False]),
+                (1, [True, False, False, None]),
+            ):
+                with self.subTest(seed=seed):
+                    marker.unlink(missing_ok=True)
+                    status, rows = command(
+                        root, "--paths", "src/example.py", "--workers", "1", "--seed", str(seed)
+                    )
+                    self.assertEqual(status, 0, rows)
+                    self.assertEqual(
+                        [json.loads(line) for line in marker.read_text().splitlines()], expected
+                    )
+                    results.append(
+                        [(result_key(row), row["outcome"]) for row in rows if "site" in row]
+                    )
+            self.assertEqual(results[0], results[1])
+
+    def test_sigterm_unwinds_real_gate_and_cleans_owned_children(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            marker = root / "started.json"
+            (root / "tests/test_example.py").write_text(
+                "import json, os, signal\nfrom pathlib import Path\ndef test_value():\n"
+                f"    Path({str(marker)!r}).write_text(json.dumps({{'pid': os.getpid(), "
+                "'group': os.getpgrp(), 'scratch': str(Path.cwd().parent)}))\n"
+                "    signal.pause()\n"
+            )
+            env = dict(os.environ)
+            with (root / "controller.log").open("w") as log:
+                controller = subprocess.Popen(  # noqa: S603 - owned controller and session
+                    [
+                        sys.executable,
+                        "-m",
+                        "scripts.validation.mutation_gate",
+                        "--root",
+                        str(root),
+                        "--paths",
+                        "src/example.py",
+                    ],
+                    cwd=Path(gate.__file__).parents[2],
+                    env=env,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+                owned = None
+                try:
+                    self.assertTrue(wait_for(marker.exists), (root / "controller.log").read_text())
+                    owned = json.loads(marker.read_text())
+                    self.assertNotEqual(owned["group"], os.getpgrp())
+                    self.assertEqual(owned["pid"], owned["group"])
+                    controller.send_signal(signal.SIGTERM)
+                    controller.wait(timeout=30)
+                    self.assertTrue(wait_for(lambda: not running(owned["pid"])))
+                    self.assertFalse(Path(owned["scratch"]).exists())
+                    self.assertNotEqual(controller.returncode, 0)
+                finally:
+                    if controller.poll() is None:
+                        terminate_group(controller.pid)
+                    if owned:
+                        terminate_group(owned["group"])
+                    controller.wait(timeout=15)
+
     def test_scheduler_failure_retains_completed_keys_and_marks_each_missing_job_infra(self):
         # Given one broken controller job, the remaining completed evidence must
         # survive the scheduler's nonzero exit, with an explicit missing-job record.
@@ -132,6 +277,26 @@ class MutationCliContractsTest(unittest.TestCase):
                 rows[-1].get("runner_seconds_by_domain"),
                 seconds_by_domain(results),
             )
+            self.assertEqual(
+                set(rows[-1]),
+                {
+                    "outcome",
+                    "shard",
+                    "full_mutants",
+                    "shard_mutants",
+                    "counts",
+                    "kill_kinds",
+                    "baseline_domains",
+                    "fallback_count",
+                    "fallback_domains",
+                    "runner_seconds",
+                    "runner_seconds_by_domain",
+                    "runner_hours",
+                    "elapsed_seconds",
+                },
+            )
+            self.assertIsInstance(rows[-1]["elapsed_seconds"], float)
+            self.assertGreaterEqual(rows[-1]["elapsed_seconds"], 0)
 
     def test_preexisting_fixture_failure_stops_the_gate_before_any_mutant_is_credited(self):
         # Given clean unit/self-test suites and an already failing fixture test,
@@ -301,6 +466,22 @@ class MutationCliContractsTest(unittest.TestCase):
             self.assertEqual(
                 [row["outcome"] for row in rows], ["NO_OP", "SURVIVED", "SURVIVED", "SURVIVED"]
             )
+            project(root, "def answer():\n    return True\n")
+            status, rows = command(root, "--paths", "src/example.py", "--shard", "1/1")
+            self.assertEqual(status, 0, rows)
+            self.assertEqual(rows[-1]["kill_kinds"], {"assertion": 3, "error": 0, "import": 0})
+            project(root, "def answer():\n    return True\n", "example.answer() + 1")
+            status, rows = command(root, "--paths", "src/example.py", "--shard", "1/1")
+            self.assertEqual(status, 1, rows)
+            self.assertEqual(rows[-1]["kill_kinds"], {"assertion": 0, "error": 1, "import": 0})
+            project(
+                root,
+                "flag = True\nif not flag:\n    raise TypeError('invalid table')\n"
+                "def answer():\n    return flag\n",
+            )
+            status, rows = command(root, "--paths", "src/example.py", "--shard", "1/1")
+            self.assertEqual(status, 1, rows)
+            self.assertEqual(rows[-1]["kill_kinds"], {"assertion": 2, "error": 0, "import": 2})
 
     def test_nonpositive_execution_limits_are_usage_errors(self):
         # Given invalid CLI limits, no baseline may start; argparse owns exit 2.
@@ -314,6 +495,14 @@ class MutationCliContractsTest(unittest.TestCase):
                         "python -m scripts.validation.mutation_gate: error: "
                         "timeout and workers must be positive",
                     )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project(root, "# no sites\n")
+            for option in ("--timeout", "--baseline-timeout"):
+                self.assertEqual(
+                    command(root, "--paths", "src/example.py", option, "1"),
+                    (0, [{"outcome": "EMPTY", "mutants": 0}]),
+                )
 
     def test_legitimate_empty_module_succeeds_without_starting_baselines(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -328,9 +517,12 @@ class MutationCliContractsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             project(root, "def broken(:\n")
+            (root / "src/folder.py").mkdir()
             for path, message in (
                 ("tests/test_example.py", "Not an eligible Python module: tests/test_example.py"),
                 ("src/example.py", "invalid syntax (<unknown>, line 1)"),
+                ("src/missing.py", "Not an eligible Python module: src/missing.py"),
+                ("src/folder.py", "Not an eligible Python module: src/folder.py"),
             ):
                 with self.subTest(path=path):
                     self.assertEqual(
@@ -355,6 +547,158 @@ class MutationCliContractsTest(unittest.TestCase):
 
 
 class MutationSourceContractsTest(unittest.TestCase):
+    def test_scope_excludes_each_nonproduction_path_family(self):
+        # Given parseable files, explicit scope rejects each excluded family alone.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "# allowed empty module\n")
+            excluded = (
+                "docs/helper.py",
+                "src/helper.txt",
+                "src/test_helper.py",
+                "src/tests/helper.py",
+                "src/selftests/helper.py",
+                "src/generated/helper.py",
+                "src/__pycache__/helper.py",
+            )
+            for name in excluded:
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("flag = True\n")
+                with self.subTest(path=name):
+                    self.assertEqual(
+                        command(root, "--paths", name),
+                        (
+                            2,
+                            [
+                                {
+                                    "outcome": "INFRA",
+                                    "message": f"Not an eligible Python module: {name}",
+                                }
+                            ],
+                        ),
+                    )
+            self.assertEqual(
+                command(root, "--paths", "src/example.py"),
+                (0, [{"outcome": "EMPTY", "mutants": 0}]),
+            )
+
+    def test_statement_operators_preserve_docstrings_and_noncall_expressions(self):
+        text = (
+            b'"module doc"\ndef f():\n    "function doc"\n    42\n    return\n'
+            b"def g():\n    ping()\n    return True\n"
+        )
+        mutants, diagnostics = source.candidates("src/example.py", text)
+        self.assertEqual(
+            [(m.line, m.operator, m.after) for m in mutants],
+            [
+                (7, "call:remove", "pass"),
+                (8, "return:None", "return None"),
+                (8, "return:False", "return False"),
+                (8, "boolean:literal", "False"),
+            ],
+        )
+        self.assertEqual(
+            diagnostics,
+            [{"file": "src/example.py", "line": 8, "operator": "return:True", "outcome": "NO_OP"}],
+        )
+
+    def test_unary_removal_is_only_for_logical_not(self):
+        for expression, expected in (
+            ("+x", []),
+            ("-x", []),
+            ("~x", []),
+            ("not x", [("not:remove", "(x)")]),
+        ):
+            with self.subTest(expression=expression):
+                mutants, diagnostics = source.candidates(
+                    "src/example.py", f"value = {expression}\n".encode()
+                )
+                self.assertEqual([(m.operator, m.after) for m in mutants], expected)
+                self.assertEqual(diagnostics, [])
+
+    def test_comparison_and_boolean_catalogues_have_exact_declared_replacements(self):
+        comparisons = {
+            "a < b": {"comparison:0": "(a) >= (b)", "comparison:negate": "not (a < b)"},
+            "a < b <= c": {
+                "comparison:0": "(a) >= (b) <= (c)",
+                "comparison:1": "(a) < (b) > (c)",
+                "comparison:negate": "not (a < b <= c)",
+            },
+            "a and b and c": {
+                "boolean:swap": "(a) or (b) or (c)",
+                "boolean:drop:0": "(b) and (c)",
+                "boolean:drop:1": "(a) and (c)",
+                "boolean:drop:2": "(a) and (b)",
+            },
+            "a or b or c": {
+                "boolean:swap": "(a) and (b) and (c)",
+                "boolean:drop:0": "(b) or (c)",
+                "boolean:drop:1": "(a) or (c)",
+                "boolean:drop:2": "(a) or (b)",
+            },
+        }
+        for expression, expected in comparisons.items():
+            with self.subTest(expression=expression):
+                mutants, diagnostics = source.candidates(
+                    "src/example.py", f"value = {expression}\n".encode()
+                )
+                self.assertEqual({m.operator: m.after for m in mutants}, expected)
+                self.assertEqual(diagnostics, [])
+
+    def test_boolean_operand_drops_have_the_declared_truth_tables(self):
+        truth = {
+            "a and b and c": {
+                "boolean:swap": [False, True, True, True, True, True, True, True],
+                "boolean:drop:0": [False, False, False, True, False, False, False, True],
+                "boolean:drop:1": [False, False, False, False, False, True, False, True],
+                "boolean:drop:2": [False, False, False, False, False, False, True, True],
+            },
+            "a or b or c": {
+                "boolean:swap": [False, False, False, False, False, False, False, True],
+                "boolean:drop:0": [False, True, True, True, False, True, True, True],
+                "boolean:drop:1": [False, True, False, True, True, True, True, True],
+                "boolean:drop:2": [False, False, True, True, True, True, True, True],
+            },
+        }
+        for expression, operators in truth.items():
+            mutants, _ = source.candidates("src/example.py", f"value = {expression}".encode())
+            for mutant in mutants:
+                namespace = {}
+                exec(f"def variant(a, b, c):\n    return {mutant.after}", namespace)  # noqa: S102
+                self.assertEqual(
+                    [
+                        namespace["variant"](*args)
+                        for args in itertools.product((False, True), repeat=3)
+                    ],
+                    operators[mutant.operator],
+                )
+
+    def test_comparison_replacements_preserve_untargeted_chain_links(self):
+        comparison_truth = {
+            "a < b": {
+                "comparison:0": [False, True, True, False],
+                "comparison:negate": [False, True, True, False],
+            },
+            "a < b <= c": {
+                "comparison:0": [False, True, True, False],
+                "comparison:1": [False, False, False, True],
+                "comparison:negate": [False, True, True, True],
+            },
+        }
+        for expression, operators in comparison_truth.items():
+            mutants, _ = source.candidates("src/example.py", f"value = {expression}".encode())
+            for mutant in mutants:
+                namespace = {}
+                exec(f"def variant(a, b, c):\n    return {mutant.after}", namespace)  # noqa: S102
+                self.assertEqual(
+                    [
+                        namespace["variant"](*args)
+                        for args in ((1, 2, 3), (2, 2, 3), (3, 2, 3), (1, 3, 2))
+                    ],
+                    operators[mutant.operator],
+                )
+
     def test_only_exact_module_entry_point_comparisons_are_rejected(self):
         for comparison in ("__name__ == '__main__'", "'__main__' == __name__"):
             with self.subTest(comparison=comparison):
@@ -430,6 +774,43 @@ class MutationSourceContractsTest(unittest.TestCase):
             self.assertEqual(
                 git(root, "status", "--porcelain"), "M src/example.py\n?? untracked.txt"
             )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "flag = True\n")
+            with runner.snapshot(root) as scratch:
+                self.assertEqual(git(scratch, "rev-parse", "--show-toplevel"), str(scratch))
+                self.assertFalse((root / ".git").exists())
+            self.assertFalse(scratch.exists())
+
+    def test_snapshot_git_failures_keep_cli_output_structured(self):
+        real_git = shutil.which("git")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "flag = True\n")
+            binary = root / "bin"
+            binary.mkdir()
+            wrapper = binary / "git"
+            for operation in ("init", "clone"):
+                with self.subTest(operation=operation):
+                    if operation == "clone":
+                        git(root, "init", "-q")
+                    wrapper.write_text(
+                        f"#!{sys.executable}\nimport os, sys\n"
+                        f"if sys.argv[1] == {operation!r}:\n"
+                        "    sys.stderr.write('PRIVATE_GIT_DIAGNOSTIC\\n')\n"
+                        "    raise SystemExit(43)\n"
+                        f"os.execv({real_git!r}, [{real_git!r}, *sys.argv[1:]])\n"
+                    )
+                    wrapper.chmod(0o755)
+                    with patch.dict(
+                        os.environ, {"PATH": str(binary) + os.pathsep + os.environ["PATH"]}
+                    ):
+                        result = cli(root, "--paths", "src/example.py")
+                    rows = [json.loads(line) for line in result.stdout.splitlines()]
+                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                    self.assertEqual([row["outcome"] for row in rows], ["INFRA"])
+                    self.assertIn("returned non-zero exit status 43", rows[0]["message"])
+                    self.assertNotIn("PRIVATE_GIT_DIAGNOSTIC", result.stderr)
 
     def test_broken_git_snapshot_fails_without_yielding_a_historyless_copy(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -452,6 +833,7 @@ class MutationSourceContractsTest(unittest.TestCase):
                 ("[", f"Malformed allowlist YAML: {root / 'allow.yaml'}"),
                 ("{}", "Allowlist must be a YAML list"),
             ]
+            cases.extend(malformed_entries(entry))
             cases.extend(
                 (
                     json.dumps([{**entry, "reason": value}]),
@@ -506,11 +888,38 @@ class MutationSourceContractsTest(unittest.TestCase):
                     ("boolean:literal", 3, 3),
                 },
             )
+            (root / "src/example.py").write_text(
+                "def answer():\n    return (False\n            or True\n            or False)\n"
+            )
+            (root / "src/deletion.py").write_text("flag = True\nflag = False\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "before multiline and deletion")
+            previous = git(root, "rev-parse", "HEAD")
+            (root / "src/example.py").write_text(
+                "def answer():\n    return (True\n            and False\n            and True)\n"
+            )
+            (root / "src/deletion.py").write_text("flag = True\n")
+            git(root, "add", ".")
+            git(root, "commit", "-qm", "multiline and deletion")
+            selected = source.scope(root, [], previous, "HEAD")
+            self.assertEqual(selected, {"src/example.py": {2, 3, 4}, "src/deletion.py": set()})
+            mutants, _ = gate.collect(root, selected)
+            self.assertEqual(
+                {(m.file, m.line, m.end_line) for m in mutants},
+                {
+                    ("src/example.py", 2, 4),
+                    ("src/example.py", 2, 2),
+                    ("src/example.py", 3, 3),
+                    ("src/example.py", 4, 4),
+                },
+            )
 
     def test_only_key_mode_and_setting_literal_roles_are_eligible(self):
         snippets = {
             "mapping = {'key': 'value'}": {"'key'"},
             "value = mapping['lookup']": {"'lookup'"},
+            "value = 'abc'[0]": set(),
+            "value = 'abc'['index']": {"'index'"},
             "value = 'plain'": set(),
             "value = other('argument')": set(),
             "value = settings.get(key='keyword')": set(),
@@ -619,6 +1028,317 @@ class MutationVerdictContractsTest(unittest.TestCase):
 
 
 class MutationEvidenceContractsTest(unittest.TestCase):
+    def test_program_cleans_owned_descendants_after_leader_exit_or_timeout(self):
+        # A detached controller stays outside the subject's group and owns emergency cleanup.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            other = subprocess.Popen(
+                [sys.executable, "-c", "import signal; signal.pause()"], start_new_session=True
+            )
+            try:
+                for mode in ("exit", "timeout"):
+                    marker = root / f"{mode}.json"
+                    ready = root / f"{mode}.ready"
+                    child = (
+                        "import json, os, signal, subprocess, sys, time\nfrom pathlib import Path\n"
+                        "descendant = subprocess.Popen([sys.executable, '-c', "
+                        '"import signal, sys; from pathlib import Path; '
+                        "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+                        'Path(sys.argv[1]).touch(); signal.pause()", '
+                        f"{str(ready)!r}])\n"
+                        f"Path({str(marker)!r}).write_text(json.dumps({{'leader': os.getpid(), "
+                        "'group': os.getpgrp(), 'descendant': descendant.pid}))\n"
+                        "deadline = time.monotonic() + 10\n"
+                        f"while not Path({str(ready)!r}).exists():\n"
+                        "    if time.monotonic() >= deadline: raise RuntimeError('not ready')\n"
+                        "    time.sleep(0.01)\n" + ("signal.pause()\n" if mode == "timeout" else "")
+                    )
+                    owned = None
+                    try:
+                        status = runner.program(
+                            [sys.executable, "-c", child],
+                            root,
+                            dict(os.environ),
+                            1 if mode == "timeout" else 15,
+                            root / f"{mode}.log",
+                        )
+                        self.assertTrue(marker.exists())
+                        owned = json.loads(marker.read_text())
+                        self.assertEqual(owned["group"], owned["leader"])
+                        self.assertNotEqual(owned["group"], os.getpgrp())
+                        self.assertEqual(status, None if mode == "timeout" else 0)
+                        self.assertTrue(wait_for(lambda pid=owned["descendant"]: not running(pid)))
+                        self.assertFalse(running(owned["leader"]))
+                        self.assertIsNone(other.poll())
+                    finally:
+                        if marker.exists():
+                            terminate_group(json.loads(marker.read_text())["group"])
+            finally:
+                terminate_group(other.pid)
+                other.wait(timeout=15)
+
+    def test_subject_probe_runs_serially_when_xdist_plugin_is_disabled(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            result = subject_pytest(root)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(
+                events(root),
+                [
+                    {
+                        "node": "tests/test_example.py::test_value",
+                        "phase": phase,
+                        "outcome": "passed",
+                        "assertion": False,
+                    }
+                    for phase in ("setup", "call", "teardown")
+                ],
+            )
+
+    def test_subject_probe_preserves_setup_failure_without_a_call_stash(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            (root / "tests/conftest.py").write_text(
+                "import pytest\n@pytest.fixture(autouse=True)\n"
+                "def broken():\n    assert False, 'original setup failure'\n"
+            )
+            result = subject_pytest(root)
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("original setup failure", result.stdout)
+            self.assertNotIn("INTERNALERROR", result.stdout + result.stderr)
+            rows = events(root)
+            self.assertEqual(
+                rows,
+                [
+                    {
+                        "node": "tests/test_example.py::test_value",
+                        "phase": "setup",
+                        "outcome": "failed",
+                        "assertion": False,
+                    },
+                    {
+                        "node": "tests/test_example.py::test_value",
+                        "phase": "teardown",
+                        "outcome": "passed",
+                        "assertion": False,
+                    },
+                ],
+            )
+            self.assertEqual(
+                runner.evidence_outcome(1, rows),
+                {"outcome": "INFRA", "status": 1, "failures": [rows[0]]},
+            )
+
+    def test_subject_probe_teardown_assertion_is_not_a_call_assertion(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            (root / "tests/conftest.py").write_text(
+                "import pytest\n@pytest.fixture(autouse=True)\n"
+                "def broken():\n    yield\n    assert False, 'original teardown failure'\n"
+            )
+            result = subject_pytest(root)
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            rows = events(root)
+            self.assertEqual(
+                rows,
+                [
+                    {
+                        "node": "tests/test_example.py::test_value",
+                        "phase": phase,
+                        "outcome": outcome,
+                        "assertion": False,
+                    }
+                    for phase, outcome in (
+                        ("setup", "passed"),
+                        ("call", "passed"),
+                        ("teardown", "failed"),
+                    )
+                ],
+            )
+            self.assertEqual(
+                runner.evidence_outcome(1, rows),
+                {"outcome": "INFRA", "status": 1, "failures": [rows[-1]]},
+            )
+
+    def test_disabled_collection_sink_preserves_original_collection_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            (root / "tests/test_example.py").write_text(
+                "raise TypeError('original collection error')\n"
+            )
+            result = subject_pytest(root, sink=False)
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn("TypeError: original collection error", result.stdout)
+            self.assertNotIn("INTERNALERROR", result.stdout + result.stderr)
+            self.assertFalse((root / "subject.jsonl").exists())
+
+    def test_skipped_subtest_then_pass_has_one_passed_owning_call(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            (root / "tests/test_example.py").write_text(
+                "import unittest\nclass Owner(unittest.TestCase):\n"
+                "    def test_subtests(self):\n"
+                "        with self.subTest(kind='skip'):\n            self.skipTest('one part')\n"
+                "        with self.subTest(kind='pass'):\n            self.assertEqual(2 + 2, 4)\n"
+            )
+            result = subject_pytest(root)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            rows = events(root)
+            self.assertEqual(
+                rows,
+                [
+                    {
+                        "node": "tests/test_example.py::Owner::test_subtests",
+                        "phase": phase,
+                        "outcome": "passed",
+                        "assertion": False,
+                    }
+                    for phase in ("setup", "call", "teardown")
+                ],
+            )
+            self.assertEqual(runner.evidence_outcome(0, rows), {"outcome": "SURVIVED"})
+
+    def test_child_environment_isolates_data_temp_bytecode_and_executable_search(self):
+        # Given hostile inherited settings, real imports and writes use only owned paths.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            work = root / "work"
+            work.mkdir()
+            caller = root / "caller-data"
+            caller.mkdir()
+            parent = {
+                "TMPDIR": str(root / ("long" * 30)),
+                "TMP": "parent-tmp",
+                "TEMP": "parent-temp",
+                "NCI_SI_DATA_DIR": str(caller),
+                "PYTHONDONTWRITEBYTECODE": "0",
+                "PATH": "/parent-search",
+            }
+            code = (
+                "import json, os, shutil, sys, example\nfrom pathlib import Path\n"
+                "data = Path(os.environ['NCI_SI_DATA_DIR'])\n"
+                "data.mkdir(parents=True, exist_ok=True)\n(data / 'written').write_text('owned')\n"
+                "print(json.dumps({'settings': {key: value for key, value in os.environ.items() "
+                "if key in ('TMPDIR', 'TMP', 'TEMP', 'PATH', 'PYTHONDONTWRITEBYTECODE') "
+                "or key.startswith('NCI_SI_') or key.endswith('__mutated')}, "
+                "'python': shutil.which('python')}))\n"
+            )
+            for has_path in (True, False):
+                with self.subTest(has_path=has_path), patch.dict(os.environ, parent):
+                    if not has_path:
+                        os.environ.pop("PATH")
+                    before = dict(os.environ)
+                    env = runner.environment(root, work)
+                    child = subprocess.run(  # noqa: S603 - fixed owned child program
+                        [sys.executable, "-c", code],
+                        cwd=root,
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                    )
+                    observed = json.loads(child.stdout)
+                    self.assertEqual(
+                        observed["settings"],
+                        {
+                            "TMPDIR": tempfile.gettempdir(),
+                            "TMP": tempfile.gettempdir(),
+                            "TEMP": tempfile.gettempdir(),
+                            "NCI_SI_DATA_DIR": str(work / "data"),
+                            "PYTHONDONTWRITEBYTECODE": "1",
+                            "PATH": str(Path(sys.executable).parent)
+                            + os.pathsep
+                            + ("/parent-search" if has_path else ""),
+                        },
+                    )
+                    self.assertEqual(
+                        Path(observed["python"]).resolve(), Path(sys.executable).resolve()
+                    )
+                    self.assertEqual(dict(os.environ), before)
+            self.assertEqual((work / "data/written").read_text(), "owned")
+            self.assertEqual(list(caller.iterdir()), [])
+            self.assertEqual(list((root / "src").rglob("__pycache__")), [])
+
+    def test_fixture_child_receives_exact_prepared_contract_settings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            marker = root / "settings.json"
+            (root / "acceptance/tests/test_contract.py").write_text(
+                "import json, os\nfrom pathlib import Path\ndef test_settings():\n"
+                f"    Path({str(marker)!r}).write_text(json.dumps({{key: value for key, value "
+                "in os.environ.items() if key.startswith('NCI_SI_ACCEPTANCE_')}))\n"
+                "    assert True\n"
+            )
+            result, _ = runner.run_domain(root, "fixture", [], 30)
+            self.assertEqual(result["outcome"], "SURVIVED", result)
+            self.assertEqual(
+                json.loads(marker.read_text()),
+                {
+                    "NCI_SI_ACCEPTANCE_MODE": "fixture",
+                    "NCI_SI_ACCEPTANCE_REGISTRY_RELEASE": "required",
+                    "NCI_SI_ACCEPTANCE_SECURITY_SERVER": "python ../scripts/permissions_fixture.py",
+                    "NCI_SI_ACCEPTANCE_PREPARE": (
+                        'nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")'
+                    ),
+                },
+            )
+
+    def test_unit_baseline_is_serial_and_other_baselines_use_explicit_workers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            plugin = (
+                "import json\nfrom pathlib import Path\n"
+                "def pytest_sessionstart(session):\n"
+                "    config = session.config\n"
+                "    worker = getattr(config, 'workerinput', None)\n"
+                "    name = worker['workerid'] if worker else 'controller'\n"
+                "    Path('worker-' + name + '.json').write_text(json.dumps("
+                "{'worker': worker is not None, 'count': config.getoption('numprocesses')}))\n"
+            )
+            (root / "conftest.py").write_text(plugin)
+            (root / "acceptance/conftest.py").write_text(
+                plugin + "def pytest_addoption(parser):\n    parser.addoption('--report')\n"
+            )
+            for domain, cwd, expected in (
+                ("unit", root, {"controller": {"worker": False, "count": 0}}),
+                (
+                    "selftest",
+                    root / "acceptance",
+                    {
+                        "controller": {"worker": False, "count": 4},
+                        **{f"gw{i}": {"worker": True, "count": None} for i in range(4)},
+                    },
+                ),
+                (
+                    "fixture",
+                    root / "acceptance",
+                    {
+                        "controller": {"worker": False, "count": 4},
+                        **{f"gw{i}": {"worker": True, "count": None} for i in range(4)},
+                    },
+                ),
+            ):
+                with self.subTest(domain=domain):
+                    for path in cwd.glob("worker-*.json"):
+                        path.unlink()
+                    result, _ = runner.run_domain(root, domain, [], 30, baseline=True)
+                    self.assertEqual(result["outcome"], "SURVIVED", result)
+                    self.assertEqual(
+                        {
+                            path.stem.removeprefix("worker-"): json.loads(path.read_text())
+                            for path in cwd.glob("worker-*.json")
+                        },
+                        expected,
+                    )
+
     def test_session_disabling_mutant_is_detected_without_losing_controller_evidence(self):
         # Given the real session-disabling operator, the immutable controller must
         # retain the owning call failure and restore its subject, not lose the job.
@@ -773,6 +1493,12 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                 )
         failure["exception"] = "TypeError: invalid table"
         self.assertEqual(runner.evidence_outcome(3, [failure], target)["outcome"], "INFRA")
+        for phase in ("setup", "teardown", "call"):
+            row = {**failure, "phase": phase}
+            self.assertEqual(
+                runner.evidence_outcome(2, [row], target),
+                {"outcome": "INFRA", "status": 2, "failures": [row]},
+            )
 
     def test_import_validation_kill_requires_traceback_through_the_mutated_file(self):
         cases = (
@@ -806,6 +1532,7 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                     gate.execute_job(path, 0)
                     row = json.loads((root / "result-0.json").read_text())
                     self.assertEqual(row["outcome"], outcome, row)
+                    self.assertEqual(row["fallback_domains"], ["unit"])
                     if outcome == "KILLED":
                         self.assertEqual(
                             {name: row[name] for name in ("kind", "phase", "node")},
@@ -844,6 +1571,7 @@ class MutationEvidenceContractsTest(unittest.TestCase):
             ([("failed", AssertionError()), ("passed", None)], "failed", True),
             ([("failed", pytest.fail.Exception()), ("failed", TypeError())], "failed", False),
             ([("skipped", None)], "skipped", False),
+            ([("skipped", None), ("passed", None)], "passed", False),
         )
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "events.jsonl"
@@ -964,6 +1692,14 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                 "kind": "assertion",
             },
         )
+        failed = {**failure, "outcome": "failed"}
+        passed = {**failure, "outcome": "passed"}
+        for status in (0, 5):
+            for rows in ([failed], [failed, passed]):
+                self.assertEqual(
+                    runner.evidence_outcome(status, rows),
+                    {"outcome": "INFRA", "status": status, "failures": [failed]},
+                )
 
     def test_coverage_mapping_keeps_only_canonical_scratch_paths_and_test_contexts(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -990,6 +1726,12 @@ class MutationEvidenceContractsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             project(root, "def answer():\n    return True\n", "assert False")
+            failed, _ = runner.run_domain(root, "unit", [], 30, baseline=True)
+            self.assertEqual(failed["outcome"], "INFRA", failed)
+            self.assertEqual(
+                set(failed),
+                {"outcome", "node", "phase", "kind", "domain", "log", "elapsed_seconds"},
+            )
             with self.assertRaisesRegex(ValueError, "Baseline unit failed:.*INFRA"):
                 runner.baseline(root, 30)
             project(root, "def answer():\n    return True\n")
@@ -1035,6 +1777,20 @@ class MutationEvidenceContractsTest(unittest.TestCase):
             confirmation = gate.measure(root, selected, 30)
             self.assertEqual(
                 (confirmation["outcome"], confirmation["confirmation"]), ("SURVIVED", "fixture")
+            )
+            self.assertEqual(
+                [(row["domain"], row["outcome"]) for row in confirmation["domains"]],
+                [(domain, "SURVIVED") for domain in ("unit", "selftest", "fixture")],
+            )
+            unit_only = gate.measure(root, {"unit": selected["unit"]}, 30)
+            self.assertEqual(
+                set(unit_only),
+                {"outcome", "domain", "log", "elapsed_seconds", "confirmation", "domains"},
+            )
+            self.assertEqual(unit_only["confirmation"], "unreached")
+            self.assertEqual(
+                [(row["domain"], row["outcome"]) for row in unit_only["domains"]],
+                [("unit", "SURVIVED")],
             )
             (root / "src/example.py").write_text("def answer():\n    return False\n")
             result = gate.measure(root, selected, 30)
