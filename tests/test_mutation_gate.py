@@ -292,6 +292,47 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_collection_constant_selects_killing_consumer_but_runtime_lines_stay_precise(self):
+        # Given collection and an incidental child import share a declaration,
+        # when the CLI mutates it, then the cached-module consumer kills it;
+        # runtime-only lines still select just their own caller.
+        source = "FLAG = True\ndef answer():\n    return FLAG\ndef harmless():\n    pass\n"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, source)
+            launches = root / "unit-selections.jsonl"
+            (root / "tests/conftest.py").write_text(
+                "import example, json\nfrom pathlib import Path\n"
+                "def pytest_collection_finish(session):\n"
+                f"    with Path({str(launches)!r}).open('a') as stream:\n"
+                "        stream.write(json.dumps([item.nodeid for item in session.items])"
+                " + '\\n')\n"
+            )
+            (root / "tests/test_example.py").write_text(
+                "import example, subprocess, sys\n"
+                "def test_incidental():\n"
+                "    child = subprocess.run([sys.executable, '-c', 'import example'])\n"
+                "    assert child.returncode == 0\n"
+                "    assert example.harmless() is None\n"
+                "def test_value():\n    assert example.answer() is True\n"
+                "def test_unrelated():\n    assert True\n"
+            )
+            status, rows = command(root, "--paths", "src/example.py")
+            results = mutant_rows(rows)
+            declaration = [row for row in results if row["line"] == 1]
+            self.assertEqual(len(declaration), 1, rows)
+            self.assertEqual(declaration[0]["outcome"], "KILLED", declaration)
+            self.assertEqual(declaration[0]["node"], "tests/test_example.py::test_value")
+            self.assertEqual(declaration[0]["kind"], "assertion")
+            self.assertEqual(status, 0, rows)
+            incidental = "tests/test_example.py::test_incidental"
+            consumer = "tests/test_example.py::test_value"
+            unrelated = "tests/test_example.py::test_unrelated"
+            self.assertCountEqual(
+                json_lines(launches),
+                [[incidental, consumer, unrelated], [incidental, consumer], [consumer], [consumer]],
+            )
+
     def test_prepared_fixture_stdio_rpc_reaches_source_with_honest_setup_fallback(self):
         # A session-scoped MCP child keeps its spawn-time setup context even
         # when this test's later RPC executes a handler for the first time.
