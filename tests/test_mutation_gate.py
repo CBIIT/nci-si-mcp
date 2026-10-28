@@ -296,7 +296,7 @@ class MutationExecutionTest(unittest.TestCase):
         # Given collection and an incidental child import share a declaration,
         # when the CLI mutates it, then the cached-module consumer kills it;
         # runtime-only lines still select just their own caller.
-        source = "FLAG = True\ndef answer():\n    return FLAG\ndef harmless():\n    pass\n"
+        source = "FLAG = True\nanswer = (lambda:\n    not not FLAG)\ndef harmless():\n    pass\n"
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
             project(root, source)
