@@ -204,11 +204,11 @@ def exemption_matches(key: dict, exemptions: list[dict]) -> list[dict]:
 def shard_argument(value: str) -> tuple[int, int]:
     try:
         index, count = map(int, value.split("/"))
-        if 1 <= index <= count:
-            return index, count
     except ValueError as error:
         raise argparse.ArgumentTypeError("expected K/N with 1 <= K <= N") from error
-    raise argparse.ArgumentTypeError("expected K/N with 1 <= K <= N")
+    if not 1 <= index <= count:
+        raise argparse.ArgumentTypeError("expected K/N with 1 <= K <= N")
+    return index, count
 
 
 def partition(mutants: list[Mutant], shard: tuple[int, int]) -> list[Mutant]:
