@@ -85,7 +85,7 @@ def subject_pytest(root, sink=True):
             f"import sys; sys.path.insert(0, {str(Path(gate.__file__).parents[2])!r}); "
             "import pytest; raise SystemExit(pytest.main(sys.argv[1:]))",
             "-p",
-            "no:xdist.plugin",
+            "no:xdist",
             "-p",
             "scripts.validation.mutation_probe",
             "--no-cov",
@@ -228,6 +228,11 @@ class MutationCliContractsTest(unittest.TestCase):
                 "    if item.name == '0':\n        raise RuntimeError('controller defect')\n"
             )
             mutants, _ = source.candidates("src/example.py", (root / "src/example.py").read_bytes())
+            mapping = {
+                "unit": {"src/example.py": {2: ["tests/test_example.py::test_value|run"]}},
+                "selftest": {"src/example.py": {2: [""]}},
+                "fixture": {"src/example.py": {2: [""]}},
+            }
 
             def launch(command, cwd, env, timeout, log):
                 return runner.program([*command, "-p", "broken_job"], cwd, env, timeout, log)
@@ -236,15 +241,18 @@ class MutationCliContractsTest(unittest.TestCase):
                 patch.object(gate, "program", side_effect=launch),
                 self.assertRaises(ValueError) as failed,
             ):
-                gate.schedule(root, mutants, {}, SimpleNamespace(timeout=20, workers=1))
+                gate.schedule(root, mutants, mapping, SimpleNamespace(timeout=20, workers=1))
             rows = getattr(failed.exception, "rows", [])
             self.assertEqual(len(rows), len(mutants))
             self.assertEqual(
                 [result_key(row) for row in rows],
                 [json.dumps(m.key(), sort_keys=True) for m in mutants],
             )
-            self.assertEqual([row["outcome"] for row in rows], ["INFRA", "NO_TESTS", "NO_TESTS"])
+            self.assertEqual([row["outcome"] for row in rows], ["INFRA", "KILLED", "KILLED"])
             self.assertFalse(rows[0]["restored"])
+            self.assertEqual(rows[0]["message"], "Controller produced no result for this candidate")
+            self.assertEqual(rows[0]["domains"], [])
+            self.assertEqual(rows[0]["fallback_domains"], ["fixture", "selftest"])
             self.assertIn("controller defect", rows[0]["log"])
             self.assertTrue(all(row["restored"] for row in rows[1:]))
 
@@ -382,15 +390,18 @@ class MutationCliContractsTest(unittest.TestCase):
             self.assertIsInstance(row["elapsed_seconds"], float)
 
     def test_invalid_shards_are_usage_errors(self):
-        for value in ("0/3", "4/3", "1/0", "-1/3", "1", "a/3", "1/2/3"):
-            with self.subTest(value=value):
-                result = cli(Path.cwd(), f"--shard={value}")
-                self.assertEqual(result.returncode, 2)
-                self.assertEqual(
-                    result.stderr.splitlines()[-1],
-                    "python -m scripts.validation.mutation_gate: error: argument --shard: "
-                    "expected K/N with 1 <= K <= N",
-                )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "# no mutation sites\n")
+            for value in ("0/3", "4/3", "1/0", "-1/3", "1", "a/3", "1/2/3"):
+                with self.subTest(value=value):
+                    result = cli(root, "--paths", "src/example.py", f"--shard={value}")
+                    self.assertEqual(result.returncode, 2)
+                    self.assertEqual(
+                        result.stderr.splitlines()[-1],
+                        "python -m scripts.validation.mutation_gate: error: argument --shard: "
+                        "expected K/N with 1 <= K <= N",
+                    )
 
     def test_empty_shard_reports_full_count_and_stale_entries_still_fail(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -541,9 +552,135 @@ class MutationCliContractsTest(unittest.TestCase):
             mutants, _ = source.candidates("src/example.py", (root / "src/example.py").read_bytes())
             with (
                 patch.object(gate, "program", side_effect=crash),
-                self.assertRaisesRegex(ValueError, "Mutant scheduler failed: worker exited 9"),
+                self.assertRaises(gate.SchedulerError) as failed,
             ):
                 gate.schedule(root, mutants, {}, SimpleNamespace(timeout=20, workers=1))
+            self.assertEqual(str(failed.exception), "Mutant scheduler failed: worker exited 9")
+            self.assertEqual(len(failed.exception.rows), len(mutants))
+
+    def test_scheduler_os_failure_preserves_completed_and_missing_rows_and_cause(self):
+        # Given a completed job before an OS wait failure, the caller still gets
+        # that evidence and one explicit INFRA row for every unfinished job.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            mutants, _ = source.candidates("src/example.py", (root / "src/example.py").read_bytes())
+            completed = {**asdict(mutants[0]), "outcome": "KILLED", "restored": True}
+            error = OSError("scheduler wait denied")
+
+            def interrupted(command, cwd, env, timeout, log):
+                (cwd / "result-0.json").write_text(json.dumps(completed))
+                raise error
+
+            with (
+                patch.object(gate, "program", side_effect=interrupted),
+                self.assertRaises(gate.SchedulerError) as failed,
+            ):
+                gate.schedule(root, mutants, {}, SimpleNamespace(timeout=20, workers=1))
+            self.assertEqual(
+                str(failed.exception), "Mutant scheduler failed: scheduler wait denied"
+            )
+            self.assertIs(failed.exception.__cause__, error)
+            self.assertEqual(failed.exception.rows[0], completed)
+            self.assertEqual(
+                failed.exception.rows[1:],
+                [
+                    {
+                        **asdict(mutant),
+                        "outcome": "INFRA",
+                        "message": "Controller produced no result for this candidate",
+                        "log": "scheduler wait denied",
+                        "restored": False,
+                        "domains": [],
+                        "fallback_domains": [],
+                    }
+                    for mutant in mutants[1:]
+                ],
+            )
+
+    def test_scheduler_rejects_nonzero_exit_and_unrestored_rows_independently(self):
+        # Either controller failure or unverified restoration invalidates an
+        # otherwise complete result set; a zero exit with restored rows is valid.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "flag = True\n")
+            mutants, _ = source.candidates("src/example.py", b"flag = True\n")
+            for status, restored in ((9, True), (0, False), (0, True)):
+                with self.subTest(status=status, restored=restored):
+                    row = {**asdict(mutants[0]), "outcome": "KILLED", "restored": restored}
+
+                    def completed(command, cwd, env, timeout, log, row=row, status=status):
+                        (cwd / "result-0.json").write_text(json.dumps(row))
+                        log.write_text("controller verdict")
+                        return status
+
+                    with patch.object(gate, "program", side_effect=completed):
+                        self.assert_scheduler_verdict(root, mutants, status, restored, row)
+
+    def assert_scheduler_verdict(self, root, mutants, status, restored, row):
+        if status == 0 and restored:
+            self.assertEqual(
+                gate.schedule(root, mutants, {}, SimpleNamespace(timeout=20, workers=1)), [row]
+            )
+            return
+        with self.assertRaises(gate.SchedulerError) as failed:
+            gate.schedule(root, mutants, {}, SimpleNamespace(timeout=20, workers=1))
+        self.assertEqual(str(failed.exception), "Mutant scheduler failed: controller verdict")
+        self.assertEqual(failed.exception.rows, [row])
+
+    def test_cli_scheduler_failure_reports_all_rows_summary_and_terminal_infra(self):
+        # Given a controller that loses one job, the real CLI must retain all
+        # candidate rows and SUMMARY before its exact terminal diagnostic/exit 2.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "def answer():\n    return True\n")
+            package = Path(gate.__file__).parents[2]
+            driver = root / "driver.py"
+            driver.write_text(
+                "import sys\nfrom pathlib import Path\nfrom unittest.mock import patch\n"
+                f"sys.path.insert(0, {str(package)!r})\n"
+                "from scripts.validation import mutation_gate as gate\n"
+                "def controller(command, cwd, env, timeout, log):\n"
+                "    gate.execute_job(Path(command[-1]), 1)\n"
+                "    gate.execute_job(Path(command[-1]), 2)\n"
+                "    log.write_text('controller lost job')\n    return 9\n"
+                "with patch.object(gate, 'program', side_effect=controller):\n"
+                "    raise SystemExit(gate.main(sys.argv[1:]))\n"
+            )
+            child = subprocess.run(  # noqa: S603 - real CLI with OS-boundary fault injection
+                [
+                    sys.executable,
+                    str(driver),
+                    "--root",
+                    str(root),
+                    "--paths",
+                    "src/example.py",
+                    "--shard",
+                    "1/1",
+                ],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+            )
+            rows = [json.loads(line) for line in child.stdout.splitlines()]
+            results = [row for row in rows if "site" in row]
+            mutants, _ = source.candidates("src/example.py", (root / "src/example.py").read_bytes())
+            self.assertEqual(child.returncode, 2, child.stdout + child.stderr)
+            self.assertCountEqual(
+                [result_key(row) for row in results],
+                [json.dumps(m.key(), sort_keys=True) for m in mutants],
+            )
+            self.assertEqual(
+                sorted(row["outcome"] for row in results), ["INFRA", "KILLED", "KILLED"]
+            )
+            self.assertEqual(rows[-2]["outcome"], "SUMMARY")
+            self.assertEqual(rows[-2]["counts"], {"INFRA": 1, "KILLED": 2})
+            self.assertEqual(
+                rows[-1],
+                {"outcome": "INFRA", "message": "Mutant scheduler failed: controller lost job"},
+            )
 
 
 class MutationSourceContractsTest(unittest.TestCase):
@@ -961,11 +1098,35 @@ class MutationVerdictContractsTest(unittest.TestCase):
             self.assertEqual(first["outcome"], "INFRA")
             self.assertTrue(first["restored"])
             self.assertIn("cleanup denied", first["message"])
+            self.assertEqual(first["domains"], [])
             gate.execute_job(path, 1)
             self.assertEqual(json.loads((root / "result-1.json").read_text())["outcome"], "KILLED")
             self.assertEqual(
                 (root / "src/example.py").read_text(), "def answer():\n    return True\n"
             )
+
+    def test_worker_snapshot_failure_never_claims_verified_restoration(self):
+        # Given an OS failure before a scratch snapshot exists, the durable row
+        # reports INFRA with canonical empty domains and restored=false.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "flag = True\n")
+            mutants, _ = source.candidates("src/example.py", b"flag = True\n")
+            path = root / "mutations.json"
+            path.write_text(json.dumps(gate.manifest_data(root, mutants, {}, 20)))
+            with patch.object(gate, "snapshot", side_effect=OSError("snapshot denied")):
+                gate.execute_job(path, 0)
+            row = json.loads((root / "result-0.json").read_text())
+            self.assertEqual(
+                {key: row[key] for key in ("outcome", "message", "domains", "restored")},
+                {
+                    "outcome": "INFRA",
+                    "message": "snapshot denied",
+                    "domains": [],
+                    "restored": False,
+                },
+            )
+            self.assertEqual((root / "src/example.py").read_bytes(), b"flag = True\n")
 
     def test_restoration_readback_mismatch_raises_without_publishing_a_success_record(self):
         # A filesystem can return bytes other than those just written. The worker
@@ -1081,6 +1242,11 @@ class MutationEvidenceContractsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
             project(root, "def answer():\n    return True\n")
+            (root / "tests/conftest.py").write_text(
+                "def pytest_sessionstart(session):\n"
+                "    assert not session.config.pluginmanager.hasplugin('xdist')\n"
+                "    assert not session.config.hook.pytest_configure_node.has_spec()\n"
+            )
             result = subject_pytest(root)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual(
@@ -1414,6 +1580,61 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                         child.kill()
                     child.wait(timeout=5)
 
+    def test_ownership_query_error_reaps_leader_without_signalling_unverified_descendants(self):
+        # Given a ready descendant in the child's new group, when the OS cannot
+        # verify ownership, only the direct leader is reaped; the group stays alive.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            marker = root / "descendant.pid"
+            ready = root / "descendant.ready"
+            child_code = (
+                "import signal, subprocess, sys\nfrom pathlib import Path\n"
+                "child = subprocess.Popen([sys.executable, '-c', "
+                "'import signal, sys; from pathlib import Path; "
+                "Path(sys.argv[1]).touch(); signal.pause()', "
+                f"{str(ready)!r}])\n"
+                f"Path({str(marker)!r}).write_text(str(child.pid))\n"
+                "signal.pause()\n"
+            )
+            children = []
+            popen = subprocess.Popen
+
+            def capture(*args, **kwargs):
+                child = popen(*args, **kwargs)
+                children.append(child)
+                return child
+
+            def denied(pid):
+                if not wait_for(ready.exists):
+                    raise RuntimeError("descendant did not become ready")
+                raise OSError("ownership query denied")
+
+            try:
+                with (
+                    patch.object(runner.subprocess, "Popen", side_effect=capture),
+                    patch.object(runner.os, "getpgid", side_effect=denied),
+                    self.assertRaises(OSError) as failed,
+                ):
+                    runner.program(
+                        [sys.executable, "-c", child_code],
+                        root,
+                        dict(os.environ),
+                        15,
+                        root / "child.log",
+                    )
+                self.assertEqual(str(failed.exception), "ownership query denied")
+                self.assertTrue(ready.exists())
+                self.assertIsNotNone(children[0].poll())
+                self.assertFalse(running(children[0].pid))
+                self.assertTrue(running(int(marker.read_text())))
+            finally:
+                for child in children:
+                    terminate_group(child.pid)
+                    child.wait(timeout=15)
+                if marker.exists():
+                    with suppress(ProcessLookupError):
+                        os.kill(int(marker.read_text()), signal.SIGKILL)
+
     def test_phase_hooks_preserve_hook_result_and_restore_environment(self):
         phases = (
             (probe.pytest_runtest_setup, "setup"),
@@ -1485,7 +1706,7 @@ class MutationEvidenceContractsTest(unittest.TestCase):
             "traceback_paths": [str(target)],
             "exception": "SystemExit: 1",
         }
-        for status in (1, 2, 3):
+        for status in (1, 2, 3, 4):
             with self.subTest(status=status):
                 self.assertEqual(
                     runner.evidence_outcome(status, [failure], target),
@@ -1498,6 +1719,21 @@ class MutationEvidenceContractsTest(unittest.TestCase):
             self.assertEqual(
                 runner.evidence_outcome(2, [row], target),
                 {"outcome": "INFRA", "status": 2, "failures": [row]},
+            )
+
+    def test_usage_error_without_collection_evidence_is_infra_not_an_import_kill(self):
+        # Given a bad node id, exit 4 alone supplies no evidence that the subject
+        # failed to import, even when the caller identifies a mutated file.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            project(root, "flag = True\n")
+            target = root / "src/example.py"
+            result, _ = runner.run_domain(
+                root, "unit", ["tests/test_example.py::missing"], 20, mutated_file=target
+            )
+            self.assertEqual(
+                {key: result[key] for key in ("outcome", "status", "failures")},
+                {"outcome": "INFRA", "status": 4, "failures": []},
             )
 
     def test_import_validation_kill_requires_traceback_through_the_mutated_file(self):
