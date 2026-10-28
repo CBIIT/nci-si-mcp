@@ -264,8 +264,8 @@ def context_tests(contexts: set[str]) -> list[str]:
     for context in contexts:
         if not context:
             continue
-        node, separator, phase = context.rpartition("|")
-        if not separator or "::" not in node or phase not in {"run", "setup", "teardown"}:
+        node, _, phase = context.rpartition("|")
+        if "::" not in node or phase not in {"run", "setup", "teardown"}:
             raise ValueError(f"Unrecognized coverage context: {context!r}")
         if phase == "run":
             tests.add(node)

@@ -125,7 +125,6 @@ def schedule(root: Path, mutants: list[Mutant], mapping: dict, args) -> list[dic
         work = Path(temporary)
         manifest = work / "mutations.json"
         data = manifest_data(root, mutants, mapping, args.timeout)
-        data.update(getattr(args, "catalogue", {}))
         manifest.write_text(json.dumps(data))
         config = work / "pytest.ini"
         config.write_text("[pytest]\n")
@@ -192,7 +191,7 @@ def verdict(rows: list[dict], exemptions: list[dict]) -> int:
         if row["outcome"] == "SURVIVED" and matches:
             row.update(outcome="ALLOWLISTED", reason=matches[0]["reason"])
         failed |= row["outcome"] not in {"KILLED", "TIMEOUT", "ALLOWLISTED"}
-        print(json.dumps(row, sort_keys=True))
+        print(json.dumps(row))
     return int(failed)
 
 
@@ -232,7 +231,7 @@ def shard_catalogue(mutants: list[Mutant], args) -> list[Mutant]:
         "full_mutants": len(mutants),
         "shard_mutants": len(selected),
     }
-    print(json.dumps({"outcome": "CATALOGUE", **args.catalogue}, sort_keys=True))
+    print(json.dumps({"outcome": "CATALOGUE", **args.catalogue}))
     return selected
 
 
@@ -252,7 +251,6 @@ def report_results(rows: list[dict], exemptions: list[dict], args, started: floa
                     **execution_costs(rows),
                     "elapsed_seconds": monotonic() - started,
                 },
-                sort_keys=True,
             )
         )
     return status
@@ -299,7 +297,7 @@ def main(argv: list[str] | None = None) -> int:
         exemptions = allowlist(root, root / args.allowlist)
         mutants, diagnostics = collect(root, scope(root, args.paths, args.base, args.head))
         for row in diagnostics:
-            print(json.dumps(row, sort_keys=True))
+            print(json.dumps(row))
         mutants = shard_catalogue(mutants, args)
         if not mutants:
             print(json.dumps({"outcome": "EMPTY", "mutants": 0, **args.catalogue}))

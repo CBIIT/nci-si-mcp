@@ -9,6 +9,7 @@ import subprocess
 from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import cast
 
 import yaml
 
@@ -121,7 +122,9 @@ def diff_lines(diff: str) -> dict[str, set[int] | None]:
 def segment(source: bytes, node: ast.expr | ast.stmt) -> tuple[int, int, str]:
     lines = source.splitlines(keepends=True)
     start = sum(map(len, lines[: node.lineno - 1])) + node.col_offset
-    end = sum(map(len, lines[: (node.end_lineno or node.lineno) - 1])) + (node.end_col_offset or 0)
+    end = sum(map(len, lines[: cast("int", node.end_lineno) - 1])) + cast(
+        "int", node.end_col_offset
+    )
     return start, end, source[start:end].decode()
 
 
@@ -163,7 +166,7 @@ def string_role(node: ast.Constant, parent: ast.AST) -> bool:
     if not isinstance(parent, ast.Call):
         return False
     name = text(parent.func).rsplit(".", 1)[-1]
-    return name in {"get", "getenv", "setdefault", "pop", "open", "fdopen"} and node in parent.args
+    return name in {"get", "getenv", "setdefault", "pop", "open", "fdopen"}
 
 
 def constants(node: ast.Constant, parent: ast.AST):
@@ -244,7 +247,7 @@ def candidates(path: str, source: bytes) -> tuple[list[Mutant], list[dict]]:
                     qualname or "<module>",
                     operator,
                     site,
-                    digest(ast.dump(owner or node, include_attributes=False)),
+                    digest(ast.dump(cast("ast.AST", owner), include_attributes=False)),
                     digest(ast.dump(node)),
                     digest(ast.dump(ast.parse(after))),
                     node.lineno,
@@ -291,7 +294,7 @@ def entry_guard(node: ast.AST) -> bool:
 
 def rejection(node: ast.AST, after: str, changed: bytes, path: str) -> dict:
     replacement = ast.parse(after).body[0]
-    if isinstance(replacement, ast.Expr) and isinstance(node, ast.expr):
+    if isinstance(replacement, ast.Expr):
         replacement = replacement.value
     if ast.dump(node) == ast.dump(replacement):
         return {"outcome": "NO_OP"}
