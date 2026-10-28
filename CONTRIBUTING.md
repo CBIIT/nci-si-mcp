@@ -27,6 +27,7 @@ about as long as that command.
 | `pdm run test` | The whole suite, with the coverage minimum |
 | `pdm run pytest tests/test_index.py -k name` | A selection of tests, without the minimum |
 | `pdm run lint` | Ruff and basedpyright: the fast check while you work |
+| `pdm run mutation-gate` | Kill every changed-site Python mutant before a PR; `--paths src/package/module.py` checks a whole module; review survivors with the printed AST keys in `scripts/validation/mutation-allowlist.yaml` |
 | `pdm run fmt` | Format with Ruff |
 | `pdm run lock` | Refresh every Python group to the newest version admitted by the five-day release-age policy |
 | `pdm run github-setup` | Create missing workflow credential names with safe placeholders; never overwrite existing names |
@@ -47,6 +48,21 @@ about as long as that command.
 | `pdm run spec-render` | Regenerate [docs/specification.md](docs/specification.md) from `spec/`, after any change there |
 | `pdm run quickstart-tools` | Regenerate the table of tools in [QUICKSTART.md](QUICKSTART.md) from `spec/tools.yaml`; `--check` verifies it |
 | `pandoc -f gfm docs/specification.md -o specification.docx` | The Word copy of the specification, a build product: never committed or edited |
+
+CI runs the complete mutation catalogue as three stable-key hash partitions, each with two
+workers and a 300-minute timeout: `--shard 1/3 -n 2`, `--shard 2/3 -n 2` and
+`--shard 3/3 -n 2`. All three must pass; a job timeout fails. Shard JSON lines report
+full/selected counts and a final outcome/kill-kind summary with elapsed seconds. An empty
+partition reports `EMPTY`; allowlist freshness is checked before partitioning. The measured
+144-mutant Phase 33k diff took 73m22s unsharded; projected shard times were 31–37 minutes
+(including baseline overhead, excluding contention), targeting under 60 minutes for a typical
+milestone. The gate's nested self-tests require the larger timeout.
+
+Before launching mutants, every nonempty shard requires clean unit, harness self-test and
+prepared fixture baselines. Any baseline failure names its domain and fails the gate, even
+when the acceptance ratchet expects that failure. All three baselines collect coverage contexts
+for test selection, including server child processes in the prepared fixture baseline.
+The shard summary's `baseline_domains` records each domain's outcome and measured seconds.
 
 Beyond the server and the suite, the repository holds the documentation site, the validation
 companion and the benchmark tooling; these are their entry points.
@@ -118,6 +134,46 @@ deleted paths and both sides of renames; changes confined to `tests/` can avoid 
 builds. Acceptance self-tests are packaged in Admin, and public documentation and checked
 source links feed the companion site. The root README also feeds server wheel metadata.
 Other CI gates are unchanged.
+
+### Mutation gate
+
+A single selected owning call that passed the baseline is `KILLED` when it fails,
+with `kind: assertion` or `kind: error`. Multiple unittest subtest reports become one owning
+call record; mixed assertion and error subtest failures are `KILLED` with `kind: error`.
+A collection exception whose traceback reaches the mutated file is a `kind: import`
+kill after a clean baseline, including pytest's exit 4 when precise node selection cannot
+collect that node because of the mutated import. Exit 4 without that collection evidence
+stays infrastructure failure. Unrelated collection failures, `SystemExit`, setup,
+teardown, internal and baseline failures stay infrastructure errors.
+Evidence collection loads an immutable controller copy, even when testing the probe.
+Baseline Python children inherit their parent's test-phase coverage context. Call contexts
+select their exact owning tests. A span with the empty import/collection context selects all
+call owners in that domain that execute any line of the same file, so consumers of constants
+and decorators need not repeat imports. With no identifiable call owner, the whole domain runs.
+Unrecognized contexts fail mapping. Each result names its `fallback_domains`; shard
+summaries count fallback mutants overall and per domain, alongside outcomes and kill kinds.
+Domains run in unit, self-test, then fixture order, stopping when a mutant is detected.
+Fixture confirmation runs only tests whose baseline contexts reach the mutated lines;
+`confirmation: unreached` records a survivor with no fixture reach and no fixture run.
+`NO_TESTS` means no domain covered the mutated span, or a selected domain run produced no
+passed owning call. It fails the gate and cannot be allowlisted; inspect selection and call
+evidence before concluding the code is unreachable.
+Long-lived fixture servers retain the setup context present when they start; later RPCs
+cannot inherit changes to the parent's environment. Their setup-only lines therefore use
+the whole-fixture fallback, counted like the other domains, rather than claiming per-RPC ownership.
+`runner_seconds_by_domain`, `runner_seconds` and `runner_hours` sum measured mutant test-process
+durations, excluding baseline and scratch setup; they are distinct from shard wall time.
+
+Mutation JSON rows record monotonic `elapsed_seconds` for the whole mutant (including scratch
+setup) and a `domains` list of measured test-run durations and outcomes. The scheduler stores
+each source once, span/replacement edits and preselected test routes; it does not duplicate
+the baseline coverage map per worker. The probe consumes its launch-only evidence destination
+at configuration; only declared xdist workers receive it, so nested pytest programs cannot
+append to the parent's records.
+Each controller child must lead its own process group before it is waited on; a broken
+launch contract reaps only the direct child and fails. Scheduler failure exits as infrastructure
+failure while retaining every completed candidate row and emitting an explicit `INFRA` row for
+each missing result. A missing row never counts as a kill or verified scratch restoration.
 
 ## Coverage badges
 

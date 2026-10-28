@@ -109,6 +109,7 @@ parse_squash_commits = true
 # `test` is the whole suite with the coverage minimum; `pytest` runs a selection without it.
 test = "pytest --cov --cov-report=term-missing"
 pytest = "pytest"
+mutation-gate = "python -m scripts.validation.mutation_gate"
 # The fast check before a commit; the commit itself runs every hook.
 lint = { composite = ["ruff check .", "basedpyright"] }
 fmt = "ruff format ."
@@ -226,6 +227,8 @@ ignore_names = [
     "active_index_compatible", "evs_api", "selected_release", "active_index",
     "__annotations__",
     "pytest_*", "do_*", "log_message", "close_connection",
+    # Pytest invokes the mutation item; allowlist identity is serialized through asdict.
+    "runtest", "mutated",
     # http.server/socketserver callbacks for the standalone documentation host.
     "list_directory", "log_request", "handle_error",
     "handle", "verify_token",

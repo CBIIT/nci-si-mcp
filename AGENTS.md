@@ -78,6 +78,7 @@ pdm run pytest tests/test_handlers.py -k LookupTest
 pdm run lint                              # ruff check + basedpyright, the fast check
 pdm run fmt                               # ruff format
 pdm run pre-commit run --all-files        # every commit-stage hook, as the CI quality job runs them
+pdm run mutation-gate                    # changed Python sites; review every survivor before a PR
 NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=required NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py' NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --dist worksteal --report=fixture.json  # fixture mode, prepared as in CI
 pdm run acceptance-expected check acceptance/fixture.json    # the report against the expected outcomes
 pdm run acceptance-expected update acceptance/fixture.json   # rewrite the expected outcomes
@@ -252,8 +253,13 @@ adding exclusion pathspecs for generated files.
    1. **Code review:** the engineering standards above, the architecture, and the scope.
    2. **Silent failures:** swallowed exceptions, broad `except`, fallbacks that hide an error,
       results that look complete but are not.
-   3. **Tests:** apply the outside-in rules below to every changed behavioral claim. A behavioural
-      change without a red commit is a finding; check its quoted failure. Identify the claim's
+   3. **Tests:** apply the outside-in rules below to every changed behavioral claim.
+      Run `pdm run mutation-gate` before the PR; fix every survivor or allowlist a reviewed
+      equivalent `SURVIVED` mutant in `scripts/validation/mutation-allowlist.yaml` with its reason.
+      `NO_TESTS` is never allowlisted: close reachable gaps at their owning boundary and
+      remove verified dead code. Timeouts count as killed by policy, not as assertion-strength
+      evidence. See [CONTRIBUTING.md](CONTRIBUTING.md#mutation-gate) for classification and execution details.
+      A behavioural change without a red commit is a finding; check its quoted failure. Identify the claim's
       caller scenario, owning interface and test, plausible regression, and observed
       assertion failure under the original defect or a restored targeted mutation. Distinguish
       setup failures from sensitivity evidence. Check exact error contracts, boundary cases,
@@ -316,6 +322,11 @@ Rules learned the hard way:
   `ps` and stop it by its process id.
 - A wait loop ends when the file or process it watches is gone, and never matches its own
   command line (`pgrep -f` on a string in the loop does).
+- Before a run projected to take over an hour (mutation, live audit, benchmark), run about 20
+  items of that run's own workload, break down where the time goes and explain every outlier.
+  Launch the full run only with the projection from that sample stated in the issue.
+- When a run falls more than 25% behind its projection, find the cause before waiting longer;
+  a new estimate is not a cause.
 - Name roles, never people, in code, issues and pull requests.
 - Licence and attribution text is passed through from what the upstream API returns; the server
   keeps no licence data of its own. A licence key or credential is never logged or committed.
@@ -427,72 +438,47 @@ update them when behaviour changes.
 
 ### Index and search
 
-The interim index is the top-level `ncit_index` package: `index.py`, `storage.py`, `scoring.py`,
-`embeddings.py`, `records.py` and `errors.py`. It ships in the MCP distribution but imports no
-`nci_si_mcp` or MCP modules; NumPy and sentence-transformers stay lazy. Stored records and index
-exceptions belong to the package; EVS normalization and protocol provenance stay MCP-side.
+The interim index is the top-level `ncit_index` package. Its modules, schema, build lifecycle and
+search are described in [ARCHITECTURE.md](ARCHITECTURE.md#portable-index-package); the rules
+below are the ones a change must keep. The package imports no `nci_si_mcp` or MCP modules, and
+NumPy and sentence-transformers stay lazy. Stored records and index exceptions belong to the
+package; EVS normalization and protocol provenance stay MCP-side.
 
-`Context.index` is the read-only `IndexPort` in `index_port.py`: `get_active_manifest`,
-`verify_active(provider)`, `get_concept_snapshot(code)` and
-`search_page(query, provider, limit, mode, requested_release, offset, build_id, retired_status)`.
-`index_adapter.py` supplies `LocalIndexAdapter`, search validation, record conversion and the
-callback that translates package events to audit. `cursor.py` remains MCP-owned.
-Context has no operator accessor. CLI index commands and `evaluation.py` open the package's
-public operator API through the small factory in `indexing.py`, never through the read port.
-Evaluation orchestration stays in the MCP distribution. The [migration guide](docs/index-migration.md)
-describes a future EVS service, HTTP read adapter, one-setting switch and retirement of local
-operators; none is implemented. Phase 30 leaves results, errors, audit and provenance unchanged.
+`Context.index` is the read-only `IndexPort` (`index_port.py`), implemented by
+`LocalIndexAdapter`; `cursor.py` remains MCP-owned. Context has no operator accessor: CLI index
+commands and `evaluation.py` open the package's public operator API through the small factory in
+`indexing.py`, never through the read port.
 
 `ncit_index.index.LocalIndex._connect()` commits or rolls back and then closes; use it for
-every database access. `upsert_concepts` reads a consistent snapshot and checks
-compatibility before snapshot creation. Embeddings run outside transactions; each
-batch is written in a short transaction under a building manifest. Only completed builds activate.
-Sample activation checks that another writer has not changed the active build in the meantime; when it has, the new inactive build is deleted before the error is raised. Release mix and missing or duplicate codes are checked once, per batch, as fields are prepared. Model providers return float32 rows, which `vector_bytes` stores without Python floats.
-
-Schema 6 stores immutable builds keyed by an internal build id. Name, synonym and definition
-texts are deduplicated within each concept and embedded separately. Activation retains only
-the new build and its predecessor. The next build start removes stale building rows;
-a private SQLite lease distinguishes interrupted builds from concurrently running ones.
-Legacy raw concepts survive migration, but their search requires an explicit offline
-`index-rebuild` and `index-activate`. Full builds reconcile all pinned search pages before writing.
-
-Exact indexed search lazily imports NumPy from the `index` extra. Each concept stores its field
-vectors together in a little-endian float32 BLOB, with field-kind bytes; FTS retains individual
-fields and their positions. One scan scores bounded matrix chunks, then compact numeric arrays
-provide normalization, per-concept maxima and exact page selection. No vector matrix is cached.
-Migration from schema 5 preserves builds, activation, FTS and retirement status. Earlier schemas
-retain raw concepts but require an explicit rebuild. Search cursors bind the active build id;
-even a same-release replacement expires them. Count, page and provenance share one read snapshot.
+every database access. Sample activation checks that another writer has not changed the active
+build in the meantime; when it has, the new inactive build is deleted before the error is raised.
+Release mix and missing or duplicate codes are checked once, per batch, as fields are prepared.
+Model providers return float32 rows, which `vector_bytes` stores without Python floats.
 
 ### Traversal
 
-`traverse_ncit` walks all start codes one depth at a time, so nearer nodes claim the node and edge
-limits first whatever the order of start codes and edge types. Each depth is read with batched
-`get_concepts_by_codes` requests whose `include` names only the selected relation lists; each
-batch is cut down to the keys the walk uses as it is extracted, so a frontier's memory follows
-the node and edge limits, not the response sizes. One table (`EDGE_KINDS`) says, per edge type,
-the relation list, direction, include flag and whether it is a hierarchy link. Walks
-that follow inverse roles or inverse associations use batches of 10, because those lists run to
-megabytes for hub concepts; a batch that exceeds the response limit is halved, and a single
-concept that still exceeds it is kept unexpanded and counted against the `upstream_cap` bound of
-the walk's `Truncation` record. The state of a walk (limits, emitted nodes and edges) lives in the
-`_Walk` object in `traversal.py`, which also builds the `TraversalProvenance` of each node and edge.
-At the depth limit, forward kinds get a batched continuation check; descendant checks use
-child lists. A reported global node cut skips the check, and kinds already truncated are
-excluded. Selected inverse kinds at any nonempty frontier report depth with `omitted: 0`, `exact: false`
-without fetching their expensive lists just to check continuation. All reads share the request
-budget, and the first bound remains the one reported, except that start codes the budget left
-unread are reported as `requests` for every selected edge type, replacing a depth claim made
-without them (an earlier real bound stays).
+`traverse_ncit` walks breadth-first, one depth at a time over all start codes; the walk, its
+limits, the continuation checks and the `descendant` edges are described in
+[ARCHITECTURE.md](ARCHITECTURE.md#traverse). Each batch is cut down to the keys the walk uses as
+it is extracted, so a frontier's memory follows the node and edge limits, not the response sizes.
+One table (`EDGE_KINDS`) says, per edge type, the relation list, direction, include flag and
+whether it is a hierarchy link. Walks that follow inverse roles or inverse associations use
+batches of 10, because those lists run to megabytes for hub concepts; a batch that exceeds the
+response limit is halved. The state of a walk (limits, emitted nodes and edges) lives in the
+`_Walk` object in `traversal.py`, which also builds the `TraversalProvenance` of each node and
+edge. All reads share the request budget, and the first bound remains the one reported, except
+that start codes the budget left unread are reported as `requests` for every selected edge type,
+replacing a depth claim made without them (an earlier real bound stays).
 
-`descendant` edges are opt-in (`edge_types`) and come from one `get_descendants` call per start
-code with `maxLevel = max_depth`. They are bucketed by the `level` EVS assigns and emitted together
-with the other edges reaching that depth. That level can be deeper than the shortest path, so a
-`child` walk of the same depth can reach more concepts (59 against 56 for C3262 at depth 2). The
-traversal handler calls `select_edge_types` before resolving the release, so invalid selections never reach
-the network.
+The `level` EVS gives a descendant can be deeper than its shortest path, so a `child` walk of the
+same depth can reach more concepts (59 against 56 for C3262 at depth 2). The traversal handler
+calls `select_edge_types` before resolving the release, so invalid selections never reach the
+network.
 
 ## Tests
+
+Every child program, SDK call and HTTP path has at least one test that really runs it.
+Fakes may cover the remaining cases.
 
 ### Outside in test design and review
 
