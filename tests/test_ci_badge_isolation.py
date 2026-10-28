@@ -68,7 +68,8 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
             },
         )
         self.assertEqual(
-            set(writer["needs"]), set(WORKFLOW["jobs"]) - {"selftest", "coverage-badges"}
+            set(writer["needs"]),
+            set(WORKFLOW["jobs"]) - {"selftest", "coverage-badges", "mutation"},
         )
         self.assertEqual(WORKFLOW["jobs"]["coverage"]["needs"], "selftest")
         self.assertEqual(

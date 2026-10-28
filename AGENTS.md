@@ -78,6 +78,7 @@ pdm run pytest tests/test_handlers.py -k LookupTest
 pdm run lint                              # ruff check + basedpyright, the fast check
 pdm run fmt                               # ruff format
 pdm run pre-commit run --all-files        # every commit-stage hook, as the CI quality job runs them
+pdm run mutation-gate                    # changed Python sites; review every survivor before a PR
 NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=required NCI_SI_ACCEPTANCE_SECURITY_SERVER='python ../scripts/permissions_fixture.py' NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --dist worksteal --report=fixture.json  # fixture mode, prepared as in CI
 pdm run acceptance-expected check acceptance/fixture.json    # the report against the expected outcomes
 pdm run acceptance-expected update acceptance/fixture.json   # rewrite the expected outcomes
@@ -252,8 +253,13 @@ adding exclusion pathspecs for generated files.
    1. **Code review:** the engineering standards above, the architecture, and the scope.
    2. **Silent failures:** swallowed exceptions, broad `except`, fallbacks that hide an error,
       results that look complete but are not.
-   3. **Tests:** apply the outside-in rules below to every changed behavioral claim. A behavioural
-      change without a red commit is a finding; check its quoted failure. Identify the claim's
+   3. **Tests:** apply the outside-in rules below to every changed behavioral claim.
+      Run `pdm run mutation-gate` before the PR; fix every survivor or allowlist a reviewed
+      equivalent `SURVIVED` mutant in `scripts/validation/mutation-allowlist.yaml` with its reason.
+      `NO_TESTS` is never allowlisted: close reachable gaps at their owning boundary and
+      remove verified dead code. Timeouts count as killed by policy, not as assertion-strength
+      evidence. See [CONTRIBUTING.md](CONTRIBUTING.md#mutation-gate) for classification and execution details.
+      A behavioural change without a red commit is a finding; check its quoted failure. Identify the claim's
       caller scenario, owning interface and test, plausible regression, and observed
       assertion failure under the original defect or a restored targeted mutation. Distinguish
       setup failures from sensitivity evidence. Check exact error contracts, boundary cases,
@@ -470,6 +476,9 @@ calls `select_edge_types` before resolving the release, so invalid selections ne
 network.
 
 ## Tests
+
+Every child program, SDK call and HTTP path has at least one test that really runs it.
+Fakes may cover the remaining cases.
 
 ### Outside in test design and review
 

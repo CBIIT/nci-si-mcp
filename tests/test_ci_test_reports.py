@@ -1,5 +1,7 @@
 """CI retains failed-run JUnit evidence without changing producer failure or cancellation."""
 
+# ruff: noqa: E501 - exact workflow contracts preserve literal commands and messages.
+
 import unittest
 from pathlib import Path
 
@@ -78,16 +80,60 @@ class TestReportWorkflowTest(unittest.TestCase):
                 )
 
     def test_unit_producer_still_fails_normally_and_writes_junit(self):
-        jobs = yaml.safe_load(ROOT.joinpath(".github/workflows/ci.yml").read_text())["jobs"]
-        producer = next(
-            step
-            for step in jobs["test"]["steps"]
-            if step.get("name") == "Test, including recorded retrieval evaluation"
-        )
+        workflow = yaml.safe_load(ROOT.joinpath(".github/workflows/ci.yml").read_text())
+        self.assertEqual(workflow["permissions"], {"contents": "read"})
         self.assertEqual(
-            producer,
+            workflow["jobs"]["test"],
             {
-                "name": "Test, including recorded retrieval evaluation",
-                "run": "pdm run test --junitxml=tmp/test-results/unit.xml",
+                "name": "test (3.14)",
+                "runs-on": "ubuntu-24.04",
+                "timeout-minutes": 20,
+                "steps": [
+                    {
+                        "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                        "with": {"fetch-depth": 0, "persist-credentials": False},
+                    },
+                    {"uses": "$/.github/actions/setup"},
+                    {
+                        "name": "Test, including recorded retrieval evaluation",
+                        "run": "pdm run test --junitxml=tmp/test-results/unit.xml",
+                    },
+                    {
+                        "name": "Summarize test results",
+                        "if": "${{ !cancelled() }}",
+                        "run": 'pdm run python scripts/junit_summary.py tmp/test-results/unit.xml "Unit tests" >> "$GITHUB_STEP_SUMMARY"',
+                    },
+                    {
+                        "name": "Upload test results",
+                        "if": "${{ !cancelled() }}",
+                        "uses": UPLOAD,
+                        "with": {
+                            "name": "unit-test-results",
+                            "path": "tmp/test-results/unit.xml",
+                            "if-no-files-found": "error",
+                            "retention-days": 30,
+                        },
+                    },
+                    {
+                        "name": "Report coverage against the aim",
+                        "run": 'total="$(pdm run coverage report --format=total)"\n'
+                        'echo "Coverage ${total}% (the aim is above 97%)" >> "$GITHUB_STEP_SUMMARY"\n'
+                        "if awk -v total=\"$total\" 'BEGIN { exit !(total <= 97) }'; then\n"
+                        '  echo "::warning title=Coverage is not above 97%::${total}%. Cover the untested behaviour; do not pad."\nfi\n',
+                    },
+                    {
+                        "name": "Export measured server coverage",
+                        "run": "pdm run coverage json -o tmp/coverage/server.json",
+                    },
+                    {
+                        "uses": UPLOAD,
+                        "with": {
+                            "name": "badge-coverage-server",
+                            "path": "tmp/coverage/server.json",
+                            "if-no-files-found": "error",
+                            "retention-days": 30,
+                        },
+                    },
+                ],
             },
         )

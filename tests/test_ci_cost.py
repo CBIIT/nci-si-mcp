@@ -60,6 +60,7 @@ class CiCostTest(unittest.TestCase):
                     "coverage": "ubuntu-24.04",
                     "coverage-badges-render": "ubuntu-24.04",
                     "coverage-badges": "ubuntu-24.04",
+                    "mutation": "ubuntu-24.04",
                 },
                 "local-run.yml": {
                     "prepare-containers": "ubuntu-24.04",
