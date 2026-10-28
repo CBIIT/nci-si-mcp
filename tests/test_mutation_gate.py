@@ -1,6 +1,7 @@
 """The mutation command measures assertion sensitivity without editing its caller."""
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -442,12 +443,15 @@ class MutationExecutionTest(unittest.TestCase):
             self.assertEqual(calls.count("tests/test_contract.py::test_contract"), 5)
 
     def test_subject_probe_plugin_labels_real_child_phases_and_restores_parent_context(self):
+        # Given the registered repository plugin, each phase's competing wrapper
+        # must pass its label to a real child and restore the caller's context.
+        parent_context = os.environ.get("MUTATION_COVERAGE_CONTEXT")
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
             project(root, "def answer():\n    return True\n")
-            shutil.copytree(ROOT / "scripts", root / "scripts")
             (root / "tests/test_nested.py").write_text(
-                "import os, pytest\n"
+                "import os, pytest\nfrom pathlib import Path\n"
+                "from scripts.validation import mutation_probe\n"
                 "@pytest.fixture\ndef phase():\n"
                 "    assert os.environ['MUTATION_COVERAGE_CONTEXT'] == "
                 "'tests/test_nested.py::test_phases|setup'\n"
@@ -455,6 +459,8 @@ class MutationExecutionTest(unittest.TestCase):
                 "    assert os.environ['MUTATION_COVERAGE_CONTEXT'] == "
                 "'tests/test_nested.py::test_phases|teardown'\n"
                 "def test_phases(phase):\n"
+                f"    assert Path(mutation_probe.__file__).resolve() == "
+                f"Path({str(ROOT / 'scripts/validation/mutation_probe.py')!r})\n"
                 "    assert os.environ['MUTATION_COVERAGE_CONTEXT'] == "
                 "'tests/test_nested.py::test_phases|run'\n"
             )
@@ -467,6 +473,9 @@ class MutationExecutionTest(unittest.TestCase):
                 "capture_output=True, text=True, check=True)\n"
                 "    assert child.stdout.strip() == item.nodeid + '|' + phase\n"
                 "@pytest.hookimpl(wrapper=True)\n"
+                "def pytest_runtest_setup(item):\n"
+                "    check_child(item, 'setup')\n    return (yield)\n"
+                "@pytest.hookimpl(wrapper=True)\n"
                 "def pytest_runtest_call(item):\n"
                 "    check_child(item, 'run')\n    return (yield)\n"
                 "@pytest.hookimpl(wrapper=True)\n"
@@ -474,33 +483,29 @@ class MutationExecutionTest(unittest.TestCase):
                 "    check_child(item, 'teardown')\n    return (yield)\n"
                 "def pytest_runtest_logfinish(nodeid):\n"
                 "    if nodeid.endswith('test_phases'):\n"
-                "        assert os.environ['MUTATION_COVERAGE_CONTEXT'] == "
-                "'tests/test_example.py::test_plugin|run'\n"
+                "        assert os.environ.get('MUTATION_COVERAGE_CONTEXT') == "
+                f"{parent_context!r}\n"
             )
-            (root / "tests/test_example.py").write_text(
-                "import subprocess, sys\ndef test_plugin():\n"
-                "    result = subprocess.run([sys.executable, '-m', 'pytest', '-p', "
-                "'scripts.validation.mutation_probe', '--no-cov', '-n', '0', "
-                "'tests/test_nested.py'], capture_output=True, text=True)\n"
-                "    assert result.returncode == 0, result.stdout + result.stderr\n"
+            result = subprocess.run(  # noqa: S603 - real registered plugin, owned offline fixture
+                [
+                    sys.executable,
+                    "-c",
+                    f"import sys; sys.path.insert(0, {str(ROOT)!r}); "
+                    "import pytest; raise SystemExit(pytest.main(sys.argv[1:]))",
+                    "-p",
+                    "scripts.validation.mutation_probe",
+                    "--no-cov",
+                    "-n",
+                    "0",
+                    "tests/test_nested.py",
+                ],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
             )
-            result, data = run_domain(
-                root, "unit", ["tests/test_example.py::test_plugin"], 30, baseline=True
-            )
-            self.assertEqual(result["outcome"], "SURVIVED", result)
-            mapping = coverage_map(data, root)
-            for name in ("pytest_runtest_setup", "pytest_runtest_call", "pytest_runtest_teardown"):
-                mutants, _ = candidates(
-                    "scripts/validation/mutation_probe.py",
-                    (root / "scripts/validation/mutation_probe.py").read_bytes(),
-                )
-                routes = mutation_gate.manifest_data(
-                    root, [m for m in mutants if m.qualname == name], {"unit": mapping}, 30
-                )
-                self.assertEqual(
-                    [row["selected"] for row in routes["mutants"]],
-                    [{"unit": ["tests/test_example.py::test_plugin"]}] * len(routes["mutants"]),
-                )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_python_module_children_keep_each_xdist_owners_phase_and_inprocess_selection(self):
         with tempfile.TemporaryDirectory() as temporary:
