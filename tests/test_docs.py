@@ -92,16 +92,23 @@ def served_arguments():
         return asyncio.run(run(Path(directory)))
 
 
-# Only the ignore file may name the local files of a coding tool; the names are built from parts
-# so that this file does not name them either.
+# Build personal filenames from parts so this contract does not itself name them.
 LOCAL_AGENT_FILES = tuple(
     "".join(parts)
-    for parts in (("CLAUDE", ".md"), (".claude", "/"), ("CLAUDE", ".local.md"), (".mcp", ".json"))
+    for parts in (
+        ("CLAUDE", ".local.md"),
+        (".claude", "/settings.local.json"),
+        (".mcp", ".json"),
+    )
 )
+LOCAL_AGENT_PATHS = (*LOCAL_AGENT_FILES, ".claude/worktrees/")
 
 
 def tracked_mentions_of_local_agent_files(root):
-    """`path:line` of every line in a tracked file, but the ignore file, naming one of them."""
+    """Personal filename mentions in tracked readable files, except the ignore file.
+
+    Untracked files and non-file entries are outside this scan; undecodable bytes are replaced.
+    """
 
     listing = subprocess.run(
         ["git", "ls-files", "-z"],  # noqa: S607 - git from PATH
@@ -534,15 +541,51 @@ class DocumentationTest(unittest.TestCase):
             f"({', '.join(LOCAL_AGENT_FILES)}); found at {', '.join(mentions)}",
         )
 
+    def test_shared_agent_files_are_tracked_and_the_entry_file_only_imports_the_rules(self):
+        tracked = subprocess.run(
+            ["git", "ls-files", "-z"],  # noqa: S607
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.split("\0")
+
+        self.assertEqual(
+            {name for name in tracked if name in {"CLAUDE.md", ".claude/settings.json"}},
+            {"CLAUDE.md", ".claude/settings.json"},
+        )
+        self.assertEqual(read("CLAUDE.md"), "@AGENTS.md\n")
+
+    def test_personal_agent_files_and_runtime_paths_are_ignored(self):
+        for name in LOCAL_AGENT_PATHS:
+            with self.subTest(name=name):
+                result = subprocess.run(  # noqa: S603 - fixed Git command and contract paths
+                    ["git", "check-ignore", name],  # noqa: S607
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, f"{name}\n")
+
     def test_the_check_reports_a_tracked_mention_and_ignores_the_ignore_file(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)  # noqa: S607
             (root / ".gitignore").write_text(f"{LOCAL_AGENT_FILES[0]}\n", encoding="utf-8")
-            (root / "guide.md").write_text(f"ok\nsee {LOCAL_AGENT_FILES[1]}x\n", encoding="utf-8")
+            (root / "guide.md").write_text(
+                "CLAUDE.md and .claude/settings.json are shared\n"
+                + "\n".join(f"see {name}" for name in LOCAL_AGENT_FILES)
+                + "\n",
+                encoding="utf-8",
+            )
             subprocess.run(["git", "add", "."], cwd=root, check=True)  # noqa: S607
 
-            self.assertEqual(tracked_mentions_of_local_agent_files(root), ["guide.md:2"])
+            self.assertEqual(
+                tracked_mentions_of_local_agent_files(root),
+                ["guide.md:2", "guide.md:3", "guide.md:4"],
+            )
 
     def test_contributing_names_every_pdm_command_of_the_project(self):
         # Every entry point in pyproject.toml is a command a contributor may need; the
