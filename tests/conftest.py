@@ -3,6 +3,31 @@ import os
 import pytest
 
 
+def pytest_addoption(parser):
+    parser.addoption("--unit-shard", metavar="K/N", help="Run sorted unit partition K of N")
+
+
+def pytest_collection_modifyitems(config, items):
+    # A CLI option reaches explicit xdist workers, but not pytest children started by tests.
+    spec = config.getoption("unit_shard")
+    if spec is None:
+        return
+    index, count = unit_partition(spec)
+    kept = set(sorted(item.nodeid for item in items)[index - 1 :: count])
+    config.hook.pytest_deselected(items=[item for item in items if item.nodeid not in kept])
+    items[:] = [item for item in items if item.nodeid in kept]
+
+
+def unit_partition(spec):
+    try:
+        index, count = (int(part) for part in spec.split("/"))
+        if not 1 <= index <= count:
+            raise ValueError
+    except ValueError as error:
+        raise pytest.UsageError("shard must be K/N with 1 <= K <= N") from error
+    return index, count
+
+
 @pytest.fixture(autouse=True)
 def _clean_settings_environment(monkeypatch):
     """Remove every NCI_SI_* variable for each test.
