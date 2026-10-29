@@ -126,7 +126,7 @@ class MutationOperatorsTest(unittest.TestCase):
                     self.assertEqual(mutant.qualname, "outer.inner")
                     self.assertTrue(changed.startswith(b"# \xc3\xa9\ndef outer():"))
 
-    def test_ci_runs_every_pr_to_main_with_read_only_head_checkout_and_data_arguments(self):
+    def test_ci_runs_every_pr_to_main_on_the_producers_merge_tree_with_read_only_arguments(self):
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         self.assertEqual(
             workflow["jobs"]["mutation"],
@@ -141,7 +141,6 @@ class MutationOperatorsTest(unittest.TestCase):
                     {
                         "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
                         "with": {
-                            "ref": "${{ github.event.pull_request.head.sha }}",
                             "fetch-depth": 0,
                             "persist-credentials": False,
                         },
@@ -151,7 +150,7 @@ class MutationOperatorsTest(unittest.TestCase):
                         "name": "Mutate every changed Python site",
                         "env": {
                             "BASE_SHA": "${{ github.event.pull_request.base.sha }}",
-                            "HEAD_SHA": "${{ github.event.pull_request.head.sha }}",
+                            "HEAD_SHA": "${{ github.sha }}",
                             "SHARD": "${{ matrix.shard }}/3",
                         },
                         "run": (
