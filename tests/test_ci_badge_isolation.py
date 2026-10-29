@@ -58,6 +58,7 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
                 "changes",
                 "quality",
                 "test",
+                "unit-coverage",
                 "coverage",
                 "acceptance",
                 "acceptance-http",
@@ -108,7 +109,7 @@ class BadgeTokenBoundaryTest(unittest.TestCase):
         renderer = jobs["coverage-badges-render"]
         self.assertEqual(renderer.get("permissions", WORKFLOW["permissions"]), {"contents": "read"})
         self.assertNotIn("secrets.", json.dumps(renderer))
-        self.assertEqual(set(renderer["needs"]), {"test", "coverage"})
+        self.assertEqual(set(renderer["needs"]), {"unit-coverage", "coverage"})
         commands = [step["run"] for step in renderer["steps"] if "run" in step]
         self.assertEqual(
             commands, ["pdm run python scripts/coverage_badges.py tmp/coverage tmp/coverage-badges"]

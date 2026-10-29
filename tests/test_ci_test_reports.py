@@ -38,7 +38,12 @@ class TestReportWorkflowTest(unittest.TestCase):
             },
         )
         for job, path, artifact, title in (
-            ("test", "tmp/test-results/unit.xml", "unit-test-results", "Unit tests"),
+            (
+                "test",
+                "tmp/test-results/unit.xml",
+                "unit-test-results-${{ strategy.job-index }}",
+                "Unit tests",
+            ),
             (
                 "selftest",
                 "acceptance/tmp/test-results/selftest.xml",
@@ -85,9 +90,13 @@ class TestReportWorkflowTest(unittest.TestCase):
         self.assertEqual(
             workflow["jobs"]["test"],
             {
-                "name": "test (3.14)",
+                "name": "test (3.14, ${{ matrix.shard }})",
                 "runs-on": "ubuntu-24.04",
-                "timeout-minutes": 20,
+                "timeout-minutes": 10,
+                "strategy": {
+                    "fail-fast": False,
+                    "matrix": {"shard": ["1/4", "2/4", "3/4", "4/4"]},
+                },
                 "steps": [
                     {
                         "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -96,7 +105,7 @@ class TestReportWorkflowTest(unittest.TestCase):
                     {"uses": "$/.github/actions/setup"},
                     {
                         "name": "Test, including recorded retrieval evaluation",
-                        "run": "pdm run test --junitxml=tmp/test-results/unit.xml",
+                        "run": 'pdm run test --unit-shard "${{ matrix.shard }}" -n 0 --cov-fail-under=0 --junitxml=tmp/test-results/unit.xml',
                     },
                     {
                         "name": "Summarize test results",
@@ -108,11 +117,51 @@ class TestReportWorkflowTest(unittest.TestCase):
                         "if": "${{ !cancelled() }}",
                         "uses": UPLOAD,
                         "with": {
-                            "name": "unit-test-results",
+                            "name": "unit-test-results-${{ strategy.job-index }}",
                             "path": "tmp/test-results/unit.xml",
                             "if-no-files-found": "error",
                             "retention-days": 30,
                         },
+                    },
+                    {
+                        "uses": UPLOAD,
+                        "with": {
+                            "name": "unit-coverage-${{ strategy.job-index }}",
+                            "path": ".coverage",
+                            "include-hidden-files": True,
+                            "if-no-files-found": "error",
+                            "retention-days": 1,
+                        },
+                    },
+                ],
+            },
+        )
+
+    def test_unit_coverage_requires_every_partition_before_enforcing_the_floor(self):
+        workflow = yaml.safe_load(ROOT.joinpath(".github/workflows/ci.yml").read_text())
+        self.assertEqual(workflow["permissions"], {"contents": "read"})
+        self.assertEqual(
+            workflow["jobs"].get("unit-coverage"),
+            {
+                "name": "unit coverage",
+                "needs": "test",
+                "runs-on": "ubuntu-24.04",
+                "timeout-minutes": 10,
+                "steps": [
+                    {
+                        "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                        "with": {"fetch-depth": 0, "persist-credentials": False},
+                    },
+                    {"uses": "$/.github/actions/setup"},
+                    {
+                        "uses": "actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+                        "with": {"pattern": "unit-coverage-*", "path": "unit-coverage"},
+                    },
+                    {
+                        "name": "Combine every unit shard and enforce the minimum",
+                        "run": 'test "$(ls -1d unit-coverage/unit-coverage-* | wc -l)" -eq 4\n'
+                        "pdm run coverage combine unit-coverage/unit-coverage-{0,1,2,3}/.coverage\n"
+                        "pdm run coverage report\n",
                     },
                     {
                         "name": "Report coverage against the aim",

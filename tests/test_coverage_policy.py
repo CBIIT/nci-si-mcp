@@ -63,7 +63,7 @@ class CoveragePolicyTest(unittest.TestCase):
         jobs = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())["jobs"]
         server = next(
             step
-            for step in jobs["test"]["steps"]
+            for step in jobs["unit-coverage"]["steps"]
             if step.get("name") == "Report coverage against the aim"
         )
         harness = next(
