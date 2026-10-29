@@ -138,6 +138,15 @@ class SettingsTest(unittest.TestCase):
                 with self.assertRaises(ValueError) as raised:
                     settings_from(**{variable: value})
                 self.assertIn(variable, str(raised.exception))
+                if (variable, value) in {
+                    ("NCI_SI_TIMEOUT_SECONDS", "soon"),
+                    ("NCI_SI_EVS_MAX_ATTEMPTS", "three"),
+                    ("NCI_SI_EVS_MAX_ATTEMPTS", "3.0"),
+                }:
+                    kind = "a number" if variable == "NCI_SI_TIMEOUT_SECONDS" else "an integer"
+                    self.assertEqual(
+                        str(raised.exception), f"{variable} must be {kind}, not {value!r}"
+                    )
 
     def test_bounds_are_inclusive(self):
         settings = settings_from(

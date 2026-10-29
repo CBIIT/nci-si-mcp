@@ -53,16 +53,23 @@ CI runs the complete mutation catalogue as three stable-key hash partitions, eac
 workers and a 300-minute timeout: `--shard 1/3 -n 2`, `--shard 2/3 -n 2` and
 `--shard 3/3 -n 2`. All three must pass; a job timeout fails. Shard JSON lines report
 full/selected counts and a final outcome/kill-kind summary with elapsed seconds. An empty
-partition reports `EMPTY`; allowlist freshness is checked before partitioning. The measured
-144-mutant Phase 33k diff took 73m22s unsharded; projected shard times were 31–37 minutes
-(including baseline overhead, excluding contention), targeting under 60 minutes for a typical
-milestone. The gate's nested self-tests require the larger timeout.
+partition reports `EMPTY`; allowlist freshness is checked before partitioning. CI mutates the
+default PR merge checkout relative to the event's base SHA, just as the suite producers test it.
+The gate's nested self-tests require the larger timeout; current timing evidence belongs in
+the issue and pull request, not a standing runtime promise.
 
-Before launching mutants, every nonempty shard requires clean unit, harness self-test and
-prepared fixture baselines. Any baseline failure names its domain and fails the gate, even
-when the acceptance ratchet expects that failure. All three baselines collect coverage contexts
-for test selection, including server child processes in the prepared fixture baseline.
-The shard summary's `baseline_domains` records each domain's outcome and measured seconds.
+CI's existing unit, harness self-test and prepared-fixture jobs collect per-test and child-phase
+coverage once. They export one-day fragments bound to the checked-out merge commit and tracked
+input bytes; mutation shards wait for those producers and the coverage floors, download their
+same-run fragments and pass `--coverage-dir`. A missing, incomplete, malformed or mismatched
+import fails as `INFRA`, even for an empty catalogue; it never silently reruns a baseline.
+A fixture execution must exit zero to export a baseline, even if its ratchet expects failures.
+Collection/setup/teardown attribution retains the existing conservative selection rules.
+
+Without `--coverage-dir`, local `pdm run mutation-gate` still computes clean unit, harness
+self-test and prepared-fixture baselines itself; unit remains serial. Any baseline failure
+names its domain and fails the gate. The shard summary's `baseline_domains` records freshly
+computed domain outcomes and seconds; imported runs leave that list empty.
 
 Beyond the server and the suite, the repository holds the documentation site, the validation
 companion and the benchmark tooling; these are their entry points.
@@ -218,6 +225,27 @@ during feature-branch cleanup; it is generated publication data.
 7. **Keep the documentation in step, and short.** Update it in the same change. The README
    answers the first questions and links onward; details belong in the deeper documents.
 
+### Typing conventions
+
+These are the target conventions for new and changed code, not a claim that legacy upstream
+dictionaries have already been migrated. Validate at the owning boundary; keep the core free
+of dependencies (`dependencies = []`). Existing typing escapes need a reason; the exact-count
+ratchet in `tests/test_typing_conventions.py` prevents growth and requires reductions to lower
+their recorded counts in the same commit.
+
+| Status | Situation | Use |
+| --- | --- | --- |
+| Standard | MCP inputs | `Annotated[T, metadata]`; the optional MCP SDK builds and validates parameter schemas. |
+| Project convention | MCP output | `TypedDict` records in `results.py`; the SDK's `RootModel` builds structured-output schemas. |
+| Standard | Trust boundaries | Validate once into the fields' typed shape: SDK inputs, frozen `Settings`, index schema checks, and upstream `parse_upstream_json` plus field checks. Upstream parsing may use `dict[str, Any]`; do not add Pydantic to the core. |
+| Project convention | Internal data | `dataclass`, frozen and slotted where immutable. |
+| Standard | JSON records | `TypedDict` for plain dictionaries leaving as JSON; `NotRequired` preserves upstream omissions, never invented defaults. |
+| Standard | Interfaces | Structural `Protocol`, without `@abstractmethod`; use an ABC only when its base supplies shared behavior. |
+| Project convention | Closed sets | `Literal`, once in `validation.py` (error codes in `errors.py`), checked through `get_args`; `StrEnum` only for named runtime constants. |
+| Standard | Distinct identifiers | `NewType` where mixing identifiers is a bug; migration is separate work. |
+| Project convention | Storage | stdlib `sqlite3` through `LocalIndex._connect`, parameterized SQL, and index dataclasses at the storage edge. |
+| Project convention | Escapes | No new `cast`, `pyright: ignore`, `type: ignore`, or `dict[str, Any]` outside upstream parsing. Remove an escape rather than replace it with an alias; existing counts only go down. |
+
 ## The gates
 
 The commit hook runs every gate except the last three on the files of a commit, and CI runs the
@@ -261,6 +289,22 @@ SHA-256; a missing or unverifiable index record fails the audit.
 A finding is fixed in the code. Where a rule does not fit, it is suppressed as narrowly as
 possible (a line, then a file or a directory, then the project, in `pyproject.toml`), with the
 reason beside the suppression, or once in the module when it repeats.
+
+### Verification before merge
+
+Every verification has a pull-request run or a bounded exemption below. The test derives
+postmerge-only jobs from workflow events, exact conditions and dependencies; an unknown
+condition requires classification. Path-filtered twins run for their complete input families.
+Fixture checks never establish live-service assurance.
+
+| Postmerge-only job | Pull-request verifier or exemption |
+| --- | --- |
+| `ci/coverage-badges` | ci/coverage-badges-render; privileged mutation: publish rendered badge data only on main. |
+| `branch-cleanup/cleanup` | ci/test; privileged mutation: delete merged branches only after merge. |
+| `release/release` | ci/test and pr-title/conventional; privileged mutation: create real tags and releases only after validated main. |
+| `release/image` | ci/image uses the same image action; privileged mutation: registry and release publication; post-publication digest availability requires the published digest. |
+| `release/local-installer` | local-installer/prepare and local-installer/local-installer use the same reusable verification; actual release tag identity is checked after tagging. |
+| `acceptance-live/acceptance-live` | Live drift exemption: measures real services, not fixture behavior; operationally disabled, no PR live run. |
 
 ## Workflow credentials
 

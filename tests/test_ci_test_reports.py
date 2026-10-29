@@ -104,8 +104,17 @@ class TestReportWorkflowTest(unittest.TestCase):
                     },
                     {"uses": "$/.github/actions/setup"},
                     {
+                        "name": "Configure shared unit coverage",
+                        "run": "pdm run python -m scripts.validation.mutation_coverage configure unit --output tmp/mutation-config",
+                    },
+                    {
                         "name": "Test, including recorded retrieval evaluation",
-                        "run": 'pdm run test --unit-shard "${{ matrix.shard }}" -n 0 --cov-fail-under=0 --junitxml=tmp/test-results/unit.xml',
+                        "env": {
+                            "PYTHONPATH": "${{ github.workspace }}",
+                            "COVERAGE_PROCESS_START": "${{ github.workspace }}/tmp/mutation-config/.coveragerc",
+                            "UNIT_SHARD": "${{ matrix.shard }}",
+                        },
+                        "run": 'pdm run test --unit-shard "$UNIT_SHARD" -n 0 -p scripts.validation.mutation_probe --cov-config=tmp/mutation-config/.coveragerc --cov-context=test --cov-fail-under=0 --cov-report= --junitxml=tmp/test-results/unit.xml',
                     },
                     {
                         "name": "Summarize test results",
@@ -129,6 +138,20 @@ class TestReportWorkflowTest(unittest.TestCase):
                             "name": "unit-coverage-${{ strategy.job-index }}",
                             "path": ".coverage",
                             "include-hidden-files": True,
+                            "if-no-files-found": "error",
+                            "retention-days": 1,
+                        },
+                    },
+                    {
+                        "name": "Export shared unit coverage",
+                        "env": {"UNIT_SHARD": "${{ matrix.shard }}"},
+                        "run": 'pdm run python -m scripts.validation.mutation_coverage export unit --data .coverage --shard "$UNIT_SHARD" --output tmp/mutation-coverage/unit.json',
+                    },
+                    {
+                        "uses": UPLOAD,
+                        "with": {
+                            "name": "mutation-coverage-${{ github.sha }}-unit-${{ strategy.job-index }}",
+                            "path": "tmp/mutation-coverage/unit.json",
                             "if-no-files-found": "error",
                             "retention-days": 1,
                         },
@@ -161,18 +184,18 @@ class TestReportWorkflowTest(unittest.TestCase):
                         "name": "Combine every unit shard and enforce the minimum",
                         "run": 'test "$(ls -1d unit-coverage/unit-coverage-* | wc -l)" -eq 4\n'
                         "pdm run coverage combine unit-coverage/unit-coverage-{0,1,2,3}/.coverage\n"
-                        "pdm run coverage report\n",
+                        "pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py'\n",
                     },
                     {
                         "name": "Report coverage against the aim",
-                        "run": 'total="$(pdm run coverage report --format=total)"\n'
+                        "run": "total=\"$(pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py' --format=total)\"\n"
                         'echo "Coverage ${total}% (the aim is above 97%)" >> "$GITHUB_STEP_SUMMARY"\n'
                         "if awk -v total=\"$total\" 'BEGIN { exit !(total <= 97) }'; then\n"
                         '  echo "::warning title=Coverage is not above 97%::${total}%. Cover the untested behaviour; do not pad."\nfi\n',
                     },
                     {
                         "name": "Export measured server coverage",
-                        "run": "pdm run coverage json -o tmp/coverage/server.json",
+                        "run": "pdm run coverage json --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py' -o tmp/coverage/server.json",
                     },
                     {
                         "uses": UPLOAD,

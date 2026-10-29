@@ -176,13 +176,13 @@ def upstream_base_urls(*fields: str) -> tuple[str, ...]:
 
 
 def _env_number[Number: (int, float)](
-    name: str, default: str, cast: Callable[[str], Number]
+    name: str, default: str, parse: Callable[[str], Number]
 ) -> Number:
     value = os.getenv(name, default)
     try:
-        return cast(value)
+        return parse(value)
     except ValueError:
-        kind = "an integer" if cast is int else "a number"
+        kind = "an integer" if parse is int else "a number"
         raise ValueError(f"{name} must be {kind}, not {value!r}") from None
 
 

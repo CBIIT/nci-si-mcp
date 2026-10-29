@@ -166,6 +166,8 @@ detail.
 
 ## Pull requests and releases
 
+No verification runs only after merge: provide a pull-request twin or an explicit tested exemption; publishing remains post-merge.
+
 - Every change reaches `main` through a pull request that is squash-merged. The PR title is the
   commit subject and must be a Conventional Commit (`feat: ...`, `fix(scope): ...`); the squash
   body is blank, so only the title counts.
@@ -180,6 +182,8 @@ detail.
   no file. Run `pdm install` after a new tag to refresh it.
 
 ## How work is done: issues into a milestone branch, one reviewed milestone into `main`
+
+Before writing or changing Python, read CONTRIBUTING.md's Typing conventions and say in the issue plan which constructs the change uses.
 
 The milestones and issues on GitHub are the plan; take the open issues of the current phase in
 the order the phase's plan gives, one at a time. Each milestone is built on its own branch,
@@ -270,6 +274,7 @@ adding exclusion pathspecs for generated files.
       each finding's retention, replacement or removal rationale in the review table. Coverage
       percentages and passing tests alone do not establish assertion quality or uniqueness.
    4. **Types and records:** invariants are expressed in the types, and records match `spec/`.
+      Check the diff against the Typing conventions in CONTRIBUTING.md.
    5. **Comments and documentation:** docstrings, comments and documents say what the code
       does now.
 

@@ -6,7 +6,6 @@ import fcntl
 import json
 import os
 import tempfile
-from abc import abstractmethod
 from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, replace
@@ -30,21 +29,21 @@ class InstallerStateError(Exception):
 
 class StepActions(Protocol):
     @property
-    @abstractmethod
     def step_names(self) -> tuple[str, ...]:
         """Return the executable steps in order."""
+        ...
 
-    @abstractmethod
     def missing_inputs(self, step: str) -> tuple[str, ...]:
         """Return the missing inputs for one step."""
+        ...
 
-    @abstractmethod
     def apply(self, step: str) -> None:
         """Apply one executable step."""
+        ...
 
-    @abstractmethod
     def verify(self, step: str) -> bool:
         """Return whether one step is complete."""
+        ...
 
 
 @dataclass(frozen=True)
