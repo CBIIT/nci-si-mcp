@@ -560,14 +560,17 @@ class DocumentationTest(unittest.TestCase):
         for name in LOCAL_AGENT_PATHS:
             with self.subTest(name=name):
                 result = subprocess.run(  # noqa: S603 - fixed Git command and contract paths
-                    ["git", "check-ignore", name],  # noqa: S607
+                    ["git", "check-ignore", "-v", name],  # noqa: S607
                     cwd=ROOT,
                     capture_output=True,
                     text=True,
                     check=False,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(result.stdout, f"{name}\n")
+                # Global excludes must not hide a missing repository ignore rule.
+                source, match = result.stdout.rstrip("\n").split("\t")
+                self.assertEqual(source.split(":", 2)[::2], [".gitignore", name])
+                self.assertEqual(match, name)
 
     def test_the_check_reports_a_tracked_mention_and_ignores_the_ignore_file(self):
         with tempfile.TemporaryDirectory() as directory:
