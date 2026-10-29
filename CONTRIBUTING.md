@@ -53,16 +53,23 @@ CI runs the complete mutation catalogue as three stable-key hash partitions, eac
 workers and a 300-minute timeout: `--shard 1/3 -n 2`, `--shard 2/3 -n 2` and
 `--shard 3/3 -n 2`. All three must pass; a job timeout fails. Shard JSON lines report
 full/selected counts and a final outcome/kill-kind summary with elapsed seconds. An empty
-partition reports `EMPTY`; allowlist freshness is checked before partitioning. The measured
-144-mutant Phase 33k diff took 73m22s unsharded; projected shard times were 31–37 minutes
-(including baseline overhead, excluding contention), targeting under 60 minutes for a typical
-milestone. The gate's nested self-tests require the larger timeout.
+partition reports `EMPTY`; allowlist freshness is checked before partitioning. CI mutates the
+default PR merge checkout relative to the event's base SHA, just as the suite producers test it.
+The gate's nested self-tests require the larger timeout; current timing evidence belongs in
+the issue and pull request, not a standing runtime promise.
 
-Before launching mutants, every nonempty shard requires clean unit, harness self-test and
-prepared fixture baselines. Any baseline failure names its domain and fails the gate, even
-when the acceptance ratchet expects that failure. All three baselines collect coverage contexts
-for test selection, including server child processes in the prepared fixture baseline.
-The shard summary's `baseline_domains` records each domain's outcome and measured seconds.
+CI's existing unit, harness self-test and prepared-fixture jobs collect per-test and child-phase
+coverage once. They export one-day fragments bound to the checked-out merge commit and tracked
+input bytes; mutation shards wait for those producers and the coverage floors, download their
+same-run fragments and pass `--coverage-dir`. A missing, incomplete, malformed or mismatched
+import fails as `INFRA`, even for an empty catalogue; it never silently reruns a baseline.
+A fixture execution must exit zero to export a baseline, even if its ratchet expects failures.
+Collection/setup/teardown attribution retains the existing conservative selection rules.
+
+Without `--coverage-dir`, local `pdm run mutation-gate` still computes clean unit, harness
+self-test and prepared-fixture baselines itself; unit remains serial. Any baseline failure
+names its domain and fails the gate. The shard summary's `baseline_domains` records freshly
+computed domain outcomes and seconds; imported runs leave that list empty.
 
 Beyond the server and the suite, the repository holds the documentation site, the validation
 companion and the benchmark tooling; these are their entry points.
