@@ -16,6 +16,22 @@ AFFECTED = (
 
 
 class DeveloperEnvironmentTest(unittest.TestCase):
+    def test_server_fixtures_do_not_share_mutable_concepts(self):
+        from test_server import ServerFixture  # noqa: PLC0415 - only this isolation contract
+
+        first = ServerFixture()
+        self.addCleanup(first.doCleanups)
+        first.setUp()
+        first.evs.concepts["C3262"]["definitions"] = [{"definition": "first fixture only"}]
+        second = ServerFixture()
+        self.addCleanup(second.doCleanups)
+        second.setUp()
+
+        self.assertNotIn("definitions", second.evs.concepts["C3262"])
+        self.assertEqual(
+            first.evs.concepts["C3262"]["definitions"], [{"definition": "first fixture only"}]
+        )
+
     def test_a_developers_settings_do_not_decide_a_unit_tests_result(self):
         # Given a shell that selects the fixture upstream mode and holds an invalid licence key,
         # as a developer's may; the fixture must remove every such variable, not just one
