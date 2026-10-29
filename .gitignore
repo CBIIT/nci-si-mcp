@@ -15,9 +15,9 @@ pdm.toml
 dist/
 .DS_Store
 
-# Claude Code artifacts
-.claude/
-CLAUDE.md
+# Personal Claude Code files and runtime artifacts
+.claude/settings.local.json
+.claude/worktrees/
 CLAUDE.local.md
 .mcp.json
 

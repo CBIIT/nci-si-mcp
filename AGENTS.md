@@ -62,9 +62,10 @@ These are the owner's rules. They apply to every change.
 - **Documentation stays in step with the code**, in the same change. It is intuitive and layered
   (progressive disclosure): the README answers the first questions briefly and links onward.
   Less is more; nobody reads for hours.
-- **Agent instructions are tracked; tool-specific local files are not.** This file is the only
-  agent instruction file in version control, and nothing tracked may depend on an untracked file.
-  A self-test in `tests/test_docs.py` enforces it.
+- **One set of agent instructions; shared tool settings are tracked.** `AGENTS.md` holds every
+  agent rule; `CLAUDE.md` only imports it. Shared tool settings in `.claude/settings.json` are
+  tracked. Personal files and runtime artifacts are ignored, and nothing tracked may depend on
+  an untracked file. A self-test in `tests/test_docs.py` enforces it.
 
 ## Commands
 
