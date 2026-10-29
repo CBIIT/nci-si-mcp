@@ -77,6 +77,7 @@ class UnitShardsTest(unittest.TestCase):
                 self.assertEqual(collected.returncode, 0, collected.stdout + collected.stderr)
                 nodes = [line for line in collected.stdout.splitlines() if "::" in line]
                 self.assertEqual(nodes, sorted(expected)[index - 1 :: 3])
+                self.assertIn(f"{len(expected) - len(nodes)} deselected", collected.stdout)
                 actual.extend(nodes)
                 executed = run(root, "-q", "--unit-shard", spec, "-n", "2")
                 self.assertEqual(executed.returncode, 0, executed.stdout + executed.stderr)
