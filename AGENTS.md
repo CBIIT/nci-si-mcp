@@ -166,6 +166,8 @@ detail.
 
 ## Pull requests and releases
 
+No verification runs only after merge: provide a pull-request twin or an explicit tested exemption; publishing remains post-merge.
+
 - Every change reaches `main` through a pull request that is squash-merged. The PR title is the
   commit subject and must be a Conventional Commit (`feat: ...`, `fix(scope): ...`); the squash
   body is blank, so only the title counts.

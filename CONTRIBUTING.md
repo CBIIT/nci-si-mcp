@@ -290,6 +290,22 @@ A finding is fixed in the code. Where a rule does not fit, it is suppressed as n
 possible (a line, then a file or a directory, then the project, in `pyproject.toml`), with the
 reason beside the suppression, or once in the module when it repeats.
 
+### Verification before merge
+
+Every verification has a pull-request run or a bounded exemption below. The test derives
+postmerge-only jobs from workflow events, exact conditions and dependencies; an unknown
+condition requires classification. Path-filtered twins run for their complete input families.
+Fixture checks never establish live-service assurance.
+
+| Postmerge-only job | Pull-request verifier or exemption |
+| --- | --- |
+| `ci/coverage-badges` | ci/coverage-badges-render; privileged mutation: publish rendered badge data only on main. |
+| `branch-cleanup/cleanup` | ci/test; privileged mutation: delete merged branches only after merge. |
+| `release/release` | ci/test and pr-title/conventional; privileged mutation: create real tags and releases only after validated main. |
+| `release/image` | ci/image uses the same image action; privileged mutation: registry and release publication; post-publication digest availability requires the published digest. |
+| `release/local-installer` | local-installer/prepare and local-installer/local-installer use the same reusable verification; actual release tag identity is checked after tagging. |
+| `acceptance-live/acceptance-live` | Live drift exemption: measures real services, not fixture behavior; operationally disabled, no PR live run. |
+
 ## Workflow credentials
 
 Only protected live checks need issued credentials. Anonymous live checks and fixture CI need

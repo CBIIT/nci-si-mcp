@@ -372,6 +372,14 @@ TRIGGERS = {
     "workflow_dispatch": None,
     "pull_request": {
         "paths": [
+            "src/**",
+            "acceptance/**",
+            "scripts/**",
+            "docs/site-assets/**",
+            ".github/actions/**",
+            "tests/test_local_run_workflow.py",
+            "tests/test_workflow_twins.py",
+            "LICENSE",
             "pyproject.toml",
             "pdm.lock",
             "docs/site-assets/package.json",
