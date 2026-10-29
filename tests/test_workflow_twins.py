@@ -48,15 +48,17 @@ def reachable(workflow, name, definitions, visiting=()):
     dependencies = all(
         reachable(workflow, parent, definitions, (*visiting, name)) for parent in needs
     )
-    check_reusable(job, definitions)
-    return allowed and dependencies
+    return allowed and dependencies and check_reusable(job, definitions)
 
 
 def check_reusable(job, definitions):
     if "uses" in job:
         target = Path(job["uses"]).stem
-        if "workflow_call" not in definitions[target][True]:
+        called = definitions[target]
+        if "workflow_call" not in called[True]:
             raise ValueError("Reusable workflow lacks workflow_call")
+        return all(reachable(called, name, definitions) for name in called["jobs"])
+    return True
 
 
 def postmerge(definitions):
@@ -109,6 +111,14 @@ class WorkflowTwinsTest(unittest.TestCase):
             [
                 step
                 for step in release["image"]["steps"]
+                if step.get("uses") == "$/.github/actions/image"
+            ],
+            [{"uses": "$/.github/actions/image"}],
+        )
+        self.assertEqual(
+            [
+                step
+                for step in definitions["ci"]["jobs"]["image"]["steps"]
                 if step.get("uses") == "$/.github/actions/image"
             ],
             [{"uses": "$/.github/actions/image"}],

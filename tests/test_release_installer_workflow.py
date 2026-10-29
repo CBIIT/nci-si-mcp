@@ -31,7 +31,7 @@ steps:
     uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
     with: {python-version: '3.14'}
   - name: Prepare pull request source (CI only)
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     env:
       INSTALL_REF: ${{ needs.prepare.outputs.ref }}
       INSTALL_TAG: ${{ needs.prepare.outputs.tag }}
@@ -124,13 +124,19 @@ steps:
 """)
 
 EXPECTED_TRIGGERS = yaml.safe_load(r"""
+workflow_dispatch:
 workflow_call:
   inputs:
     ref: {required: true, type: string}
     tag: {required: true, type: string}
 pull_request:
   paths:
-    - src/nci_si_mcp/**
+    - src/**
+    - scripts/**
+    - README.md
+    - LICENSE
+    - docs/installer-targets.md
+    - .github/actions/**
     - tests/test_installer*.py
     - tests/test_release_installer_workflow.py
     - acceptance/**
@@ -158,6 +164,7 @@ steps:
       INPUT_REF: ${{ inputs.ref }}
       INPUT_TAG: ${{ inputs.tag }}
       PR_REF: ${{ github.event.pull_request.head.sha }}
+      DISPATCH_REF: ${{ github.sha }}
       GH_TOKEN: ${{ github.token }}
     run: |
       set -euo pipefail
@@ -166,8 +173,8 @@ steps:
         if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then exit 1; fi
         ref="$(git rev-parse "$INPUT_REF^{commit}")"
         test "$(git rev-parse "$tag^{commit}")" = "$ref"
-      elif [ "$EVENT_NAME" = "pull_request" ]; then
-        ref="$PR_REF"
+      elif [ "$EVENT_NAME" = "pull_request" ] || [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+        ref="${PR_REF:-$DISPATCH_REF}"
         tag="v0.0.0"
       else
         tag="$(gh release view --json tagName --jq .tagName)"
