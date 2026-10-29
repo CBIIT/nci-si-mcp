@@ -170,9 +170,11 @@ jobs:
         run: pdm run nci-si-mcp release-info
       - name: Select the released index source (CI only)
         if: matrix.server || matrix.index
+        env:
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "$EVENT_NAME" = "pull_request" ]; then
             RELEASE_TAG=v0.0.0
             git tag "$RELEASE_TAG" HEAD
             git config --global url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
@@ -182,13 +184,15 @@ jobs:
           echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
       - name: Install released server and optional index environments
         if: matrix.server || matrix.index
+        env:
+          WITH_INDEX: ${{ matrix.index }}
         run: |
           INDEX_VENV="$RUNNER_TEMP/index-venv"
           SERVER_VENV="$RUNNER_TEMP/server-venv"
           python3.14 -m venv "$SERVER_VENV"
           "$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
           echo "SERVER_VENV=$SERVER_VENV" >> "$GITHUB_ENV"
-          if [ "${{ matrix.index }}" = "true" ]; then
+          if [ "$WITH_INDEX" = "true" ]; then
             python3.14 -m venv "$INDEX_VENV"
             "$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
             echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"
@@ -433,23 +437,28 @@ jobs:
       - name: Build selected local container images
         if: matrix.compose_docs || matrix.compose_companion
         timeout-minutes: 15
+        env:
+          COMPOSE_COMPANION: ${{ matrix.compose_companion }}
         run: |
           docker build --platform linux/amd64 --load -t nci-si-docs:local tmp/companion-context/docs
-          if [ "${{ matrix.compose_companion }}" = "true" ]; then
+          if [ "$COMPOSE_COMPANION" = "true" ]; then
             docker build --platform linux/amd64 --load -t nci-si-admin:local tmp/companion-context/admin
           fi
       - name: Verify the selected Compose profiles (CI only)
         if: matrix.compose_docs || matrix.compose_companion
         timeout-minutes: 10
+        env:
+          COMPOSE_DOCS: ${{ matrix.compose_docs }}
+          COMPOSE_COMPANION: ${{ matrix.compose_companion }}
         run: |
           set -euo pipefail
           profiles=()
           services=()
           expected=()
-          if [ "${{ matrix.compose_docs }}" = "true" ]; then profiles+=(--profile docs); services+=(documentation); fi
-          if [ "${{ matrix.compose_companion }}" = "true" ]; then profiles+=(--profile companion); services+=(admin-ingress administration); fi
-          if [ "${{ matrix.compose_docs }}" = "true" ]; then expected+=(documentation); fi
-          if [ "${{ matrix.compose_companion }}" = "true" ]; then expected+=(admin-ingress administration); fi
+          if [ "$COMPOSE_DOCS" = "true" ]; then profiles+=(--profile docs); services+=(documentation); fi
+          if [ "$COMPOSE_COMPANION" = "true" ]; then profiles+=(--profile companion); services+=(admin-ingress administration); fi
+          if [ "$COMPOSE_DOCS" = "true" ]; then expected+=(documentation); fi
+          if [ "$COMPOSE_COMPANION" = "true" ]; then expected+=(admin-ingress administration); fi
           cleanup() {
             status=$?
             cleanup_status=0
@@ -460,17 +469,19 @@ jobs:
           }
           trap cleanup EXIT
           docker compose -f container/compose.local.yaml "${profiles[@]}" up -d
-          if [ "${{ matrix.compose_docs }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"; fi
-          if [ "${{ matrix.compose_companion }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"; fi
+          if [ "$COMPOSE_DOCS" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"; fi
+          if [ "$COMPOSE_COMPANION" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"; fi
           docker compose -f container/compose.local.yaml ps --status running --services | sort > "$RUNNER_TEMP/running-services"
           printf '%s\n' "${expected[@]}" | sort > "$RUNNER_TEMP/expected-services"
           cmp "$RUNNER_TEMP/running-services" "$RUNNER_TEMP/expected-services"
-          if [ "${{ matrix.compose_docs }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"; fi
-          if [ "${{ matrix.compose_companion }}" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"; fi
+          if [ "$COMPOSE_DOCS" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "$$"; fi
+          if [ "$COMPOSE_COMPANION" = "true" ]; then python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8081/health --pid "$$"; fi
 
       - name: Verify every selected component together (CI only)
         if: matrix.index && (matrix.host_docs || matrix.compose_docs || matrix.compose_companion)
         timeout-minutes: 10
+        env:
+          HOST_DOCS: ${{ matrix.host_docs }}
         run: |
           set -euo pipefail
           names=()
@@ -507,7 +518,7 @@ jobs:
           NCI_SI_DATA_DIR="$INDEX_DATA" NCI_SI_HTTP_REQUIRE_INDEX=1 "$INDEX_VENV/bin/nci-si-mcp" serve --transport streamable-http &
           names+=(index); pids+=("$!")
           python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8000/ready --pid "${pids[0]}"
-          if [ "${{ matrix.host_docs }}" = "true" ]; then
+          if [ "$HOST_DOCS" = "true" ]; then
             pdm run python -m scripts.static_server --directory tmp/docs-site --port 8080 & names+=(documentation); pids+=("$!")
             pdm run portal serve & names+=(portal); pids+=("$!")
             python3 "$RUNNER_TEMP/ready.py" http://127.0.0.1:8080/health --pid "${pids[1]}"

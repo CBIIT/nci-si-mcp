@@ -48,6 +48,7 @@ class CiCostTest(unittest.TestCase):
                 },
                 "branch-cleanup.yml": {"cleanup": "ubuntu-24.04"},
                 "ci.yml": {
+                    "required": "ubuntu-24.04",
                     "changes": "ubuntu-24.04",
                     "companions": "ubuntu-24.04",
                     "documentation": "ubuntu-24.04",

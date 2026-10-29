@@ -141,8 +141,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
-      contents: write
-      packages: write
+      contents: write  # attach image security evidence and digest to the release
+      packages: write  # push the verified release image to GHCR
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:

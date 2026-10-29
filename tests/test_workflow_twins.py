@@ -10,6 +10,8 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 CONDITIONS = {
+    None: True,
+    "always()": True,
     "github.event_name == 'pull_request'": True,
     "github.event_name == 'pull_request' && github.base_ref == 'main'": True,
     "${{ !cancelled() }}": True,
@@ -42,13 +44,15 @@ def reachable(workflow, name, definitions, visiting=()):
         raise ValueError("Cyclic workflow dependencies")
     job = workflow["jobs"][name]
     condition = job.get("if")
-    allowed = True if condition is None else CONDITIONS[condition]
+    allowed = CONDITIONS[condition]
     needs = job.get("needs", [])
     needs = [needs] if isinstance(needs, str) else needs
     dependencies = all(
         reachable(workflow, parent, definitions, (*visiting, name)) for parent in needs
     )
-    return allowed and dependencies and check_reusable(job, definitions)
+    return (
+        allowed and (condition == "always()" or dependencies) and check_reusable(job, definitions)
+    )
 
 
 def check_reusable(job, definitions):
