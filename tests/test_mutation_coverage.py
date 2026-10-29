@@ -104,6 +104,57 @@ def verdict_rows(rows):
 
 
 class SharedCoverageTest(unittest.TestCase):
+    def test_configure_writes_the_shared_child_context_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "config"
+            result = subprocess.run(  # noqa: S603 - fixed CLI and owned output
+                [  # noqa: S607
+                    "pdm",
+                    "run",
+                    "python",
+                    "-m",
+                    "scripts.validation.mutation_coverage",
+                    "configure",
+                    "unit",
+                    "--output",
+                    str(output),
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            self.assertTrue((output / ".coveragerc").is_file(), result.stdout + result.stderr)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn(
+                "context = ${MUTATION_COVERAGE_CONTEXT-}", (output / ".coveragerc").read_text()
+            )
+
+    def test_check_reports_missing_producer_data_as_structured_infrastructure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run(  # noqa: S603 - fixed CLI and owned path
+                [  # noqa: S607
+                    "pdm",
+                    "run",
+                    "python",
+                    "-m",
+                    "scripts.validation.mutation_coverage",
+                    "check",
+                    "unit",
+                    "--output",
+                    str(Path(directory) / "absent"),
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertTrue(result.stdout.strip(), "Missing structured INFRA result")
+            self.assertEqual(json.loads(result.stdout)["outcome"], "INFRA")
+
     def test_real_sharded_coverage_matches_local_routes_and_mutant_verdict(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
