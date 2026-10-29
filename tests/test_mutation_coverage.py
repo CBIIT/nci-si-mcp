@@ -103,7 +103,73 @@ def verdict_rows(rows):
     return [(row["outcome"], row.get("node"), row.get("kind")) for row in rows]
 
 
+def cli_mutants(result):
+    rows = [json.loads(line) for line in result.stdout.splitlines()]
+    return [row for row in rows if "site" in row]
+
+
 class SharedCoverageTest(unittest.TestCase):
+    def test_export_rejects_bad_shards_and_unattributed_data_without_creating_fragments(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            repository(root)
+            data_file = root / ".coverage"
+            data = CoverageData(basename=str(data_file))
+            data.set_context("tests/test_example.py::test_value|run")
+            data.add_lines({str(root / "src/example.py"): {2}})
+            data.write()
+            for shard in ("1/3", "0/4", "5/4"):
+                with self.subTest(shard=shard):
+                    with self.assertRaisesRegex(ValueError, "shard membership"):
+                        export(root, data_file, "unit", shard, root / "bad.json")
+                    self.assertFalse((root / "bad.json").exists())
+            output = root / "nested/deeper/piece.json"
+            export(root, data_file, "unit", "1/4", output)
+            export(root, data_file, "unit", "1/4", output)
+            self.assertTrue(output.is_file())
+            data.erase()
+            data.set_context("")
+            data.add_lines({str(root / "src/example.py"): {2}})
+            data.write()
+            with self.assertRaisesRegex(ValueError, "no per-test call contexts"):
+                export(root, data_file, "unit", "1/4", root / "unattributed.json")
+            self.assertFalse((root / "unattributed.json").exists())
+
+    def test_export_requires_each_argument_and_output_path_at_the_cli(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for missing in ("--data", "--shard", "--output"):
+                arguments = {
+                    "--data": str(root / "data"),
+                    "--shard": "1/4",
+                    "--output": str(root / "out"),
+                }
+                arguments.pop(missing)
+                command = [
+                    "pdm",
+                    "run",
+                    "python",
+                    "-m",
+                    "scripts.validation.mutation_coverage",
+                    "export",
+                    "unit",
+                ]
+                command += [part for pair in arguments.items() for part in pair]
+                result = subprocess.run(  # noqa: S603 - fixed CLI, owned argument paths
+                    command, cwd=ROOT, capture_output=True, text=True, timeout=30, check=False
+                )
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                if missing == "--output":
+                    self.assertIn("--output", result.stderr)
+                else:
+                    self.assertEqual(
+                        json.loads(result.stdout),
+                        {
+                            "outcome": "INFRA",
+                            "message": "Coverage export requires --data and --shard",
+                        },
+                    )
+
     def test_configure_writes_the_shared_child_context_contract(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "config"
@@ -157,7 +223,10 @@ class SharedCoverageTest(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
             self.assertTrue(result.stdout.strip(), "Missing structured INFRA result")
-            self.assertEqual(json.loads(result.stdout)["outcome"], "INFRA")
+            record = json.loads(result.stdout)
+            self.assertEqual(set(record), {"outcome", "message"})
+            self.assertEqual(record["outcome"], "INFRA")
+            self.assertIn("Missing coverage directory", record["message"])
 
     def test_real_sharded_coverage_matches_local_routes_and_mutant_verdict(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -187,6 +256,9 @@ class SharedCoverageTest(unittest.TestCase):
             self.assertEqual(
                 outcomes[0], [("KILLED", "tests/test_value.py::test_1", "assertion")] * 3
             )
+            invoked = cli(root, "--paths", "src/example.py", "--coverage-dir", str(output))
+            self.assertEqual(invoked.returncode, 0, invoked.stdout + invoked.stderr)
+            self.assertEqual(verdict_rows(cli_mutants(invoked)), outcomes[0])
 
     def test_fragment_membership_and_corruption_fail_before_selection(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -195,7 +267,7 @@ class SharedCoverageTest(unittest.TestCase):
             fragments(root, root / "coverage")
             path = root / "coverage/unit-1.json"
             original = path.read_text()
-            for content in ("{", "[]", original.replace('"version": 1', '"version": true')):
+            for content in ("{", "[]", "null", original.replace('"version": 1', '"version": true')):
                 with self.subTest(content=content[:20]):
                     path.write_text(content)
                     result = cli(
@@ -282,16 +354,31 @@ class SharedCoverageTest(unittest.TestCase):
                 {"sha": "other"},
                 {"inputs": "other"},
                 {"domain": []},
+                {"domain": "unknown"},
                 {"shard": "8/4"},
+                {"shard": []},
                 {"mapping": {}},
                 {"mapping": ["not a mapping"]},
                 {"extra": "unexpected"},
                 {"mapping": {"../outside.py": {"2": ["tests/t.py::test_x|run"]}}},
+                {"mapping": {"/absolute.py": {"2": ["tests/t.py::test_x|run"]}}},
+                {"mapping": {"src//example.py": {"2": ["tests/t.py::test_x|run"]}}},
+                {"mapping": {"src/example.py": ["not lines"]}},
                 {"mapping": {"src/example.py": {"0": ["tests/t.py::test_x|run"]}}},
                 {"mapping": {"src/example.py": {"not-a-line": ["tests/t.py::test_x|run"]}}},
                 {"mapping": {"src/example.py": {"+2": ["tests/t.py::test_x|run"]}}},
                 {"mapping": {"src/example.py": {"2": [3]}}},
+                {"mapping": {"src/example.py": {"2": {"tests/t.py::test_x|run": True}}}},
                 {"mapping": {"src/example.py": {"2": ["tests/t.py::test_x|bad"]}}},
+                {"mapping": {"src/example.py": {"2": ["tests/t.py::test_x|invalid"]}}},
+                {
+                    "mapping": {
+                        "src/example.py": {
+                            "2": ["tests/t.py::test_x|run", "tests/t.py::test_x|invalid"]
+                        }
+                    }
+                },
+                {"mapping": {"src/example.py": {"2": ["tests/../t.py::test_x|run"]}}},
                 {"mapping": {"src/example.py": {"2": ["selftests/t.py::test_x|run"]}}},
                 {"mapping": {"src/example.py": {"2": [""]}}},
             ]
