@@ -285,6 +285,36 @@ class OperationsDocumentationTest(unittest.TestCase):
 
 
 class DocumentationTest(unittest.TestCase):
+    def test_typing_conventions_are_consulted_before_python_and_in_type_review(self):
+        agents = read("AGENTS.md")
+        self.assertIn(
+            "Before writing or changing Python, read CONTRIBUTING.md's Typing conventions and "
+            "say in the issue plan which constructs the change uses.",
+            agents,
+        )
+        self.assertIn("Check the diff against the Typing conventions in CONTRIBUTING.md.", agents)
+        conventions = (
+            read("CONTRIBUTING.md").partition("### Typing conventions\n")[2].split("\n## ", 1)[0]
+        )
+        rows = [line.split("|")[1:3] for line in conventions.splitlines() if line.startswith("| ")][
+            2:
+        ]
+        self.assertEqual(
+            [(status.strip(), situation.strip()) for status, situation in rows],
+            [
+                ("Standard", "MCP inputs"),
+                ("Project convention", "MCP output"),
+                ("Standard", "Trust boundaries"),
+                ("Project convention", "Internal data"),
+                ("Standard", "JSON records"),
+                ("Standard", "Interfaces"),
+                ("Project convention", "Closed sets"),
+                ("Standard", "Distinct identifiers"),
+                ("Project convention", "Storage"),
+                ("Project convention", "Escapes"),
+            ],
+        )
+
     def test_domain_stories_name_the_specification_prompts_and_exact_tool_sequences(self):
         path = ROOT / "docs/user-acceptance.md"
         document = path.read_text(encoding="utf-8") if path.exists() else ""
