@@ -225,6 +225,27 @@ during feature-branch cleanup; it is generated publication data.
 7. **Keep the documentation in step, and short.** Update it in the same change. The README
    answers the first questions and links onward; details belong in the deeper documents.
 
+### Typing conventions
+
+These are the target conventions for new and changed code, not a claim that legacy upstream
+dictionaries have already been migrated. Validate at the owning boundary; keep the core free
+of dependencies (`dependencies = []`). Existing typing escapes need a reason; the exact-count
+ratchet in `tests/test_typing_conventions.py` prevents growth and requires reductions to lower
+their recorded counts in the same commit.
+
+| Status | Situation | Use |
+| --- | --- | --- |
+| Standard | MCP inputs | `Annotated[T, metadata]`; the optional MCP SDK builds and validates parameter schemas. |
+| Project convention | MCP output | `TypedDict` records in `results.py`; the SDK's `RootModel` builds structured-output schemas. |
+| Standard | Trust boundaries | Validate once into the fields' typed shape: SDK inputs, frozen `Settings`, index schema checks, and upstream `parse_upstream_json` plus field checks. Upstream parsing may use `dict[str, Any]`; do not add Pydantic to the core. |
+| Project convention | Internal data | `dataclass`, frozen and slotted where immutable. |
+| Standard | JSON records | `TypedDict` for plain dictionaries leaving as JSON; `NotRequired` preserves upstream omissions, never invented defaults. |
+| Standard | Interfaces | Structural `Protocol`, without `@abstractmethod`; use an ABC only when its base supplies shared behavior. |
+| Project convention | Closed sets | `Literal`, once in `validation.py` (error codes in `errors.py`), checked through `get_args`; `StrEnum` only for named runtime constants. |
+| Standard | Distinct identifiers | `NewType` where mixing identifiers is a bug; migration is separate work. |
+| Project convention | Storage | stdlib `sqlite3` through `LocalIndex._connect`, parameterized SQL, and index dataclasses at the storage edge. |
+| Project convention | Escapes | No new `cast`, `pyright: ignore`, `type: ignore`, or `dict[str, Any]` outside upstream parsing. Remove an escape rather than replace it with an alias; existing counts only go down. |
+
 ## The gates
 
 The commit hook runs every gate except the last three on the files of a commit, and CI runs the
