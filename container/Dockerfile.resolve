@@ -1,5 +1,5 @@
 # Regenerate on Linux amd64, with the same Python as the dependency builder.
-FROM public.ecr.aws/amazonlinux/amazonlinux@sha256:8272aee6146a36222baaf71d72ab6799770957414ac63b1e940cec58c9197188 AS resolve
+FROM public.ecr.aws/amazonlinux/amazonlinux@sha256:d9c9967b3d895c4c423f54b6562fbf5d18a5b68f5df54908c29e88cba4efcc04 AS resolve
 RUN dnf -y upgrade --refresh
 RUN dnf -y install python3.14 python3.14-pip
 COPY constraints.txt roots.txt /build/
