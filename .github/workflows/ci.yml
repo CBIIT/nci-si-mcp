@@ -181,21 +181,25 @@ jobs:
       - run: pdm run pre-commit run --all-files --show-diff-on-failure
 
   test:
-    name: test (3.14)
+    name: test (3.14, ${{ matrix.shard }})
     runs-on: ubuntu-24.04
-    # Main took 8m09s; expanded mutation contracts exhausted 10 min. Allow growth and headroom.
-    timeout-minutes: 20
+    # Serial partitions preserve child/phase ownership; the complete suite exceeded 10 minutes.
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/4", "2/4", "3/4", "4/4"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0  # the package version is derived from the nearest tag
           persist-credentials: false
       - uses: $/.github/actions/setup
-      # The suite with line and branch coverage; it fails below the minimum in pyproject.toml.
+      # The minimum applies to the combined partitions in unit-coverage, not each partition.
       # Includes the recorded retrieval sample and activation gate with a test-only hashing
       # calibration. It tests execution and arithmetic, not real-model retrieval quality.
       - name: Test, including recorded retrieval evaluation
-        run: pdm run test --junitxml=tmp/test-results/unit.xml
+        run: pdm run test --unit-shard "${{ matrix.shard }}" -n 0 --cov-fail-under=0 --junitxml=tmp/test-results/unit.xml
       - name: Summarize test results
         if: ${{ !cancelled() }}
         run: pdm run python scripts/junit_summary.py tmp/test-results/unit.xml "Unit tests" >> "$GITHUB_STEP_SUMMARY"
@@ -203,10 +207,38 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
-          name: unit-test-results
+          name: unit-test-results-${{ strategy.job-index }}
           path: tmp/test-results/unit.xml
           if-no-files-found: error
           retention-days: 30
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: unit-coverage-${{ strategy.job-index }}
+          path: .coverage
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  unit-coverage:
+    name: unit coverage
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          pattern: unit-coverage-*
+          path: unit-coverage
+      - name: Combine every unit shard and enforce the minimum
+        run: |
+          test "$(ls -1d unit-coverage/unit-coverage-* | wc -l)" -eq 4
+          pdm run coverage combine unit-coverage/unit-coverage-{0,1,2,3}/.coverage
+          pdm run coverage report
       # Falling short of the aim is reported, not enforced (CONTRIBUTING.md, standard 3).
       - name: Report coverage against the aim
         run: |
@@ -386,7 +418,7 @@ jobs:
 
   coverage-badges-render:
     name: render coverage badges
-    needs: [test, coverage]
+    needs: [unit-coverage, coverage]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -417,7 +449,7 @@ jobs:
   coverage-badges:
     name: publish coverage badges
     # mutation is PR-only; its deliberate main skip must not suppress publication.
-    needs: [changes, quality, test, coverage, acceptance, acceptance-http, image, documentation, companions, coverage-badges-render]
+    needs: [changes, quality, test, unit-coverage, coverage, acceptance, acceptance-http, image, documentation, companions, coverage-badges-render]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
