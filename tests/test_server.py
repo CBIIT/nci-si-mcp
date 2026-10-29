@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from contextlib import contextmanager
+from copy import deepcopy
 from dataclasses import replace
 from importlib import metadata
 from pathlib import Path
@@ -166,7 +167,7 @@ class ServerFixture(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.settings = Settings(data_dir=Path(directory.name))
-        self.evs = complete_graph(FakeEVS([NEOPLASM, MORPHOLOGY]))
+        self.evs = complete_graph(FakeEVS(deepcopy([NEOPLASM, MORPHOLOGY])))
         self.local_index = LocalIndex(self.settings.data_dir, on_event=index_event)
         self.context = Context(
             self.settings,
