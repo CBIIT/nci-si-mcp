@@ -287,6 +287,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("-n", "--workers", type=int, default=1)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--shard", type=shard_argument, metavar="K/N")
+    parser.add_argument("--coverage-dir", type=Path)
     args = parser.parse_args(argv)
     if min(args.timeout, args.baseline_timeout) <= 0 or args.workers < 1:
         parser.error("timeout and workers must be positive")
@@ -294,6 +295,7 @@ def main(argv: list[str] | None = None) -> int:
     exit_on_sigterm()
     exemptions = []
     try:
+        mapping = imported_coverage(root, args.coverage_dir)
         exemptions = allowlist(root, root / args.allowlist)
         mutants, diagnostics = collect(root, scope(root, args.paths, args.base, args.head))
         for row in diagnostics:
@@ -304,7 +306,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         random.Random(args.seed).shuffle(mutants)  # noqa: S311 - reproducible scheduling
         args.baseline_domains = []
-        mapping = baseline(root, args.baseline_timeout, timings=args.baseline_domains)
+        mapping = resolve_coverage(root, mapping, args)
         return report_results(schedule(root, mutants, mapping, args), exemptions, args, started)
     except SchedulerError as error:
         report_results(error.rows, exemptions, args, started)
@@ -313,6 +315,20 @@ def main(argv: list[str] | None = None) -> int:
     except (ValueError, OSError, subprocess.SubprocessError, SyntaxError) as error:
         print(json.dumps({"outcome": "INFRA", "message": str(error)}))
         return 2
+
+
+def imported_coverage(root: Path, directory: Path | None) -> dict | None:
+    if directory is None:
+        return None
+    from scripts.validation.mutation_coverage import load  # noqa: PLC0415 - optional CI input
+
+    return load(root, directory)
+
+
+def resolve_coverage(root: Path, mapping: dict | None, args) -> dict:
+    if mapping is not None:
+        return mapping
+    return baseline(root, args.baseline_timeout, timings=args.baseline_domains)
 
 
 if __name__ == "__main__":
