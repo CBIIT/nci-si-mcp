@@ -130,6 +130,10 @@ class SharedCoverageTest(unittest.TestCase):
             self.assertIn(
                 "context = ${MUTATION_COVERAGE_CONTEXT-}", (output / ".coveragerc").read_text()
             )
+            repeated = subprocess.run(  # noqa: S603 - identical fixed configure invocation
+                result.args, cwd=ROOT, capture_output=True, text=True, timeout=30, check=False
+            )
+            self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
 
     def test_check_reports_missing_producer_data_as_structured_infrastructure(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -220,6 +224,37 @@ class SharedCoverageTest(unittest.TestCase):
             repository(root)
             fragments(root, root / "coverage")
             mapping = load(root, root / "coverage")
+            cli_output = root / "exported.json"
+            exported = subprocess.run(  # noqa: S603 - fixed export interface and owned paths
+                [  # noqa: S607
+                    "pdm",
+                    "run",
+                    "python",
+                    "-m",
+                    "scripts.validation.mutation_coverage",
+                    "export",
+                    "unit",
+                    "--root",
+                    str(root),
+                    "--data",
+                    str(root / ".coverage-unit-1"),
+                    "--shard",
+                    "1/4",
+                    "--output",
+                    str(cli_output),
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            self.assertTrue(cli_output.is_file(), exported.stdout + exported.stderr)
+            self.assertEqual(exported.returncode, 0, exported.stdout + exported.stderr)
+            self.assertEqual(
+                json.loads(cli_output.read_text()),
+                json.loads((root / "coverage/unit-1.json").read_text()),
+            )
             self.assertEqual(
                 selection(mapping, "src/example.py", 2, 2),
                 {
@@ -249,8 +284,12 @@ class SharedCoverageTest(unittest.TestCase):
                 {"domain": []},
                 {"shard": "8/4"},
                 {"mapping": {}},
+                {"mapping": ["not a mapping"]},
+                {"extra": "unexpected"},
                 {"mapping": {"../outside.py": {"2": ["tests/t.py::test_x|run"]}}},
                 {"mapping": {"src/example.py": {"0": ["tests/t.py::test_x|run"]}}},
+                {"mapping": {"src/example.py": {"not-a-line": ["tests/t.py::test_x|run"]}}},
+                {"mapping": {"src/example.py": {"+2": ["tests/t.py::test_x|run"]}}},
                 {"mapping": {"src/example.py": {"2": [3]}}},
                 {"mapping": {"src/example.py": {"2": ["tests/t.py::test_x|bad"]}}},
                 {"mapping": {"src/example.py": {"2": ["selftests/t.py::test_x|run"]}}},
