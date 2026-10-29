@@ -8,7 +8,7 @@ import json
 import subprocess
 from pathlib import Path, PurePosixPath
 
-from scripts.validation.mutation_run import context_tests, coverage_map
+from scripts.validation.mutation_run import context_tests, coverage_args, coverage_map
 
 SHARDS = {"unit": 4, "selftest": 3, "fixture": 1}
 VERSION = 1
@@ -99,7 +99,7 @@ def read_fragment(path: Path, expected: dict) -> dict:
     if not isinstance(value, dict) or set(value) != keys:
         raise ValueError("Invalid coverage fragment schema")
     actual = {key: value[key] for key in expected}
-    if (value["version"], actual) != (VERSION, expected):
+    if type(value["version"]) is not int or (value["version"], actual) != (VERSION, expected):
         raise ValueError("Coverage fragment version or tree identity mismatch")
     if not valid_membership_types(value):
         raise ValueError("Invalid coverage domain/shard")
@@ -149,19 +149,32 @@ def merge(destination: dict, mapping: dict) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("operation", choices=("export",))
+    parser.add_argument("operation", choices=("configure", "export", "check"))
     parser.add_argument("domain", choices=SHARDS)
     parser.add_argument("--root", type=Path, default=Path.cwd())
-    parser.add_argument("--data", type=Path, required=True)
-    parser.add_argument("--shard", required=True)
+    parser.add_argument("--data", type=Path)
+    parser.add_argument("--shard")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
-        export(args.root.resolve(), args.data.resolve(), args.domain, args.shard, args.output)
+        perform(args)
     except (ValueError, OSError, subprocess.SubprocessError) as error:
         print(json.dumps({"outcome": "INFRA", "message": str(error)}))
         return 2
     return 0
+
+
+def perform(args) -> None:
+    root = args.root.resolve()
+    if args.operation == "configure":
+        args.output.mkdir(parents=True, exist_ok=True)
+        coverage_args(root, args.output.resolve(), True, {})
+    elif args.operation == "check":
+        load(root, args.output)
+    else:
+        if args.data is None or args.shard is None:
+            raise ValueError("Coverage export requires --data and --shard")
+        export(root, args.data.resolve(), args.domain, args.shard, args.output)
 
 
 if __name__ == "__main__":
