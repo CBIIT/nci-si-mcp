@@ -768,5 +768,51 @@
     "repoDigests": [],
     "counts": {},
     "findings": []
+  },
+  {
+    "candidate": "al2023-base-cve-2026-114406",
+    "createdAt": "2026-10-29T13:47:46.281582348Z",
+    "scanner": {
+      "Version": "0.75.0",
+      "VulnerabilityDB": {
+        "Version": 2,
+        "UpdatedAt": "2026-10-29T13:09:46.269823229Z"
+      }
+    },
+    "baseDigest": "public.ecr.aws/amazonlinux/amazonlinux@sha256:d9c9967b3d895c4c423f54b6562fbf5d18a5b68f5df54908c29e88cba4efcc04",
+    "build": [
+      "dnf -y upgrade --refresh",
+      "dnf -y install python3.14 libgomp",
+      "dnf clean all"
+    ],
+    "imageId": "sha256:a34a51e0da897aba340ba11bc4b215b3fda73f5d008438e7fda335d569cd4251",
+    "repoDigests": [],
+    "osRelease": "2023.12.20261028",
+    "caCertificates": "2025.2.76-1.0.amzn2023.0.5",
+    "counts": {},
+    "findings": []
+  },
+  {
+    "candidate": "al2023-runtime-cve-2026-114406",
+    "createdAt": "2026-10-29T14:04:22.193221952Z",
+    "scanner": {
+      "Version": "0.75.0",
+      "VulnerabilityDB": {
+        "Version": 2,
+        "UpdatedAt": "2026-10-29T13:09:46.269823229Z"
+      }
+    },
+    "baseDigest": "public.ecr.aws/amazonlinux/amazonlinux@sha256:d9c9967b3d895c4c423f54b6562fbf5d18a5b68f5df54908c29e88cba4efcc04",
+    "build": [
+      "Same upgraded AL2023 Python base as al2023-base-cve-2026-114406",
+      "Builder: install hashed container/requirements-amd64.txt and current wheel",
+      "Runtime: copy /opt/venv from builder onto base"
+    ],
+    "imageId": "sha256:e35fc9b2833869a8ea146aa8e9071503b46eaa962b6c17e31790a0e4a324adeb",
+    "repoDigests": [],
+    "osRelease": "2023.12.20261028",
+    "caCertificates": "2025.2.76-1.0.amzn2023.0.5",
+    "counts": {},
+    "findings": []
   }
 ]
