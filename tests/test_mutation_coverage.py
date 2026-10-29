@@ -6,10 +6,13 @@ import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 
 from coverage import CoverageData
 from scripts.validation.mutation_coverage import SHARDS, export, identity, load
-from scripts.validation.mutation_run import selection
+from scripts.validation.mutation_gate import schedule
+from scripts.validation.mutation_run import baseline, run_domain, selection
+from scripts.validation.mutation_source import candidates
 
 from test_mutation_gate import ROOT, cli, project
 
@@ -53,7 +56,83 @@ def fragments(root, directory):
             )
 
 
+FOLDERS = {"unit": "tests", "selftest": "acceptance/selftests", "fixture": "acceptance/tests"}
+
+
+def partition_project(root):
+    repository(root)
+    for domain, count in SHARDS.items():
+        folder = root / FOLDERS[domain]
+        for path in folder.glob("test_*.py"):
+            path.unlink()
+        (folder / "test_value.py").write_text(
+            "import example\n"
+            + "".join(
+                f"def test_{index}():\n    assert example.answer() is True\n"
+                for index in range(1, count + 1)
+            )
+        )
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True)  # noqa: S607
+    subprocess.run(
+        [  # noqa: S607 - fixed fixture commit
+            "git",
+            "-c",
+            "user.name=Test role",
+            "-c",
+            "user.email=test@example.invalid",
+            "commit",
+            "-qm",
+            "test: partition fixtures",
+        ],
+        cwd=root,
+        check=True,
+    )
+
+
+def expected_nodes():
+    return {
+        domain: [
+            f"{Path(FOLDERS[domain]).name}/test_value.py::test_{index}"
+            for index in range(1, count + 1)
+        ]
+        for domain, count in SHARDS.items()
+    }
+
+
+def verdict_rows(rows):
+    return [(row["outcome"], row.get("node"), row.get("kind")) for row in rows]
+
+
 class SharedCoverageTest(unittest.TestCase):
+    def test_real_sharded_coverage_matches_local_routes_and_mutant_verdict(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            partition_project(root)
+            local = baseline(root, 30)
+            output = root / "coverage"
+            for domain, count in SHARDS.items():
+                prefix = Path(FOLDERS[domain]).name
+                for index in range(1, count + 1):
+                    outcome, data = run_domain(
+                        root, domain, [f"{prefix}/test_value.py::test_{index}"], 30, baseline=True
+                    )
+                    self.assertEqual(outcome["outcome"], "SURVIVED", outcome)
+                    export(
+                        root, data, domain, f"{index}/{count}", output / f"{domain}-{index}.json"
+                    )
+            imported = load(root, output)
+            expected = expected_nodes()
+            self.assertEqual(selection(local, "src/example.py", 2, 2), expected)
+            self.assertEqual(selection(imported, "src/example.py", 2, 2), expected)
+            mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
+            args = SimpleNamespace(timeout=30, workers=1)
+            results = [schedule(root, mutants, mapping, args) for mapping in (local, imported)]
+            outcomes = [verdict_rows(rows) for rows in results]
+            self.assertEqual(outcomes[0], outcomes[1])
+            self.assertEqual(
+                outcomes[0], [("KILLED", "tests/test_value.py::test_1", "assertion")] * 3
+            )
+
     def test_fragment_membership_and_corruption_fail_before_selection(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
