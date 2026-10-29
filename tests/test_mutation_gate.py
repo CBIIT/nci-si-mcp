@@ -137,6 +137,7 @@ class MutationOperatorsTest(unittest.TestCase):
                 "runs-on": "ubuntu-24.04",
                 "timeout-minutes": 300,
                 "strategy": {"fail-fast": False, "matrix": {"shard": [1, 2, 3]}},
+                "needs": ["test", "unit-coverage", "selftest", "coverage", "acceptance"],
                 "steps": [
                     {
                         "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -147,6 +148,15 @@ class MutationOperatorsTest(unittest.TestCase):
                     },
                     {"uses": "$/.github/actions/setup"},
                     {
+                        "uses": (
+                            "actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333"
+                        ),
+                        "with": {
+                            "pattern": "mutation-coverage-${{ github.sha }}-*",
+                            "path": "tmp/mutation-coverage",
+                        },
+                    },
+                    {
                         "name": "Mutate every changed Python site",
                         "env": {
                             "BASE_SHA": "${{ github.event.pull_request.base.sha }}",
@@ -155,7 +165,7 @@ class MutationOperatorsTest(unittest.TestCase):
                         },
                         "run": (
                             'pdm run mutation-gate --base "$BASE_SHA" --head "$HEAD_SHA" '
-                            '--shard "$SHARD" -n 2'
+                            '--shard "$SHARD" -n 2 --coverage-dir tmp/mutation-coverage'
                         ),
                     },
                 ],
