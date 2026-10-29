@@ -13,6 +13,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: acceptance-live-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   acceptance-live:
     name: acceptance (live)

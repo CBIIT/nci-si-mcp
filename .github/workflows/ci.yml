@@ -359,7 +359,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Offered as a required check for the owner; this change does not alter branch rulesets.
+  # Included in the aggregate required check alongside the stdio fixture run.
   acceptance-http:
     name: acceptance (HTTP fixture)
     runs-on: ubuntu-24.04
@@ -498,6 +498,26 @@ jobs:
             tmp/coverage-badges/provenance.json
           if-no-files-found: error
           retention-days: 1
+
+  required:
+    name: required
+    needs: [mutation, changes, companions, documentation, image, quality, test, unit-coverage, acceptance, acceptance-http, selftest, coverage, coverage-badges-render, coverage-badges]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.14"
+      - name: Require every CI result
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 -m scripts.ci_required
 
   coverage-badges:
     name: publish coverage badges

@@ -290,6 +290,26 @@ A finding is fixed in the code. Where a rule does not fit, it is suppressed as n
 possible (a line, then a file or a directory, then the project, in `pyproject.toml`), with the
 reason beside the suppression, or once in the module when it repeats.
 
+### Required checks
+
+The owner-approved required contexts below replace the individual CI job contexts after
+`required` passes on the Phase 33p milestone PR, before merge. The reviewer applies that ruleset
+change with the owner's approval; implementation does not change repository settings.
+
+| Exact context | Producer |
+| --- | --- |
+| `required` | CI |
+| `conventional commit subject` | PR title |
+| `dependency review` | Audit |
+| `CodeQL` | GitHub default setup (integration 57789) |
+| `pip-audit` | Audit |
+
+`required` waits for every other CI job and rejects failure, cancellation, missing or unknown
+results. Only `mutation`, `image`, `companions` and `coverage-badges` may be skipped by their
+declared conditions. Their dependencies are also gate inputs, so a failed producer still fails
+the gate. Local run and Local installer remain unrequired because their PR triggers are
+path-filtered. CodeQL is GitHub-managed default setup, not a workflow file in this checkout.
+
 ### Verification before merge
 
 Every verification has a pull-request run or a bounded exemption below. The test derives
