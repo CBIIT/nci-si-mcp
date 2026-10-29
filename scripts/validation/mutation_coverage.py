@@ -34,7 +34,7 @@ def identity(root: Path) -> dict:
 
 def canonical_file(name: str) -> bool:
     path = PurePosixPath(name)
-    return bool(name) and not path.is_absolute() and ".." not in path.parts and str(path) == name
+    return not path.is_absolute() and ".." not in path.parts and str(path) == name
 
 
 def validate_lines(lines: object, domain: str) -> None:
@@ -59,10 +59,10 @@ def validate_contexts(contexts: list, prefix: str) -> None:
 
 
 def validate_mapping(mapping: object, domain: str) -> None:
-    if not isinstance(mapping, dict) or not mapping:
+    if not isinstance(mapping, dict):
         raise ValueError("Missing coverage mapping")
     for name, lines in mapping.items():
-        if not isinstance(name, str) or not canonical_file(name):
+        if not canonical_file(name):
             raise ValueError("Invalid coverage source path")
         validate_lines(lines, domain)
     if not has_calls(mapping):
@@ -90,7 +90,7 @@ def export(root: Path, data: Path, domain: str, shard: str, output: Path) -> Non
         "mapping": mapping,
     }
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(fragment, sort_keys=True) + "\n")
+    output.write_text(json.dumps(fragment) + "\n")
 
 
 def read_fragment(path: Path, expected: dict) -> dict:
