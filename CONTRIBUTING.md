@@ -177,7 +177,14 @@ each missing result. A missing row never counts as a kill or verified scratch re
 
 ## Coverage badges
 
-CI exports separate JSON coverage reports for the server and the complete, combined harness
+CI runs the unit suite in four sorted round-robin partitions, each serial with a 10-minute
+budget. `--unit-shard K/N` selects a partition without affecting nested pytest child runs.
+Each partition retains JUnit evidence and one-day coverage data. The `unit-coverage` job
+requires all four files, combines them, and enforces the same coverage floor and aim warning;
+individual partitions do not enforce a partial coverage floor. The local `pdm run test` remains
+the complete suite. The mutation gate's local unit baseline also remains serial and unsharded.
+
+CI exports separate JSON coverage reports for the combined unit suite and the combined harness
 self-tests. A read-only job renders the three badge JSON files; a separate writer downloads
 that run's data without checking out or executing repository code. After every CI gate
 passes on a push to `main`, the writer publishes measured
