@@ -52,6 +52,27 @@ def suite_line(workflow, job, name):
 
 
 class AcceptanceGateWorkflowTest(unittest.TestCase):
+    def test_only_a_clean_fixture_execution_exports_the_mutation_baseline(self):
+        job = jobs("ci.yml")["acceptance"]
+        self.assertEqual(step("ci.yml", "acceptance", FIXTURE_STEP)["id"], "fixture")
+        self.assertEqual(
+            [
+                entry
+                for entry in job["steps"]
+                if entry.get("name") == "Export shared fixture coverage"
+            ],
+            [
+                {
+                    "name": "Export shared fixture coverage",
+                    "env": {"FIXTURE_STATUS": "${{ steps.fixture.outputs.status }}"},
+                    "run": 'test "$FIXTURE_STATUS" -eq 0\n'
+                    "pdm run python -m scripts.validation.mutation_coverage export fixture "
+                    "--data acceptance/.coverage --shard 1/1 "
+                    "--output tmp/mutation-coverage/fixture.json\n",
+                }
+            ],
+        )
+
     def test_ci_selftest_job_runs_all_shards_without_overrides(self):
         job = jobs("ci.yml")["selftest"]
         self.assertEqual(
@@ -68,9 +89,17 @@ class AcceptanceGateWorkflowTest(unittest.TestCase):
         self.assertEqual(
             run,
             {
-                "run": "pdm run acceptance-selftest --cov-fail-under=0 "
+                "run": "pdm run acceptance-selftest -p scripts.validation.mutation_probe "
+                "--cov-config=../tmp/mutation-config/.coveragerc --cov-context=test "
+                "--cov-fail-under=0 --cov-report= "
                 "--junitxml=tmp/test-results/selftest.xml",
-                "env": {"SELFTEST_SHARD": "${{ matrix.shard }}"},
+                "env": {
+                    "PYTHONPATH": "${{ github.workspace }}",
+                    "COVERAGE_PROCESS_START": (
+                        "${{ github.workspace }}/tmp/mutation-config/.coveragerc"
+                    ),
+                    "SELFTEST_SHARD": "${{ matrix.shard }}",
+                },
             },
         )
 
@@ -218,7 +247,14 @@ if sys.argv[1:3] == ["run", "acceptance"]:
         self.assertEqual(root.joinpath("acceptance/network.md").read_text(), summary)
 
     def test_the_weekly_fixture_run_runs_the_same_gates_as_ci(self):
-        self.assertEqual(fixture_env("ci.yml", "acceptance"), FIXTURE_ENV)
+        self.assertEqual(
+            fixture_env("ci.yml", "acceptance"),
+            FIXTURE_ENV
+            | {
+                "PYTHONPATH": "${{ github.workspace }}",
+                "COVERAGE_PROCESS_START": "${{ github.workspace }}/tmp/mutation-config/.coveragerc",
+            },
+        )
         self.assertEqual(fixture_env("acceptance-live.yml", "acceptance-live"), FIXTURE_ENV)
 
     def test_no_secret_reaches_either_fixture_run(self):
@@ -239,7 +275,11 @@ if sys.argv[1:3] == ["run", "acceptance"]:
         fixture = "pdm run acceptance -n 4 --dist worksteal --report=fixture.json || status=$?"
         live = "pdm run acceptance -n 4 --dist worksteal --report=live.json || status=$?"
         runs = {
-            ("ci.yml", "acceptance", FIXTURE_STEP): fixture,
+            ("ci.yml", "acceptance", FIXTURE_STEP): (
+                "pdm run acceptance -n 4 --dist worksteal -p scripts.validation.mutation_probe "
+                "--cov --cov-config=../tmp/mutation-config/.coveragerc --cov-context=test "
+                "--cov-fail-under=0 --cov-report= --report=fixture.json || status=$?"
+            ),
             ("acceptance-live.yml", "acceptance-live", FIXTURE_STEP): fixture,
             ("acceptance-live.yml", "acceptance-live", LIVE_STEP): live,
         }

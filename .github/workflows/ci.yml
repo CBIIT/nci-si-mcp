@@ -28,18 +28,23 @@ jobs:
     permissions:
       contents: read
     runs-on: ubuntu-24.04
+    needs: [test, unit-coverage, selftest, coverage, acceptance]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
       - uses: $/.github/actions/setup
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          pattern: mutation-coverage-${{ github.sha }}-*
+          path: tmp/mutation-coverage
       - name: Mutate every changed Python site
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.sha }}
           SHARD: ${{ matrix.shard }}/3
-        run: pdm run mutation-gate --base "$BASE_SHA" --head "$HEAD_SHA" --shard "$SHARD" -n 2
+        run: pdm run mutation-gate --base "$BASE_SHA" --head "$HEAD_SHA" --shard "$SHARD" -n 2 --coverage-dir tmp/mutation-coverage
 
   changes:
     name: image selection
@@ -197,8 +202,14 @@ jobs:
       # The minimum applies to the combined partitions in unit-coverage, not each partition.
       # Includes the recorded retrieval sample and activation gate with a test-only hashing
       # calibration. It tests execution and arithmetic, not real-model retrieval quality.
+      - name: Configure shared unit coverage
+        run: pdm run python -m scripts.validation.mutation_coverage configure unit --output tmp/mutation-config
       - name: Test, including recorded retrieval evaluation
-        run: pdm run test --unit-shard "${{ matrix.shard }}" -n 0 --cov-fail-under=0 --junitxml=tmp/test-results/unit.xml
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          COVERAGE_PROCESS_START: ${{ github.workspace }}/tmp/mutation-config/.coveragerc
+          UNIT_SHARD: ${{ matrix.shard }}
+        run: pdm run test --unit-shard "$UNIT_SHARD" -n 0 -p scripts.validation.mutation_probe --cov-config=tmp/mutation-config/.coveragerc --cov-context=test --cov-fail-under=0 --cov-report= --junitxml=tmp/test-results/unit.xml
       - name: Summarize test results
         if: ${{ !cancelled() }}
         run: pdm run python scripts/junit_summary.py tmp/test-results/unit.xml "Unit tests" >> "$GITHUB_STEP_SUMMARY"
@@ -215,6 +226,16 @@ jobs:
           name: unit-coverage-${{ strategy.job-index }}
           path: .coverage
           include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+      - name: Export shared unit coverage
+        env:
+          UNIT_SHARD: ${{ matrix.shard }}
+        run: pdm run python -m scripts.validation.mutation_coverage export unit --data .coverage --shard "$UNIT_SHARD" --output tmp/mutation-coverage/unit.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: mutation-coverage-${{ github.sha }}-unit-${{ strategy.job-index }}
+          path: tmp/mutation-coverage/unit.json
           if-no-files-found: error
           retention-days: 1
 
@@ -237,17 +258,17 @@ jobs:
         run: |
           test "$(ls -1d unit-coverage/unit-coverage-* | wc -l)" -eq 4
           pdm run coverage combine unit-coverage/unit-coverage-{0,1,2,3}/.coverage
-          pdm run coverage report
+          pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py'
       # Falling short of the aim is reported, not enforced (CONTRIBUTING.md, standard 3).
       - name: Report coverage against the aim
         run: |
-          total="$(pdm run coverage report --format=total)"
+          total="$(pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py' --format=total)"
           echo "Coverage ${total}% (the aim is above 97%)" >> "$GITHUB_STEP_SUMMARY"
           if awk -v total="$total" 'BEGIN { exit !(total <= 97) }'; then
             echo "::warning title=Coverage is not above 97%::${total}%. Cover the untested behaviour; do not pad."
           fi
       - name: Export measured server coverage
-        run: pdm run coverage json -o tmp/coverage/server.json
+        run: pdm run coverage json --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py' -o tmp/coverage/server.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: badge-coverage-server
@@ -273,8 +294,13 @@ jobs:
       # Pytest's exit status 0 (all passed) and 1 (some failed) are both a run; the verdict is the
       # comparison below. Any other status (usage error, interruption, a crash) or a missing
       # report is a run that did not happen.
+      - name: Configure shared fixture coverage
+        run: pdm run python -m scripts.validation.mutation_coverage configure fixture --output tmp/mutation-config
       - name: Run the suite against the fixtures
+        id: fixture
         env:
+          PYTHONPATH: ${{ github.workspace }}
+          COVERAGE_PROCESS_START: ${{ github.workspace }}/tmp/mutation-config/.coveragerc
           NCI_SI_ACCEPTANCE_REGISTRY_RELEASE: required
           NCI_SI_ACCEPTANCE_SECURITY_SERVER: python ../scripts/permissions_fixture.py
           # The README's prepare step: it builds the interim NCIt index every server starts from.
@@ -282,8 +308,9 @@ jobs:
         run: |
           status=0
           started="$(date +%s)"
-          pdm run acceptance -n 4 --dist worksteal --report=fixture.json || status=$?
+          pdm run acceptance -n 4 --dist worksteal -p scripts.validation.mutation_probe --cov --cov-config=../tmp/mutation-config/.coveragerc --cov-context=test --cov-fail-under=0 --cov-report= --report=fixture.json || status=$?
           seconds=$(( $(date +%s) - started ))
+          echo "status=$status" >> "$GITHUB_OUTPUT"
           echo "Fixture run: ${seconds} s of the 600 s limit, exit status ${status}." >> "$GITHUB_STEP_SUMMARY"
           if [ "$seconds" -ge 420 ]; then
             echo "::warning title=The acceptance run is slow::It took ${seconds} s; shard it before the 10-minute limit."
@@ -318,6 +345,19 @@ jobs:
             acceptance/report.md
           if-no-files-found: error
           retention-days: 30
+
+      - name: Export shared fixture coverage
+        env:
+          FIXTURE_STATUS: ${{ steps.fixture.outputs.status }}
+        run: |
+          test "$FIXTURE_STATUS" -eq 0
+          pdm run python -m scripts.validation.mutation_coverage export fixture --data acceptance/.coverage --shard 1/1 --output tmp/mutation-coverage/fixture.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: mutation-coverage-${{ github.sha }}-fixture
+          path: tmp/mutation-coverage/fixture.json
+          if-no-files-found: error
+          retention-days: 1
 
   # Offered as a required check for the owner; this change does not alter branch rulesets.
   acceptance-http:
@@ -358,8 +398,12 @@ jobs:
           persist-credentials: false
       - uses: $/.github/actions/setup
       # The minimum applies to the shards together, in the coverage job.
-      - run: pdm run acceptance-selftest --cov-fail-under=0 --junitxml=tmp/test-results/selftest.xml
+      - name: Configure shared selftest coverage
+        run: pdm run python -m scripts.validation.mutation_coverage configure selftest --output tmp/mutation-config
+      - run: pdm run acceptance-selftest -p scripts.validation.mutation_probe --cov-config=../tmp/mutation-config/.coveragerc --cov-context=test --cov-fail-under=0 --cov-report= --junitxml=tmp/test-results/selftest.xml
         env:
+          PYTHONPATH: ${{ github.workspace }}
+          COVERAGE_PROCESS_START: ${{ github.workspace }}/tmp/mutation-config/.coveragerc
           SELFTEST_SHARD: ${{ matrix.shard }}
       - name: Summarize test results
         if: ${{ !cancelled() }}
@@ -377,6 +421,16 @@ jobs:
           name: selftest-coverage-${{ strategy.job-index }}
           path: acceptance/.coverage
           include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+      - name: Export shared selftest coverage
+        env:
+          SELFTEST_SHARD: ${{ matrix.shard }}
+        run: pdm run python -m scripts.validation.mutation_coverage export selftest --data acceptance/.coverage --shard "$SELFTEST_SHARD" --output tmp/mutation-coverage/selftest.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: mutation-coverage-${{ github.sha }}-selftest-${{ strategy.job-index }}
+          path: tmp/mutation-coverage/selftest.json
           if-no-files-found: error
           retention-days: 1
 
@@ -400,14 +454,14 @@ jobs:
       - name: Combine the shards and enforce the minimum
         run: |
           pdm run coverage combine --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest selftest-coverage/*/.coverage
-          pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest
-          total="$(pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --format=total)"
+          pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --include='*/acceptance/src/*'
+          total="$(pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --include='*/acceptance/src/*' --format=total)"
           echo "Self-test coverage ${total}% (the aim is above 97%)" >> "$GITHUB_STEP_SUMMARY"
           if awk -v total="$total" 'BEGIN { exit !(total <= 97) }'; then
             echo "::warning title=Self-test coverage is not above 97%::${total}%. Cover the untested behaviour; do not pad."
           fi
       - name: Export measured harness coverage
-        run: pdm run coverage json --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest -o tmp/coverage/harness.json
+        run: pdm run coverage json --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --include='*/acceptance/src/*' -o tmp/coverage/harness.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: badge-coverage-harness

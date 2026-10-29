@@ -75,7 +75,7 @@ class CoveragePolicyTest(unittest.TestCase):
             server,
             {
                 "name": "Report coverage against the aim",
-                "run": 'total="$(pdm run coverage report --format=total)"\n'
+                "run": "total=\"$(pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py' --format=total)\"\n"
                 'echo "Coverage ${total}% (the aim is above 97%)" >> "$GITHUB_STEP_SUMMARY"\n'
                 "if awk -v total=\"$total\" 'BEGIN { exit !(total <= 97) }'; then\n"
                 '  echo "::warning title=Coverage is not above 97%::${total}%. Cover the untested behaviour; do not pad."\nfi\n',
@@ -86,8 +86,8 @@ class CoveragePolicyTest(unittest.TestCase):
             {
                 "name": "Combine the shards and enforce the minimum",
                 "run": "pdm run coverage combine --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest selftest-coverage/*/.coverage\n"
-                "pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest\n"
-                'total="$(pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --format=total)"\n'
+                "pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --include='*/acceptance/src/*'\n"
+                "total=\"$(pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --include='*/acceptance/src/*' --format=total)\"\n"
                 'echo "Self-test coverage ${total}% (the aim is above 97%)" >> "$GITHUB_STEP_SUMMARY"\n'
                 "if awk -v total=\"$total\" 'BEGIN { exit !(total <= 97) }'; then\n"
                 '  echo "::warning title=Self-test coverage is not above 97%::${total}%. Cover the untested behaviour; do not pad."\nfi\n',
@@ -97,9 +97,18 @@ class CoveragePolicyTest(unittest.TestCase):
             [step for step in jobs["selftest"]["steps"] if "SELFTEST_SHARD" in step.get("env", {})],
             [
                 {
-                    "run": "pdm run acceptance-selftest --cov-fail-under=0 "
+                    "run": "pdm run acceptance-selftest -p scripts.validation.mutation_probe --cov-config=../tmp/mutation-config/.coveragerc --cov-context=test --cov-fail-under=0 --cov-report= "
                     "--junitxml=tmp/test-results/selftest.xml",
+                    "env": {
+                        "PYTHONPATH": "${{ github.workspace }}",
+                        "COVERAGE_PROCESS_START": "${{ github.workspace }}/tmp/mutation-config/.coveragerc",
+                        "SELFTEST_SHARD": "${{ matrix.shard }}",
+                    },
+                },
+                {
+                    "name": "Export shared selftest coverage",
                     "env": {"SELFTEST_SHARD": "${{ matrix.shard }}"},
+                    "run": 'pdm run python -m scripts.validation.mutation_coverage export selftest --data acceptance/.coverage --shard "$SELFTEST_SHARD" --output tmp/mutation-coverage/selftest.json',
                 },
             ],
         )
