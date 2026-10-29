@@ -172,7 +172,7 @@ class SharedCoverageTest(unittest.TestCase):
 
     def test_configure_writes_the_shared_child_context_contract(self):
         with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory) / "config"
+            output = Path(directory) / "nested/config"
             result = subprocess.run(  # noqa: S603 - fixed CLI and owned output
                 [  # noqa: S607
                     "pdm",
