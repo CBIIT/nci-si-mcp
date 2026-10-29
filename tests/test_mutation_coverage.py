@@ -54,6 +54,36 @@ def fragments(root, directory):
 
 
 class SharedCoverageTest(unittest.TestCase):
+    def test_fragment_membership_and_corruption_fail_before_selection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            repository(root)
+            fragments(root, root / "coverage")
+            path = root / "coverage/unit-1.json"
+            original = path.read_text()
+            for content in ("{", "[]", original.replace('"version": 1', '"version": true')):
+                with self.subTest(content=content[:20]):
+                    path.write_text(content)
+                    result = cli(
+                        root,
+                        "--base",
+                        "HEAD",
+                        "--head",
+                        "HEAD",
+                        "--coverage-dir",
+                        str(root / "coverage"),
+                    )
+                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                    self.assertEqual(json.loads(result.stdout)["outcome"], "INFRA")
+            path.write_text(original)
+            path.rename(root / "missing.json")
+            with self.assertRaisesRegex(ValueError, "Missing coverage shards"):
+                load(root, root / "coverage")
+            path.write_text(original)
+            (root / "coverage/duplicate.json").write_text(original)
+            with self.assertRaisesRegex(ValueError, "Duplicate"):
+                load(root, root / "coverage")
+
     def test_complete_domain_fragments_merge_routes_without_recomputing_a_baseline(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
@@ -100,7 +130,13 @@ class SharedCoverageTest(unittest.TestCase):
                 with self.subTest(change=change):
                     path.write_text(json.dumps(original | deepcopy(change)))
                     result = cli(
-                        root, "--paths", "README.md", "--coverage-dir", str(root / "coverage")
+                        root,
+                        "--base",
+                        "HEAD",
+                        "--head",
+                        "HEAD",
+                        "--coverage-dir",
+                        str(root / "coverage"),
                     )
                     self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
                     self.assertEqual(json.loads(result.stdout)["outcome"], "INFRA")
@@ -108,7 +144,9 @@ class SharedCoverageTest(unittest.TestCase):
             before = identity(root)
             (root / "src/example.py").write_text("def answer():\n    return False\n")
             self.assertNotEqual(identity(root), before)
-            result = cli(root, "--paths", "README.md", "--coverage-dir", str(root / "coverage"))
+            result = cli(
+                root, "--base", "HEAD", "--head", "HEAD", "--coverage-dir", str(root / "coverage")
+            )
             self.assertEqual(json.loads(result.stdout)["outcome"], "INFRA")
 
     def test_explicit_missing_coverage_is_infrastructure_even_with_no_changed_sites(self):
