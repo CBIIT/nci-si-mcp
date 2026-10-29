@@ -54,6 +54,7 @@ class CiCostTest(unittest.TestCase):
                     "image": "ubuntu-24.04",
                     "quality": "ubuntu-24.04",
                     "test": "ubuntu-24.04",
+                    "unit-coverage": "ubuntu-24.04",
                     "acceptance": "ubuntu-24.04",
                     "acceptance-http": "ubuntu-24.04",
                     "selftest": "ubuntu-24.04",
