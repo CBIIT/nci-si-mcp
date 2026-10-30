@@ -3,6 +3,7 @@
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -13,9 +14,10 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import yaml
+from scripts.processes import stop, wait_until
 from scripts.validation import mutation_gate
 from scripts.validation.mutation_gate import execute_job
-from scripts.validation.mutation_run import coverage_map, run_domain, selection, snapshot
+from scripts.validation.mutation_run import coverage_map, program, run_domain, selection, snapshot
 from scripts.validation.mutation_source import allowlist, candidates, diff_lines, scope
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -302,6 +304,83 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_cancelling_parent_reaps_nested_session_runner_and_preserves_unrelated_process(self):
+        # Given a ready runner in a separate session, cancelling its waiting parent
+        # must unwind owned cleanup rather than orphan that runner.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            marker = root / "runner.pid"
+            child = (
+                "import os, signal; from pathlib import Path; "
+                f"marker = Path({str(marker)!r}); "
+                "ready = marker.with_suffix('.ready'); ready.write_text(str(os.getpid())); "
+                "ready.rename(marker); signal.pause()"
+            )
+            parent = (
+                "import os, sys; from pathlib import Path; "
+                "from scripts.validation.mutation_run import program; "
+                f"program([sys.executable, '-c', {child!r}], Path({str(root)!r}), "
+                f"dict(os.environ), 60, Path({str(root / 'runner.log')!r}))"
+            )
+            unrelated = subprocess.Popen(
+                [sys.executable, "-c", "import signal; signal.pause()"],
+                start_new_session=True,
+            )
+            with (root / "parent.log").open("wb") as stream:
+                owner = subprocess.Popen(  # noqa: S603 - owned test parent, reaped below
+                    [sys.executable, "-c", parent],
+                    cwd=ROOT,
+                    stdout=stream,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+                try:
+                    self.assertTrue(wait_until(marker.exists, 10, interval=0.01))
+                    pid = int(marker.read_text())
+                    self.assertEqual(os.getpgid(pid), pid)
+                    owner.send_signal(signal.SIGTERM)
+                    owner.wait(timeout=15)
+                    self.assertTrue(
+                        wait_until(lambda: not self.process_exists(pid), 5, interval=0.01),
+                        "Nested session runner survived parent cancellation",
+                    )
+                    self.assertIsNone(unrelated.poll())
+                finally:
+                    stop(owner, group=True)
+                    stop(unrelated, group=True)
+                    if marker.exists() and self.process_exists(int(marker.read_text())):
+                        os.killpg(int(marker.read_text()), signal.SIGKILL)
+
+    @staticmethod
+    def process_exists(pid):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        return True
+
+    def test_program_restores_callers_sigterm_handler_after_completion_and_timeout(self):
+        original = signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        try:
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                for script, timeout, expected in (
+                    ("raise SystemExit(7)", 10, 7),
+                    ("import signal; signal.pause()", 0.1, None),
+                ):
+                    with self.subTest(script=script):
+                        status = program(
+                            [sys.executable, "-c", script],
+                            root,
+                            dict(os.environ),
+                            timeout,
+                            root / "child.log",
+                        )
+                        self.assertEqual(status, expected)
+                        self.assertEqual(signal.getsignal(signal.SIGTERM), signal.SIG_IGN)
+        finally:
+            signal.signal(signal.SIGTERM, original)
+
     def test_collection_constant_selects_killing_consumer_but_runtime_lines_stay_precise(self):
         # Given collection and an incidental child import share a declaration,
         # when the CLI mutates it, then the cached-module consumer kills it;
