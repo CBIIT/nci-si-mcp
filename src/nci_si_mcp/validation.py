@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from typing import Literal, get_args
+from urllib.parse import urlsplit
 
 from .bounds import HARD_MAX_NODES
 from .errors import InputValidationError
@@ -170,6 +171,70 @@ def validate_search(
         allowed = ", ".join(sorted(SEARCH_MODES))
         raise InputValidationError(f"Search mode must be one of: {allowed}", "mode")
     return normalized_query, limit, normalized_mode
+
+
+# URL queries must leave room for path/filter encoding. Recheck recorded EVS URL ceilings
+# (HTTP 400 at 8,046 bytes) before raising this owner-approved semantic bound.
+MAX_QUERY_TEXT = 1000
+# CDE 6148373 v1 has 1,011 code points in the July 2026 export (text SHA-256
+# 0c579c0318b0d9c0e8afc23a84b07700372d3ccfd998c70941a8bd417076938e).
+# 2,000 leaves room beyond that incomplete snapshot; remeasure the export before changing.
+MAX_QUESTION_TEXT = 2000
+# Matching/grounding carry short phrases in bodies, not documents. The owner selected
+# 2,000 for those fields; review published match contracts and real inputs before raising.
+MAX_MATCH_TEXT = 2000
+# Dictionary metadata can contain descriptions and samples. The owner's 10,000-code-point
+# allowance bounds per-field work; remeasure real dictionary fields before changing it.
+MAX_DICTIONARY_TEXT = 10000
+# EVS rejected an 8,046-byte target; 7,000 is its existing conservative batch budget.
+# For caDSR this is server policy, not measured capacity. Recheck encoded routes before raising.
+MAX_TEXT_TARGET_BYTES = 7000
+
+TEXT_LIMITS = {
+    "query": MAX_QUERY_TEXT,
+    "questionText": MAX_QUESTION_TEXT,
+    "longName": MAX_QUESTION_TEXT,
+    "keyword": MAX_QUERY_TEXT,
+    "text": MAX_MATCH_TEXT,
+    "entities.name": MAX_MATCH_TEXT,
+    "entities.userTip": MAX_MATCH_TEXT,
+    "entities.permissibleValues": MAX_MATCH_TEXT,
+    "values": MAX_MATCH_TEXT,
+    "columns.name": MAX_DICTIONARY_TEXT,
+    "columns.description": MAX_DICTIONARY_TEXT,
+    "columns.sampleValues": MAX_DICTIONARY_TEXT,
+}
+
+
+def validate_text_lengths(value: object, path: str = "") -> None:
+    """Validate caller text once, including nested records, without changing its content."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            validate_text_lengths(item, f"{path}.{key}" if path else str(key))
+    elif isinstance(value, list):
+        for item in value:
+            validate_text_lengths(item, path)
+    elif isinstance(value, str):
+        _text_length(value, path)
+
+
+def _text_length(value: str, path: str) -> None:
+    maximum = TEXT_LIMITS.get(path)
+    if maximum is not None and len(value) > maximum:
+        raise InputValidationError(
+            f"Use at most {maximum} Unicode code points; never shortened", path
+        )
+
+
+def validate_text_target(url: str, parameter: str) -> None:
+    """Bound the actual encoded path/query, never the unencoded caller text."""
+    parts = urlsplit(url)
+    size = len((parts.path + ("?" + parts.query if parts.query else "")).encode("utf-8"))
+    if size > MAX_TEXT_TARGET_BYTES:
+        raise InputValidationError(
+            f"Encoded request target is {size} bytes; use at most {MAX_TEXT_TARGET_BYTES} bytes",
+            parameter,
+        )
 
 
 def _validate_limits(codes: list[str], max_depth: int, max_nodes: int, max_edges: int) -> None:

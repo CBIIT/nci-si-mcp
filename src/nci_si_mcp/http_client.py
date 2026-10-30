@@ -33,6 +33,7 @@ from .audit import emit, hashed, requested
 from .bounds import CallDeadlineError, check_deadline, current_budget, current_deadline
 from .errors import PlatformError, current_correlation_id
 from .upstream import parse_upstream_json
+from .validation import validate_text_target
 
 logger = logging.getLogger(__name__)
 
@@ -181,7 +182,7 @@ def _error_detail(exc: HTTPError) -> tuple[str, bool]:
         return "", False
     try:
         body = json.loads(payload.decode("utf-8"))
-    except ValueError:
+    except ValueError, RecursionError:
         return "", not payload
     return (str(body.get("message") or "") if isinstance(body, dict) else ""), False
 
@@ -321,6 +322,13 @@ class HttpClient:
         headers = {"Accept": "application/json", **(headers or {}), **self.credentials}
         if correlation_id := current_correlation_id():
             headers[CORRELATION_HEADER] = correlation_id
+        for key, parameter in (
+            ("term", "query"),
+            ("keyword", "query"),
+            ("documentText", "questionText"),
+        ):
+            if params and key in params:
+                validate_text_target(self.url(path, params), parameter)
         # The base URL comes from Settings, which accepts only http and https.
         return Request(self.url(path, params), headers=headers, data=data)  # noqa: S310
 

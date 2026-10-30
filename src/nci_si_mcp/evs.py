@@ -187,7 +187,7 @@ def normalize_concept(
 
 
 # What EVS says of a request pinned to a release it does not serve.
-_UNKNOWN_TERMINOLOGY = re.compile(r"Terminology not found\s*=\s*([^\s)]+)")
+_UNKNOWN_TERMINOLOGY = re.compile(r"Terminology not found\s*=\s*([A-Za-z0-9._-]{1,64})(?=[\s)]|$)")
 
 
 class EVSClient:
@@ -271,6 +271,12 @@ class EVSClient:
             unknown = _UNKNOWN_TERMINOLOGY.search(exc.body_message)
             if unknown:
                 raise EVSReleaseNotFoundError(str(exc), requested=unknown[1], source="evs") from exc
+            # The shared client already replaced an echoed credential; preserve release
+            # classification without interpreting any other upstream-controlled token.
+            if re.search(r"Terminology not found\s*=\s*\[redacted\](?=[\s)]|$)", exc.body_message):
+                raise EVSReleaseNotFoundError(
+                    str(exc), requested="[redacted]", source="evs"
+                ) from exc
             raise EVSNotFoundError(str(exc), **exc.details) from exc
 
     def _get_existing(

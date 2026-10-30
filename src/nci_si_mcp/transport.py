@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 # Match the deployment policy's SIGTERM drain window; this is not a request timeout.
+# Coordinate changes with the orchestrator's termination grace period.
 GRACEFUL_SHUTDOWN_SECONDS = 20
 
 

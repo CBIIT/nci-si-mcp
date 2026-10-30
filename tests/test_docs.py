@@ -23,16 +23,26 @@ from mcp.client import Client
 
 from nci_si_mcp.audit import Audit
 from nci_si_mcp.cli import build_parser
-from nci_si_mcp.config import DEFAULT_EXCLUSION_ROLE_CODES, Settings
+from nci_si_mcp.config import DEFAULT_CALL_DEADLINE_SECONDS, DEFAULT_EXCLUSION_ROLE_CODES, Settings
 from nci_si_mcp.context import Context
-from nci_si_mcp.errors import ErrorCode, correlated
+from nci_si_mcp.errors import CORRELATION_ID_FORM, ErrorCode, correlated
 from nci_si_mcp.evs import LICENSE_KEY_HEADER
 from nci_si_mcp.http_client import MAX_RETRY_DELAY_SECONDS
 from nci_si_mcp.models import IndexManifest
 from nci_si_mcp.registry import SPECS
 from nci_si_mcp.server import create_mcp
-from nci_si_mcp.transport import create_http_app
-from nci_si_mcp.validation import PROFILES, RELEASE_CHANNELS, UPSTREAM_MODES
+from nci_si_mcp.transport import GRACEFUL_SHUTDOWN_SECONDS, create_http_app
+from nci_si_mcp.validation import (
+    MAX_DICTIONARY_TEXT,
+    MAX_MATCH_TEXT,
+    MAX_QUERY_TEXT,
+    MAX_QUESTION_TEXT,
+    MAX_TEXT_TARGET_BYTES,
+    PROFILES,
+    RELEASE_CHANNELS,
+    UPSTREAM_MODES,
+)
+from ncit_index.scoring import MAX_LEXICAL_TOKENS
 
 ROOT = Path(__file__).parent.parent
 PACKAGE = ROOT / "src" / "nci_si_mcp"
@@ -458,6 +468,31 @@ class DocumentationTest(unittest.TestCase):
                 row = next(line for line in table.splitlines() if f"`{variable}`" in line)
                 purpose = row.split("|")[3]
                 self.assertEqual(set(re.findall(r"`(\w+)`", purpose)), values)
+
+    def test_quickstart_limits_table_values_match_their_code_constants(self):
+        table = section(QUICKSTART, "Limits and reasons")
+        rows = [line.split("|")[1:-1] for line in table.splitlines() if line.startswith("| ")]
+        documented = {name.strip(): value.strip() for name, value, _reason in rows[1:]}
+        expected = {
+            "Call deadline (`NCI_SI_CALL_DEADLINE_SECONDS`)": (
+                f"{DEFAULT_CALL_DEADLINE_SECONDS:g} s default"
+            ),
+            "HTTP shutdown drain": f"{GRACEFUL_SHUTDOWN_SECONDS:g} s",
+            "`search_concepts.query`, `search_data_elements.query`": f"{MAX_QUERY_TEXT:,}",
+            "`get_data_element.questionText`": f"{MAX_QUESTION_TEXT:,}",
+            "`ground_value.text`; CDE-match `entities[].name`, `userTip`, `permissibleValues[]`; "
+            "`match_value_meanings.values[]`": f"{MAX_MATCH_TEXT:,} each",
+            "Dictionary `columns[].name`, `description`, `sampleValues[]`": (
+                f"{MAX_DICTIONARY_TEXT:,} each"
+            ),
+            "URL-carried free text: complete encoded request target, including filters/pins": (
+                f"{MAX_TEXT_TARGET_BYTES:,} bytes"
+            ),
+            "Local lexical FTS expression": f"First {MAX_LEXICAL_TOKENS} tokens, in order",
+            "Supplied `_meta.correlationId`": f"Full match `{CORRELATION_ID_FORM}`",
+        }
+        self.assertEqual(documented, expected)
+        self.assertEqual(len(rows) - 1, len(expected))
 
     def test_quickstart_error_table_lists_exactly_the_error_codes(self):
         self.assertEqual(first_column(section(QUICKSTART, "Errors")), set(get_args(ErrorCode)))

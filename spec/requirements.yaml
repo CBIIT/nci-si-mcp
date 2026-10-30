@@ -27,7 +27,7 @@ P-6:
   statement: tools/list is the same after content calls, a release-pinned EVS call among them, and while the platform is unavailable.
   basis: [M1.2]
 P-7:
-  statement: A correlation identifier passed on a call is sent upstream on every platform request the call makes, and returned in the provenance of each item.
+  statement: A correlation identifier fully matching A6.2 is sent upstream on every platform request and returned in each item's provenance. Missing generates one; explicitly malformed, empty or non-string _meta.correlationId is invalid_request naming that field under a fresh safe identifier, with one completion audit and no rejected value in headers, errors, telemetry or logs.
   basis: [A6.2, M7.1]
 P-8:
   statement: prompts/list lists exactly the prompts of spec/prompts.yaml that the profile under test has every tool of, each with its arguments as stated, and prompts/get returns messages naming, in order of first mention, exactly the tools the prompt states, in their stated order, all of them tools of the profile; resources/list lists exactly the concrete resources (URIs without a variable) and resources/templates/list exactly the URI templates of spec/resources.yaml that the profile serves. A server without the prompts or resources capability fails, even where the profile lists no prompt.
@@ -96,7 +96,7 @@ X-14:
   statement: Every result is a JSON object, its lists of items named fields of it.
   basis: [M3.3]
 X-15:
-  statement: An upstream failure masked as a successful response (an error envelope in an HTTP 200, HTML where JSON was asked for) is an upstream error, never parsed as content.
+  statement: An upstream failure masked as a successful response (an error envelope in an HTTP 200, HTML where JSON was asked for) is an upstream error, never parsed as content. JSON nesting beyond the parser's capacity in success or error bodies is upstream_unavailable, never internal_error.
   basis: [A2.5, M3.2]
 X-16:
   statement: After a 429 with Retry-After, the module waits at least that long before it asks again, and makes no request to that endpoint in between.
@@ -138,8 +138,8 @@ X-23:
   statement: An identifier that does not match the form its tool states (patterns), a release among them, is an invalid request before anything else the tool would answer, capability_unavailable included, and no upstream request carries it; an identifier without a stated form reaches the platform as one encoded path segment or parameter value. A release of that form the platform does not serve stays release_not_available (X-2).
   basis: [A7.6, A2.5]
 X-24:
-  statement: Free text reaches the platform as one parameter value or body field equal to what the caller gave, never split into parameters, cut at a fragment, or written into a path or a query text.
-  basis: [A7.7]
+  statement: Free text within tools.yaml's per-field maxLength reaches the platform unchanged as one parameter value or body field, never as syntax. Each scalar's maxLength is client-visible in inputSchema and enforced before upstream or index work. Oversized text or a URL-carried text request target above 7,000 encoded bytes including filters/pins is invalid_request, never shortened; the latter error names the field and encoded size. Field descriptions state the separate URL ceiling; for caDSR it is conservative server policy, not measured capacity.
+  basis: [A7.7, A2.5]
 
 # EVS tools.
 resolve_release-1:
@@ -176,7 +176,7 @@ search_concepts-2:
   statement: typeahead returns the platform's prefix matches in the platform's order, with neither matchedOn nor score, since the platform gives neither.
   basis: [search_concepts, search_result, A9.2]
 search_concepts-3:
-  statement: semantic and hybrid return concepts of the interim index, each with a score, in descending order of score, matchedOn naming the field matched (name, synonym or definition), and provenance naming the index's release, with source evs_index and servedBy index; a query equal to a concept's preferred name returns that concept on the first page. They rank every indexed concept of the terminology, with no score threshold, so totalKnown is the size of the index set; the page and the cursor bound what is returned. The suite does not judge score values, the order beyond that, or which other concepts semantic search returns.
+  statement: semantic and hybrid return concepts of the interim index, each with a score, in descending order of score, matchedOn naming the field matched (name, synonym or definition), and provenance naming the index's release, with source evs_index and servedBy index; a query equal to a concept's preferred name returns that concept on the first page. They rank every indexed concept of the terminology, with no score threshold, so totalKnown is the size of the index set; the page and the cursor bound what is returned. Local lexical candidate selection uses only the first 64 tokens in order to bound FTS work, affecting lexical/hybrid ranking only for longer sequences; vector search uses the whole query. The suite does not judge score values, the order beyond that, or which other concepts semantic search returns.
   basis: [search_concepts, search_result, provenance, M4.1]
 search_concepts-4:
   statement: A mode the server cannot serve for the terminology asked is an invalid request, never an empty result.

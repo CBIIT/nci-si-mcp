@@ -62,6 +62,7 @@ from .validation import (
     validate_choice,
     validate_expansion_options,
     validate_identifier,
+    validate_text_target,
 )
 
 
@@ -539,6 +540,10 @@ def search_concepts(
     scores. Semantic and hybrid carry a score (not comparable between queries) and matchedOn
     naming name, synonym or definition; exact preferred names win ties.
 
+    Text beyond its published maxLength is invalid_request, never shortened. URL-carried
+    text also has a 7,000-byte encoded request-target ceiling including filters and pins.
+    Local lexical scoring uses the first 64 tokens; vectors use the whole text.
+
     capability_unavailable when the local index or NumPy is missing; release_mismatch when the
     index holds another release; invalid_request for an indexed mode on another terminology;
     cursor_expired when the index or an explicit release changed since the cursor;
@@ -549,6 +554,7 @@ def search_concepts(
     limit = bounded(limit, MAX_INDEX_SEARCH_LIMIT, "limit")
     _search_options(query, mode, retired)
     indexed = mode in ("semantic", "hybrid")
+    _search_target(context, terminology, release, query, mode, limit)
     arguments = {
         "tool": "search_concepts",
         "terminology": terminology,
@@ -576,6 +582,27 @@ def search_concepts(
 
 def _keep_release_error(cursor: str | None) -> bool:
     return cursor is None or implicit_selection()
+
+
+def _search_target(
+    context: Context, terminology: str, release: str | None, query: str, mode: str, limit: int
+) -> None:
+    if mode in ("semantic", "hybrid"):
+        return
+    # Admission precedes discovery; the actual request checks its resolved fields again.
+    validate_text_target(
+        context.evs.uri(
+            concept_path(f"{terminology}_{release or ''}") + "/search",
+            {
+                "term": query,
+                "type": "contains" if mode == "lexical" else "startsWith",
+                "include": "minimal,highlights",
+                "fromRecord": 0,
+                "pageSize": limit,
+            },
+        ),
+        "query",
+    )
 
 
 def _indexed_search(

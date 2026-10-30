@@ -125,14 +125,25 @@ def _limits(tool: dict[str, Any]) -> str:
 
 
 def _forms(tool: dict[str, Any]) -> str:
-    """The forms a tool's identifier arguments take, and its free-text arguments (A7.6, A7.7)."""
+    """Identifier forms, free-text arguments and input work limits (A7.6, A7.7)."""
 
     forms = "".join(
         f" `{argument}` form{_by_terminology(form)}."
         for argument, form in tool.get("patterns", {}).items()
     )
     texts = tool.get("free_text", [])
-    return forms + (f" Free text: {', '.join(f'`{path}`' for path in texts)}." if texts else "")
+    forms += f" Free text: {', '.join(f'`{path}`' for path in texts)}." if texts else ""
+    forms += "".join(
+        f" `{path}`: at most {bound['maxLength']} Unicode code points. Why: {cell(bound['why'])}"
+        for path, bound in tool.get("text_limits", {}).items()
+    )
+    for key, label, maximum, unit in (
+        ("encoded_target", "Encoded request target (path and query)", "maximumBytes", "bytes"),
+        ("lexical_tokens", "Local lexical token prefix", "maximum", "tokens"),
+    ):
+        if bound := tool.get(key):
+            forms += f" {label}: at most {bound[maximum]} {unit}. Why: {cell(bound['why'])}"
+    return forms
 
 
 def _by_terminology(form: str | dict[str, str]) -> str:

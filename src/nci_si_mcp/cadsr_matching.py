@@ -206,6 +206,8 @@ def match_data_elements(
 
     modelVariant and similarityThreshold are invalid_request until the match contract has them
     (C-6). registryRelease is left unset: published pins cannot yet address matching (C-1).
+    Each entity name, userTip and permissible value is bounded by its inputSchema maxLength;
+    longer input is refused with invalid_request before any upstream work, never shortened.
 
     Returns matches in entity and platform order, each with the entity, data element, score,
     matching rule and matched text. Results are computed from the text given.
@@ -350,6 +352,8 @@ def match_value_meanings(
     the permissible values of a column.
 
     registryRelease is left unset: matching cannot yet address published registry releases (C-1).
+    Each value is bounded by its inputSchema maxLength; longer input is refused with
+    invalid_request before any upstream work, never shortened.
 
     Returns matches in platform order, each with its type, rule, identity, context and workflow
     status and, where the platform gives them (absent otherwise, never null), concept, source,
