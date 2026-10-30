@@ -5,16 +5,18 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
+from threading import current_thread, main_thread
 from time import monotonic
 
 from coverage import CoverageData
 from pytest import ExitCode
-from scripts.processes import stop
+from scripts.processes import exit_on_sigterm, stop
 
 DOMAINS = {
     "unit": (".", "tests"),
@@ -81,8 +83,23 @@ def environment(scratch: Path, work: Path) -> dict[str, str]:
     return env
 
 
+@contextmanager
+def runner_termination():
+    # Nested pytest workers normally die on SIGTERM without unwinding. Their child
+    # sessions escape the scheduler's group, so the waiting owner must clean them.
+    if current_thread() is not main_thread():
+        yield
+        return
+    previous = signal.getsignal(signal.SIGTERM)
+    try:
+        exit_on_sigterm()
+        yield
+    finally:
+        signal.signal(signal.SIGTERM, previous)
+
+
 def program(command: list[str], cwd: Path, env: dict[str, str], timeout: float, log: Path):
-    with log.open("wb") as stream:
+    with runner_termination(), log.open("wb") as stream:
         process = subprocess.Popen(  # noqa: S603 - fixed Python executable and argument arrays
             command,
             cwd=cwd,
