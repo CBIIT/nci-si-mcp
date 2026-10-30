@@ -34,7 +34,20 @@ class TestReportWorkflowTest(unittest.TestCase):
             jobs["selftest"]["strategy"],
             {
                 "fail-fast": False,
-                "matrix": {"shard": ["1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8", "8/8"]},
+                "matrix": {
+                    "shard": [
+                        "1/10",
+                        "2/10",
+                        "3/10",
+                        "4/10",
+                        "5/10",
+                        "6/10",
+                        "7/10",
+                        "8/10",
+                        "9/10",
+                        "10/10",
+                    ]
+                },
             },
         )
         for job, path, artifact, title in (

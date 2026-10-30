@@ -91,10 +91,12 @@ def partition_project(root):
 
 def expected_nodes():
     return {
-        domain: [
-            f"{Path(FOLDERS[domain]).name}/test_value.py::test_{index}"
-            for index in range(1, count + 1)
-        ]
+        domain: sorted(
+            [
+                f"{Path(FOLDERS[domain]).name}/test_value.py::test_{index}"
+                for index in range(1, count + 1)
+            ]
+        )
         for domain, count in SHARDS.items()
     }
 
@@ -109,6 +111,9 @@ def cli_mutants(result):
 
 
 class SharedCoverageTest(unittest.TestCase):
+    def test_fragment_counts_match_the_real_ci_matrix_independently(self):
+        self.assertEqual(SHARDS, {"unit": 4, "selftest": 10, "fixture": 1})
+
     def test_export_rejects_bad_shards_and_unattributed_data_without_creating_fragments(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()

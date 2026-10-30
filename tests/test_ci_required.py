@@ -44,7 +44,7 @@ class RequiredCommandTest(unittest.TestCase):
         return subprocess.run(
             [sys.executable, "-m", "scripts.ci_required"],
             cwd=ROOT,
-            env={"PATH": os.environ["PATH"], "NEEDS_JSON": json.dumps(needs)},
+            env=os.environ | {"NEEDS_JSON": json.dumps(needs)},
             capture_output=True,
             text=True,
             timeout=10,

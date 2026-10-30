@@ -192,7 +192,7 @@ individual partitions do not enforce a partial coverage floor. The local `pdm ru
 the complete suite. The mutation gate's local unit baseline also remains serial and unsharded.
 
 CI exports separate JSON coverage reports for the combined unit suite and the combined harness
-self-tests. The harness runs in eight sorted round-robin shards, each with four workers;
+self-tests. The harness runs in ten sorted round-robin shards, each with four workers;
 shared subprocess mutation coverage needs more shards than ordinary local self-tests. Each job
 keeps its ten-minute bound; add shards when measured jobs exceed about four minutes.
 A read-only job renders the three badge JSON files; a separate writer downloads

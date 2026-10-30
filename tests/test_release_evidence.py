@@ -52,7 +52,9 @@ class WorkflowGuardExecutionTest(unittest.TestCase):
             root = Path(directory)
             for name, body in {
                 "git": 'print("a" * 40)',
-                "python3": "import os,sys; sys.exit(int(os.environ['API_EXIT']))",
+                "python3": "import os,sys\n"
+                "assert sys.argv[1:] == ['-m', 'scripts.release_ci', 'a' * 40], sys.argv\n"
+                "sys.exit(int(os.environ['API_EXIT']))",
             }.items():
                 executable = root / name
                 executable.write_text(f"#!{sys.executable}\n{body}\n")

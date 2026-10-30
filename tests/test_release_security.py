@@ -86,6 +86,11 @@ class ReleaseGuardTest(unittest.TestCase):
             [ci_run(event="pull_request")],
             [ci_run(path=".github/workflows/audit.yml")],
             [ci_run(conclusion=None)],
+            [ci_run(conclusion=1)],
+            [ci_run(id=0)],
+            [ci_run(id=-1)],
+            [ci_run(id=True)],
+            [ci_run(id="2")],
             [None],
         ]
         for runs in cases:
@@ -93,6 +98,11 @@ class ReleaseGuardTest(unittest.TestCase):
                 result = self.guard(runs)
                 self.assertEqual(result.returncode, 1, result.stderr)
                 self.assertIn("CI", result.stderr)
+
+    def test_empty_runs_have_a_specific_actionable_diagnostic(self):
+        result = self.guard([])
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("No CI run for the main commit", result.stderr)
 
     def test_newest_unsuccessful_run_is_not_hidden_by_older_success(self):
         for runs in (
