@@ -7,6 +7,8 @@ from json.scanner import py_make_scanner
 from unittest.mock import patch
 
 from fakes import concept
+from nci_si_mcp.cadsr import CaDSRClient
+from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import correlated
 from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.invocation import call
@@ -23,6 +25,17 @@ class ResponseParsingTest(ServerTestCase):
         decoder = json.JSONDecoder()
         self.enterContext(patch.object(decoder, "scan_once", py_make_scanner(decoder)))
         self.enterContext(patch.object(json, "_default_decoder", decoder))
+
+    def test_deep_form_json_reaches_common_unavailable_error_classification(self):
+        body = b"[" * 2000 + b"0" + b"]" * 2000
+        server = self.serve(Reply(200, body))
+        client = CaDSRClient(Settings(cadsr_base_url=server.url))
+        with correlated("deep-form"):
+            error = call("get_form", lambda: client.get_form("123"))["error"]
+        self.assertEqual(error["code"], "upstream_unavailable")
+        self.assertEqual(error["correlationId"], "deep-form")
+        self.assertEqual(error["details"], {"surface": "cadsr", "attempts": 1})
+        self.assertEqual(len(server.seen), 1)
 
     def test_deep_success_json_is_an_upstream_failure_with_attempts(self):
         # Given deep JSON under the byte cap, parsing reports an upstream failure.

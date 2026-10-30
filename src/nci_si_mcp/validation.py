@@ -193,8 +193,6 @@ MAX_TEXT_TARGET_BYTES = 7000
 TEXT_LIMITS = {
     "query": MAX_QUERY_TEXT,
     "questionText": MAX_QUESTION_TEXT,
-    "longName": MAX_QUESTION_TEXT,
-    "keyword": MAX_QUERY_TEXT,
     "text": MAX_MATCH_TEXT,
     "entities.name": MAX_MATCH_TEXT,
     "entities.userTip": MAX_MATCH_TEXT,

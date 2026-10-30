@@ -777,10 +777,6 @@ def get_concept_hierarchy(
     returns every platform path in order and each reached concept once; depth, limit and cursor
     do not apply to it.
 
-    The shared call deadline preserves a verified partial traversal with bound deadline
-    (integer milliseconds), without a continuation cursor; before a verified start it is
-    upstream_unavailable. DNS and connection setup are not a hard real-time cutoff.
-
     bound_exceeded when paging cannot reach the page within the request limit: narrow the
     concept or depth. cursor_expired when an explicit release was withdrawn;
     release_not_available when a stateful handshake HTTP session's or stdio connection's pinned
