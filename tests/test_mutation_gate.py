@@ -1,5 +1,6 @@
 """The mutation command measures assertion sensitivity without editing its caller."""
 
+import contextlib
 import json
 import os
 import shutil
@@ -10,6 +11,7 @@ import tempfile
 import unittest
 from dataclasses import asdict
 from pathlib import Path
+from threading import Thread
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -304,6 +306,98 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_scheduler_exit_allows_worker_to_reap_its_separate_session_runner(self):
+        # Given cleanup gated on leader exit, program must let the worker finish
+        # before sweeping its group, without signaling an unrelated session.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            scheduler = self.cleanup_scheduler(root)
+            released = []
+            release = Thread(target=self.release_worker, args=(root, released))
+            unrelated = subprocess.Popen(
+                [sys.executable, "-c", "import signal; signal.pause()"],
+                start_new_session=True,
+            )
+            release.start()
+            try:
+                status = program(
+                    [sys.executable, "-c", scheduler],
+                    ROOT,
+                    dict(os.environ),
+                    20,
+                    root / "scheduler.log",
+                )
+                release.join(timeout=10)
+                self.assertEqual(released, [True], (root / "scheduler.log").read_text())
+                self.assertEqual(status, 0)
+                self.assertTrue(
+                    wait_until(
+                        lambda: not self.process_exists(int((root / "runner").read_text())),
+                        5,
+                        interval=0.01,
+                    ),
+                    "Nested session child survived scheduler group stop",
+                )
+                self.assertTrue((root / "cleaned").exists(), "Worker cleanup was swept early")
+                self.assertIsNone(unrelated.poll())
+            finally:
+                (root / "release").touch()
+                release.join(timeout=10)
+                stop(unrelated, group=True)
+                self.kill_marked_group(root / "runner")
+                self.kill_marked_group(root / "scheduler")
+
+    @staticmethod
+    def cleanup_scheduler(root):
+        worker = (
+            "import signal, subprocess, sys; from pathlib import Path; "
+            "from scripts.processes import exit_on_sigterm, stop, wait_until; "
+            f"root = Path({str(root)!r}); exit_on_sigterm(); "
+            "runner = subprocess.Popen([sys.executable, '-c', "
+            "\"import signal; print('ready', flush=True); signal.pause()\"], "
+            "stdout=subprocess.PIPE, text=True, start_new_session=True); "
+            "runner.stdout.readline(); (root / 'runner').write_text(str(runner.pid))\n"
+            "try:\n    runner.wait(timeout=30)\n"
+            "finally:\n"
+            "    (root / 'cleaning').touch()\n"
+            "    wait_until((root / 'release').exists, 30, interval=0.01)\n"
+            "    stop(runner, group=True)\n"
+            "    (root / 'cleaned').touch()\n"
+        )
+        return (
+            "import os, signal, subprocess, sys; from pathlib import Path; "
+            "from scripts.processes import wait_until; "
+            f"root = Path({str(root)!r})\n"
+            "def finish(signum, frame):\n"
+            "    signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+            "    assert wait_until((root / 'cleaning').exists, 10, interval=0.01)\n"
+            "    raise SystemExit(0)\n"
+            "signal.signal(signal.SIGTERM, finish)\n"
+            f"subprocess.Popen([sys.executable, '-c', {worker!r}])\n"
+            "(root / 'scheduler').write_text(str(os.getpid()))\n"
+            "signal.pause()\n"
+        )
+
+    @classmethod
+    def release_worker(cls, root, released):
+        if not wait_until(
+            lambda: (root / "runner").exists() and (root / "scheduler").exists(),
+            10,
+            interval=0.01,
+        ):
+            return
+        scheduler = int((root / "scheduler").read_text())
+        os.killpg(scheduler, signal.SIGTERM)
+        exited = wait_until(lambda: not cls.process_exists(scheduler), 10, interval=0.01)
+        released.append(exited)
+        (root / "release").touch()
+
+    @staticmethod
+    def kill_marked_group(marker):
+        if marker.exists():
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(int(marker.read_text()), signal.SIGKILL)
+
     def test_cancelling_parent_reaps_nested_session_runner_and_preserves_unrelated_process(self):
         # Given a ready runner in a separate session, cancelling its waiting parent
         # must unwind owned cleanup rather than orphan that runner.
