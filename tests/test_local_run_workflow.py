@@ -629,6 +629,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
                 "local-run.yml",
                 "pr-title.yml",
                 "release.yml",
+                "scorecard.yml",
             ],
         )
 
