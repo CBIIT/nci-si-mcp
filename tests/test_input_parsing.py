@@ -37,10 +37,10 @@ class ResponseParsingTest(ServerTestCase):
         self.assertEqual(len(server.seen), 2)
         self.assertEqual(client.get_json("/x"), {"ok": True})
 
-    def test_deep_http_error_body_preserves_status_failure_and_retry_policy(self):
-        # Given a deeply nested error body, its status still owns the public error.
+    def test_deep_http_error_body_is_unavailable_without_claiming_absence(self):
+        # A parser-depth failure is terminal, even when the status alone suggested absence.
         body = b"[" * 2000 + b"0" + b"]" * 2000
-        for status, attempts in ((400, 1), (503, 3)):
+        for status, attempts in ((400, 1), (404, 1), (503, 1)):
             with self.subTest(status=status):
                 server = self.serve(*(Reply(status, body) for _ in range(attempts)))
                 client = self.client(server)

@@ -134,7 +134,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 **Reproduction.** Use DataElement/search with keyword and pageSize from the request inventory; compare with public-id lookup. The capped answer crafted/OP-C03/search-over-cap.json is crafted in memory by cadsr_over_cap in acceptance/src/nci_si_acceptance/craft.py. The recorded malformed-id response illustrates the HTTP-200 error convention, not a recording of keyword search.
 
-**Expected.** A keyword endpoint with explicit filter names, registryRelease verification, pagination or a machine-readable 1000-result truncation signal.
+**Expected.** A keyword endpoint with explicit filter names, registryRelease verification, pagination or a machine-readable 1000-result truncation signal. Open question for caDSR: can legitimate preferred-question-text lookup inputs exceed 2,000 Unicode characters or a 7,000-byte encoded URL target including filters/pins? The July 2026 export maximum was 1,011 characters (CDE 6148373 v1), but excludes retired/TEST/TRAINING records; the byte ceiling is conservative server policy, not measured caDSR capacity. No legitimate-input rejection has been observed; broader export and route measurements are needed.
 
 **Impact.** Keyword-based discovery and filtering cannot be relied on live; a capped list cannot be mistaken for a known total.
 

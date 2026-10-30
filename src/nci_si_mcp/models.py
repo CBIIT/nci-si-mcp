@@ -329,6 +329,8 @@ class TraversalResult:
     max_edges: int
     # Minimal payloads already fetched by the walk, for the public concept projection.
     concepts: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # Independent of the first reported bound; exhausted work must not resume.
+    deadline_exhausted: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {

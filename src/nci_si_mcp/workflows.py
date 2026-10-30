@@ -64,7 +64,12 @@ def _ground_registry(context: Context, requested: str | None) -> None:
 def _text_code(context: Context, text: str, selected: ReleaseContext) -> str:
     require("search_concepts")
     pin = None if implicit_selection() else selected.version
-    found = content.search_concepts(context, "ncit", text, pin)["results"]
+    try:
+        found = content.search_concepts(context, "ncit", text, pin)["results"]
+    except InputValidationError as exc:
+        if exc.details.get("parameter") != "query":
+            raise
+        raise InputValidationError(str(exc), "text") from exc
     if not found:
         raise PlatformError(
             "not_found", "No concept matches. Try other text or give a conceptCode."
@@ -182,6 +187,8 @@ def ground_value(
     require_operation("ground_value", {"text": text, "commons": commons})
     if release is not None:
         validate_identifier(release, RELEASE_FORM, "release")
+    if text is not None:
+        content._search_target(context, "ncit", release, text, "lexical", 10, "text")
     with budgeted(current_budget() or Budget()):
         _ground_registry(context, registryRelease)
         selected = seam._selected(context, release)

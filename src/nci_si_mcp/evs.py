@@ -13,7 +13,7 @@ from .http_client import (
     UpstreamRejectedError,
 )
 from .models import NcitConcept, utc_now_iso
-from .validation import RelationshipKind
+from .validation import RelationshipKind, validate_text_target
 
 if TYPE_CHECKING:
     from .release import ReleaseContext
@@ -48,6 +48,22 @@ def concept_path(terminology: str, code: str = "") -> str:
     return f"/api/v1/concept/{quote(terminology, safe='')}" + (
         f"/{quote(code, safe='')}" if code else ""
     )
+
+
+def search_request(
+    terminology: str, query: str, mode: str, offset: int, limit: int, status: str | None = None
+) -> tuple[str, dict[str, object]]:
+    """Share the search path and parameters between admission and the actual request."""
+    params: dict[str, object] = {
+        "term": query,
+        "type": "contains" if mode == "lexical" else "startsWith",
+        "include": "minimal,highlights",
+        "fromRecord": offset,
+        "pageSize": limit,
+    }
+    if status is not None:
+        params["conceptStatus"] = status
+    return concept_path(terminology) + "/search", params
 
 
 class EVSError(RuntimeError):
@@ -373,18 +389,12 @@ class EVSClient:
         status: str | None = None,
     ) -> tuple[int, list[dict[str, Any]]]:
         """Preserve the pinned platform page and validate its declared total."""
+        path, params = search_request(
+            release.pinned_terminology, query, mode, offset, limit, status
+        )
+        validate_text_target(self.uri(path, params), "query")
         data = _object(
-            self._get_existing(
-                concept_path(release.pinned_terminology) + "/search",
-                {
-                    "term": query,
-                    "type": "contains" if mode == "lexical" else "startsWith",
-                    "include": "minimal,highlights",
-                    "fromRecord": offset,
-                    "pageSize": limit,
-                    "conceptStatus": status,
-                },
-            ),
+            self._get_existing(path, params),
             "search page",
         )
         total = data.get("total")

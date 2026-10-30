@@ -336,6 +336,7 @@ class _Walk:
     correlation_id: str = field(default_factory=call_correlation_id)
     nodes: dict[str, TraversalNode] = field(default_factory=dict)
     concepts: dict[str, dict[str, Any]] = field(default_factory=dict)
+    deadline_exhausted: bool = False
     depth_omitted: dict[str, set[str]] = field(default_factory=dict)
     edges: list[TraversalEdge] = field(default_factory=list)
     seen_edges: set[tuple[str, str, str, str]] = field(default_factory=set)
@@ -785,6 +786,7 @@ class _Walk:
             max_nodes=self.budget.nodes,
             max_edges=self.budget.edges,
             concepts=self.concepts,
+            deadline_exhausted=self.deadline_exhausted,
         )
 
 
@@ -838,6 +840,7 @@ def traverse_ncit(
     try:
         return _run_walk(walk, start_codes)
     except CallDeadlineError:
+        walk.deadline_exhausted = True
         if not walk.nodes:
             raise
         walk._mark_deadline()

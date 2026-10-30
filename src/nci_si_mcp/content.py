@@ -19,9 +19,11 @@ from .bounds import (
     HARD_MAX_PER_KIND,
     MAX_BATCH_TARGET_BYTES,
     Budget,
+    CallDeadlineError,
     RequestBudgetError,
     budgeted,
     current_budget,
+    current_deadline,
 )
 from .catalogue import exclusion_codes, load_catalogue
 from .context import Context
@@ -32,6 +34,7 @@ from .evs import (
     concept_path,
     normalize_concept,
     replacements_path,
+    search_request,
 )
 from .models import (
     TraversalEdge,
@@ -585,24 +588,19 @@ def _keep_release_error(cursor: str | None) -> bool:
 
 
 def _search_target(
-    context: Context, terminology: str, release: str | None, query: str, mode: str, limit: int
+    context: Context,
+    terminology: str,
+    release: str | None,
+    query: str,
+    mode: str,
+    limit: int,
+    parameter: str = "query",
 ) -> None:
     if mode in ("semantic", "hybrid"):
         return
     # Admission precedes discovery; the actual request checks its resolved fields again.
-    validate_text_target(
-        context.evs.uri(
-            concept_path(f"{terminology}_{release or ''}") + "/search",
-            {
-                "term": query,
-                "type": "contains" if mode == "lexical" else "startsWith",
-                "include": "minimal,highlights",
-                "fromRecord": 0,
-                "pageSize": limit,
-            },
-        ),
-        "query",
-    )
+    path, params = search_request(f"{terminology}_{release or ''}", query, mode, 0, limit)
+    validate_text_target(context.evs.uri(path, params), parameter)
 
 
 def _indexed_search(
@@ -837,15 +835,15 @@ def _hierarchy_page(
     # A hierarchy walk has exactly one seed, emitted first.
     projected = _graph_record(graph)["nodes"]
     nodes = projected[1:]
-    if offset and offset >= len(nodes):
+    if offset and offset >= len(nodes) and not graph.deadline_exhausted:
         raise InputValidationError("The cursor position is beyond this hierarchy", "cursor")
     result: dict[str, Any] = {
         "nodes": nodes[offset : offset + limit],
         "truncation": _truncation(graph.truncation),
     }
-    if len(nodes) > offset + limit and graph.truncation.bound != "deadline":
+    if len(nodes) > offset + limit and not graph.deadline_exhausted:
         result["nextCursor"] = cursors.encode(arguments, offset + limit)
-    if not nodes:
+    if not result["nodes"]:
         result["provenance"] = projected[0]["provenance"]
     return result
 
@@ -860,7 +858,7 @@ def _hierarchy_replay(
 ) -> TraversalResult:
     try:
         graph = _graph(context, release, code, [direction], budget)
-        if graph.truncation.bound == "deadline":
+        if graph.deadline_exhausted:
             return graph
         if budget.exhausted:
             raise RequestBudgetError(budget.requests, budget.attempts)
@@ -1060,43 +1058,70 @@ def _hydrate(
     budget: Budget,
     kinds: list[str],
 ) -> TraversalResult:
-    """The graph with the status of every node it names, fetched in batches; the input is
-    frozen and stays as it was."""
+    """Hydrate node status in batches, retaining verified content when a bound stops work."""
 
+    if graph.deadline_exhausted:
+        return graph
     concepts = dict(graph.concepts)
     missing = [node.code for node in graph.nodes if node.code not in concepts]
     for batch in batched(missing, BATCH_SIZE, strict=False):
         try:
             raw = context.evs.get_concepts_by_codes(batch, release=release, include="minimal")
-        except RequestBudgetError:
+        except (RequestBudgetError, CallDeadlineError) as exc:
             # Returning relation names as full concepts would invent their active status.
             # The caller gets the verified portion, with the first omission retained.
-            partial = replace(graph, concepts=concepts)
-            return replace(partial, truncation=_hydration_cut(partial, budget, kinds))
-        by_code = {item["code"]: item for item in raw}
+            partial = replace(
+                graph, concepts=concepts, deadline_exhausted=isinstance(exc, CallDeadlineError)
+            )
+            return replace(partial, truncation=_hydration_cut(partial, budget, kinds, exc))
+        by_code = _reconcile_batch(raw, set(batch))
         if set(by_code) != set(batch):
             raise EVSResponseError("EVS did not return exactly the requested graph concepts")
         concepts.update(by_code)
     return replace(graph, concepts=concepts)
 
 
-def _hydration_cut(graph: TraversalResult, budget: Budget, kinds: list[str]) -> Truncation:
+def _hydration_cut(
+    graph: TraversalResult,
+    budget: Budget,
+    kinds: list[str],
+    error: RequestBudgetError | CallDeadlineError | None = None,
+) -> Truncation:
     missing = {node.code for node in graph.nodes} - graph.concepts.keys()
-    record = graph.truncation if graph.truncation.occurred else _request_cut(budget, len(missing))
+    cut = _hydration_bound(budget, len(missing), error)
+    record = graph.truncation if graph.truncation.occurred else cut
     if len(kinds) > 1:
-        per_kind = {kind: _hydration_kind_cut(graph, budget, missing, kind) for kind in kinds}
+        per_kind = {kind: _hydration_kind_cut(graph, budget, missing, kind, cut) for kind in kinds}
         record = replace(record, per_kind=per_kind)
     return record
 
 
+def _hydration_bound(
+    budget: Budget, omitted: int, error: RequestBudgetError | CallDeadlineError | None
+) -> Truncation:
+    if isinstance(error, CallDeadlineError):
+        deadline = current_deadline()
+        if deadline is None:
+            raise error
+        limit, reached, omitted = deadline.figures()
+        return Truncation(True, "deadline", limit, reached, omitted, False)
+    return _request_cut(budget, omitted)
+
+
 def _hydration_kind_cut(
-    graph: TraversalResult, budget: Budget, missing: set[str], kind: str
+    graph: TraversalResult,
+    budget: Budget,
+    missing: set[str],
+    kind: str,
+    cut: Truncation,
 ) -> Truncation:
     record = (graph.truncation.per_kind or {}).get(kind, Truncation(False))
     if record.occurred:
         return record
     targets = {edge.target_code for edge in graph.edges if edge.edge_type == kind} & missing
-    return _request_cut(budget, len(targets)) if targets else record
+    if not targets:
+        return record
+    return cut if cut.bound == "deadline" else _request_cut(budget, len(targets))
 
 
 def _request_cut(budget: Budget, omitted: int) -> Truncation:

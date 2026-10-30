@@ -206,6 +206,16 @@ TEXT_LIMITS = {
 }
 
 
+def text_limit_description() -> str:
+    """The refusal contract shared by handler descriptions, without duplicating limits."""
+    return (
+        "Text beyond inputSchema maxLength is invalid_request before upstream/index work, "
+        "never shortened. URL-carried text also has a separate "
+        f"{MAX_TEXT_TARGET_BYTES:,}-byte encoded-target ceiling including filters and pins; "
+        "for caDSR it is conservative server policy, not measured capacity."
+    )
+
+
 def validate_text_lengths(value: object, path: str = "") -> None:
     """Validate caller text once, including nested records, without changing its content."""
     if isinstance(value, dict):
@@ -229,7 +239,8 @@ def _text_length(value: str, path: str) -> None:
 def validate_text_target(url: str, parameter: str) -> None:
     """Bound the actual encoded path/query, never the unencoded caller text."""
     parts = urlsplit(url)
-    size = len((parts.path + ("?" + parts.query if parts.query else "")).encode("utf-8"))
+    # The request builder already percent-encoded this ASCII target, so bytes == characters.
+    size = len(parts.path + ("?" + parts.query if parts.query else ""))
     if size > MAX_TEXT_TARGET_BYTES:
         raise InputValidationError(
             f"Encoded request target is {size} bytes; use at most {MAX_TEXT_TARGET_BYTES} bytes",

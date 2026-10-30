@@ -198,25 +198,39 @@ The top-level `ncit_index` package ships in the same distribution but imports ne
 invocations, reused by nested producers and workflow hops and restored on exit. Release
 discovery and every upstream client spend the same budget. `NCI_SI_CALL_DEADLINE_SECONDS`
 defaults to 50 seconds, must be finite and positive, and cannot disable the deadline.
-Long-running index operator commands are outside this scope.
+Long-running index operator commands are outside this scope through `ToolSpec.deadline`.
 
 Before each actual HTTP attempt, retry wait and traversal work-start checkpoint, remaining
 time is checked. Request and match operations use the smaller of their own timeout and the
 remaining budget. Success and HTTP error bodies use bounded-progress chunk reads with checks
-between reads; response-size limits and response closing still apply. A retry wait must fit
+after each chunk; response-size limits and response closing still apply. A retry wait must fit
 in full: never sleep past the deadline or retry earlier than Retry-After permits. DNS resolution
 and connection setup are bounded only by the per-request timeout, so this is an elapsed-time
 budget, not hard real-time; no detached worker continues after a timeout response.
+One stalled body read can overrun the deadline by at most the socket timeout chosen at request
+open: `min(timeout, remaining)`, where `timeout` is `NCI_SI_TIMEOUT_SECONDS` or, for matching,
+`NCI_SI_MATCH_TIMEOUT_SECONDS`. Connection-level timeout refresh is deferred: no mid-body stall
+has been observed, and HTTP/HTTPS connection subclasses would add TLS-sensitive transport
+complexity. Measure recorded EVS/caDSR live timings for stalls before building that refresh.
 
 Deadline exhaustion follows the one error path as `upstream_unavailable`, with correlation,
 retry guidance, platform where known and the actual total outbound attempts started across
 the call. Ordinary request or match timeout that ends before the deadline remains `timeout`.
-Traversal alone preserves an existing verified partial graph on deadline exhaustion; before
-any start is verified it returns the deadline error. Other upstream failures remain errors.
-The first real bound remains reported;
+Neighborhood, CLI traversal and parent/child hierarchy preserve existing verified partial
+content on deadline exhaustion; before any start is verified they return the deadline error.
+`pathsToRoot` returns an error, never partial paths. Other upstream failures remain errors.
+The first actual bound remains reported; the deadline never overwrites it;
 otherwise `deadline` uses integer milliseconds for `limit` and `reached`. Per-kind omissions
 are numeric lower bounds with `exact: false`, zero when no positive minimum is known.
-Incomplete hierarchy replay never produces a cursor or final page claiming completeness.
+Deadline-partial hierarchy has no `nextCursor` and never claims replay is complete. Ask for
+less depth or fewer relationship kinds, or retry.
+
+`validation.py`'s `TEXT_LIMITS` supplies per-field Unicode-code-point limits published as
+`maxLength` in `inputSchema`; `MAX_TEXT_TARGET_BYTES` separately caps the complete encoded
+URL path/query at 7,000 bytes, including filters and pins. Excess caller input is
+`invalid_request`, never shortened; upstream content is unchanged. The field-specific reasons,
+evidence and remeasurement criteria live in `spec/tools.yaml` and the
+[QUICKSTART limits table](QUICKSTART.md#limits-and-reasons).
 
 ### An indexed search call
 

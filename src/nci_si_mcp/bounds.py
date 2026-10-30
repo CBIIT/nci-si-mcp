@@ -58,6 +58,19 @@ def check_deadline() -> None:
         deadline.check()
 
 
+def deadline_description(seconds: float) -> str:
+    """One client-visible contract, shared by every deadline-bound tool description."""
+    return (
+        f"Call elapsed-time budget: {seconds:g} s by default, shared across upstream work. "
+        "A stalled body read may overrun by its open-time socket timeout, capped by "
+        "NCI_SI_TIMEOUT_SECONDS (NCI_SI_MATCH_TIMEOUT_SECONDS for matching); DNS/connection "
+        "setup is not a hard real-time cutoff. Parent/child hierarchy and neighborhood walks "
+        "preserve verified partial results without nextCursor: the first bound remains, else "
+        "truncation.bound is deadline with limit/reached in ms; before a verified start, "
+        "upstream_unavailable. Ask for less depth/fewer kinds or retry."
+    )
+
+
 @contextmanager
 def deadline_scope(seconds: float) -> Iterator[None]:
     token = _deadline.set(current_deadline() or Deadline(seconds))

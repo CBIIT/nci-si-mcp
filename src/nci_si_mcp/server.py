@@ -335,6 +335,7 @@ def _callback(
 
     parameters = [p.replace(annotation=_field_annotation(p.annotation)) for p in spec.parameters]
     update_wrapper(callback, spec.handler)
+    callback.__doc__ = spec.description
     callback.__name__ = spec.name or spec.operation
     callback.__dict__["__signature__"] = Signature(parameters, return_annotation=output_type)
     callback.__annotations__ = {p.name: p.annotation for p in parameters} | {"return": output_type}

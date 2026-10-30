@@ -125,8 +125,10 @@ get_concept_hierarchy:
     pathsToRoot returns each path the platform gives in paths, the codes from the concept to
     the root in the platform's order, with each concept on them once in nodes; depth, limit
     and cursor do not apply to it.
-    Deadline exhaustion preserves verified partial content with truncation, never a cursor
-    claiming incomplete replay is complete; before any verified start, it is upstream_unavailable.
+    For parent/child, deadline exhaustion preserves verified partial content without nextCursor;
+    the first actual bound stays, otherwise truncation.bound is deadline with limit/reached in
+    milliseconds. Ask for less depth or retry. Before any verified start, or for pathsToRoot,
+    deadline exhaustion is upstream_unavailable, never partial paths.
 expand_value_set:
   title: Subset members
   group: evs
@@ -163,7 +165,8 @@ get_concept_neighborhood:
     are returned marked, with the nodes they reach, which are not followed further unless
     includeNegative.
     Deadline exhaustion preserves the verified partial graph with per-kind truncation and the
-    first real bound; before any verified start, it is upstream_unavailable.
+    first actual bound; otherwise truncation.bound is deadline with limit/reached in milliseconds.
+    Ask for less depth or fewer kinds, or retry; before any verified start, it is upstream_unavailable.
 get_concept_subsets:
   title: Concept subset membership
   group: evs
@@ -228,7 +231,7 @@ get_data_element:
   text_limits:
     questionText:
       maxLength: 2000
-      why: "CDE 6148373 v1 has 1,011 code points in the July 2026 releasedCDEsExcel-OD.zip export (archive SHA-256 e9c35f248f25c76089f63952c6117d51a241c6b20e645b9c9b5e7cc521c036c1; question SHA-256 0c579c0318b0d9c0e8afc23a84b07700372d3ccfd998c70941a8bd417076938e); the snapshot excludes retired/TEST/TRAINING records, so 2,000 leaves semantic headroom while the encoded guard protects the URL; remeasure broader exports before changing it."
+      why: "The longest preferred question text in the July 2026 releasedCDEsExcel-OD.zip export is 1,011 characters (CDE 6148373 v1; archive SHA-256 e9c35f248f25c76089f63952c6117d51a241c6b20e645b9c9b5e7cc521c036c1; question SHA-256 0c579c0318b0d9c0e8afc23a84b07700372d3ccfd998c70941a8bd417076938e). The 2,000-character limit leaves headroom, but that snapshot excludes retired/TEST/TRAINING records; remeasure broader exports and ask caDSR whether legitimate inputs can exceed this or the 7,000-byte encoded URL ceiling. No rejection of legitimate content has been observed."
   encoded_target: *encoded_target
   returns: data_element
   items: ["."]

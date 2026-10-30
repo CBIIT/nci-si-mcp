@@ -13,8 +13,9 @@ from typing import Annotated, Any, Literal, get_args, get_origin, get_type_hints
 
 from . import cadsr_content, cadsr_matching, content, handlers, seam, workflows
 from .audit import AuditClass, audited, secrets
-from .bounds import deadline_scope
+from .bounds import deadline_description, deadline_scope
 from .caching import invocation_policy
+from .config import DEFAULT_CALL_DEADLINE_SECONDS
 from .context import Context
 from .invocation import call
 from .permissions import require
@@ -58,7 +59,7 @@ from .results import (
     ValueMeaningMatches,
     ValueSetExpansion,
 )
-from .validation import validate_text_lengths
+from .validation import text_limit_description, validate_text_lengths
 
 
 @dataclass(frozen=True)
@@ -98,7 +99,11 @@ class ToolSpec:
 
     @property
     def description(self) -> str:
-        return getdoc(self.handler) or ""
+        description = getdoc(self.handler) or ""
+        if self.deadline:
+            description += "\n\n" + deadline_description(DEFAULT_CALL_DEADLINE_SECONDS)
+            description += "\n" + text_limit_description()
+        return description
 
     @property
     def annotations(self) -> dict[str, bool]:

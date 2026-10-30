@@ -55,15 +55,36 @@ A5:
   title: Result bounding, truncation and traversal
   rules:
     A5.1: A tool that can return a large result takes caller limits and applies a documented default.
-    A5.2: Result size, traversal depth, outbound requests and elapsed time per tool call are bounded. NCI_SI_CALL_DEADLINE_SECONDS sets one shared elapsed-time budget, default 50 seconds, validated as finite and positive with no disable switch; index operator commands are outside this call deadline.
+    A5.2: >-
+      Result size, traversal depth, outbound requests and elapsed time per tool call are bounded.
+      NCI_SI_CALL_DEADLINE_SECONDS sets one shared elapsed-time budget, default 50 seconds,
+      validated as finite and positive with no disable switch; index operator commands are
+      outside this call deadline. Release discovery and nested work share it. Checks run before
+      each HTTP attempt, before each retry wait, after each body chunk and at traversal
+      checkpoints. One stalled body read can overrun by at most the socket timeout chosen at
+      request open, min(timeout, remaining), where timeout is NCI_SI_TIMEOUT_SECONDS or
+      NCI_SI_MATCH_TIMEOUT_SECONDS for matching. DNS and connection setup also prevent a hard
+      real-time guarantee.
     A5.3: The outbound request bound counts retries.
-    A5.4: A bound reached is reported with which bound and how much was omitted, exactly or as a stated estimate; a flag alone is not enough.
+    A5.4: >-
+      A bound reached is reported with which bound and how much was omitted, exactly or as a
+      stated estimate; a flag alone is not enough. Deadline exhaustion preserves verified
+      partial content for neighborhood, CLI traversal and parent/child hierarchy, with no
+      nextCursor. The first actual bound stays; deadline never overwrites it. Otherwise
+      truncation.bound is deadline, limit and reached are integer milliseconds, and omissions
+      are lower bounds (exact false, zero when no positive minimum is known). Ask for less
+      depth or fewer relationship kinds, or retry. Before any verified start, and for
+      pathsToRoot, deadline exhaustion is upstream_unavailable, never partial paths.
     A5.5: Traversal over several relationship kinds does not spend its budget on one kind at the expense of another, and reports truncation per kind; a response missing a whole category of relationship says so.
     A5.6: Negative assertions are kept, marked with negative polarity and full provenance, and left out of positive expansion by default, which the caller can override.
     A5.7: Negative assertions are identified by relationship code against the release's relationship catalogue, never by the relationship's name.
     A5.8: The same information is not retrieved twice within one operation.
   why:
-    A5.2: The 50-second default leaves response headroom below common 60-second client timeouts; weigh client and gateway timeouts before raising it.
+    A5.2: >-
+      The 50-second default leaves response headroom below common 60-second client timeouts;
+      weigh client and gateway timeouts before raising it. No mid-body stall has been observed;
+      connection-level timeout refresh is deferred until recorded EVS/caDSR live timings show
+      one, because custom HTTP/HTTPS connections add TLS-sensitive transport complexity.
     A5.7: "NCIt's exclusion relationships are exactly eight roles, R135 to R142. Matching their names fails open: a renamed label turns an exclusion into the assertion that the disease has the very finding it rules out."
 A6:
   title: Audit context, correlation and telemetry

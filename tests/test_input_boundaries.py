@@ -18,6 +18,7 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 from fakes import data_element
 from nci_si_mcp.cadsr import CaDSRClient
 from test_cadsr_client import reply
+from test_cadsr_matching import cde_response
 from test_http_client import ServerTestCase
 from test_release_selection import initialize_http
 from test_server import ServerFixture
@@ -220,3 +221,77 @@ class InputBoundaryTest(ServerFixture, ServerTestCase):
         }
         for name, fields in EXPECTED.items():
             self.assertEqual({path: schemas[name].get(path) for path in fields}, fields, name)
+
+    def test_overlong_nested_text_names_its_path_before_any_upstream_or_index_work(self):
+        """Given one overlong scalar, when called over MCP, then refuse before doing work."""
+        cases = [
+            ("ground_value", {"text": "x" * 2001}, "text"),
+            ("match_value_meanings", {"values": ["ok", "x" * 2001]}, "values"),
+        ]
+        cases += [
+            (
+                "match_data_elements",
+                {"entities": [{"name": "ok"}, {"name": "ok", field: value}]},
+                f"entities.{field}",
+            )
+            for field, value in (
+                ("name", "x" * 2001),
+                ("userTip", "x" * 2001),
+                ("permissibleValues", ["ok", "x" * 2001]),
+            )
+        ]
+        cases += [
+            (
+                "harmonize_data_dictionary",
+                {"columns": [{"name": "ok"}, {"name": "ok", field: value}]},
+                f"columns.{field}",
+            )
+            for field, value in (
+                ("name", "x" * 10001),
+                ("description", "x" * 10001),
+                ("sampleValues", ["ok", "x" * 10001]),
+            )
+        ]
+        server = self.upstream()
+        calls = [{"name": name, "arguments": arguments} for name, arguments, _ in cases]
+        with patch.object(self.context, "index", wraps=self.context.index) as index:
+            answers, _ = self.exchange("http", calls)
+            for answer, (name, _, path) in zip(answers, cases, strict=True):
+                with self.subTest(tool=name, path=path):
+                    self.assert_invalid(answer, path)
+            self.assertEqual(index.mock_calls, [])
+        self.assertEqual(self.evs.calls, [])
+        self.assertEqual(server.seen, [])
+
+    def test_maximum_nested_entity_fields_reach_matching_unchanged(self):
+        """Given maximum-length fields, when matching over MCP, then send their exact JSON."""
+        name, tip, value = (character * 2000 for character in ("é", "t", "v"))
+        arguments = {"entities": [{"name": name, "userTip": tip, "permissibleValues": [value]}]}
+        for transport in ("http", "stdio"):
+            with self.subTest(transport=transport):
+                server = self.upstream(reply(cde_response(name)))
+                answers, _ = self.exchange(
+                    transport,
+                    [{"name": "match_data_elements", "arguments": arguments}],
+                )
+                self.assertFalse(answers[0]["isError"], answers[0])
+                self.assertEqual(answers[0]["structuredContent"]["matches"], [])
+                self.assertEqual(len(server.seen), 1)
+                self.assertEqual(
+                    [json.loads(body) for body in server.bodies],
+                    [{"entity": name, "entityUserTip": tip, "pvvmData": [{"name": value}]}],
+                )
+
+    def test_every_tool_keeps_the_shared_deadline_and_input_refusal_contract(self):
+        listing = self.session(lambda client: client.list_tools())
+        for tool in listing.tools:
+            with self.subTest(tool=tool.name):
+                for clause in (
+                    "50 s by default, shared across upstream work",
+                    "invalid_request before upstream/index work, never shortened",
+                    "preserve verified partial results without nextCursor",
+                    "truncation.bound is deadline with limit/reached in ms",
+                    "before a verified start, upstream_unavailable",
+                    "Ask for less depth/fewer kinds or retry",
+                ):
+                    self.assertIn(clause, tool.description)

@@ -33,7 +33,6 @@ from .audit import emit, hashed, requested
 from .bounds import CallDeadlineError, check_deadline, current_budget, current_deadline
 from .errors import PlatformError, current_correlation_id
 from .upstream import parse_upstream_json
-from .validation import validate_text_target
 
 logger = logging.getLogger(__name__)
 
@@ -182,13 +181,21 @@ def _error_detail(exc: HTTPError) -> tuple[str, bool]:
         return "", False
     try:
         body = json.loads(payload.decode("utf-8"))
-    except ValueError, RecursionError:
+    except RecursionError:
+        raise UpstreamUnavailableError(
+            "The upstream error body exceeds JSON nesting limits. Retry later."
+        ) from None
+    except ValueError:
         return "", not payload
     return (str(body.get("message") or "") if isinstance(body, dict) else ""), False
 
 
 def _read_progress(response: Any, limit: int) -> bytes:
-    """read1 makes bounded progress instead of accumulating an arbitrarily slow drip."""
+    """Check after each progress read; a stalled read can overrun by its open-time timeout.
+
+    That timeout is at most NCI_SI_TIMEOUT_SECONDS (the match setting for matching).
+    Connection-level refresh is deferred pending evidence of live mid-body stalls.
+    """
     if current_deadline() is None:
         return response.read(limit)
     chunks: list[bytes] = []
@@ -322,13 +329,6 @@ class HttpClient:
         headers = {"Accept": "application/json", **(headers or {}), **self.credentials}
         if correlation_id := current_correlation_id():
             headers[CORRELATION_HEADER] = correlation_id
-        for key, parameter in (
-            ("term", "query"),
-            ("keyword", "query"),
-            ("documentText", "questionText"),
-        ):
-            if params and key in params:
-                validate_text_target(self.url(path, params), parameter)
         # The base URL comes from Settings, which accepts only http and https.
         return Request(self.url(path, params), headers=headers, data=data)  # noqa: S310
 
@@ -435,6 +435,13 @@ class HttpClient:
 
         try:
             detail, empty_body = _error_detail(exc)
+        except UpstreamUnavailableError:
+            raise UpstreamUnavailableError(
+                "The upstream error body exceeds JSON nesting limits. Retry later.",
+                surface=self.surface,
+                status=exc.code,
+                attempts=attempt.number,
+            ) from None
         finally:
             exc.close()
         reason = " ".join(part for part in (f"HTTP {exc.code}", _status_reason(exc.code)) if part)

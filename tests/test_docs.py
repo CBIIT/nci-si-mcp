@@ -497,6 +497,35 @@ class DocumentationTest(unittest.TestCase):
     def test_quickstart_error_table_lists_exactly_the_error_codes(self):
         self.assertEqual(first_column(section(QUICKSTART, "Errors")), set(get_args(ErrorCode)))
 
+    def test_quickstart_input_and_deadline_errors_explain_the_callers_remedy(self):
+        rows = {
+            cells[0].strip().strip("`"): tuple(cell.strip() for cell in cells[1:])
+            for line in section(QUICKSTART, "Errors").splitlines()
+            if line.startswith("| `")
+            for cells in [line.split("|")[1:-1]]
+        }
+        meaning, details = rows["invalid_request"]
+        self.assertEqual(details, "`parameter`, `reason`")
+        for clause in (
+            "Text exceeding its field's `maxLength` or the 7,000-byte encoded URL-target "
+            "ceiling is refused, never shortened: reduce the named field and check filters/pins.",
+            "A supplied `_meta.correlationId` must fully match `[A-Za-z0-9._:-]{1,128}`: "
+            "correct it or omit it; refusal uses a fresh safe ID without echoing the rejected "
+            "value.",
+        ):
+            self.assertIn(clause, meaning)
+        self.assertIn(
+            "Call deadline exhaustion uses this code, with `attempts` counting all outbound "
+            "requests actually started across the call, including retries and release discovery",
+            rows["upstream_unavailable"][0],
+        )
+        self.assertEqual(
+            rows["timeout"][0],
+            "Every attempt at an upstream request timed out (`NCI_SI_TIMEOUT_SECONDS`; "
+            "`NCI_SI_MATCH_TIMEOUT_SECONDS` for caDSR matching) before the call deadline; "
+            "timeouts are errors, never empty results",
+        )
+
     @patch("nci_si_mcp.server.configure_logging")
     def test_every_usage_example_calls_a_tool_and_arguments_the_server_has(self, _):
         # Creating a server installs a root log handler; take it out again.
