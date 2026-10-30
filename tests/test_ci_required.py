@@ -88,7 +88,15 @@ class RequiredCommandTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0 if name in ALLOWED_SKIPS else 1)
 
     def test_empty_or_malformed_needs_cannot_report_success(self):
-        for needs in ({}, [], None, {"quality": None}, {"quality": "success"}):
+        for needs in (
+            {},
+            [],
+            [1],
+            None,
+            {"quality": None},
+            {"quality": "success"},
+            {"quality": {"result": []}},
+        ):
             with self.subTest(needs=needs):
                 result = self.run_gate(needs)
                 self.assertEqual(result.returncode, 1, result.stderr)

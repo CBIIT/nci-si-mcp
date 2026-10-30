@@ -10,7 +10,7 @@ from pathlib import Path, PurePosixPath
 
 from scripts.validation.mutation_run import context_tests, coverage_args, coverage_map
 
-SHARDS = {"unit": 4, "selftest": 10, "fixture": 1}
+SHARDS = {"unit": 4, "selftest": 8, "fixture": 1}
 VERSION = 1
 
 

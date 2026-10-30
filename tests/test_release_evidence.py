@@ -18,6 +18,30 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ImageDigestEvidenceTest(unittest.TestCase):
+    def test_module_entry_rejects_bad_tag_before_any_external_command(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "scripts.image_publish", "--bad-tag"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Expected a release tag", result.stderr)
+
+    def test_nonstring_digest_entries_do_not_hide_the_one_valid_image(self):
+        with TemporaryDirectory() as directory, chdir(directory):
+            publication = test_image_publish.ImagePublicationTest()
+            publication.evidence()
+            digest = "ghcr.io/new-org/project@sha256:" + "a" * 64
+            with patch(
+                "test_image_publish.PublicationService.run_image",
+                return_value=json.dumps([None, digest]),
+            ):
+                publication.publish(public=True)
+            self.assertIn("subject-digest=sha256:" + "a" * 64, Path("outputs").read_text())
+
     def test_bad_digest_cannot_write_attestation_outputs_or_upload_evidence(self):
         invalid = [
             [],

@@ -33,7 +33,7 @@ def ci_run(**changes):
 
 
 class ReleaseGuardTest(unittest.TestCase):
-    def guard(self, runs, api_status=0):
+    def guard(self, runs, api_status=0, raw=False):
         self.assertTrue(
             (ROOT / "scripts/release_ci.py").is_file(),
             "Manual releases must have a fail-closed CI guard",
@@ -55,7 +55,7 @@ class ReleaseGuardTest(unittest.TestCase):
                 | {
                     "PATH": directory + os.pathsep + os.environ["PATH"],
                     "GITHUB_REPOSITORY": "CBIIT/nci-si-mcp",
-                    "FAKE_RUNS": json.dumps({"workflow_runs": runs}),
+                    "FAKE_RUNS": json.dumps(runs if raw else {"workflow_runs": runs}),
                     "API_STATUS": str(api_status),
                     "ARGV_FILE": str(Path(directory) / "argv"),
                 },
@@ -72,7 +72,7 @@ class ReleaseGuardTest(unittest.TestCase):
             return result
 
     def test_exact_successful_main_push_ci_allows_release(self):
-        result = self.guard([ci_run()])
+        result = self.guard([ci_run(id=1)])
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_unavailable_or_untrusted_ci_evidence_refuses_release(self):
@@ -103,6 +103,16 @@ class ReleaseGuardTest(unittest.TestCase):
         result = self.guard([])
         self.assertEqual(result.returncode, 1)
         self.assertIn("No CI run for the main commit", result.stderr)
+
+    def test_malformed_api_body_is_a_controlled_refusal(self):
+        for body in ([], None, {"workflow_runs": "bad"}):
+            with self.subTest(body=body):
+                result = self.guard(body, raw=True)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("Release refused", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+                if isinstance(body, dict):
+                    self.assertIn("No CI run for the main commit", result.stderr)
 
     def test_newest_unsuccessful_run_is_not_hidden_by_older_success(self):
         for runs in (

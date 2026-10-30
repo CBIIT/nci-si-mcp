@@ -73,6 +73,30 @@ class PublicationService:
 
 
 class ImagePublicationTest(unittest.TestCase):
+    def test_missing_publication_program_reports_the_missing_executable(self):
+        with (
+            patch.object(image_publish.shutil, "which", return_value=None),
+            self.assertRaises(FileNotFoundError),
+        ):
+            image_publish.run("nci-si-missing-publication-command")
+
+    def test_missing_docker_refuses_publication_before_login(self):
+        with (
+            patch.object(image_publish.shutil, "which", return_value=None),
+            patch.dict(
+                "os.environ",
+                {
+                    "PATH": "",
+                    "GITHUB_REPOSITORY": "role/repo",
+                    "GITHUB_ACTOR": "role",
+                    "GH_TOKEN": "not-logged",
+                },
+            ),
+            patch("sys.argv", ["image_publish", "v1.0.0"]),
+            self.assertRaises(FileNotFoundError),
+        ):
+            image_publish.main()
+
     def evidence(self):
         evidence = Path("tmp/image")
         evidence.mkdir(parents=True)

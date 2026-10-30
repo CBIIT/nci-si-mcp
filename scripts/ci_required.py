@@ -11,7 +11,7 @@ def job_result(name: str, row: object) -> str | None:
     if not isinstance(row, dict):
         raise ValueError(f"Invalid CI needs: {name} must be a job object")
     result = row.get("result")
-    if result is not None and not isinstance(result, str):
+    if not isinstance(result, str):
         raise ValueError(f"Invalid CI needs: {name} has a non-string result")
     return result
 
@@ -21,8 +21,6 @@ def results(value: object) -> dict[str, str | None]:
         raise ValueError("Invalid CI needs: expected a nonempty object")
     found: dict[str, str | None] = {}
     for name, row in value.items():
-        if not isinstance(name, str):
-            raise ValueError("Invalid CI needs: expected job names")
         found[name] = job_result(name, row)
     return found
 

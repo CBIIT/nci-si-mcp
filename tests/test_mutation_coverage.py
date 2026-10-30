@@ -112,7 +112,7 @@ def cli_mutants(result):
 
 class SharedCoverageTest(unittest.TestCase):
     def test_fragment_counts_match_the_real_ci_matrix_independently(self):
-        self.assertEqual(SHARDS, {"unit": 4, "selftest": 10, "fixture": 1})
+        self.assertEqual(SHARDS, {"unit": 4, "selftest": 8, "fixture": 1})
 
     def test_export_rejects_bad_shards_and_unattributed_data_without_creating_fragments(self):
         with tempfile.TemporaryDirectory() as directory:

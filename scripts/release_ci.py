@@ -2,7 +2,6 @@
 
 import json
 import os
-import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -11,13 +10,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True, slots=True)
 class CIRun:
     identifier: int
-    conclusion: str | None
-
-
-def conclusion_value(value: object) -> str | None:
-    if value is not None and not isinstance(value, str):
-        raise ValueError("CI run has an invalid conclusion")
-    return value
+    successful: bool
 
 
 def matching_run(value: object, sha: str) -> CIRun:
@@ -34,7 +27,7 @@ def matching_run(value: object, sha: str) -> CIRun:
     identifier = value.get("id")
     if type(identifier) is not int or identifier <= 0:
         raise ValueError("CI run has no valid identifier")
-    return CIRun(identifier, conclusion_value(value.get("conclusion")))
+    return CIRun(identifier, value.get("conclusion") == "success")
 
 
 def require_success(response: object, sha: str) -> None:
@@ -46,7 +39,7 @@ def require_success(response: object, sha: str) -> None:
     runs = [matching_run(row, sha) for row in rows]
     # GitHub run IDs increase across runs; an API-order change must not pick an older success.
     latest = max(runs, key=lambda row: row.identifier)
-    if latest.conclusion != "success":
+    if not latest.successful:
         raise ValueError("Newest CI run has not completed successfully")
 
 
@@ -59,7 +52,8 @@ def main() -> int:
     )
     try:
         output = subprocess.check_output(  # noqa: S603 - fixed gh command, no shell
-            [shutil.which("gh") or "gh", "api", route], text=True, stderr=subprocess.PIPE
+            ["gh", "api", route],  # noqa: S607 - required runner tool
+            stderr=subprocess.PIPE,
         )
         require_success(json.loads(output), sha)
     except (ValueError, subprocess.CalledProcessError) as error:
