@@ -624,7 +624,6 @@ class _Walk:
 
     def _read_descendants(self, start_codes: list[str]) -> None:
         for code in start_codes:
-            check_deadline()
             try:
                 items = self.client.get_descendants(code, self.budget.depth, release=self.release)
             except UpstreamTooLargeError as exc:

@@ -193,7 +193,6 @@ def _read_progress(response: Any, limit: int) -> bytes:
     chunks: list[bytes] = []
     remaining = limit
     while remaining:
-        check_deadline()
         chunk = response.read1(min(65536, remaining))
         check_deadline()
         if not chunk:

@@ -74,6 +74,7 @@ class ToolSpec:
     command: str | None = None
     uri: str | None = None
     audit: dict[str, AuditClass] = field(default_factory=dict)
+    deadline: bool = True
     input_model: type = field(init=False)
     parameters: tuple[Parameter, ...] = field(init=False)
 
@@ -582,6 +583,7 @@ SPECS = (
         dict[str, Any],
         False,
         command="index-sample",
+        deadline=False,
         audit={"codes": "plain"},
     ),
     ToolSpec(
@@ -592,14 +594,19 @@ SPECS = (
         command="evaluate",
         audit={"build_id": "plain"},
     ),
-    ToolSpec(handlers.index_build, "evs", dict[str, Any], False, command="index-build"),
-    ToolSpec(handlers.index_builds, "evs", dict[str, Any], False, command="index-builds"),
+    ToolSpec(
+        handlers.index_build, "evs", dict[str, Any], False, command="index-build", deadline=False
+    ),
+    ToolSpec(
+        handlers.index_builds, "evs", dict[str, Any], False, command="index-builds", deadline=False
+    ),
     ToolSpec(
         handlers.index_rebuild,
         "evs",
         dict[str, Any],
         False,
         command="index-rebuild",
+        deadline=False,
         audit={"build_id": "plain"},
     ),
     ToolSpec(
@@ -608,6 +615,7 @@ SPECS = (
         dict[str, Any],
         False,
         command="index-activate",
+        deadline=False,
         audit={"build_id": "plain"},
     ),
     ToolSpec(
@@ -665,7 +673,7 @@ def invoke(
     def produce() -> dict[str, Any]:
         require(spec.operation)
         with invocation_policy(resolution=spec.resolution), selection_scope():
-            if spec.command and spec.command.startswith("index-"):
+            if not spec.deadline:
                 return spec.handler(context, **spec.arguments(args, kwargs))
             with deadline_scope(context.settings.call_deadline_seconds):
                 return spec.handler(context, **spec.arguments(args, kwargs))

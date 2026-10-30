@@ -12,9 +12,26 @@ from nci_si_mcp.bounds import (
     current_deadline,
     deadline_scope,
 )
+from nci_si_mcp.registry import SPECS
 
 
 class DeadlineScopeTest(unittest.TestCase):
+    def test_only_declared_index_operators_are_exempt_from_call_deadlines(self):
+        self.assertEqual(
+            {spec.operation for spec in SPECS if not spec.deadline},
+            {"index_codes", "index_build", "index_builds", "index_rebuild", "index_activate"},
+        )
+
+    def test_refused_attempt_does_not_increment_the_actual_request_count(self):
+        now = [0.0]
+        with patch("nci_si_mcp.bounds.monotonic", side_effect=lambda: now[0]), deadline_scope(1):
+            deadline = current_deadline()
+            deadline.request("evs")
+            now[0] = 1
+            with self.assertRaises(CallDeadlineError) as raised:
+                deadline.request("cadsr")
+        self.assertEqual(raised.exception.details, {"surface": "cadsr", "attempts": 1})
+
     def test_nested_work_keeps_the_original_budget_and_cancellation_resets_it(self):
         now = [0.0]
         with patch("nci_si_mcp.bounds.monotonic", side_effect=lambda: now[0]):
