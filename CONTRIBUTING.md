@@ -268,6 +268,7 @@ pytest's original report. Local report files live under ignored `tmp/` directori
 | Test quality | No test without an assertion, or with only mock or `callable` assertions (`scripts/validation/check_test_quality.py`) |
 | Dead code | No unused functions, classes or variables (vulture) |
 | gitleaks, zizmor | No secrets; safe GitHub Actions workflows |
+| actionlint, shellcheck | Workflow syntax, expressions and shell scripts; both binaries are pinned in the PDM lint group. Only the unsupported `$/` self-repository diagnostics are ignored in `.github/actionlint.yaml`; local target existence is tested separately. |
 | Upstream requirement packages | `docs/upstream/*.md` are the current render of `docs/upstream/catalogue.yaml` (`scripts/upstream_requirements.py --check`) |
 | Acceptance ratchet (CI) | Every test of the acceptance suite, in fixture mode, has the outcome in `acceptance/expected/fixture.json`. A change that moves an outcome on purpose updates that file in the same pull request, and the diff of the file is what the review reads: `pdm run acceptance-expected update acceptance/fixture.json` writes it from a fresh report, and `pdm run acceptance-status` the README table that follows |
 | Tests and coverage | The suite passes before each push and in CI; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |

@@ -29,6 +29,13 @@ repos:
   # the one place that says which version runs, here and in CI.
   - repo: local
     hooks:
+      - id: actionlint
+        name: actionlint
+        entry: pdm run actionlint
+        language: system
+        files: ^\.github/(workflows/.*\.ya?ml|actionlint\.yaml)$
+        pass_filenames: false
+        stages: [pre-commit]
       # --no-cache on both ruff hooks: the cache does not revisit unchanged files when a new
       # file changes the first-party set, so a cached local pass can disagree with CI.
       - id: ruff-format

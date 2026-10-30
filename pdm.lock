@@ -5,10 +5,20 @@
 groups = ["default", "acceptance", "audit", "docs", "embeddings", "index", "lint", "release", "server", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.1"
-content_hash = "sha256:069b27fcf099cfa531b513906b4f236e3413365f00d534ec48cdefae063906a3"
+content_hash = "sha256:74d19101a6d97da988f4d9e378a41181180e7283b98cfc9272b7d55ffa9ba896"
 
 [[metadata.targets]]
 requires_python = ">=3.14"
+
+[[package]]
+name = "actionlint-py"
+version = "1.7.12.25"
+requires_python = ">=3.7"
+summary = "Python wrapper around invoking actionlint (https://github.com/rhysd/actionlint)"
+groups = ["lint"]
+files = [
+    {file = "actionlint_py-1.7.12.25.tar.gz", hash = "sha256:83f83be4cd317c79b15cbb7022787513a6994f00bfb2dd8da02fa4e62b4f640d"},
+]
 
 [[package]]
 name = "annotated-doc"
@@ -2565,6 +2575,20 @@ groups = ["embeddings"]
 files = [
     {file = "setuptools-84.2.1-py3-none-any.whl", hash = "sha256:ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2"},
     {file = "setuptools-84.2.1.tar.gz", hash = "sha256:3ff8b3b5492a0aa66960f4419365a86b84e013070d4313e4d4a6894f5d64d6bc"},
+]
+
+[[package]]
+name = "shellcheck-py"
+version = "0.11.0.1"
+requires_python = ">=3.9"
+summary = "Python wrapper around invoking shellcheck (https://www.shellcheck.net/)"
+groups = ["lint"]
+files = [
+    {file = "shellcheck_py-0.11.0.1-py2.py3-none-macosx_10_9_x86_64.whl", hash = "sha256:b6a3fee28efda2e16e38d6e6d59faf7224300256456639727370d404730849e8"},
+    {file = "shellcheck_py-0.11.0.1-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:6b88d0a244c82ed07e06a53e444da841f69330ca59ae15d4a66c391655dae7a0"},
+    {file = "shellcheck_py-0.11.0.1-py2.py3-none-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:1b274df81de5b000ff78db433e7328b87e52e3c38481c60f8e488c3095beef05"},
+    {file = "shellcheck_py-0.11.0.1-py2.py3-none-win_amd64.whl", hash = "sha256:784156289ecb17e91c692cd783ab5152333309588cabb10032a047331c63e759"},
+    {file = "shellcheck_py-0.11.0.1.tar.gz", hash = "sha256:5c620c88901e8f1d3be5934b31ea99e3310065e1245253741eafd0a275c8c9cc"},
 ]
 
 [[package]]
