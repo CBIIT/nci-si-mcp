@@ -11,6 +11,7 @@
 CI and CodeQL badges track `main`. Coverage badges show combined line and branch coverage
 from successful main CI, with the measured commit and run linked; they are not acceptance pass rates.
 Scorecard measures repository security practices, not acceptance outcomes.
+[SCORECARD.md](SCORECARD.md) explains the score and what keeps it below 10.
 
 The NCI Semantic Infrastructure Model Context Protocol (MCP) server, built to production standards
 and likely to become the production codebase, though not yet declared production. It serves
