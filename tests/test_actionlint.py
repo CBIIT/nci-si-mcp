@@ -13,13 +13,17 @@ from test_pre_commit_config import hooks
 
 ROOT = Path(__file__).resolve().parents[1]
 IGNORES = [
-    r'^specifying action "\$/[^"\n]+" in invalid format because ref is missing\. '
-    r'available formats are "\{owner\}/\{repo\}@\{ref\}" or '
-    r'"\{owner\}/\{repo\}/\{path\}@\{ref\}"$',
-    r'^reusable workflow call "\$/[^"\n]+" at "uses" is not following the format '
-    r'"owner/repo/path/to/workflow\.yml@ref" nor "\./path/to/workflow\.yml"\. '
-    r"see https://docs\.github\.com/en/actions/learn-github-actions/"
-    r"reusing-workflows for more details$",
+    (
+        r'^specifying action "\$/[^"\n]+" in invalid format because ref is missing\. '
+        r'available formats are "\{owner\}/\{repo\}@\{ref\}" or '
+        r'"\{owner\}/\{repo\}/\{path\}@\{ref\}"$'
+    ),
+    (
+        r'^reusable workflow call "\$/[^"\n]+" at "uses" is not following the format '
+        r'"owner/repo/path/to/workflow\.yml@ref" nor "\./path/to/workflow\.yml"\. '
+        r"see https://docs\.github\.com/en/actions/learn-github-actions/"
+        r"reusing-workflows for more details$"
+    ),
 ]
 
 
