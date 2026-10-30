@@ -1,0 +1,8 @@
+# Remove these exact self-repository syntax exceptions once actionlint supports $/.
+# https://github.com/rhysd/actionlint/issues/711
+# https://github.com/rhysd/actionlint/pull/732
+paths:
+  '.github/workflows/**/*.{yml,yaml}':
+    ignore:
+      - '^specifying action "\$/[^"\n]+" in invalid format because ref is missing\. available formats are "\{owner\}/\{repo\}@\{ref\}" or "\{owner\}/\{repo\}/\{path\}@\{ref\}"$'
+      - '^reusable workflow call "\$/[^"\n]+" at "uses" is not following the format "owner/repo/path/to/workflow\.yml@ref" nor "\./path/to/workflow\.yml"\. see https://docs\.github\.com/en/actions/learn-github-actions/reusing-workflows for more details$'

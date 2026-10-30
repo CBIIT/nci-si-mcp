@@ -256,7 +256,8 @@ jobs:
           path: unit-coverage
       - name: Combine every unit shard and enforce the minimum
         run: |
-          test "$(ls -1d unit-coverage/unit-coverage-* | wc -l)" -eq 4
+          shards=(unit-coverage/unit-coverage-*)
+          test "${#shards[@]}" -eq 4
           pdm run coverage combine unit-coverage/unit-coverage-{0,1,2,3}/.coverage
           pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py'
       # Falling short of the aim is reported, not enforced (CONTRIBUTING.md, standard 3).

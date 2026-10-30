@@ -12,8 +12,13 @@ from test_pre_commit_config import hooks
 
 ROOT = Path(__file__).resolve().parents[1]
 IGNORES = [
-    r'^specifying action "\$/[^"\n]+" is invalid',
-    r'^reusable workflow call "\$/[^"\n]+" is invalid',
+    r'^specifying action "\$/[^"\n]+" in invalid format because ref is missing\. '
+    r'available formats are "\{owner\}/\{repo\}@\{ref\}" or '
+    r'"\{owner\}/\{repo\}/\{path\}@\{ref\}"$',
+    r'^reusable workflow call "\$/[^"\n]+" at "uses" is not following the format '
+    r'"owner/repo/path/to/workflow\.yml@ref" nor "\./path/to/workflow\.yml"\. '
+    r"see https://docs\.github\.com/en/actions/learn-github-actions/"
+    r"reusing-workflows for more details$",
 ]
 
 
@@ -38,7 +43,10 @@ class ActionlintContractTest(unittest.TestCase):
     def test_only_exact_self_repository_diagnostics_are_ignored(self):
         path = ROOT / ".github/actionlint.yaml"
         self.assertTrue(path.is_file(), "The narrow actionlint configuration must exist")
-        self.assertEqual(yaml.safe_load(path.read_text()), {"ignore": IGNORES})
+        self.assertEqual(
+            yaml.safe_load(path.read_text()),
+            {"paths": {".github/workflows/**/*.{yml,yaml}": {"ignore": IGNORES}}},
+        )
 
     def test_every_self_repository_use_names_an_existing_action_or_workflow(self):
         missing = []

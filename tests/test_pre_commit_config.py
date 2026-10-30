@@ -109,6 +109,14 @@ class PrePushTestHookTest(unittest.TestCase):
             [
                 common
                 | {
+                    "id": "actionlint",
+                    "name": "actionlint",
+                    "entry": "pdm run actionlint",
+                    "files": r"^\.github/(workflows/.*\.ya?ml|actionlint\.yaml)$",
+                    "pass_filenames": False,
+                },
+                common
+                | {
                     "id": "ruff-format",
                     "name": "ruff format",
                     "entry": "pdm run ruff format --no-cache --force-exclude",

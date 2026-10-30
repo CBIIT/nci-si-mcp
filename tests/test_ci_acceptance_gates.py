@@ -142,7 +142,6 @@ class AcceptanceGateWorkflowTest(unittest.TestCase):
             {
                 "name": "Check every anonymous Shared SI query contract",
                 "if": "${{ !cancelled() }}",
-                "env": {},
                 "run": "status=0\n"
                 "pdm run python -m scripts.ssis_contracts > "
                 "acceptance/ssis-contracts.json || status=$?\n"

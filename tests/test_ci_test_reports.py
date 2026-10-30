@@ -182,7 +182,8 @@ class TestReportWorkflowTest(unittest.TestCase):
                     },
                     {
                         "name": "Combine every unit shard and enforce the minimum",
-                        "run": 'test "$(ls -1d unit-coverage/unit-coverage-* | wc -l)" -eq 4\n'
+                        "run": "shards=(unit-coverage/unit-coverage-*)\n"
+                        'test "${#shards[@]}" -eq 4\n'
                         "pdm run coverage combine unit-coverage/unit-coverage-{0,1,2,3}/.coverage\n"
                         "pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py'\n",
                     },

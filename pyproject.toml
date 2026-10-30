@@ -38,6 +38,8 @@ test = [
 # Ruff and basedpyright are pinned exactly, so that `pdm update` does not move them:
 # a new release can add findings.
 lint = [
+    "actionlint-py==1.7.12.25",
+    "shellcheck-py==0.11.0.1",
     "ruff==0.16.10",
     "basedpyright==1.40.1",
     "pre-commit>=4.0",
