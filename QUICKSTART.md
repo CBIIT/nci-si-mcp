@@ -147,6 +147,10 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_HTTP_ALLOWED_ORIGINS` | `http://127.0.0.1:*,http://localhost:*,http://[::1]:*` | Permitted Origin authorities, exact or wildcard port; requests without Origin are allowed |
 | `NCI_SI_HTTP_REQUIRE_INDEX` | `0` | Boolean switch, read as `0` or `1` only (anything else is a configuration error). Set to 1 when deployment supplies an index: readiness requires an active build compatible with the configured embedding model. With 0 an absent index permits live tools; an existing active build is still verified |
 
+HTTP synchronous calls share AnyIO's default ceiling of 40 worker tokens per process. Each
+call holds a token for its whole duration, including upstream waits. `/health` needs no worker
+token; `/ready` dispatches its storage check to that pool.
+
 The caDSR lookup, registry, matching, form and code-map tools use upstream APIs.
 Registry discovery reads the export folder's exact distribution row. The folder gives
 local server time without a zone, so `generatedAt` carries no offset (for example
