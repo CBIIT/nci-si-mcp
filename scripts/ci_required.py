@@ -7,19 +7,19 @@ import sys
 ALLOWED_SKIPS = frozenset({"mutation", "image", "companions", "coverage-badges"})
 
 
-def job_result(name: str, row: object) -> str | None:
+def job_result(name: str, row: object) -> str:
     if not isinstance(row, dict):
-        raise ValueError(f"Invalid CI needs: {name} must be a job object")
+        raise ValueError(f"{name} must be a job object")
     result = row.get("result")
     if not isinstance(result, str):
-        raise ValueError(f"Invalid CI needs: {name} has a non-string result")
+        raise ValueError(f"{name} has a non-string result")
     return result
 
 
-def results(value: object) -> dict[str, str | None]:
+def results(value: object) -> dict[str, str]:
     if not isinstance(value, dict) or not value:
-        raise ValueError("Invalid CI needs: expected a nonempty object")
-    found: dict[str, str | None] = {}
+        raise ValueError("expected a nonempty object")
+    found: dict[str, str] = {}
     for name, row in value.items():
         found[name] = job_result(name, row)
     return found
