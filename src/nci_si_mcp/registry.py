@@ -13,6 +13,7 @@ from typing import Annotated, Any, Literal, get_args, get_origin, get_type_hints
 
 from . import cadsr_content, cadsr_matching, content, handlers, seam, workflows
 from .audit import AuditClass, audited, secrets
+from .bounds import deadline_scope
 from .caching import invocation_policy
 from .context import Context
 from .invocation import call
@@ -664,7 +665,10 @@ def invoke(
     def produce() -> dict[str, Any]:
         require(spec.operation)
         with invocation_policy(resolution=spec.resolution), selection_scope():
-            return spec.handler(context, **spec.arguments(args, kwargs))
+            if spec.command and spec.command.startswith("index-"):
+                return spec.handler(context, **spec.arguments(args, kwargs))
+            with deadline_scope(context.settings.call_deadline_seconds):
+                return spec.handler(context, **spec.arguments(args, kwargs))
 
     arguments = dict(zip((p.name for p in spec.parameters), args, strict=False)) | kwargs
     hidden = secrets(context.settings.evs_license_key, context.settings.cadsr_credential)

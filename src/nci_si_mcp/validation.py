@@ -40,7 +40,7 @@ NeighborhoodKind = Literal[
     "parent", "child", "role", "association", "inverseRole", "inverseAssociation"
 ]
 TruncationBound = Literal[
-    "results", "depth", "nodes", "edges", "kind_budget", "requests", "upstream_cap"
+    "results", "depth", "nodes", "edges", "kind_budget", "requests", "upstream_cap", "deadline"
 ]
 # "ssis_facade" is in the specification's closed set; this server does not emit it.
 ProvenanceSource = Literal[

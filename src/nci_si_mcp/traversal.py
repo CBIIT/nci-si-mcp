@@ -16,7 +16,10 @@ from typing import Any
 from .audit import emit
 from .bounds import (
     Budget,
+    CallDeadlineError,
     RequestBudgetError,
+    check_deadline,
+    current_deadline,
 )
 from .catalogue import polarity
 from .errors import InputValidationError, call_correlation_id
@@ -174,6 +177,7 @@ def _fetch_concepts(
 
     try:
         for batch in batched(codes, batch_size, strict=False):
+            check_deadline()
             for concepts, too_large, requested in _fetch_batch(
                 client, list(batch), release, include
             ):
@@ -455,6 +459,8 @@ class _Walk:
     def _figures(self, bound: str, kind: str | None, first_kind: str) -> tuple[int, int, int]:
         """The limit, the amount reached and the count dropped, computed for `bound` only."""
 
+        if bound == "deadline" and (deadline := current_deadline()):
+            return deadline.figures()
         figures: dict[str, Callable[[], tuple[int, int, int]]] = {
             "depth": lambda: (self.budget.depth, self.budget.depth, self._depth_count(kind)),
             "nodes": lambda: (
@@ -539,11 +545,18 @@ class _Walk:
         relations = list(dict.fromkeys(EDGE_KINDS[edge_type].list_key for edge_type in kinds))
         include = ",".join(["minimal", *relations])
         concepts: dict[str, dict[str, Any]] = {}
-        for found, missing, oversized in _fetch_concepts(
-            self.client, frontier, self.release, include, self.batch_size
-        ):
-            self._checked_chunk(found, missing, oversized, depth, kinds)
-            concepts.update(found)
+        try:
+            for found, missing, oversized in _fetch_concepts(
+                self.client, frontier, self.release, include, self.batch_size
+            ):
+                self._checked_chunk(found, missing, oversized, depth, kinds)
+                concepts.update(found)
+        except CallDeadlineError:
+            self._mark_deadline()
+            # Retain verified initial batches before deciding whether a partial graph exists.
+            self.concepts.update(_node_payloads(concepts))
+            self.start(frontier, concepts, depth)
+            raise
         if self.budget.exhausted:
             self._mark_unread(kinds, "requests")
         self._mark_unread_starts(frontier, concepts, depth)
@@ -577,6 +590,7 @@ class _Walk:
         """Note each kind that has an unseen target one level beyond the last frontier."""
 
         for code, kind, item in self._payload_relations(list(concepts), concepts, kinds):
+            check_deadline()
             target = _target_code(code, kind, item)
             if (
                 target in self.nodes
@@ -587,9 +601,13 @@ class _Walk:
             self.depth_omitted.setdefault(kind, set()).add(target)
             self.bounds_reached.setdefault((kind,), "depth")
 
-    def start(self, start_codes: list[str], concepts: dict[str, dict[str, Any]]) -> None:
+    def start(
+        self, start_codes: list[str], concepts: dict[str, dict[str, Any]], depth: int = 0
+    ) -> None:
         """Emit the start nodes and read their descendants when those are followed."""
 
+        if depth != 0:
+            return
         for code in start_codes:
             if code not in concepts:
                 continue
@@ -601,8 +619,12 @@ class _Walk:
         if self.budget.depth > 0 and "descendant" in self.edge_types:
             self._read_descendants(list(self.nodes))
 
+    def _mark_deadline(self) -> None:
+        self._mark_unread(self.edge_types, "deadline")
+
     def _read_descendants(self, start_codes: list[str]) -> None:
         for code in start_codes:
+            check_deadline()
             try:
                 items = self.client.get_descendants(code, self.budget.depth, release=self.release)
             except UpstreamTooLargeError as exc:
@@ -619,6 +641,7 @@ class _Walk:
                 self._mark_unread(["descendant"], "requests")
                 break
             for item in items:
+                check_deadline()
                 level = _level(item, self.budget.depth)
                 self.descendants.setdefault(level, []).append((code, item))
 
@@ -633,6 +656,7 @@ class _Walk:
             kind: [] for kind in self.edge_types
         }
         for item in found:
+            check_deadline()
             grouped[item[1]].append(item)
         return _rotate(grouped.values())
 
@@ -702,6 +726,7 @@ class _Walk:
         reached = []
         for dropped in self.dropped_by_kind.values():
             for key, edge in list(dropped.items()):
+                check_deadline()
                 if self._add(edge):
                     reached.append(edge.target_code)
                 if key in self.seen_edges:
@@ -741,6 +766,7 @@ class _Walk:
 
         reached: list[str] = []
         for code, edge_type, item in self._found(frontier, concepts, depth):
+            check_deadline()
             provenance = self._provenance(
                 depth + 1, self._edge_uri(code, edge_type), edge_type, item
             )
@@ -810,7 +836,13 @@ def traverse_ncit(
         exclusions=exclusions,
         include_negative=include_negative,
     )
-    return _run_walk(walk, start_codes)
+    try:
+        return _run_walk(walk, start_codes)
+    except CallDeadlineError:
+        if not walk.nodes:
+            raise
+        walk._mark_deadline()
+        return walk.result(start_codes)
 
 
 def _run_walk(walk: _Walk, start_codes: list[str]) -> TraversalResult:
@@ -820,6 +852,7 @@ def _run_walk(walk: _Walk, start_codes: list[str]) -> TraversalResult:
     if not walk.nodes and walk.budget.exhausted:
         raise RequestBudgetError(walk.budget.requests, walk.budget.attempts)
     for depth in range(walk.budget.depth):
+        check_deadline()
         frontier = walk.follow(frontier, concepts, depth)
         if walk.stopped(frontier, depth):
             break

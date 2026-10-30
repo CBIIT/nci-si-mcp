@@ -132,7 +132,7 @@ The registry derives adapter parameters from handler signatures; closed choices 
 | Component | Responsibility | Main dependencies |
 | --- | --- | --- |
 | `caching.py` | Defines trusted-local producer-selected hints: explicitly release-pinned content and the static server surface (86,400,000 ms/public), unpinned caDSR content (3,600,000/public), resolution/status (0/public), and implicit NCIt calls, computed matching results or errors (0/private). Secured calls override these hints to zero/private. It contains no data cache. | Python standard library |
-| `bounds.py` | Owns traversal defaults and maxima and the per-call `Budget`. A context variable shares 200 HTTP attempts, including retries, release discovery and split batches, and restores the previous context on exit. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Neighborhood and CLI traversal preserve partial graphs on exhaustion; without graph content they raise `RequestBudgetError`, mapped to `bound_exceeded`. Hierarchy page replay always fails with `bound_exceeded` on request exhaustion. | Python standard library |
+| `bounds.py` | Owns traversal defaults and maxima, the per-call `Budget` and shared monotonic call deadline. Context-variable scopes share limits across nested work and restore the previous context on exit. The request budget counts 200 HTTP attempts, including retries, release discovery and split batches. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Neighborhood and CLI traversal preserve partial graphs on request exhaustion; without graph content they raise `RequestBudgetError`, mapped to `bound_exceeded`. Hierarchy page replay always fails with `bound_exceeded` on request exhaustion. Deadline behavior is described below. | Python standard library |
 | `cli.py` | Builds command arguments and dispatch from the registry; owns `serve` startup, reports configuration failures and exits 1 on an error record. | `registry.py`, `server.py` |
 | `installer.py` | Defines installation plans, local prerequisite checks, guided prerequisite execution, status and step help. Target install/configure/verify actions and uninstall are later phases. | `config.py`, `installer_state.py`, Python standard library |
 | `installer_state.py` | Owns the versioned atomic installer state, POSIX exclusive lock, ordered reverification/resume and status projection. | Python standard library |
@@ -191,6 +191,32 @@ The top-level `ncit_index` package ships in the same distribution but imports ne
 | `errors.py` | Package exceptions, without protocol error codes or MCP imports. |
 
 ## Primary flows
+
+### Shared call deadline
+
+`registry.invoke` establishes one request-local monotonic deadline for MCP, CLI and resource
+invocations, reused by nested producers and workflow hops and restored on exit. Release
+discovery and every upstream client spend the same budget. `NCI_SI_CALL_DEADLINE_SECONDS`
+defaults to 50 seconds, must be finite and positive, and cannot disable the deadline.
+Long-running index operator commands are outside this scope.
+
+Before each actual HTTP attempt, retry wait and traversal work-start checkpoint, remaining
+time is checked. Request and match operations use the smaller of their own timeout and the
+remaining budget. Success and HTTP error bodies use bounded-progress chunk reads with checks
+between reads; response-size limits and response closing still apply. A retry wait must fit
+in full: never sleep past the deadline or retry earlier than Retry-After permits. DNS resolution
+and connection setup are bounded only by the per-request timeout, so this is an elapsed-time
+budget, not hard real-time; no detached worker continues after a timeout response.
+
+Deadline exhaustion follows the one error path as `upstream_unavailable`, with correlation,
+retry guidance, platform where known and the actual total outbound attempts started across
+the call. Ordinary request or match timeout that ends before the deadline remains `timeout`.
+Traversal alone preserves an existing verified partial graph on deadline exhaustion; before
+any start is verified it returns the deadline error. Other upstream failures remain errors.
+The first real bound remains reported;
+otherwise `deadline` uses integer milliseconds for `limit` and `reached`. Per-kind omissions
+are numeric lower bounds with `exact: false`, zero when no positive minimum is known.
+Incomplete hierarchy replay never produces a cursor or final page claiming completeness.
 
 ### An indexed search call
 

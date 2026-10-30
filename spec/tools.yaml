@@ -110,6 +110,8 @@ get_concept_hierarchy:
     pathsToRoot returns each path the platform gives in paths, the codes from the concept to
     the root in the platform's order, with each concept on them once in nodes; depth, limit
     and cursor do not apply to it.
+    Deadline exhaustion preserves verified partial content with truncation, never a cursor
+    claiming incomplete replay is complete; before any verified start, it is upstream_unavailable.
 expand_value_set:
   title: Subset members
   group: evs
@@ -145,6 +147,8 @@ get_concept_neighborhood:
     the kinds asked so that none present is starved, in a way of its own. Negative assertions
     are returned marked, with the nodes they reach, which are not followed further unless
     includeNegative.
+    Deadline exhaustion preserves the verified partial graph with per-kind truncation and the
+    first real bound; before any verified start, it is upstream_unavailable.
 get_concept_subsets:
   title: Concept subset membership
   group: evs
