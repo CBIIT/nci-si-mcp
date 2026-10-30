@@ -196,8 +196,13 @@ class WorkflowHygieneTest(unittest.TestCase):
         self.assertEqual(
             {name: job["permissions"] for name, job in workflow("release")["jobs"].items()},
             {
-                "release": {"contents": "write"},
-                "image": {"contents": "write", "packages": "write"},
+                "release": {"contents": "write", "actions": "read"},
+                "image": {
+                    "contents": "write",
+                    "packages": "write",
+                    "id-token": "write",
+                    "attestations": "write",
+                },
                 "local-installer": {"contents": "read"},
             },
         )

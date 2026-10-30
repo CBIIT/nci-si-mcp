@@ -42,7 +42,7 @@ def main() -> None:
     digests = json.loads(
         run("docker", "image", "inspect", f"{image}:{tag}", "--format", "{{json .RepoDigests}}")
     )
-    digest = next(value for value in digests if value.startswith(image + "@sha256:"))
+    digest = published_digest(image, digests)
     evidence = Path("tmp/image")
     (evidence / "image-digest.txt").write_text(digest + "\n")
     run(
@@ -69,7 +69,21 @@ def main() -> None:
     notes = evidence / "release-notes.md"
     notes.write_text(body)
     run("gh", "release", "edit", tag, "--notes-file", str(notes))
+    if output := os.environ.get("GITHUB_OUTPUT"):
+        with Path(output).open("a") as stream:
+            name, subject_digest = digest.split("@")
+            stream.write(f"subject-name={name}\nsubject-digest={subject_digest}\n")
     print(f"Published and verified public image: {digest}")
+
+
+def published_digest(image: str, values: object) -> str:
+    if not isinstance(values, list):
+        raise ValueError("Published image has no digest list")
+    pattern = re.escape(image) + r"@sha256:[0-9a-f]{64}"
+    matches = [value for value in values if isinstance(value, str) and re.fullmatch(pattern, value)]
+    if len(matches) != 1:
+        raise ValueError("Published image must have one exact GHCR SHA256 digest")
+    return matches[0]
 
 
 if __name__ == "__main__":
