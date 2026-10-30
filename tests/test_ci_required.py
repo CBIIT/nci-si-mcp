@@ -101,6 +101,10 @@ class RequiredCommandTest(unittest.TestCase):
                 result = self.run_gate(needs)
                 self.assertEqual(result.returncode, 1, result.stderr)
                 self.assertIn("Invalid CI needs", result.stderr)
+                if needs == {"quality": None}:
+                    self.assertEqual(
+                        result.stderr, "Invalid CI needs: quality must be a job object\n"
+                    )
 
 
 class RequiredWorkflowTest(unittest.TestCase):
