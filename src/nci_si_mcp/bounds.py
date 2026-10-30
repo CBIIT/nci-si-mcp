@@ -5,6 +5,67 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from time import monotonic
+
+from .errors import PlatformError
+
+
+class CallDeadlineError(PlatformError):
+    """The invocation cannot start more work within its elapsed-time allowance."""
+
+    def __init__(self, attempts: int, surface: str | None) -> None:
+        super().__init__(
+            "upstream_unavailable",
+            "The call exhausted its elapsed-time budget. Retry later or ask for less work.",
+            **({"surface": surface} if surface else {}),
+            attempts=attempts,
+        )
+
+
+@dataclass(slots=True)
+class Deadline:
+    seconds: float
+    # Resolve the shared clock at invocation time, not when the class is imported.
+    started: float = field(default_factory=lambda: monotonic())  # noqa: PLW0108
+    attempts: int = 0
+    surface: str | None = None
+
+    def remaining(self) -> float:
+        return self.seconds - (monotonic() - self.started)
+
+    def check(self, wait: float = 0) -> None:
+        if self.remaining() <= wait:
+            raise CallDeadlineError(self.attempts, self.surface)
+
+    def request(self, surface: str) -> None:
+        self.surface = surface
+        self.check()
+        self.attempts += 1
+
+    def figures(self) -> tuple[int, int, int]:
+        return int(self.seconds * 1000), int((monotonic() - self.started) * 1000), 0
+
+
+_deadline: ContextVar[Deadline | None] = ContextVar("call_deadline", default=None)
+
+
+def current_deadline() -> Deadline | None:
+    return _deadline.get()
+
+
+def check_deadline() -> None:
+    if deadline := current_deadline():
+        deadline.check()
+
+
+@contextmanager
+def deadline_scope(seconds: float) -> Iterator[None]:
+    token = _deadline.set(current_deadline() or Deadline(seconds))
+    try:
+        yield
+    finally:
+        _deadline.reset(token)
+
 
 DEFAULT_MAX_DEPTH = 2
 DEFAULT_MAX_NODES = 200

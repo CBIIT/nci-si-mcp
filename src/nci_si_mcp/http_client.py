@@ -30,7 +30,7 @@ from urllib.parse import urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from .audit import emit, hashed, requested
-from .bounds import current_budget
+from .bounds import CallDeadlineError, check_deadline, current_budget, current_deadline
 from .errors import PlatformError, current_correlation_id
 from .upstream import parse_upstream_json
 
@@ -176,7 +176,7 @@ def _error_detail(exc: HTTPError) -> tuple[str, bool]:
     """Read body text for internal classification only, and distinguish a proven empty body."""
 
     try:
-        payload = exc.read(4096)
+        payload = _read_progress(exc, 4096)
     except OSError, HTTPException:
         return "", False
     try:
@@ -184,6 +184,23 @@ def _error_detail(exc: HTTPError) -> tuple[str, bool]:
     except ValueError:
         return "", not payload
     return (str(body.get("message") or "") if isinstance(body, dict) else ""), False
+
+
+def _read_progress(response: Any, limit: int) -> bytes:
+    """read1 makes bounded progress instead of accumulating an arbitrarily slow drip."""
+    if current_deadline() is None:
+        return response.read(limit)
+    chunks: list[bytes] = []
+    remaining = limit
+    while remaining:
+        check_deadline()
+        chunk = response.read1(min(65536, remaining))
+        check_deadline()
+        if not chunk:
+            break
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    return b"".join(chunks)
 
 
 def _status_reason(status: int) -> str:
@@ -361,7 +378,7 @@ class HttpClient:
         if declared_length > self.max_response_bytes:
             attempt.failure = "too_large"
             raise UpstreamTooLargeError(too_large, **bound, reached=declared_length)
-        payload = response.read(self.max_response_bytes + 1)
+        payload = _read_progress(response, self.max_response_bytes + 1)
         if len(payload) > self.max_response_bytes:
             # Only one byte past the limit is read, so `reached` is a lower bound.
             attempt.failure = "too_large"
@@ -409,11 +426,13 @@ class HttpClient:
     def _http_failure(self, exc: HTTPError, path: str, attempt: _Attempt) -> Exception:
         """The failure an HTTP error status stands for: to retry, or to report as it is."""
 
-        detail, empty_body = _error_detail(exc)
+        try:
+            detail, empty_body = _error_detail(exc)
+        finally:
+            exc.close()
         reason = " ".join(part for part in (f"HTTP {exc.code}", _status_reason(exc.code)) if part)
         message = self._redact(f"{self.label} request failed for {path}: {reason}")
         retry_after = exc.headers.get("Retry-After")
-        exc.close()
         if exc.code == HTTPStatus.TOO_MANY_REQUESTS or exc.code >= HTTPStatus.INTERNAL_SERVER_ERROR:
             return _Transient(message, status=exc.code, retry_after=retry_after)
         return UpstreamRejectedError(
@@ -427,7 +446,13 @@ class HttpClient:
 
     def _exchange(self, request: Request, path: str, attempt: _Attempt) -> Any:
         try:
-            with _open(request, self.timeout_seconds) as response:
+            deadline = current_deadline()
+            timeout = (
+                min(self.timeout_seconds, deadline.remaining())
+                if deadline
+                else self.timeout_seconds
+            )
+            with _open(request, timeout) as response:
                 attempt.status = response.status
                 return self._read(response, path, attempt)
         except HTTPError as exc:
@@ -458,8 +483,11 @@ class HttpClient:
         json_response: bool,
         interpret: Callable[[bytes, int | None], None] | None,
     ) -> Any:
+        check_deadline()
         if budget := current_budget():
             budget.request()
+        if deadline := current_deadline():
+            deadline.request(self.surface)
         attempt = _Attempt(number)
         started = time.monotonic()
         try:
@@ -476,6 +504,9 @@ class HttpClient:
                     attempts=number,
                 )
             return payload
+        except CallDeadlineError:
+            attempt.failure = "deadline"
+            raise
         finally:
             self._record(request, attempt, time.monotonic() - started)
 
@@ -587,13 +618,17 @@ class HttpClient:
         attempts = timeouts = 0
         last_http: dict[str, Any] = {}
         while True:
+            check_deadline()
             attempts += 1
             try:
                 return self._attempt(request, path, attempts, reject, json_response, interpret)
             except _Transient as failure:
+                check_deadline()
                 timeouts += failure.timed_out
                 last_http = failure.http_details(self._redact) or last_http
                 delay = self._delay(attempts, failure)
                 if attempts >= self.max_attempts or delay is None:
                     raise self._unavailable(failure, attempts, timeouts, last_http) from failure
+                if deadline := current_deadline():
+                    deadline.check(delay)
                 self._wait(path, attempts, delay, failure.message)

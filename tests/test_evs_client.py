@@ -39,6 +39,11 @@ class FakeResponse:
             raise self.payload
         return self.payload[:limit]
 
+    def read1(self, limit):
+        payload = self.read(limit)
+        self.payload = self.payload[len(payload) :]
+        return payload
+
 
 def http_error(status, body=b""):
     return HTTPError("https://example.invalid", status, "Reason", {}, io.BytesIO(body))

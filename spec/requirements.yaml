@@ -59,8 +59,15 @@ X-4:
   statement: A query that legitimately matches nothing returns an empty result with provenance and no nextCursor, not an error.
   basis: [A2.5, A2.6, M3.2, provenance]
 X-5:
-  statement: An upstream failure (a refused or closed connection, a server error, no answer in time) is an upstream error or a timeout, never an empty success.
-  basis: [A2.5, M3.2]
+  statement: >-
+    An upstream failure (a refused or closed connection, a server error, no answer in time)
+    is an upstream error or a timeout, never an empty success. Call deadline exhaustion is
+    upstream_unavailable, with attempts counting all outbound requests actually started
+    across the call, including retries and release discovery. An ordinary request or match
+    timeout that ends before the call deadline retains the timeout contract. Traversal alone
+    preserves an existing verified partial graph on deadline exhaustion, reporting truncation;
+    before any start node is verified it returns the deadline error.
+  basis: [A2.5, A5.2, A5.4, M3.2, error, truncation]
 X-6:
   statement: structuredContent validates against the tool's declared outputSchema, for successes and errors alike.
   basis: [M3.1]
