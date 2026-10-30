@@ -48,7 +48,7 @@ class ReleaseWorkflowTest(unittest.TestCase):
         self.assertEqual(
             data["concurrency"], {"group": "release-main", "cancel-in-progress": False}
         )
-        self.assertEqual(job["permissions"], {"contents": "write"})
+        self.assertEqual(job["permissions"], {"contents": "write", "actions": "read"})
         self.assertEqual(
             job["outputs"],
             {
