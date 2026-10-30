@@ -163,6 +163,24 @@ server cannot reach a production host by accident; a missing one stops startup, 
 server adds the platform's own paths to each base URL. A setting set to an empty value is
 rejected: unset it instead.
 
+## Limits and reasons
+
+The input limits below are published in tool schemas and enforced by the server. Text lengths count Unicode code
+points per scalar, including each nested string. Oversized input is refused with
+`invalid_request` before upstream or index work, never shortened; upstream content is preserved.
+
+| Limit | Value | Reason / what to reassess before changing it |
+|---|---|---|
+| Call deadline (`NCI_SI_CALL_DEADLINE_SECONDS`) | 50 s default | Leaves headroom below common 60 s client timeouts; weigh client/gateway timeouts before raising it ([A5.2](docs/specification.md#a5--result-bounding-truncation-and-traversal)) |
+| HTTP shutdown drain | 20 s | Deployment SIGTERM drain policy, not a request timeout; coordinate with the deployment termination grace period ([transport](docs/transport.md#admission-and-readiness)) |
+| `search_concepts.query`, `search_data_elements.query` | 1,000 | Search phrases, with bounded search work; reassess real queries and encoding ([field reasons](spec/tools.yaml)) |
+| `get_data_element.questionText` | 2,000 | July 2026 export maximum was 1,011 (CDE 6148373 v1); snapshot gaps warrant headroom; remeasure broader exports ([hashes and reason](spec/tools.yaml)) |
+| `ground_value.text`; CDE-match `entities[].name`, `userTip`, `permissibleValues[]`; `match_value_meanings.values[]` | 2,000 each | Short grounding/matching inputs, with bounded body work; reassess legitimate inputs ([field reasons](spec/tools.yaml)) |
+| Dictionary `columns[].name`, `description`, `sampleValues[]` | 10,000 each | Richer dictionary metadata in bodies; reassess real dictionaries and matching work ([field reasons](spec/tools.yaml)) |
+| URL-carried free text: complete encoded request target, including filters/pins | 7,000 bytes | Existing conservative EVS policy (HTTP 400 observed at 8,046 bytes); caDSR is conservative server policy, not measured capacity; remeasure deployment capacity and encoding ([evidence](ARCHITECTURE.md#public-concept-batches), [policy](spec/tools.yaml)) |
+| Local lexical FTS expression | First 64 tokens, in order | Bounds FTS work; reassess ranking/cost; vector search uses the whole text ([search contract](spec/tools.yaml)) |
+| Supplied `_meta.correlationId` | Full match `[A-Za-z0-9._:-]{1,128}` | Header-safe, bounded audit context; reassess transport/audit budgets; invalid values are refused under a fresh safe ID without echoing them ([A6.2](docs/specification.md#a6--audit-context-correlation-and-telemetry)) |
+
 ## Build a small local index
 
 The full NCIt concept universe is large. The complete local guide owns the released sample and
@@ -584,7 +602,7 @@ The tools, generated from `spec/tools.yaml` by `pdm run quickstart-tools`:
 | `resolve_release` | EVS | Which release of a terminology is current, by channel (without one, the channel configured, A3.6.2); called explicitly for discovery; NCIt content calls may instead omit release under X-22. |
 | `get_concept` | EVS | One concept with the detail selected. |
 | `get_concepts` | EVS | Many concepts in one platform call, with the detail selected. |
-| `search_concepts` | EVS | Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1). Retired concepts are returned with the others (retired include, the default, as the platform returns them), or alone (retired only), where retirement is a concept status the search can select: the listing's metadata.retiredStatusValue is among its metadata.conceptStatuses, and that status is what is sent. On 2 October 2026 this holds for NCIt alone. Every mode takes the same two values. Search cannot leave retired concepts out: the platform offers no such selection, and each result's active and status let a caller drop them itself. |
+| `search_concepts` | EVS | Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1). Local lexical candidate selection uses the first 64 tokens in order to bound FTS work; only longer token sequences change lexical/hybrid ranking; vector search uses the whole text. Retired concepts are returned with the others (retired include, the default, as the platform returns them), or alone (retired only), where retirement is a concept status the search can select: the listing's metadata.retiredStatusValue is among its metadata.conceptStatuses, and that status is what is sent. On 2 October 2026 this holds for NCIt alone. Every mode takes the same two values. Search cannot leave retired concepts out: the platform offers no such selection, and each result's active and status let a caller drop them itself. |
 | `get_concept_hierarchy` | EVS | A concept's parents, children or paths to the root, bounded. nodes holds the concepts reached, not the one asked about, and limit is a page that the cursor continues. pathsToRoot returns each path the platform gives in paths, the codes from the concept to the root in the platform's order, with each concept on them once in nodes; depth, limit and cursor do not apply to it. Deadline exhaustion preserves verified partial content with truncation, never a cursor claiming incomplete replay is complete; before any verified start, it is upstream_unavailable. |
 | `expand_value_set` | EVS | The members of a value set, paged and bounded by the tool itself. It pages by count and offset, as FHIR $expand does, in place of a cursor (the exception to M6.1); activeOnly is false unless given. |
 | `get_concept_neighborhood` | EVS | Bounded traversal across roles and associations with a budget per kind; nodes holds the concept asked about at depth 0 and those reached, and maxNodes counts them all. Given, budgetPerKind bounds the nodes each kind adds; not given, the tool shares maxNodes among the kinds asked so that none present is starved, in a way of its own. Negative assertions are returned marked, with the nodes they reach, which are not followed further unless includeNegative. Deadline exhaustion preserves the verified partial graph with per-kind truncation and the first real bound; before any verified start, it is upstream_unavailable. |

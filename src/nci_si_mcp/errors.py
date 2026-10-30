@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -54,6 +55,23 @@ def with_next_step(message: str, step: str) -> str:
 # The identifier of the call in progress, set once per call by its adapter.
 _correlation_id: ContextVar[str | None] = ContextVar("correlation_id", default=None)
 
+# 128 printable header-safe characters bound telemetry amplification and prevent header
+# injection/encoding errors. Owner-approved form; review caller/header needs before changing.
+CORRELATION_ID_FORM = r"[A-Za-z0-9._:-]{1,128}"
+
+
+def safe_correlation(value: object) -> str | None:
+    return value if isinstance(value, str) and re.fullmatch(CORRELATION_ID_FORM, value) else None
+
+
+def validate_correlation(value: object, *, supplied: bool = False) -> dict[str, object]:
+    if (supplied or value is not None) and safe_correlation(value) is None:
+        raise InputValidationError(
+            "Use 1 to 128 characters from A-Z, a-z, 0-9, dot, underscore, colon or hyphen",
+            "_meta.correlationId",
+        )
+    return {}
+
 
 def current_correlation_id() -> str | None:
     """The correlation identifier of the call in progress, or None outside any call."""
@@ -81,7 +99,7 @@ def correlated(correlation_id: object = None) -> Iterator[str]:
     is generated. The audit boundary opens this once per call; `serialise` reads it.
     """
 
-    value = correlation_id if isinstance(correlation_id, str) and correlation_id else uuid4().hex
+    value = safe_correlation(correlation_id) or uuid4().hex
     token = _correlation_id.set(value)
     try:
         yield value

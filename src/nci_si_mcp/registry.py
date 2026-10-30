@@ -58,6 +58,7 @@ from .results import (
     ValueMeaningMatches,
     ValueSetExpansion,
 )
+from .validation import validate_text_lengths
 
 
 @dataclass(frozen=True)
@@ -672,6 +673,7 @@ def invoke(
 
     def produce() -> dict[str, Any]:
         require(spec.operation)
+        validate_text_lengths(spec.arguments(args, kwargs))
         with invocation_policy(resolution=spec.resolution), selection_scope():
             if not spec.deadline:
                 return spec.handler(context, **spec.arguments(args, kwargs))

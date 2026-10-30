@@ -31,6 +31,7 @@ from .validation import (
     bounded,
     validate_choice,
     validate_identifier,
+    validate_text_target,
 )
 
 _OWN = (
@@ -388,6 +389,10 @@ def get_data_element(
 ) -> dict[str, Any]:
     """Read one caDSR data element by its publicId or its preferred question text.
 
+    Text beyond its published maxLength is invalid_request, never shortened. URL-carried
+    text also has a 7,000-byte encoded request-target ceiling including filters and pins;
+    for caDSR that is conservative server policy, not measured platform capacity.
+
     registryRelease is left unset today (C-1: caDSR publishes no registry release).
 
     Returns the data element with provenance (the registry alone for unpinned content); nested
@@ -417,6 +422,19 @@ def get_data_element(
     displayOrder that is not a trimmed integer string.
     """
     sections = _lookup_options(publicId, longName, questionText, version, include)
+    if questionText is not None:
+        validate_text_target(
+            context.cadsr.http.url(
+                f"{DATA_API}/DataElements/ReferenceDocument",
+                {
+                    "documentText": questionText,
+                    "documentType": "Preferred Question Text",
+                    "headerOnly": "true",
+                    "registryRelease": registryRelease,
+                },
+            ),
+            "questionText",
+        )
     release = _pin(context, registryRelease)
     if longName is not None:
         _unavailable("longName lookup (OP-C02)")
@@ -474,6 +492,10 @@ def search_data_elements(
     """Search caDSR data elements by keyword, a page at a time; caDSR does not serve this route
     today (OP-C03).
 
+    Text beyond its published maxLength is invalid_request, never shortened. URL-carried
+    text also has a 7,000-byte encoded request-target ceiling including filters and pins;
+    for caDSR that is conservative server policy, not measured platform capacity.
+
     semantic and hybrid (OP-C04) and filters (OP-C03) are capability_unavailable until caDSR
     serves them.
 
@@ -488,6 +510,13 @@ def search_data_elements(
     publicId or question text instead.
     """
     _search_options(query, mode, filters)
+    validate_text_target(
+        context.cadsr.http.url(
+            f"{DATA_API}/DataElement/search",
+            {"keyword": query, "pageSize": _SEARCH_CAP, "registryRelease": registryRelease},
+        ),
+        "query",
+    )
     size = bounded(limit, 100, "limit")
     args = {
         "tool": "search_data_elements",

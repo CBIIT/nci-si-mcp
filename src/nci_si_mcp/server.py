@@ -13,7 +13,7 @@ from .audit import audited, compact, hashed, result_text, secrets
 from .caching import LONG_TTL_MS, cache_call, cache_hint
 from .config import Settings, configure_logging
 from .context import Context
-from .errors import InputValidationError, is_error_record
+from .errors import InputValidationError, is_error_record, safe_correlation, validate_correlation
 from .invocation import call
 from .parameters import Described
 from .permissions import AuthorityResolver
@@ -200,18 +200,61 @@ def _serve_schemas(mcp: Any, name: str) -> None:
 
 
 def _served_input_schema(schema: dict[str, Any]) -> dict[str, Any]:
-    """The input schema with the nested records' field descriptions, closed to other arguments.
+    """The closed input schema, with descriptions and the shared per-path text bounds.
 
     The server refuses any argument the tool does not declare, so the schema says so."""
 
     from .parameters import FIELD_DESCRIPTIONS
+    from .validation import TEXT_LIMITS
 
     definitions = {
         name: _described_record(record, FIELD_DESCRIPTIONS.get(name, {}))
         for name, record in schema.get("$defs", {}).items()
     }
+
+    def bounded_text(node: Any, path: str) -> Any:
+        maximum = TEXT_LIMITS.get(path)
+        if maximum is not None:
+            if node.get("type") == "string":
+                node["maxLength"] = maximum
+            if "description" in node or node.get("type") == "string":
+                node["description"] = (
+                    node.get("description", "")
+                    + f" At most {maximum} Unicode code points per text value; longer input "
+                    "is refused with invalid_request before upstream or index work, "
+                    "never shortened."
+                ).strip()
+                if path in {"query", "questionText"}:
+                    node["description"] += (
+                        " URL-carried text also has a separate 7,000-byte encoded request-target "
+                        "ceiling, including filters and pins; for caDSR this is conservative "
+                        "server policy, not measured capacity."
+                    )
+        return node
+
+    def descend(node: Any, path: str) -> Any:
+        for key in ("anyOf", "oneOf", "allOf"):
+            if key in node:
+                node[key] = [project(item, path) for item in node[key]]
+        if "items" in node:
+            node["items"] = project(node["items"], path)
+        return node
+
+    def project(node: Any, path: str) -> Any:
+        if "$ref" in node:
+            name = node["$ref"].rpartition("/")[2]
+            definitions[name] = project(definitions[name], path)
+        result = {**node}
+        if "properties" in node:
+            result["properties"] = {
+                name: project(item, f"{path}.{name}".lstrip("."))
+                for name, item in node["properties"].items()
+            }
+        return bounded_text(descend(result, path), path)
+
+    projected = project({key: value for key, value in schema.items() if key != "$defs"}, "")
     return {
-        **schema,
+        **projected,
         **({"$defs": definitions} if definitions else {}),
         "additionalProperties": False,
     }
@@ -317,13 +360,34 @@ def _audit_tools(context: Context, profile: str, *, protected: bool = False) -> 
             arguments if isinstance(arguments, dict) else {"arguments": arguments},
             fields.get(name, {}),
             hidden,
-            (ctx.meta or {}).get("correlationId"),
+            safe_correlation(ctx.meta.get("correlationId") if ctx.meta else None),
         ) as record:
-            result = await call_next(ctx)
+            refused = call(name, lambda: _validate_meta_correlation(ctx.meta))
+            if is_error_record(refused):
+                result = _invalid_tool_result(refused)
+            else:
+                result = await call_next(ctx)
             record.result = result.get("structuredContent")
             return result
 
     return record_call
+
+
+def _validate_meta_correlation(meta: Any) -> Any:
+    return validate_correlation(
+        meta.get("correlationId") if meta else None,
+        supplied=bool(meta and "correlationId" in meta),
+    )
+
+
+def _invalid_tool_result(result: Any) -> Any:
+    from mcp.types import CallToolResult, TextContent
+
+    return CallToolResult(
+        is_error=True,
+        structured_content=result,
+        content=[TextContent(type="text", text=compact(result))],
+    ).model_dump(by_alias=True, exclude_none=True)
 
 
 def _validate_inputs(profile: str) -> Callable[..., Any]:
