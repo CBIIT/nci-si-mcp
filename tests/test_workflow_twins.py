@@ -23,6 +23,7 @@ CONDITIONS = {
     "github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'milestone/') && github.event.pull_request.head.repo.full_name == github.repository": False,
 }
 ROWS = {
+    "scorecard/analysis": "ci/test exact offline workflow contract; first run after the milestone merge, reported in step 9.",
     "ci/coverage-badges": "ci/coverage-badges-render; privileged mutation: publish rendered badge data only on main.",
     "branch-cleanup/cleanup": "ci/test; privileged mutation: delete merged branches only after merge.",
     "release/release": "ci/test and pr-title/conventional; privileged mutation: create real tags and releases only after validated main.",
