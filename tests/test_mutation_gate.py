@@ -1,6 +1,7 @@
 """The mutation command measures assertion sensitivity without editing its caller."""
 
 import contextlib
+import io
 import json
 import os
 import shutil
@@ -306,6 +307,79 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_scheduler_owns_unique_retained_directories_and_announces_before_launch(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n")
+            mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
+            args = SimpleNamespace(timeout=20, workers=1)
+            output = io.StringIO()
+            directories = []
+
+            def scheduler(command, cwd, env, timeout, log):
+                announcement = json.loads(output.getvalue().splitlines()[-1])
+                self.assertEqual(announcement, {"outcome": "EVIDENCE", "directory": str(cwd)})
+                self.assertTrue(cwd.is_dir())
+                directories.append(cwd)
+                execute_job(Path(command[-1]), 0)
+                return 0
+
+            with (
+                contextlib.redirect_stderr(output),
+                patch.object(mutation_gate, "program", side_effect=scheduler),
+            ):
+                first = mutation_gate.schedule(root, mutants[:1], {}, args)
+                second = mutation_gate.schedule(root, mutants[:1], {}, args)
+                third = mutation_gate.schedule(root, mutants[:1], {}, args)
+            self.assertEqual(
+                [directory.parent for directory in directories],
+                [root / "tmp/mutation-runs"] * 3,
+            )
+            self.assertEqual(len(set(directories)), 3)
+            self.assertTrue(all(directory.name.startswith("run-") for directory in directories))
+            self.assertEqual([row["outcome"] for row in first + second + third], ["NO_TESTS"] * 3)
+            for directory in directories:
+                self.assertTrue((directory / "mutations.json").is_file())
+                self.assertTrue((directory / "result-0.json").is_file())
+                self.assertTrue((directory / "scheduler.log").is_file())
+
+    def test_scheduler_retains_original_diagnostics_even_when_every_candidate_finished(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n")
+            mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
+            for error in (KeyboardInterrupt("cancelled"), PermissionError("cleanup denied")):
+                with self.subTest(error=type(error).__name__):
+                    work = []
+
+                    def scheduler(command, cwd, env, timeout, log, work=work, error=error):
+                        work.append(cwd)
+                        execute_job(Path(command[-1]), 0)
+                        raise error
+
+                    with (
+                        patch.object(mutation_gate, "program", side_effect=scheduler),
+                        self.assertRaises(mutation_gate.SchedulerError) as failed,
+                    ):
+                        mutation_gate.schedule(
+                            root, mutants[:1], {}, SimpleNamespace(timeout=20, workers=1)
+                        )
+                    self.assertIs(failed.exception.__cause__, error)
+                    self.assertEqual(failed.exception.rows[0]["outcome"], "NO_TESTS")
+                    diagnostic = (work[0] / "traceback.txt").read_text()
+                    self.assertIn(f"{type(error).__name__}: {error}", diagnostic)
+                    self.assertIn("raise error", diagnostic)
+
+    def test_result_permission_failure_is_not_reported_as_a_missing_candidate(self):
+        mutants, _ = candidates("src/example.py", b"def answer():\n    return True\n")
+        denied = PermissionError("result read denied")
+        with (
+            patch.object(Path, "read_text", side_effect=denied),
+            self.assertRaises(PermissionError) as failed,
+        ):
+            mutation_gate.scheduler_rows(Path("unused"), mutants[:1], {}, "diagnostic")
+        self.assertIs(failed.exception, denied)
+
     def test_real_scheduler_cancellation_retains_completed_bytes_and_all_candidate_identities(self):
         # Given one actual completed candidate and a ready separate-session runner,
         # cancellation retains that evidence and explicitly reports every unfinished site.
@@ -343,6 +417,10 @@ class MutationExecutionTest(unittest.TestCase):
                     stream.seek(0)
                     output = [json.loads(line) for line in stream if line.startswith("{")]
                     self.assert_cancelled_rows(mutant_rows(output), catalogue, mutants)
+                    retained = [
+                        json.loads(path.read_text()) for path in sorted(work.glob("result-*.json"))
+                    ]
+                    self.assert_cancelled_rows(retained, catalogue, mutants)
                     self.assertTrue(
                         wait_until(lambda: not self.process_exists(pid), 5, interval=0.01)
                     )
