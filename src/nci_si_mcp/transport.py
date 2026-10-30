@@ -27,6 +27,8 @@ if TYPE_CHECKING:
     from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 logger = logging.getLogger(__name__)
+# Match the deployment policy's SIGTERM drain window; this is not a request timeout.
+GRACEFUL_SHUTDOWN_SECONDS = 20
 
 
 class HTTPBoundary:
@@ -159,7 +161,7 @@ def create_http_app(
         max_sessions=10_000,
     )
 
-    def health(request: Any) -> JSONResponse:
+    async def health(request: Any) -> JSONResponse:
         return JSONResponse({"status": "ok"})
 
     was_ready = True
@@ -199,4 +201,5 @@ def run_http(settings: Settings, context: Context) -> None:
         log_config=None,
         access_log=False,
         proxy_headers=False,
+        timeout_graceful_shutdown=GRACEFUL_SHUTDOWN_SECONDS,
     )

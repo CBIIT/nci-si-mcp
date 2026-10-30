@@ -179,7 +179,7 @@ def operations_endpoints(settings):
     endpoints = {
         route.path: route.endpoint for route in app.routes if route.path in {"/health", "/ready"}
     }
-    health = endpoints["/health"](None)
+    health = asyncio.run(endpoints["/health"](None))
     ready = asyncio.run(endpoints["/ready"](None))
     required = create_http_app(replace(settings, http_require_index=True))
     blocked_endpoint = next(route.endpoint for route in required.routes if route.path == "/ready")
