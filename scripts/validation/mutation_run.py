@@ -16,7 +16,11 @@ from time import monotonic
 
 from coverage import CoverageData
 from pytest import ExitCode
-from scripts.processes import exit_on_sigterm, stop
+from scripts.processes import STOP_SECONDS, exit_on_sigterm, stop
+
+# A worker may need both bounded TERM/KILL waits to reap its separate-session runner.
+# Leave one second for unwinding after those waits; remeasure if nested cleanup changes.
+WORKER_CLEANUP_SECONDS = 2 * STOP_SECONDS + 1
 
 DOMAINS = {
     "unit": (".", "tests"),
@@ -119,7 +123,7 @@ def program(command: list[str], cwd: Path, env: dict[str, str], timeout: float, 
         finally:
             # Never translate a broken launch contract into a signal to another
             # group. The direct Popen child is still ours to terminate and reap.
-            stop(process, group=owned_group)
+            stop(process, group=owned_group, group_grace=WORKER_CLEANUP_SECONDS)
 
 
 def classify(status: int | None, evidence: Path, mutated_file: Path | None = None) -> dict:
