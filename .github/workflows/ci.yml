@@ -381,7 +381,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  # The acceptance harness's own tests, shared out between three jobs that run at once
+  # The acceptance harness's own tests, shared out between eight jobs that run at once
   # (selftests/conftest.py); each keeps its coverage data for the coverage job. They set the
   # pace of CI: add a shard when one takes more than about four minutes.
   selftest:
@@ -391,7 +391,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ["1/3", "2/3", "3/3"]
+        shard: ["1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8", "8/8"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -435,7 +435,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # The self-tests' coverage over all three shards, with the harness's minimum
+  # The self-tests' coverage over all eight shards, with the harness's minimum
   # (acceptance/pyproject.toml); falling short of the aim is reported, not enforced.
   coverage:
     name: coverage

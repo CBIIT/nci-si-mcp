@@ -26,6 +26,7 @@ class ImageDigestEvidenceTest(unittest.TestCase):
             ["ghcr.io/other/project@sha256:" + "a" * 64],
             ["ghcr.io/new-org/project@sha256:" + "a" * 64] * 2,
             ["ghcr.io/new-org/project@sha256:" + "g" * 64],
+            ["ghcr.io/new-org/project@sha256:" + "a" * 64 + "x"],
         ]
         for digests in invalid:
             with self.subTest(digests=digests), TemporaryDirectory() as directory, chdir(directory):
@@ -64,6 +65,8 @@ class WorkflowGuardExecutionTest(unittest.TestCase):
                     "VALIDATED_SHA": validated,
                     "GITHUB_OUTPUT": str(output),
                     "API_EXIT": str(api_exit),
+                    "GITHUB_REF": "refs/heads/main",
+                    "GITHUB_SHA": "a" * 40,
                 },
                 text=True,
                 capture_output=True,

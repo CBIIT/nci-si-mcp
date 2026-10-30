@@ -42,24 +42,34 @@ class ReleaseGuardTest(unittest.TestCase):
             executable = Path(directory) / "gh"
             executable.write_text(
                 f"#!{sys.executable}\nimport os,sys\n"
+                "from pathlib import Path\n"
+                "Path(os.environ['ARGV_FILE']).write_text('\\n'.join(sys.argv[1:]))\n"
                 "print(os.environ['FAKE_RUNS'])\n"
                 "sys.exit(int(os.environ['API_STATUS']))\n"
             )
             executable.chmod(0o755)
-            return subprocess.run(  # noqa: S603 - fixed module and test SHA, no shell
+            result = subprocess.run(  # noqa: S603 - fixed module and test SHA, no shell
                 [sys.executable, "-m", "scripts.release_ci", SHA],
                 cwd=ROOT,
-                env={
+                env=os.environ
+                | {
                     "PATH": directory + os.pathsep + os.environ["PATH"],
                     "GITHUB_REPOSITORY": "CBIIT/nci-si-mcp",
                     "FAKE_RUNS": json.dumps({"workflow_runs": runs}),
                     "API_STATUS": str(api_status),
+                    "ARGV_FILE": str(Path(directory) / "argv"),
                 },
                 capture_output=True,
                 text=True,
                 timeout=10,
                 check=False,
             )
+            self.assertEqual(
+                (Path(directory) / "argv").read_text(),
+                "api\nrepos/CBIIT/nci-si-mcp/actions/workflows/ci.yml/runs"
+                f"?head_sha={SHA}&branch=main&event=push&per_page=100",
+            )
+            return result
 
     def test_exact_successful_main_push_ci_allows_release(self):
         result = self.guard([ci_run()])

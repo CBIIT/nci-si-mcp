@@ -68,6 +68,10 @@ jobs:
           set -euo pipefail
           head="$(git rev-parse HEAD)"
           if [ -z "${VALIDATED_SHA:-}" ]; then
+            if [ "$GITHUB_REF" != "refs/heads/main" ] || [ "$head" != "$GITHUB_SHA" ]; then
+              echo "::error::Dispatch Release again on the validated main commit; attestation source must match the image."
+              exit 1
+            fi
             python3 -m scripts.release_ci "$head"
             echo "Manual run: releasing the tip of main ($head)."
             echo "skip=false" >> "$GITHUB_OUTPUT"

@@ -81,6 +81,12 @@ class RequiredCommandTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertIn("changes", result.stderr)
 
+    def test_only_declared_conditional_jobs_can_skip_across_the_whole_ci_graph(self):
+        for name in set(workflow("ci")["jobs"]) - {"required"}:
+            with self.subTest(job=name):
+                result = self.run_gate({name: {"result": "skipped"}})
+                self.assertEqual(result.returncode, 0 if name in ALLOWED_SKIPS else 1)
+
     def test_empty_or_malformed_needs_cannot_report_success(self):
         for needs in ({}, [], None, {"quality": None}, {"quality": "success"}):
             with self.subTest(needs=needs):

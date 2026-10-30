@@ -194,6 +194,8 @@ they bind the pushed image digest to the release workflow, not a mutable image t
 images may have no attestations. Manual release and image retries require the newest main-push
 CI run for the checked-out commit to have completed successfully; an unavailable or unsuccessful
 CI result blocks publication.
+Manual dispatch must select `main`, and its invocation commit must still equal the checked-out
+commit; otherwise dispatch again so the attestation source and image source agree.
 
 CBIIT's hardened bases are in private ECR unavailable to public CI. The hosting team may
 rebuild on its approved `cbiit-amazon-linux-2023` base. Cloud One ECR publication and OIDC deployment roles are later

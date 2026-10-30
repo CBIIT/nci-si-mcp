@@ -61,6 +61,23 @@ BADGE = (
 
 
 class ScorecardWorkflowTest(unittest.TestCase):
+    def test_only_declared_jobs_can_write_attestations_or_security_results(self):
+        actual = {}
+        for path in (ROOT / ".github/workflows").glob("*.yml"):
+            value = yaml.safe_load(path.read_text())
+            for name, job in value["jobs"].items():
+                permissions = job.get("permissions", value.get("permissions", {}))
+                writes = privileged_writes(permissions)
+                if writes:
+                    actual[f"{path.stem}/{name}"] = writes
+        self.assertEqual(
+            actual,
+            {
+                "scorecard/analysis": {"security-events": "write", "id-token": "write"},
+                "release/image": {"id-token": "write", "attestations": "write"},
+            },
+        )
+
     def test_exact_workflow_has_one_restricted_job_and_no_pr_trigger(self):
         path = ROOT / ".github/workflows/scorecard.yml"
         self.assertTrue(path.is_file(), "The Scorecard publication workflow must exist")
@@ -72,3 +89,12 @@ class ScorecardWorkflowTest(unittest.TestCase):
         self.assertIn(
             "Scorecard measures repository security practices, not acceptance outcomes.", document
         )
+
+
+def privileged_writes(permissions):
+    keys = ("security-events", "id-token", "attestations")
+    if permissions == "write-all":
+        return dict.fromkeys(keys, "write")
+    if not isinstance(permissions, dict):
+        return {}
+    return {key: "write" for key in keys if permissions.get(key) == "write"}

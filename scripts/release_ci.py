@@ -2,13 +2,25 @@
 
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 
 
-def matching_run(value: object, sha: str) -> dict[str, object]:
+@dataclass(frozen=True, slots=True)
+class CIRun:
+    identifier: int
+    conclusion: str | None
+
+
+def conclusion_value(value: object) -> str | None:
+    if value is not None and not isinstance(value, str):
+        raise ValueError("CI run has an invalid conclusion")
+    return value
+
+
+def matching_run(value: object, sha: str) -> CIRun:
     if not isinstance(value, dict):
         raise ValueError("CI run must be an object")
     expected = {
@@ -22,7 +34,7 @@ def matching_run(value: object, sha: str) -> dict[str, object]:
     identifier = value.get("id")
     if type(identifier) is not int or identifier <= 0:
         raise ValueError("CI run has no valid identifier")
-    return {str(key): item for key, item in value.items()}
+    return CIRun(identifier, conclusion_value(value.get("conclusion")))
 
 
 def require_success(response: object, sha: str) -> None:
@@ -33,16 +45,13 @@ def require_success(response: object, sha: str) -> None:
         raise ValueError("No CI run for the main commit")
     runs = [matching_run(row, sha) for row in rows]
     # GitHub run IDs increase across runs; an API-order change must not pick an older success.
-    latest = max(runs, key=lambda row: int(str(row["id"])))
-    if latest.get("status") != "completed" or latest.get("conclusion") != "success":
+    latest = max(runs, key=lambda row: row.identifier)
+    if latest.conclusion != "success":
         raise ValueError("Newest CI run has not completed successfully")
 
 
 def main() -> int:
     sha = sys.argv[1]
-    if re.fullmatch(r"[0-9a-f]{40}", sha) is None:
-        print("CI validation requires an exact commit SHA", file=sys.stderr)
-        return 1
     repository = os.environ["GITHUB_REPOSITORY"]
     route = (
         f"repos/{repository}/actions/workflows/ci.yml/runs"

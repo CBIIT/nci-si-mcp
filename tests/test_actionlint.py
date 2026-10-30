@@ -2,6 +2,7 @@
 
 import shutil
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -69,6 +70,12 @@ class ActionlintExecutionTest(unittest.TestCase):
     def lint(self, body: str):
         self.assertIsNotNone(shutil.which("actionlint"), "Install actionlint from the PDM lock")
         self.assertIsNotNone(shutil.which("shellcheck"), "Install shellcheck from the PDM lock")
+        for tool in ("actionlint", "shellcheck"):
+            self.assertEqual(
+                Path(shutil.which(tool) or "").parent,
+                Path(sys.executable).parent,
+                f"{tool} must come from the PDM environment",
+            )
         with TemporaryDirectory() as directory:
             path = Path(directory) / "workflow.yml"
             path.write_text(body)
