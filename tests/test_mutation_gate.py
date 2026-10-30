@@ -306,6 +306,106 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_real_scheduler_cancellation_retains_completed_bytes_and_all_candidate_identities(self):
+        # Given one actual completed candidate and a ready separate-session runner,
+        # cancellation retains that evidence and explicitly reports every unfinished site.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            driver, mutants = self.cancellation_project(root)
+            unrelated = subprocess.Popen(
+                [sys.executable, "-c", "import signal; signal.pause()"],
+                start_new_session=True,
+            )
+            with (root / "controller.log").open("w+") as stream:
+                owner = subprocess.Popen(  # noqa: S603 - fixed owned controller, reaped below
+                    [sys.executable, "-c", driver],
+                    cwd=ROOT,
+                    stdout=stream,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+                try:
+                    self.assertTrue(wait_until((root / "runner").exists, 30, interval=0.01))
+                    pid = int((root / "runner").read_text())
+                    self.assertEqual(os.getpgid(pid), pid)
+                    work = Path((root / "work").read_text())
+                    completed = (work / "result-0.json").read_bytes()
+                    self.assertEqual(json.loads(completed)["outcome"], "KILLED")
+                    owner.send_signal(signal.SIGTERM)
+                    self.assertNotEqual(owner.wait(timeout=45), 0)
+                    self.assertTrue(
+                        work.exists(), "Cancellation deleted completed scheduler evidence"
+                    )
+                    self.assertEqual((work / "result-0.json").read_bytes(), completed)
+                    self.assertTrue((work / "scheduler.log").is_file())
+                    self.assertIn("KeyboardInterrupt", (work / "traceback.txt").read_text())
+                    catalogue = json.loads((work / "mutations.json").read_text())["mutants"]
+                    stream.seek(0)
+                    output = [json.loads(line) for line in stream if line.startswith("{")]
+                    self.assert_cancelled_rows(mutant_rows(output), catalogue, mutants)
+                    self.assertTrue(
+                        wait_until(lambda: not self.process_exists(pid), 5, interval=0.01)
+                    )
+                    self.assertIsNone(unrelated.poll())
+                finally:
+                    stop(owner, group=True)
+                    stop(unrelated, group=True)
+                    self.kill_marked_group(root / "runner")
+
+    def assert_cancelled_rows(self, rows, catalogue, mutants):
+        expected = [mutant.key() for mutant in mutants]
+        self.assertEqual(len(rows), len(mutants))
+        for records in (rows, catalogue):
+            self.assertEqual(
+                [{name: row[name] for name in expected[0]} for row in records], expected
+            )
+        self.assertEqual([row["outcome"] for row in rows], ["KILLED", "INFRA", "INFRA"])
+        self.assertTrue(all("no result" in row["message"] for row in rows[1:]))
+
+    @staticmethod
+    def cancellation_project(root):
+        source = "".join(
+            f"def {name}():\n    return True\n" for name in ("first", "second", "third")
+        )
+        project(root, source)
+        (root / "tests/test_example.py").write_text(
+            "import example, os, signal\nfrom pathlib import Path\n"
+            "def test_first():\n    assert example.first() is True\n"
+            "def test_second():\n"
+            f"    ready = Path({str(root / 'runner')!r})\n"
+            "    pending = ready.with_suffix('.pending')\n"
+            "    pending.write_text(str(os.getpid()))\n    pending.rename(ready)\n"
+            "    signal.pause()\n    assert example.second() is True\n"
+            "def test_third():\n    assert example.third() is True\n"
+        )
+        found, _ = candidates("src/example.py", source.encode())
+        mutants = [item for item in found if item.operator == "boolean:literal"]
+        mapping = {
+            "unit": {
+                "src/example.py": {
+                    item.line: [f"tests/test_example.py::test_{item.qualname}|run"]
+                    for item in mutants
+                }
+            }
+        }
+        driver = (
+            "from pathlib import Path\nfrom unittest.mock import patch\n"
+            "from scripts.validation import mutation_gate as gate\n"
+            "from scripts.validation.mutation_source import candidates\n"
+            f"root = Path({str(root)!r})\n"
+            "found, _ = candidates('src/example.py', (root / 'src/example.py').read_bytes())\n"
+            "mutants = [item for item in found if item.operator == 'boolean:literal']\n"
+            "original = gate.program\n"
+            "def run(command, cwd, env, timeout, log):\n"
+            "    (root / 'work').write_text(str(cwd))\n"
+            "    return original(command, cwd, env, timeout, log)\n"
+            "with patch.object(gate, 'collect', return_value=(mutants, [])), "
+            f"patch.object(gate, 'imported_coverage', return_value={mapping!r}), "
+            "patch.object(gate.random.Random, 'shuffle'), patch.object(gate, 'program', run):\n"
+            "    raise SystemExit(gate.main(['--root', str(root), '--paths', 'src/example.py']))\n"
+        )
+        return driver, mutants
+
     def test_scheduler_exit_allows_worker_to_reap_its_separate_session_runner(self):
         # Given cleanup gated on leader exit, program must let the worker finish
         # before sweeping its group, without signaling an unrelated session.
