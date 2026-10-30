@@ -48,6 +48,7 @@ class CiCostTest(unittest.TestCase):
                 },
                 "branch-cleanup.yml": {"cleanup": "ubuntu-24.04"},
                 "ci.yml": {
+                    "required": "ubuntu-24.04",
                     "changes": "ubuntu-24.04",
                     "companions": "ubuntu-24.04",
                     "documentation": "ubuntu-24.04",
@@ -72,6 +73,7 @@ class CiCostTest(unittest.TestCase):
                     "local-installer": "${{ matrix.os }}",
                 },
                 "pr-title.yml": {"conventional": "ubuntu-24.04"},
+                "scorecard.yml": {"analysis": "ubuntu-24.04"},
                 "release.yml": {
                     "release": "ubuntu-24.04",
                     "image": "ubuntu-24.04",

@@ -73,6 +73,30 @@ class PublicationService:
 
 
 class ImagePublicationTest(unittest.TestCase):
+    def test_missing_publication_program_reports_the_missing_executable(self):
+        with (
+            patch.object(image_publish.shutil, "which", return_value=None),
+            self.assertRaises(FileNotFoundError),
+        ):
+            image_publish.run("nci-si-missing-publication-command")
+
+    def test_missing_docker_refuses_publication_before_login(self):
+        with (
+            patch.object(image_publish.shutil, "which", return_value=None),
+            patch.dict(
+                "os.environ",
+                {
+                    "PATH": "",
+                    "GITHUB_REPOSITORY": "role/repo",
+                    "GITHUB_ACTOR": "role",
+                    "GH_TOKEN": "not-logged",
+                },
+            ),
+            patch("sys.argv", ["image_publish", "v1.0.0"]),
+            self.assertRaises(FileNotFoundError),
+        ):
+            image_publish.main()
+
     def evidence(self):
         evidence = Path("tmp/image")
         evidence.mkdir(parents=True)
@@ -86,6 +110,7 @@ class ImagePublicationTest(unittest.TestCase):
             "GITHUB_REPOSITORY": "New-Org/Project",
             "GITHUB_ACTOR": "release-bot",
             "GH_TOKEN": "test-token",
+            "GITHUB_OUTPUT": str(Path("outputs").resolve()),
         }
         self.output = io.StringIO()
         with (
@@ -119,6 +144,10 @@ class ImagePublicationTest(unittest.TestCase):
             self.assertEqual((evidence / "image-digest.txt").read_text(), digest + "\n")
             self.assertIn("verified public image", output)
             self.assertNotIn("test-token", output + notes)
+            self.assertEqual(
+                Path("outputs").read_text(),
+                "subject-name=ghcr.io/new-org/project\nsubject-digest=sha256:" + "a" * 64 + "\n",
+            )
 
     def test_private_package_cannot_be_reported_as_public(self):
         with tempfile.TemporaryDirectory() as directory, chdir(directory):
@@ -126,6 +155,7 @@ class ImagePublicationTest(unittest.TestCase):
             with self.assertRaises(subprocess.CalledProcessError):
                 self.publish(public=False)
             self.assertFalse(Path("tmp/image/release-notes.md").exists())
+            self.assertFalse(Path("outputs").exists())
 
     def test_publication_failures_never_announce_success(self):
         for operation in ("push", "upload", "edit"):

@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/CBIIT/nci-si-mcp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/CBIIT/nci-si-mcp/actions/workflows/ci.yml?query=branch%3Amain)
 [![CodeQL](https://github.com/CBIIT/nci-si-mcp/actions/workflows/github-code-scanning/codeql/badge.svg?branch=main)](https://github.com/CBIIT/nci-si-mcp/actions/workflows/github-code-scanning/codeql?query=branch%3Amain)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CBIIT/nci-si-mcp/badge)](https://scorecard.dev/viewer/?uri=github.com/CBIIT/nci-si-mcp)
 [![Server coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FCBIIT%2Fnci-si-mcp%2Fcoverage-badges%2Fserver.json)](https://github.com/CBIIT/nci-si-mcp/blob/coverage-badges/provenance.json)
 [![Harness coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FCBIIT%2Fnci-si-mcp%2Fcoverage-badges%2Fharness.json)](https://github.com/CBIIT/nci-si-mcp/blob/coverage-badges/provenance.json)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -9,6 +10,7 @@
 
 CI and CodeQL badges track `main`. Coverage badges show combined line and branch coverage
 from successful main CI, with the measured commit and run linked; they are not acceptance pass rates.
+Scorecard measures repository security practices, not acceptance outcomes.
 
 The NCI Semantic Infrastructure Model Context Protocol (MCP) server, built to production standards
 and likely to become the production codebase, though not yet declared production. It serves

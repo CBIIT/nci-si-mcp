@@ -186,6 +186,17 @@ Release with `retry_image_tag` naming that release at the current main commit. S
 reports are attached before the public-access check; a successful run adds the digest and
 evidence references to the release notes. Use the digest to deploy, not a floating tag.
 
+After the image job succeeds, verify its digest-bound provenance with
+`gh attestation verify oci://ghcr.io/cbiit/nci-si-mcp@sha256:<digest> --repo CBIIT/nci-si-mcp --signer-workflow CBIIT/nci-si-mcp/.github/workflows/release.yml`.
+Verify the SBOM attestation with the same command plus
+`--predicate-type https://cyclonedx.org/bom`. Both attestations are stored in GitHub and GHCR;
+they bind the pushed image digest to the release workflow, not a mutable image tag. Older
+images may have no attestations. Manual release and image retries require the newest main-push
+CI run for the checked-out commit to have completed successfully; an unavailable or unsuccessful
+CI result blocks publication.
+Manual dispatch must select `main`, and its invocation commit must still equal the checked-out
+commit; otherwise dispatch again so the attestation source and image source agree.
+
 CBIIT's hardened bases are in private ECR unavailable to public CI. The hosting team may
 rebuild on its approved `cbiit-amazon-linux-2023` base. Cloud One ECR publication and OIDC deployment roles are later
 deployment work; this issue supplies public GHCR images only.

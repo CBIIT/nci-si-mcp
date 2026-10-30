@@ -48,7 +48,7 @@ class ReleaseWorkflowTest(unittest.TestCase):
         self.assertEqual(
             data["concurrency"], {"group": "release-main", "cancel-in-progress": False}
         )
-        self.assertEqual(job["permissions"], {"contents": "write"})
+        self.assertEqual(job["permissions"], {"contents": "write", "actions": "read"})
         self.assertEqual(
             job["outputs"],
             {
@@ -169,6 +169,15 @@ class ReleaseWorkflowTest(unittest.TestCase):
         for action in found:
             with self.subTest(action=action):
                 if action.startswith(("./", "$/")):
+                    continue
+                if action.startswith(("ossf/", "github/")):
+                    self.assertIn(
+                        action,
+                        {
+                            "ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e",
+                            "github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+                        },
+                    )
                     continue
                 self.assertRegex(action, r"^(?:actions|pdm-project)/[^@]+@[a-f0-9]{40}$")
 

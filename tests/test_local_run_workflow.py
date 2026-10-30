@@ -158,8 +158,8 @@ CI_ONLY = {
     "later steps",
     'echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"': "passes the isolated index "
     "data directory to later steps",
-    'if [ "${{ matrix.index }}" = "true" ]; then': "installs the optional index only in index rows",
-    'if [ "${{ matrix.compose_companion }}" = "true" ]; then': "builds the admin image only for "
+    'if [ "$WITH_INDEX" = "true" ]; then': "installs the optional index only in index rows",
+    'if [ "$COMPOSE_COMPANION" = "true" ]; then': "builds the admin image only for "
     "rows that select the companion",
     "fi": "closes a matrix-selected workflow branch",
     "set -euo pipefail": "makes a multi-command CI verification fail at its first failed command",
@@ -629,6 +629,7 @@ class LocalRunWorkflowTest(unittest.TestCase):
                 "local-run.yml",
                 "pr-title.yml",
                 "release.yml",
+                "scorecard.yml",
             ],
         )
 
@@ -880,7 +881,17 @@ class LocalRunWorkflowTest(unittest.TestCase):
             for step in job()["steps"]
             if set(step) - allowed
         }
-        self.assertEqual(extra, {})
+        # Exact env values are owned by test_ci_required; no other step gains env.
+        self.assertEqual(
+            extra,
+            {
+                "Select the released index source (CI only)": ["env"],
+                "Install released server and optional index environments": ["env"],
+                "Build selected local container images": ["env"],
+                "Verify the selected Compose profiles (CI only)": ["env"],
+                "Verify every selected component together (CI only)": ["env"],
+            },
+        )
 
     def test_only_the_fixture_run_survives_a_failing_command_to_judge_its_status(self):
         # Under the default `bash -e`, exit status 1 would end the step before the guard and the

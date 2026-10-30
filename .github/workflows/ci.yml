@@ -256,7 +256,8 @@ jobs:
           path: unit-coverage
       - name: Combine every unit shard and enforce the minimum
         run: |
-          test "$(ls -1d unit-coverage/unit-coverage-* | wc -l)" -eq 4
+          shards=(unit-coverage/unit-coverage-*)
+          test "${#shards[@]}" -eq 4
           pdm run coverage combine unit-coverage/unit-coverage-{0,1,2,3}/.coverage
           pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py'
       # Falling short of the aim is reported, not enforced (CONTRIBUTING.md, standard 3).
@@ -359,7 +360,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Offered as a required check for the owner; this change does not alter branch rulesets.
+  # Included in the aggregate required check alongside the stdio fixture run.
   acceptance-http:
     name: acceptance (HTTP fixture)
     runs-on: ubuntu-24.04
@@ -380,9 +381,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  # The acceptance harness's own tests, shared out between three jobs that run at once
+  # The acceptance harness's own tests, shared out between eight jobs that run at once
   # (selftests/conftest.py); each keeps its coverage data for the coverage job. They set the
   # pace of CI: add a shard when one takes more than about four minutes.
+  # Shared coverage (d80d18b) adds per-test contexts requiring CTracer, measured
+  # about 1.4–1.7x slower than the ordinary SysMonitor self-test run.
   selftest:
     name: selftest (${{ matrix.shard }})
     runs-on: ubuntu-24.04
@@ -390,7 +393,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ["1/3", "2/3", "3/3"]
+        shard: ["1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8", "8/8"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -434,7 +437,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # The self-tests' coverage over all three shards, with the harness's minimum
+  # The self-tests' coverage over all eight shards, with the harness's minimum
   # (acceptance/pyproject.toml); falling short of the aim is reported, not enforced.
   coverage:
     name: coverage
@@ -498,6 +501,26 @@ jobs:
             tmp/coverage-badges/provenance.json
           if-no-files-found: error
           retention-days: 1
+
+  required:
+    name: required
+    needs: [mutation, changes, companions, documentation, image, quality, test, unit-coverage, acceptance, acceptance-http, selftest, coverage, coverage-badges-render, coverage-badges]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.14"
+      - name: Require every CI result
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 -m scripts.ci_required
 
   coverage-badges:
     name: publish coverage badges

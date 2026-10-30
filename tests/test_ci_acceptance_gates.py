@@ -76,7 +76,22 @@ class AcceptanceGateWorkflowTest(unittest.TestCase):
     def test_ci_selftest_job_runs_all_shards_without_overrides(self):
         job = jobs("ci.yml")["selftest"]
         self.assertEqual(
-            job["strategy"], {"fail-fast": False, "matrix": {"shard": ["1/3", "2/3", "3/3"]}}
+            job["strategy"],
+            {
+                "fail-fast": False,
+                "matrix": {
+                    "shard": [
+                        "1/8",
+                        "2/8",
+                        "3/8",
+                        "4/8",
+                        "5/8",
+                        "6/8",
+                        "7/8",
+                        "8/8",
+                    ]
+                },
+            },
         )
         self.assertEqual(job.get("env", {}), {})
         self.assertEqual(job.get("if", ""), "")
@@ -142,7 +157,6 @@ class AcceptanceGateWorkflowTest(unittest.TestCase):
             {
                 "name": "Check every anonymous Shared SI query contract",
                 "if": "${{ !cancelled() }}",
-                "env": {},
                 "run": "status=0\n"
                 "pdm run python -m scripts.ssis_contracts > "
                 "acceptance/ssis-contracts.json || status=$?\n"

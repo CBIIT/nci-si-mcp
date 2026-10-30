@@ -192,7 +192,10 @@ individual partitions do not enforce a partial coverage floor. The local `pdm ru
 the complete suite. The mutation gate's local unit baseline also remains serial and unsharded.
 
 CI exports separate JSON coverage reports for the combined unit suite and the combined harness
-self-tests. A read-only job renders the three badge JSON files; a separate writer downloads
+self-tests. The harness runs in eight sorted round-robin shards, each with four workers;
+shared subprocess mutation coverage needs more shards than ordinary local self-tests. Each job
+keeps its ten-minute bound; add shards when measured jobs exceed about four minutes.
+A read-only job renders the three badge JSON files; a separate writer downloads
 that run's data without checking out or executing repository code. After every CI gate
 passes on a push to `main`, the writer publishes measured
 line-plus-branch percentages and their source counts, commit and run URL to the dedicated
@@ -268,6 +271,7 @@ pytest's original report. Local report files live under ignored `tmp/` directori
 | Test quality | No test without an assertion, or with only mock or `callable` assertions (`scripts/validation/check_test_quality.py`) |
 | Dead code | No unused functions, classes or variables (vulture) |
 | gitleaks, zizmor | No secrets; safe GitHub Actions workflows |
+| actionlint, shellcheck | Workflow syntax, expressions and shell scripts; both binaries are pinned in the PDM lint group. Only the unsupported `$/` self-repository diagnostics are ignored in `.github/actionlint.yaml`; local target existence is tested separately. |
 | Upstream requirement packages | `docs/upstream/*.md` are the current render of `docs/upstream/catalogue.yaml` (`scripts/upstream_requirements.py --check`) |
 | Acceptance ratchet (CI) | Every test of the acceptance suite, in fixture mode, has the outcome in `acceptance/expected/fixture.json`. A change that moves an outcome on purpose updates that file in the same pull request, and the diff of the file is what the review reads: `pdm run acceptance-expected update acceptance/fixture.json` writes it from a fresh report, and `pdm run acceptance-status` the README table that follows |
 | Tests and coverage | The suite passes before each push and in CI; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
@@ -290,6 +294,26 @@ A finding is fixed in the code. Where a rule does not fit, it is suppressed as n
 possible (a line, then a file or a directory, then the project, in `pyproject.toml`), with the
 reason beside the suppression, or once in the module when it repeats.
 
+### Required checks
+
+The owner-approved required contexts below replace the individual CI job contexts after
+`required` passes on the Phase 33p milestone PR, before merge. The reviewer applies that ruleset
+change with the owner's approval; implementation does not change repository settings.
+
+| Exact context | Producer |
+| --- | --- |
+| `required` | CI |
+| `conventional commit subject` | PR title |
+| `dependency review` | Audit |
+| `CodeQL` | GitHub default setup (integration 57789) |
+| `pip-audit` | Audit |
+
+`required` waits for every other CI job and rejects failure, cancellation, missing or unknown
+results. Only `mutation`, `image`, `companions` and `coverage-badges` may be skipped by their
+declared conditions. Their dependencies are also gate inputs, so a failed producer still fails
+the gate. Local run and Local installer remain unrequired because their PR triggers are
+path-filtered. CodeQL is GitHub-managed default setup, not a workflow file in this checkout.
+
 ### Verification before merge
 
 Every verification has a pull-request run or a bounded exemption below. The test derives
@@ -305,6 +329,7 @@ Fixture checks never establish live-service assurance.
 | `release/image` | ci/image uses the same image action; privileged mutation: registry and release publication; post-publication digest availability requires the published digest. |
 | `release/local-installer` | local-installer/prepare and local-installer/local-installer use the same reusable verification; actual release tag identity is checked after tagging. |
 | `acceptance-live/acceptance-live` | Live drift exemption: measures real services, not fixture behavior; operationally disabled, no PR live run. |
+| `scorecard/analysis` | ci/test exact offline workflow contract; first run after the milestone merge, reported in step 9. |
 
 ## Workflow credentials
 

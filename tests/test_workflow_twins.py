@@ -10,6 +10,8 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 CONDITIONS = {
+    None: True,
+    "always()": True,
     "github.event_name == 'pull_request'": True,
     "github.event_name == 'pull_request' && github.base_ref == 'main'": True,
     "${{ !cancelled() }}": True,
@@ -21,6 +23,7 @@ CONDITIONS = {
     "github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'milestone/') && github.event.pull_request.head.repo.full_name == github.repository": False,
 }
 ROWS = {
+    "scorecard/analysis": "ci/test exact offline workflow contract; first run after the milestone merge, reported in step 9.",
     "ci/coverage-badges": "ci/coverage-badges-render; privileged mutation: publish rendered badge data only on main.",
     "branch-cleanup/cleanup": "ci/test; privileged mutation: delete merged branches only after merge.",
     "release/release": "ci/test and pr-title/conventional; privileged mutation: create real tags and releases only after validated main.",
@@ -42,13 +45,15 @@ def reachable(workflow, name, definitions, visiting=()):
         raise ValueError("Cyclic workflow dependencies")
     job = workflow["jobs"][name]
     condition = job.get("if")
-    allowed = True if condition is None else CONDITIONS[condition]
+    allowed = CONDITIONS[condition]
     needs = job.get("needs", [])
     needs = [needs] if isinstance(needs, str) else needs
     dependencies = all(
         reachable(workflow, parent, definitions, (*visiting, name)) for parent in needs
     )
-    return allowed and dependencies and check_reusable(job, definitions)
+    return (
+        allowed and (condition == "always()" or dependencies) and check_reusable(job, definitions)
+    )
 
 
 def check_reusable(job, definitions):

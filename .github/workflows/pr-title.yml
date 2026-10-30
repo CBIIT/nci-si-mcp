@@ -38,6 +38,7 @@ jobs:
           pattern='^(feat|fix|perf|docs|style|refactor|test|chore|build|ci|revert|security|deprecate)(\([a-z0-9._/-]+\))?!?: .+'
 
           if [[ ! "$TITLE" =~ $pattern ]]; then
+            # shellcheck disable=SC2016 # diagnostic examples intentionally show literal backticks
             {
               echo "## The PR title is not a Conventional Commit"
               echo
