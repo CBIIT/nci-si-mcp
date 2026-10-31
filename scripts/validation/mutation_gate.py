@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import random
 import subprocess
 import sys
@@ -25,6 +26,9 @@ from scripts.validation.mutation_run import (
     snapshot,
 )
 from scripts.validation.mutation_source import Mutant, allowlist, candidates, digest, scope
+
+OUTCOMES = ("KILLED", "TIMEOUT", "SURVIVED", "NO_TESTS", "INFRA")
+DOMAINS = ("unit", "selftest", "fixture")
 
 
 class SchedulerError(ValueError):
@@ -207,11 +211,61 @@ def candidate_result(row: object, mutant: Mutant) -> dict:
         raise ValueError("Result must be a JSON object")
     if any(row.get(name) != value for name, value in asdict(mutant).items()):
         raise ValueError("Result does not match the scheduled candidate")
-    if row.get("outcome") not in ("KILLED", "TIMEOUT", "SURVIVED", "NO_TESTS", "INFRA"):
+    if row.get("outcome") not in OUTCOMES:
         raise ValueError("Result has an unknown outcome")
     if not isinstance(row.get("restored"), bool):
         raise ValueError("Result restoration must be a boolean")
+    validate_result_metrics(row)
     return row
+
+
+def validate_result_metrics(row: dict) -> None:
+    """Check supplied reporting fields without requiring legacy rows to carry them."""
+    validate_result_choices(row)
+    if "elapsed_seconds" in row:
+        validate_elapsed(row["elapsed_seconds"])
+    if "domains" in row:
+        if not isinstance(row["domains"], list):
+            raise ValueError("Result domains must be a list")
+        for timing in row["domains"]:
+            validate_domain_timing(timing)
+    if "fallback_domains" in row:
+        validate_fallback_domains(row["fallback_domains"])
+
+
+def validate_result_choices(row: dict) -> None:
+    for name, choices in (
+        ("outcome", OUTCOMES),
+        ("domain", DOMAINS),
+        ("kind", ("assertion", "error", "import")),
+    ):
+        if name in row and row[name] not in choices:
+            raise ValueError(f"Result has an unknown {name}")
+
+
+def validate_elapsed(value: object) -> None:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ValueError("Result elapsed_seconds must be a finite nonnegative number")
+    if value < 0 or (isinstance(value, float) and not math.isfinite(value)):
+        raise ValueError("Result elapsed_seconds must be a finite nonnegative number")
+
+
+def validate_domain_timing(timing: object) -> None:
+    if not isinstance(timing, dict):
+        raise ValueError("Result domain timing must be an object")
+    if timing.get("domain") not in DOMAINS:
+        raise ValueError("Result domain timing has an unknown domain")
+    validate_elapsed(timing.get("elapsed_seconds"))
+    validate_result_choices(timing)
+
+
+def validate_fallback_domains(value: object) -> None:
+    if not isinstance(value, list):
+        raise ValueError("Result fallback_domains must be a list")
+    if any(domain not in DOMAINS for domain in value):
+        raise ValueError("Result fallback_domains has an unknown domain")
+    if len(value) != len(set(value)):
+        raise ValueError("Result fallback_domains must not contain duplicates")
 
 
 def incomplete_result(mutant: Mutant, selected: dict, message: str, log: str) -> dict:
@@ -302,14 +356,14 @@ def report_results(rows: list[dict], exemptions: list[dict], args, started: floa
 
 
 def execution_costs(rows: list[dict]) -> dict:
-    fallbacks = Counter(domain for row in rows for domain in row["fallback_domains"])
+    fallbacks = Counter(domain for row in rows for domain in row.get("fallback_domains", []))
     seconds = Counter()
     for row in rows:
-        for domain in row["domains"]:
+        for domain in row.get("domains", []):
             seconds[domain["domain"]] += domain["elapsed_seconds"]
     total = sum(seconds.values())
     return {
-        "fallback_count": sum(bool(row["fallback_domains"]) for row in rows),
+        "fallback_count": sum(bool(row.get("fallback_domains", [])) for row in rows),
         "fallback_domains": dict(fallbacks),
         "runner_seconds_by_domain": dict(seconds),
         "runner_seconds": total,

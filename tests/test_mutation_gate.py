@@ -582,11 +582,11 @@ class MutationExecutionTest(unittest.TestCase):
             )
             wait_exit = runner._wait_exit
 
-            def cancel_ready(pid, deadline):
+            def cancel_ready(pid, deadline, cancel=None):
                 if not ready.exists():
                     self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
                     return None
-                return wait_exit(pid, deadline)
+                return wait_exit(pid, deadline, cancel)
 
             def launch_worker(command, cwd, env, timeout, log, **kwargs):
                 return program([sys.executable, "-c", worker], cwd, env, timeout, log, **kwargs)
