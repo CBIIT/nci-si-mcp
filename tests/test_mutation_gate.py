@@ -348,7 +348,14 @@ class MutationExecutionTest(unittest.TestCase):
             root = Path(temporary).resolve()
             project(root, "def answer():\n    return True\n")
             mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
-            for error in (KeyboardInterrupt("cancelled"), PermissionError("cleanup denied")):
+            for error in (
+                KeyboardInterrupt("cancelled"),
+                PermissionError("cleanup denied"),
+                BaseExceptionGroup(
+                    "Runner and owned cleanup failed",
+                    [KeyboardInterrupt("cancelled"), PermissionError("cleanup denied")],
+                ),
+            ):
                 with self.subTest(error=type(error).__name__):
                     work = []
 
@@ -386,49 +393,67 @@ class MutationExecutionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
             driver, mutants = self.cancellation_project(root)
-            unrelated = subprocess.Popen(
-                [sys.executable, "-c", "import signal; signal.pause()"],
+            self.assert_real_cancellation(root, driver, mutants, cleanup_denied=False)
+
+    def test_real_scheduler_combined_cancellation_cleanup_failure_retains_evidence(self):
+        # Given real completed and running candidates, cancellation plus an injected
+        # cleanup denial must retain both failures and every candidate's evidence.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            driver, mutants = self.cancellation_project(root, cleanup_denied=True)
+            self.assert_real_cancellation(root, driver, mutants, cleanup_denied=True)
+
+    def assert_real_cancellation(self, root, driver, mutants, *, cleanup_denied):
+        unrelated = subprocess.Popen(
+            [sys.executable, "-c", "import signal; signal.pause()"],
+            start_new_session=True,
+        )
+        with (root / "controller.log").open("w+") as stream:
+            owner = subprocess.Popen(  # noqa: S603 - fixed owned controller, reaped below
+                [sys.executable, "-c", driver],
+                cwd=ROOT,
+                stdout=stream,
+                stderr=subprocess.STDOUT,
                 start_new_session=True,
             )
-            with (root / "controller.log").open("w+") as stream:
-                owner = subprocess.Popen(  # noqa: S603 - fixed owned controller, reaped below
-                    [sys.executable, "-c", driver],
-                    cwd=ROOT,
-                    stdout=stream,
-                    stderr=subprocess.STDOUT,
-                    start_new_session=True,
+            try:
+                self.assertTrue(wait_until((root / "runner").exists, 30, interval=0.01))
+                pid = int((root / "runner").read_text())
+                self.assertEqual(os.getpgid(pid), pid)
+                work = Path((root / "work").read_text())
+                completed = (work / "result-0.json").read_bytes()
+                self.assertEqual(json.loads(completed)["outcome"], "KILLED")
+                owner.send_signal(signal.SIGTERM)
+                status = owner.wait(timeout=45)
+                self.assertNotEqual(status, 0)
+                self.assertTrue(work.exists(), "Cancellation deleted completed scheduler evidence")
+                self.assertEqual((work / "result-0.json").read_bytes(), completed)
+                self.assertTrue((work / "scheduler.log").is_file())
+                self.assertTrue(
+                    (work / "traceback.txt").is_file(),
+                    "Combined cancellation/cleanup failure lost scheduler traceback",
                 )
-                try:
-                    self.assertTrue(wait_until((root / "runner").exists, 30, interval=0.01))
-                    pid = int((root / "runner").read_text())
-                    self.assertEqual(os.getpgid(pid), pid)
-                    work = Path((root / "work").read_text())
-                    completed = (work / "result-0.json").read_bytes()
-                    self.assertEqual(json.loads(completed)["outcome"], "KILLED")
-                    owner.send_signal(signal.SIGTERM)
-                    self.assertNotEqual(owner.wait(timeout=45), 0)
-                    self.assertTrue(
-                        work.exists(), "Cancellation deleted completed scheduler evidence"
-                    )
-                    self.assertEqual((work / "result-0.json").read_bytes(), completed)
-                    self.assertTrue((work / "scheduler.log").is_file())
-                    self.assertIn("KeyboardInterrupt", (work / "traceback.txt").read_text())
-                    catalogue = json.loads((work / "mutations.json").read_text())["mutants"]
-                    stream.seek(0)
-                    output = [json.loads(line) for line in stream if line.startswith("{")]
-                    self.assert_cancelled_rows(mutant_rows(output), catalogue, mutants)
-                    retained = [
-                        json.loads(path.read_text()) for path in sorted(work.glob("result-*.json"))
-                    ]
-                    self.assert_cancelled_rows(retained, catalogue, mutants)
-                    self.assertTrue(
-                        wait_until(lambda: not self.process_exists(pid), 5, interval=0.01)
-                    )
-                    self.assertIsNone(unrelated.poll())
-                finally:
-                    stop(owner, group=True)
-                    stop(unrelated, group=True)
-                    self.kill_marked_group(root / "runner")
+                diagnostic = (work / "traceback.txt").read_text()
+                self.assertEqual(status, 2)
+                self.assertIn("KeyboardInterrupt", diagnostic)
+                if cleanup_denied:
+                    self.assertIn("BaseExceptionGroup: Runner and owned cleanup failed", diagnostic)
+                    self.assertIn("PermissionError: injected scheduler cleanup denial", diagnostic)
+                catalogue = json.loads((work / "mutations.json").read_text())["mutants"]
+                stream.seek(0)
+                output = [json.loads(line) for line in stream if line.startswith("{")]
+                self.assertEqual(output[-1]["outcome"], "INFRA")
+                self.assert_cancelled_rows(mutant_rows(output), catalogue, mutants)
+                retained = [
+                    json.loads(path.read_text()) for path in sorted(work.glob("result-*.json"))
+                ]
+                self.assert_cancelled_rows(retained, catalogue, mutants)
+                self.assertTrue(wait_until(lambda: not self.process_exists(pid), 5, interval=0.01))
+                self.assertIsNone(unrelated.poll())
+            finally:
+                stop(owner, group=True)
+                stop(unrelated, group=True)
+                self.kill_marked_group(root / "runner")
 
     def assert_cancelled_rows(self, rows, catalogue, mutants):
         expected = [mutant.key() for mutant in mutants]
@@ -441,7 +466,7 @@ class MutationExecutionTest(unittest.TestCase):
         self.assertTrue(all("no result" in row["message"] for row in rows[1:]))
 
     @staticmethod
-    def cancellation_project(root):
+    def cancellation_project(root, *, cleanup_denied=False):
         source = "".join(
             f"def {name}():\n    return True\n" for name in ("first", "second", "third")
         )
@@ -469,17 +494,24 @@ class MutationExecutionTest(unittest.TestCase):
         driver = (
             "from pathlib import Path\nfrom unittest.mock import patch\n"
             "from scripts.validation import mutation_gate as gate\n"
+            "from scripts.validation import mutation_run as run_module\n"
             "from scripts.validation.mutation_source import candidates\n"
             f"root = Path({str(root)!r})\n"
             "found, _ = candidates('src/example.py', (root / 'src/example.py').read_bytes())\n"
             "mutants = [item for item in found if item.operator == 'boolean:literal']\n"
             "original = gate.program\n"
+            "finish_owned = run_module._finish_owned\n"
+            "def denied_cleanup(process, owner):\n"
+            "    finish_owned(process, owner)\n"
+            "    raise PermissionError('injected scheduler cleanup denial')\n"
             "def run(command, cwd, env, timeout, log):\n"
             "    (root / 'work').write_text(str(cwd))\n"
             "    return original(command, cwd, env, timeout, log)\n"
             "with patch.object(gate, 'collect', return_value=(mutants, [])), "
             f"patch.object(gate, 'imported_coverage', return_value={mapping!r}), "
-            "patch.object(gate.random.Random, 'shuffle'), patch.object(gate, 'program', run):\n"
+            "patch.object(gate.random.Random, 'shuffle'), patch.object(gate, 'program', run), "
+            "patch.object(run_module, '_finish_owned', "
+            f"denied_cleanup if {cleanup_denied!r} else finish_owned):\n"
             "    raise SystemExit(gate.main(['--root', str(root), '--paths', 'src/example.py']))\n"
         )
         return driver, mutants
@@ -556,8 +588,8 @@ class MutationExecutionTest(unittest.TestCase):
             "signal.pause()\n"
         )
 
-    @classmethod
-    def release_worker(cls, root, released):
+    @staticmethod
+    def release_worker(root, released):
         if not wait_until(
             lambda: (root / "runner").exists() and (root / "scheduler").exists(),
             10,
@@ -566,7 +598,13 @@ class MutationExecutionTest(unittest.TestCase):
             return
         scheduler = int((root / "scheduler").read_text())
         os.killpg(scheduler, signal.SIGTERM)
-        exited = wait_until(lambda: not cls.process_exists(scheduler), 10, interval=0.01)
+        exited = wait_until(
+            lambda: (
+                os.waitid(os.P_PID, scheduler, os.WEXITED | os.WNOHANG | os.WNOWAIT) is not None
+            ),
+            10,
+            interval=0.01,
+        )
         released.append(exited)
         (root / "release").touch()
 
