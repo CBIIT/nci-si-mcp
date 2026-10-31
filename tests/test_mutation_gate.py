@@ -517,6 +517,9 @@ class MutationExecutionTest(unittest.TestCase):
                     "Nested session child survived scheduler group stop",
                 )
                 self.assertTrue((root / "cleaned").exists(), "Worker cleanup was swept early")
+                self.assertTrue(wait_until((root / "reaped").exists, 10, interval=0.01))
+                self.assertEqual((root / "reaped").read_text(), "0")
+                self.assert_cleanup_topology(root)
                 self.assertIsNone(unrelated.poll())
             finally:
                 (root / "release").touch()
@@ -527,20 +530,49 @@ class MutationExecutionTest(unittest.TestCase):
 
     @staticmethod
     def cleanup_scheduler(root):
-        worker = (
-            "import signal, subprocess, sys; from pathlib import Path; "
-            "from scripts.processes import exit_on_sigterm, stop, wait_until; "
-            f"root = Path({str(root)!r}); exit_on_sigterm(); "
-            "runner = subprocess.Popen([sys.executable, '-c', "
-            "\"import signal; print('ready', flush=True); signal.pause()\"], "
-            "stdout=subprocess.PIPE, text=True, start_new_session=True); "
-            "runner.stdout.readline(); (root / 'runner').write_text(str(runner.pid))\n"
-            "try:\n    runner.wait(timeout=30)\n"
-            "finally:\n"
+        runner = (
+            "import json, os, signal; from pathlib import Path; "
+            "from scripts.processes import wait_until; "
+            f"root = Path({str(root)!r})\n"
+            "def finish(signum, frame):\n"
+            "    signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
             "    (root / 'cleaning').touch()\n"
-            "    wait_until((root / 'release').exists, 30, interval=0.01)\n"
-            "    stop(runner, group=True)\n"
+            "    assert wait_until((root / 'release').exists, 30, interval=0.01)\n"
+            "    raise SystemExit(0)\n"
+            "signal.signal(signal.SIGTERM, finish)\n"
+            "(root / 'runner-identity').write_text(json.dumps(\n"
+            "    [os.getpid(), os.getppid(), os.getpgid(0), os.getsid(0)]))\n"
+            "(root / 'runner.pending').write_text(str(os.getpid()))\n"
+            "(root / 'runner.pending').rename(root / 'runner')\n"
+            "signal.pause()\n"
+        )
+        worker = (
+            "import json, os, sys; from pathlib import Path; "
+            "from scripts.validation.mutation_run import program; "
+            f"root = Path({str(root)!r})\n"
+            "(root / 'worker-identity').write_text(json.dumps(\n"
+            "    [os.getpid(), os.getppid(), os.getpgid(0), os.getsid(0)]))\n"
+            "try:\n"
+            f"    program([sys.executable, '-c', {runner!r}],\n"
+            f"            Path({str(ROOT)!r}), dict(os.environ), 30, root / 'runner.log')\n"
+            "except KeyboardInterrupt:\n"
             "    (root / 'cleaned').touch()\n"
+            # Leave only after program() has reaped the runner. Even a waiting
+            # parent cannot prevent a brief zombie-only swept group on macOS.
+            "os.setpgid(0, os.getppid())\n"
+            "(root / 'worker-departure').write_text(json.dumps(\n"
+            "    [os.getpid(), os.getppid(), os.getpgid(0), os.getsid(0)]))\n"
+        )
+        reaper = (
+            "import json, os, subprocess, sys; from pathlib import Path; "
+            f"root = Path({str(root)!r})\n"
+            "(root / 'reaper-identity').write_text(json.dumps(\n"
+            "    [os.getpid(), os.getppid(), os.getpgid(0), os.getsid(0)]))\n"
+            f"worker = subprocess.Popen([sys.executable, '-c', {worker!r}],\n"
+            "                          process_group=int((root / 'scheduler').read_text()))\n"
+            "status = worker.wait(timeout=45)\n"
+            "(root / 'reaped.pending').write_text(str(status))\n"
+            "(root / 'reaped.pending').rename(root / 'reaped')\n"
         )
         return (
             "import os, signal, subprocess, sys; from pathlib import Path; "
@@ -551,10 +583,37 @@ class MutationExecutionTest(unittest.TestCase):
             "    assert wait_until((root / 'cleaning').exists, 10, interval=0.01)\n"
             "    raise SystemExit(0)\n"
             "signal.signal(signal.SIGTERM, finish)\n"
-            f"subprocess.Popen([sys.executable, '-c', {worker!r}])\n"
             "(root / 'scheduler').write_text(str(os.getpid()))\n"
+            # A different group in the SAME session can parent and reap a worker
+            # that joins the scheduler group while its leader can still exit first.
+            f"subprocess.Popen([sys.executable, '-c', {reaper!r}], process_group=0)\n"
             "signal.pause()\n"
         )
+
+    def assert_cleanup_topology(self, root):
+        scheduler = int((root / "scheduler").read_text())
+        reaper, reaper_parent, reaper_group, reaper_session = json.loads(
+            (root / "reaper-identity").read_text()
+        )
+        worker, worker_parent, worker_group, worker_session = json.loads(
+            (root / "worker-identity").read_text()
+        )
+        runner, runner_parent, runner_group, runner_session = json.loads(
+            (root / "runner-identity").read_text()
+        )
+        self.assertEqual(
+            (reaper_parent, reaper_group, reaper_session), (scheduler, reaper, scheduler)
+        )
+        self.assertNotEqual(reaper, scheduler)
+        self.assertEqual(
+            (worker_parent, worker_group, worker_session), (reaper, scheduler, scheduler)
+        )
+        self.assertEqual(
+            json.loads((root / "worker-departure").read_text()),
+            [worker, reaper, reaper, scheduler],
+        )
+        self.assertEqual((runner_parent, runner_group, runner_session), (worker, runner, runner))
+        self.assertNotEqual(runner_session, scheduler)
 
     @classmethod
     def release_worker(cls, root, released):
