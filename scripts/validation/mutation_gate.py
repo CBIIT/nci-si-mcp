@@ -8,6 +8,7 @@ import random
 import subprocess
 import sys
 import tempfile
+import traceback
 from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
@@ -121,48 +122,70 @@ def manifest_data(root: Path, mutants: list[Mutant], mapping: dict, timeout: flo
 
 
 def schedule(root: Path, mutants: list[Mutant], mapping: dict, args) -> list[dict]:
-    with tempfile.TemporaryDirectory(prefix="mutation-jobs-") as temporary:
-        work = Path(temporary)
-        manifest = work / "mutations.json"
-        data = manifest_data(root, mutants, mapping, args.timeout)
-        manifest.write_text(json.dumps(data))
-        config = work / "pytest.ini"
-        config.write_text("[pytest]\n")
-        command = [
-            sys.executable,
-            "-m",
-            "pytest",
-            "-c",
-            str(config),
-            "-p",
-            "scripts.validation.mutation_probe",
-            "--no-cov",
-            "-n",
-            str(args.workers),
-            str(manifest),
-        ]
-        env = environment(root, work)
-        try:
-            status = program(
-                command, work, env, args.timeout * (len(mutants) + 2) * 3, work / "scheduler.log"
-            )
-        except (OSError, subprocess.SubprocessError) as error:
-            rows = scheduler_rows(work, mutants, data, str(error))
-            raise SchedulerError(f"Mutant scheduler failed: {error}", rows) from error
-        log = (work / "scheduler.log").read_text()
+    destination = root / "tmp/mutation-runs"
+    destination.mkdir(parents=True, exist_ok=True)
+    work = Path(tempfile.mkdtemp(prefix="run-", dir=destination)).resolve()
+    print(json.dumps({"outcome": "EVIDENCE", "directory": str(work)}), file=sys.stderr, flush=True)
+    data = manifest_data(root, mutants, mapping, args.timeout)
+    try:
+        (work / "scheduler.log").touch()
+        status = run_scheduler(root, work, data, args.workers)
+        log = (work / "scheduler.log").read_text(errors="replace")
         rows = scheduler_rows(work, mutants, data, log)
         if status != 0 or any(not row["restored"] for row in rows):
             raise SchedulerError(f"Mutant scheduler failed: {log}", rows)
         return rows
+    except (
+        BaseExceptionGroup,
+        KeyboardInterrupt,
+        OSError,
+        subprocess.SubprocessError,
+        ValueError,
+    ) as error:
+        # Record before reading results: a second diagnostic failure must not erase
+        # the original cancellation/cleanup traceback. Never resume this directory.
+        diagnostic = traceback.format_exc()
+        (work / "traceback.txt").write_text(diagnostic)
+        if isinstance(error, SchedulerError):
+            raise
+        rows = scheduler_rows(work, mutants, data, str(error))
+        raise SchedulerError(f"Mutant scheduler failed: {error}", rows) from error
+
+
+def run_scheduler(root: Path, work: Path, data: dict, workers: int) -> int | None:
+    manifest = work / "mutations.json"
+    manifest.write_text(json.dumps(data))
+    config = work / "pytest.ini"
+    config.write_text("[pytest]\n")
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "-c",
+        str(config),
+        "-p",
+        "scripts.validation.mutation_probe",
+        "--no-cov",
+        "-n",
+        str(workers),
+        str(manifest),
+    ]
+    return program(
+        command,
+        work,
+        environment(root, work),
+        data["timeout"] * (len(data["mutants"]) + 2) * 3,
+        work / "scheduler.log",
+    )
 
 
 def scheduler_rows(work: Path, mutants: list[Mutant], data: dict, log: str) -> list[dict]:
     rows = []
     for index, mutant in enumerate(mutants):
         result = work / f"result-{index}.json"
-        if result.exists():
+        try:
             rows.append(json.loads(result.read_text()))
-        else:
+        except FileNotFoundError:
             rows.append(
                 {
                     **asdict(mutant),
@@ -178,6 +201,7 @@ def scheduler_rows(work: Path, mutants: list[Mutant], data: dict, log: str) -> l
                     ),
                 }
             )
+            result.write_text(json.dumps(rows[-1]))
     return rows
 
 

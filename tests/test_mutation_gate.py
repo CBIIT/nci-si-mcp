@@ -1,21 +1,26 @@
 """The mutation command measures assertion sensitivity without editing its caller."""
 
+import contextlib
+import io
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 import unittest
 from dataclasses import asdict
 from pathlib import Path
+from threading import Thread
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import yaml
+from scripts.processes import stop, wait_until
 from scripts.validation import mutation_gate
 from scripts.validation.mutation_gate import execute_job
-from scripts.validation.mutation_run import coverage_map, run_domain, selection, snapshot
+from scripts.validation.mutation_run import coverage_map, program, run_domain, selection, snapshot
 from scripts.validation.mutation_source import allowlist, candidates, diff_lines, scope
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -302,6 +307,390 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_scheduler_owns_unique_retained_directories_and_announces_before_launch(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n")
+            mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
+            args = SimpleNamespace(timeout=20, workers=1)
+            output = io.StringIO()
+            directories = []
+
+            def scheduler(command, cwd, env, timeout, log):
+                announcement = json.loads(output.getvalue().splitlines()[-1])
+                self.assertEqual(announcement, {"outcome": "EVIDENCE", "directory": str(cwd)})
+                self.assertTrue(cwd.is_dir())
+                directories.append(cwd)
+                execute_job(Path(command[-1]), 0)
+                return 0
+
+            with (
+                contextlib.redirect_stderr(output),
+                patch.object(mutation_gate, "program", side_effect=scheduler),
+            ):
+                first = mutation_gate.schedule(root, mutants[:1], {}, args)
+                second = mutation_gate.schedule(root, mutants[:1], {}, args)
+                third = mutation_gate.schedule(root, mutants[:1], {}, args)
+            self.assertEqual(
+                [directory.parent for directory in directories],
+                [root / "tmp/mutation-runs"] * 3,
+            )
+            self.assertEqual(len(set(directories)), 3)
+            self.assertTrue(all(directory.name.startswith("run-") for directory in directories))
+            self.assertEqual([row["outcome"] for row in first + second + third], ["NO_TESTS"] * 3)
+            for directory in directories:
+                self.assertTrue((directory / "mutations.json").is_file())
+                self.assertTrue((directory / "result-0.json").is_file())
+                self.assertTrue((directory / "scheduler.log").is_file())
+
+    def test_scheduler_retains_original_diagnostics_even_when_every_candidate_finished(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n")
+            mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
+            for error in (
+                KeyboardInterrupt("cancelled"),
+                PermissionError("cleanup denied"),
+                BaseExceptionGroup(
+                    "Runner and owned cleanup failed",
+                    [KeyboardInterrupt("cancelled"), PermissionError("cleanup denied")],
+                ),
+            ):
+                with self.subTest(error=type(error).__name__):
+                    work = []
+
+                    def scheduler(command, cwd, env, timeout, log, work=work, error=error):
+                        work.append(cwd)
+                        execute_job(Path(command[-1]), 0)
+                        raise error
+
+                    with (
+                        patch.object(mutation_gate, "program", side_effect=scheduler),
+                        self.assertRaises(mutation_gate.SchedulerError) as failed,
+                    ):
+                        mutation_gate.schedule(
+                            root, mutants[:1], {}, SimpleNamespace(timeout=20, workers=1)
+                        )
+                    self.assertIs(failed.exception.__cause__, error)
+                    self.assertEqual(failed.exception.rows[0]["outcome"], "NO_TESTS")
+                    diagnostic = (work[0] / "traceback.txt").read_text()
+                    self.assertIn(f"{type(error).__name__}: {error}", diagnostic)
+                    self.assertIn("raise error", diagnostic)
+
+    def test_result_permission_failure_is_not_reported_as_a_missing_candidate(self):
+        mutants, _ = candidates("src/example.py", b"def answer():\n    return True\n")
+        denied = PermissionError("result read denied")
+        with (
+            patch.object(Path, "read_text", side_effect=denied),
+            self.assertRaises(PermissionError) as failed,
+        ):
+            mutation_gate.scheduler_rows(Path("unused"), mutants[:1], {}, "diagnostic")
+        self.assertIs(failed.exception, denied)
+
+    def test_real_scheduler_cancellation_retains_completed_bytes_and_all_candidate_identities(self):
+        # Given one actual completed candidate and a ready separate-session runner,
+        # cancellation retains that evidence and explicitly reports every unfinished site.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            driver, mutants = self.cancellation_project(root)
+            self.assert_real_cancellation(root, driver, mutants, cleanup_denied=False)
+
+    def test_real_scheduler_combined_cancellation_cleanup_failure_retains_evidence(self):
+        # Given real completed and running candidates, cancellation plus an injected
+        # cleanup denial must retain both failures and every candidate's evidence.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            driver, mutants = self.cancellation_project(root, cleanup_denied=True)
+            self.assert_real_cancellation(root, driver, mutants, cleanup_denied=True)
+
+    def assert_real_cancellation(self, root, driver, mutants, *, cleanup_denied):
+        unrelated = subprocess.Popen(
+            [sys.executable, "-c", "import signal; signal.pause()"],
+            start_new_session=True,
+        )
+        with (root / "controller.log").open("w+") as stream:
+            owner = subprocess.Popen(  # noqa: S603 - fixed owned controller, reaped below
+                [sys.executable, "-c", driver],
+                cwd=ROOT,
+                stdout=stream,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+            try:
+                self.assertTrue(wait_until((root / "runner").exists, 30, interval=0.01))
+                pid = int((root / "runner").read_text())
+                self.assertEqual(os.getpgid(pid), pid)
+                work = Path((root / "work").read_text())
+                completed = (work / "result-0.json").read_bytes()
+                self.assertEqual(json.loads(completed)["outcome"], "KILLED")
+                owner.send_signal(signal.SIGTERM)
+                status = owner.wait(timeout=45)
+                self.assertNotEqual(status, 0)
+                self.assertTrue(work.exists(), "Cancellation deleted completed scheduler evidence")
+                self.assertEqual((work / "result-0.json").read_bytes(), completed)
+                self.assertTrue((work / "scheduler.log").is_file())
+                self.assertTrue(
+                    (work / "traceback.txt").is_file(),
+                    "Combined cancellation/cleanup failure lost scheduler traceback",
+                )
+                diagnostic = (work / "traceback.txt").read_text()
+                self.assertEqual(status, 2)
+                self.assertIn("KeyboardInterrupt", diagnostic)
+                if cleanup_denied:
+                    self.assertIn("BaseExceptionGroup: Runner and owned cleanup failed", diagnostic)
+                    self.assertIn("PermissionError: injected scheduler cleanup denial", diagnostic)
+                catalogue = json.loads((work / "mutations.json").read_text())["mutants"]
+                stream.seek(0)
+                output = [json.loads(line) for line in stream if line.startswith("{")]
+                self.assertEqual(output[-1]["outcome"], "INFRA")
+                self.assert_cancelled_rows(mutant_rows(output), catalogue, mutants)
+                retained = [
+                    json.loads(path.read_text()) for path in sorted(work.glob("result-*.json"))
+                ]
+                self.assert_cancelled_rows(retained, catalogue, mutants)
+                self.assertTrue(wait_until(lambda: not self.process_exists(pid), 5, interval=0.01))
+                self.assertIsNone(unrelated.poll())
+            finally:
+                stop(owner, group=True)
+                stop(unrelated, group=True)
+                self.kill_marked_group(root / "runner")
+
+    def assert_cancelled_rows(self, rows, catalogue, mutants):
+        expected = [mutant.key() for mutant in mutants]
+        self.assertEqual(len(rows), len(mutants))
+        for records in (rows, catalogue):
+            self.assertEqual(
+                [{name: row[name] for name in expected[0]} for row in records], expected
+            )
+        self.assertEqual([row["outcome"] for row in rows], ["KILLED", "INFRA", "INFRA"])
+        self.assertTrue(all("no result" in row["message"] for row in rows[1:]))
+
+    @staticmethod
+    def cancellation_project(root, *, cleanup_denied=False):
+        source = "".join(
+            f"def {name}():\n    return True\n" for name in ("first", "second", "third")
+        )
+        project(root, source)
+        (root / "tests/test_example.py").write_text(
+            "import example, os, signal\nfrom pathlib import Path\n"
+            "def test_first():\n    assert example.first() is True\n"
+            "def test_second():\n"
+            f"    ready = Path({str(root / 'runner')!r})\n"
+            "    pending = ready.with_suffix('.pending')\n"
+            "    pending.write_text(str(os.getpid()))\n    pending.rename(ready)\n"
+            "    signal.pause()\n    assert example.second() is True\n"
+            "def test_third():\n    assert example.third() is True\n"
+        )
+        found, _ = candidates("src/example.py", source.encode())
+        mutants = [item for item in found if item.operator == "boolean:literal"]
+        mapping = {
+            "unit": {
+                "src/example.py": {
+                    item.line: [f"tests/test_example.py::test_{item.qualname}|run"]
+                    for item in mutants
+                }
+            }
+        }
+        driver = (
+            "from pathlib import Path\nfrom unittest.mock import patch\n"
+            "from scripts.validation import mutation_gate as gate\n"
+            "from scripts.validation import mutation_run as run_module\n"
+            "from scripts.validation.mutation_source import candidates\n"
+            f"root = Path({str(root)!r})\n"
+            "found, _ = candidates('src/example.py', (root / 'src/example.py').read_bytes())\n"
+            "mutants = [item for item in found if item.operator == 'boolean:literal']\n"
+            "original = gate.program\n"
+            "finish_owned = run_module._finish_owned\n"
+            "def denied_cleanup(process, owner):\n"
+            "    finish_owned(process, owner)\n"
+            "    raise PermissionError('injected scheduler cleanup denial')\n"
+            "def run(command, cwd, env, timeout, log):\n"
+            "    (root / 'work').write_text(str(cwd))\n"
+            "    return original(command, cwd, env, timeout, log)\n"
+            "with patch.object(gate, 'collect', return_value=(mutants, [])), "
+            f"patch.object(gate, 'imported_coverage', return_value={mapping!r}), "
+            "patch.object(gate.random.Random, 'shuffle'), patch.object(gate, 'program', run), "
+            "patch.object(run_module, '_finish_owned', "
+            f"denied_cleanup if {cleanup_denied!r} else finish_owned):\n"
+            "    raise SystemExit(gate.main(['--root', str(root), '--paths', 'src/example.py']))\n"
+        )
+        return driver, mutants
+
+    def test_scheduler_exit_allows_worker_to_reap_its_separate_session_runner(self):
+        # Given cleanup gated on leader exit, program must let the worker finish
+        # before sweeping its group, without signaling an unrelated session.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            scheduler = self.cleanup_scheduler(root)
+            released = []
+            release = Thread(target=self.release_worker, args=(root, released))
+            unrelated = subprocess.Popen(
+                [sys.executable, "-c", "import signal; signal.pause()"],
+                start_new_session=True,
+            )
+            release.start()
+            try:
+                status = program(
+                    [sys.executable, "-c", scheduler],
+                    ROOT,
+                    dict(os.environ),
+                    20,
+                    root / "scheduler.log",
+                )
+                release.join(timeout=10)
+                self.assertEqual(released, [True], (root / "scheduler.log").read_text())
+                self.assertEqual(status, 0)
+                self.assertTrue(
+                    wait_until(
+                        lambda: not self.process_exists(int((root / "runner").read_text())),
+                        5,
+                        interval=0.01,
+                    ),
+                    "Nested session child survived scheduler group stop",
+                )
+                self.assertTrue((root / "cleaned").exists(), "Worker cleanup was swept early")
+                self.assertIsNone(unrelated.poll())
+            finally:
+                (root / "release").touch()
+                release.join(timeout=10)
+                stop(unrelated, group=True)
+                self.kill_marked_group(root / "runner")
+                self.kill_marked_group(root / "scheduler")
+
+    @staticmethod
+    def cleanup_scheduler(root):
+        worker = (
+            "import signal, subprocess, sys; from pathlib import Path; "
+            "from scripts.processes import exit_on_sigterm, stop, wait_until; "
+            f"root = Path({str(root)!r}); exit_on_sigterm(); "
+            "runner = subprocess.Popen([sys.executable, '-c', "
+            "\"import signal; print('ready', flush=True); signal.pause()\"], "
+            "stdout=subprocess.PIPE, text=True, start_new_session=True); "
+            "runner.stdout.readline(); (root / 'runner').write_text(str(runner.pid))\n"
+            "try:\n    runner.wait(timeout=30)\n"
+            "finally:\n"
+            "    (root / 'cleaning').touch()\n"
+            "    wait_until((root / 'release').exists, 30, interval=0.01)\n"
+            "    stop(runner, group=True)\n"
+            "    (root / 'cleaned').touch()\n"
+        )
+        return (
+            "import os, signal, subprocess, sys; from pathlib import Path; "
+            "from scripts.processes import wait_until; "
+            f"root = Path({str(root)!r})\n"
+            "def finish(signum, frame):\n"
+            "    signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+            "    assert wait_until((root / 'cleaning').exists, 10, interval=0.01)\n"
+            "    raise SystemExit(0)\n"
+            "signal.signal(signal.SIGTERM, finish)\n"
+            f"subprocess.Popen([sys.executable, '-c', {worker!r}])\n"
+            "(root / 'scheduler').write_text(str(os.getpid()))\n"
+            "signal.pause()\n"
+        )
+
+    @staticmethod
+    def release_worker(root, released):
+        if not wait_until(
+            lambda: (root / "runner").exists() and (root / "scheduler").exists(),
+            10,
+            interval=0.01,
+        ):
+            return
+        scheduler = int((root / "scheduler").read_text())
+        os.killpg(scheduler, signal.SIGTERM)
+        exited = wait_until(
+            lambda: (
+                os.waitid(os.P_PID, scheduler, os.WEXITED | os.WNOHANG | os.WNOWAIT) is not None
+            ),
+            10,
+            interval=0.01,
+        )
+        released.append(exited)
+        (root / "release").touch()
+
+    @staticmethod
+    def kill_marked_group(marker):
+        if marker.exists():
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(int(marker.read_text()), signal.SIGKILL)
+
+    def test_cancelling_parent_reaps_nested_session_runner_and_preserves_unrelated_process(self):
+        # Given a ready runner in a separate session, cancelling its waiting parent
+        # must unwind owned cleanup rather than orphan that runner.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            marker = root / "runner.pid"
+            child = (
+                "import os, signal; from pathlib import Path; "
+                f"marker = Path({str(marker)!r}); "
+                "ready = marker.with_suffix('.ready'); ready.write_text(str(os.getpid())); "
+                "ready.rename(marker); signal.pause()"
+            )
+            parent = (
+                "import os, sys; from pathlib import Path; "
+                "from scripts.validation.mutation_run import program; "
+                f"program([sys.executable, '-c', {child!r}], Path({str(root)!r}), "
+                f"dict(os.environ), 60, Path({str(root / 'runner.log')!r}))"
+            )
+            unrelated = subprocess.Popen(
+                [sys.executable, "-c", "import signal; signal.pause()"],
+                start_new_session=True,
+            )
+            with (root / "parent.log").open("wb") as stream:
+                owner = subprocess.Popen(  # noqa: S603 - owned test parent, reaped below
+                    [sys.executable, "-c", parent],
+                    cwd=ROOT,
+                    stdout=stream,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+                try:
+                    self.assertTrue(wait_until(marker.exists, 10, interval=0.01))
+                    pid = int(marker.read_text())
+                    self.assertEqual(os.getpgid(pid), pid)
+                    owner.send_signal(signal.SIGTERM)
+                    owner.wait(timeout=15)
+                    self.assertTrue(
+                        wait_until(lambda: not self.process_exists(pid), 5, interval=0.01),
+                        "Nested session runner survived parent cancellation",
+                    )
+                    self.assertIsNone(unrelated.poll())
+                finally:
+                    stop(owner, group=True)
+                    stop(unrelated, group=True)
+                    if marker.exists() and self.process_exists(int(marker.read_text())):
+                        os.killpg(int(marker.read_text()), signal.SIGKILL)
+
+    @staticmethod
+    def process_exists(pid):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        return True
+
+    def test_program_restores_callers_sigterm_handler_after_completion_and_timeout(self):
+        original = signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        try:
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                for script, timeout, expected in (
+                    ("raise SystemExit(7)", 10, 7),
+                    ("import signal; signal.pause()", 0.1, None),
+                ):
+                    with self.subTest(script=script):
+                        status = program(
+                            [sys.executable, "-c", script],
+                            root,
+                            dict(os.environ),
+                            timeout,
+                            root / "child.log",
+                        )
+                        self.assertEqual(status, expected)
+                        self.assertEqual(signal.getsignal(signal.SIGTERM), signal.SIG_IGN)
+        finally:
+            signal.signal(signal.SIGTERM, original)
+
     def test_collection_constant_selects_killing_consumer_but_runtime_lines_stay_precise(self):
         # Given collection and an incidental child import share a declaration,
         # when the CLI mutates it, then the cached-module consumer kills it;

@@ -1,0 +1,334 @@
+"""The mutation runner retains its session anchor until owned cleanup is complete."""
+
+import os
+import signal
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
+
+from scripts.processes import wait_until
+from scripts.validation import mutation_run as runner
+
+
+class ProgramOwnershipTest(unittest.TestCase):
+    def test_waitid_observation_is_repeatable_until_actual_parent_reaps(self):
+        child = subprocess.Popen(
+            [sys.executable, "-c", "import sys; sys.stdin.readline(); raise SystemExit(23)"],
+            stdin=subprocess.PIPE,
+            start_new_session=True,
+        )
+        try:
+            self.assertEqual(os.getpgid(child.pid), child.pid)
+            child.stdin.close()
+            self.assertEqual(runner._wait_exit(child.pid, runner.monotonic() + 5), 23)
+            self.assertEqual(runner._observe(child.pid), 23)
+            self.assertIsNone(child.returncode)
+            self.assertEqual(child.wait(timeout=5), 23)
+            with self.assertRaises(ChildProcessError):
+                runner._observe(child.pid)
+        finally:
+            child.stdin.close()
+            child.wait(timeout=5)
+
+    def test_zombie_only_owned_group_retains_anchor_until_cleanup_then_reaps(self):
+        # Given an exited runner, cleanup must still own its unreaped session leader.
+        # This injects Darwin's zombie-only EPERM at the real group-signal boundary;
+        # the snapshot and actual-parent reap remain real on both supported platforms.
+        anchors = []
+
+        def denied_owned_group(pid, sig):
+            observed = os.waitid(os.P_PID, pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+            anchors.append((pid, observed.si_status if observed else None))
+            raise PermissionError("injected zombie-only group denial")
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(runner.os, "killpg", side_effect=denied_owned_group):
+                try:
+                    result = runner.program(
+                        [sys.executable, "-c", "raise SystemExit(7)"],
+                        root,
+                        dict(os.environ),
+                        5,
+                        root / "runner.log",
+                    )
+                except (ChildProcessError, PermissionError) as error:
+                    result = str(error)
+            self.assertEqual(result, 7)
+            self.assertEqual(len(anchors), 1)
+            self.assertEqual(anchors[0][1], 7)
+            with self.assertRaises(ChildProcessError):
+                os.waitpid(anchors[0][0], os.WNOHANG)
+
+    def test_real_zombie_group_cleanup_preserves_signal_exit_status(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            status = runner.program(
+                [sys.executable, "-c", "import os,signal; os.kill(os.getpid(),signal.SIGUSR1)"],
+                root,
+                dict(os.environ),
+                5,
+                root / "runner.log",
+            )
+        self.assertEqual(status, -signal.SIGUSR1)
+
+    def test_real_zombie_snapshot_and_kernel_signal_outcome(self):
+        child = subprocess.Popen([sys.executable, "-c", "pass"], start_new_session=True)
+        try:
+            self.assertEqual(runner._wait_exit(child.pid, runner.monotonic() + 5), 0)
+            owner = runner._Owner(child.pid, os.geteuid(), os.getuid())
+            rows = runner._group_snapshot(owner, runner.monotonic() + 5)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(
+                (rows[0].pid, rows[0].ppid, rows[0].pgid, rows[0].uid, rows[0].ruid, rows[0].state),
+                (child.pid, os.getpid(), child.pid, os.geteuid(), os.getuid(), "Z"),
+            )
+            if sys.platform == "darwin":
+                with self.assertRaises(PermissionError):
+                    os.killpg(child.pid, signal.SIGKILL)
+            else:
+                os.killpg(child.pid, signal.SIGKILL)
+                self.assertEqual(rows[0].sid, child.pid)
+            self.assertEqual(child.wait(timeout=5), 0)
+        finally:
+            child.wait(timeout=5)
+
+    def test_early_leader_exit_allows_worker_cleanup_without_group_departure(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            cleaned = root / "cleaned"
+            worker = (
+                "import os,signal; from pathlib import Path\n"
+                "def finish(signum,frame):\n"
+                f"    Path({str(cleaned)!r}).write_text(str(os.getpgrp()))\n"
+                "    raise SystemExit(0)\n"
+                "signal.signal(signal.SIGTERM,finish)\n"
+                "print('ready',flush=True)\n"
+                "signal.pause()\n"
+            )
+            leader = (
+                "import os,subprocess,sys; "
+                f"child=subprocess.Popen([sys.executable,'-c',{worker!r}],stdout=subprocess.PIPE); "
+                "child.stdout.readline(); print(os.getpid(),flush=True)"
+            )
+            status = runner.program(
+                [sys.executable, "-c", leader], root, dict(os.environ), 5, root / "log"
+            )
+            self.assertEqual(status, 0)
+            self.assertEqual(cleaned.read_text().strip(), (root / "log").read_text().strip())
+
+    def test_timeout_kills_uncooperative_child_reaps_it_and_leaves_sentinel_alive(self):
+        sentinel = subprocess.Popen([sys.executable, "-c", "import signal; signal.pause()"])
+        observed = []
+        sent = []
+        wait_exit = runner._wait_exit
+        killpg = os.killpg
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            ready = root / "ready"
+
+            def timeout_after_ready(pid, deadline):
+                if not observed:
+                    self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
+                    observed.append(pid)
+                    return None
+                return wait_exit(pid, deadline)
+
+            def owned_signal(pid, sig):
+                self.assertEqual(pid, observed[0])
+                sent.append(sig)
+                return killpg(pid, sig)
+
+            script = (
+                "import signal; from pathlib import Path; "
+                "signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                f"Path({str(ready)!r}).touch(); signal.pause()"
+            )
+            try:
+                with (
+                    patch.object(runner, "_wait_exit", side_effect=timeout_after_ready),
+                    patch.object(runner, "WORKER_CLEANUP_SECONDS", 0),
+                    patch.object(runner.os, "killpg", side_effect=owned_signal),
+                ):
+                    result = runner.program(
+                        [sys.executable, "-c", script], root, dict(os.environ), 5, root / "log"
+                    )
+                self.assertIsNone(result)
+                self.assertEqual(sent, [signal.SIGTERM, signal.SIGKILL])
+                with self.assertRaises(ChildProcessError):
+                    os.waitpid(observed[0], os.WNOHANG)
+                self.assertIsNone(sentinel.poll())
+            finally:
+                sentinel.kill()
+                sentinel.wait(timeout=5)
+
+    def test_expired_execution_deadline_returns_timeout_after_cleanup(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = runner.program(
+                [sys.executable, "-c", "import signal; signal.pause()"],
+                root,
+                dict(os.environ),
+                0,
+                root / "log",
+            )
+        self.assertIsNone(result)
+
+    def test_injected_cancellation_and_cleanup_denial_preserve_both_original_errors(self):
+        interruption = KeyboardInterrupt("initiating cancellation")
+        denial = PermissionError("injected live-group denial")
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            with (
+                patch.object(runner, "_wait_exit", side_effect=interruption),
+                patch.object(runner, "_cleanup_group", side_effect=denial),
+                self.assertRaises(BaseExceptionGroup) as raised,
+            ):
+                runner.program(
+                    [sys.executable, "-c", "pass"], root, dict(os.environ), 5, root / "log"
+                )
+        self.assertEqual(raised.exception.exceptions, (interruption, denial))
+
+
+class InjectedInspectionTest(unittest.TestCase):
+    """Injected denial tables supplement the real platform zombie and live paths."""
+
+    def test_platform_queries_are_scoped_to_original_owned_group_or_session(self):
+        with patch.object(runner.sys, "platform", "darwin"):
+            self.assertEqual(
+                runner._inspection_command(123),
+                (["/bin/ps", "-g", "123", "-o", "pid=,ppid=,pgid=,uid=,ruid=,state="], False),
+            )
+        with patch.object(runner.sys, "platform", "linux"):
+            self.assertEqual(
+                runner._inspection_command(123),
+                (["/bin/ps", "-s", "123", "-o", "pid=,ppid=,pgid=,sid=,uid=,ruid=,state="], True),
+            )
+
+    def test_consumed_anchor_prevents_any_further_group_signal(self):
+        sent = []
+        with (
+            patch.object(runner, "_observe", side_effect=ChildProcessError("consumed anchor")),
+            patch.object(runner.os, "killpg", side_effect=lambda *args: sent.append(args)),
+            self.assertRaisesRegex(ChildProcessError, "consumed anchor"),
+        ):
+            runner._signal_owned(
+                runner._Owner(123, 501, 502), signal.SIGKILL, runner.monotonic() + 5
+            )
+        self.assertEqual(sent, [])
+
+    def test_inspection_consumes_the_same_cleanup_deadline(self):
+        with (
+            patch.object(runner, "monotonic", side_effect=(5, 6)),
+            patch.object(
+                runner.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess([], 0, "123 99 123 501 502 Z\n", ""),
+            ),
+            self.assertRaisesRegex(TimeoutError, "cleanup deadline exhausted"),
+        ):
+            runner._group_snapshot(runner._Owner(123, 501, 502), 6)
+
+    def test_only_complete_expected_owner_zombies_allow_suppressing_injected_eperm(self):
+        owner = runner._Owner(123, 501, 502)
+        cases = (
+            ("terminal", "123 99 123 501 502 Z\n", True),
+            ("live", "123 99 123 501 502 S\n", False),
+            ("mixed", "123 99 123 501 502 Z\n124 123 123 501 502 S\n", False),
+            ("foreign effective uid", "123 99 123 503 502 Z\n", False),
+            ("foreign real uid", "123 99 123 501 503 Z\n", False),
+            ("foreign group", "123 99 124 501 502 Z\n", False),
+            ("unknown state", "123 99 123 501 502 Z?\n", False),
+        )
+        for label, output, allowed in cases:
+            with self.subTest(label=label):
+                result = subprocess.CompletedProcess([], 0, output, "")
+                denial = PermissionError(label)
+                with (
+                    patch.object(runner.sys, "platform", "darwin"),
+                    patch.object(runner.os, "getpid", return_value=99),
+                    patch.object(runner, "_observe", return_value=0),
+                    patch.object(runner.os, "killpg", side_effect=denial),
+                    patch.object(runner.subprocess, "run", return_value=result),
+                ):
+                    if allowed:
+                        self.assertFalse(
+                            runner._signal_owned(owner, signal.SIGKILL, runner.monotonic() + 5)
+                        )
+                    else:
+                        with self.assertRaises(PermissionError) as raised:
+                            runner._signal_owned(owner, signal.SIGKILL, runner.monotonic() + 5)
+                        self.assertIs(raised.exception, denial)
+
+    def test_incomplete_or_failed_injected_inspection_retains_denial_with_diagnostic(self):
+        cases = (
+            ("empty", "", "", 0),
+            ("truncated", "123 99 123 501 502 Z", "", 0),
+            ("stderr", "123 99 123 501 502 Z\n", "warning", 0),
+            ("malformed", "123 99 123 501 Z\n", "", 0),
+            ("nonnumeric", "123 99 123 invalid 502 Z\n", "", 0),
+            ("missing anchor", "124 99 123 501 502 Z\n", "", 0),
+            ("duplicate", "123 99 123 501 502 Z\n123 99 123 501 502 Z\n", "", 0),
+        )
+        for label, output, stderr, status in cases:
+            with self.subTest(label=label):
+                denial = PermissionError(label)
+                with (
+                    patch.object(runner.sys, "platform", "darwin"),
+                    patch.object(runner.os, "getpid", return_value=99),
+                    patch.object(runner, "_observe", return_value=0),
+                    patch.object(runner.os, "killpg", side_effect=denial),
+                    patch.object(
+                        runner.subprocess,
+                        "run",
+                        return_value=subprocess.CompletedProcess([], status, output, stderr),
+                    ),
+                    self.assertRaises(PermissionError) as raised,
+                ):
+                    runner._signal_owned(
+                        runner._Owner(123, 501, 502), signal.SIGTERM, runner.monotonic() + 5
+                    )
+                self.assertIs(raised.exception, denial)
+                self.assertIsNotNone(raised.exception.__cause__)
+
+    def test_injected_linux_snapshot_filters_other_groups_and_rejects_foreign_sid(self):
+        owner = runner._Owner(123, 501, 502)
+        for sid, terminal in ((123, True), (999, False)):
+            with self.subTest(sid=sid):
+                output = f"123 99 123 {sid} 501 502 Z\n124 99 124 123 501 502 S\n"
+                with (
+                    patch.object(runner.sys, "platform", "linux"),
+                    patch.object(runner.os, "getpid", return_value=99),
+                    patch.object(runner, "_observe", return_value=0),
+                    patch.object(
+                        runner.subprocess,
+                        "run",
+                        return_value=subprocess.CompletedProcess([], 0, output, ""),
+                    ),
+                ):
+                    self.assertEqual(
+                        runner._terminal_group(owner, runner.monotonic() + 5), terminal
+                    )
+
+    def test_injected_inspection_timeout_or_nonzero_retains_original_permission_error(self):
+        errors = (
+            subprocess.TimeoutExpired("/bin/ps", 1),
+            subprocess.CalledProcessError(1, "/bin/ps", stderr="failed inspection"),
+        )
+        for inspection in errors:
+            with self.subTest(error=type(inspection).__name__):
+                denial = PermissionError("injected inspection failure")
+                with (
+                    patch.object(runner, "_observe", return_value=0),
+                    patch.object(runner.os, "killpg", side_effect=denial),
+                    patch.object(runner.subprocess, "run", side_effect=inspection),
+                    self.assertRaises(PermissionError) as raised,
+                ):
+                    runner._signal_owned(
+                        runner._Owner(123, 501, 502), signal.SIGTERM, runner.monotonic() + 5
+                    )
+                self.assertIs(raised.exception, denial)
+                self.assertIs(raised.exception.__cause__, inspection)

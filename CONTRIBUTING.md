@@ -71,6 +71,12 @@ self-test and prepared-fixture baselines itself; unit remains serial. Any baseli
 names its domain and fails the gate. The shard summary's `baseline_domains` records freshly
 computed domain outcomes and seconds; imported runs leave that list empty.
 
+Each scheduler run retains its manifest, candidate result files and `scheduler.log` in a unique
+`tmp/mutation-runs/run-*` directory under the selected root. The path is printed on stderr as
+soon as the directory exists.
+Failures and cooperative cancellation retain `traceback.txt`; missing candidates receive explicit
+`INFRA` results and cancellation always fails the command. Retained runs are never resumed automatically.
+
 Beyond the server and the suite, the repository holds the documentation site, the validation
 companion and the benchmark tooling; these are their entry points.
 
