@@ -1,3 +1,12 @@
+# Approved: #415 comment 6541099432; normal-limit sample at 803ee7a.
+- file: "scripts/validation/mutation_run.py"
+  qualname: "_Cancellation"
+  operator: "boolean:literal"
+  site: "/decorator_list/0/keywords/0/value/0"
+  context: "6049c49df3436cb9105868ea0eacfd29df616bc44c7510993bdcc957dc34d5ab"
+  original: "fc49e3ff31db631b11fdae65c1243eea50afe64ff7f1cddca82c434c55e40498"
+  mutated: "4ea452198b8a9e3a518725a04c0294ecccdcfe575822eeaacf94532a6a03055f"
+  reason: "The private record carries only requested KeyboardInterrupt identity. Consumers set/read that field and reconcile exception identity; none inspect layout, serialize the record or add fields. slots=True versus False changes allocation, not cancellation, cleanup, status or retained evidence."
 # Original survivor row 3: 5dcabdfe9341960f91ba4ddbf51e484d3703255311a60738455cf725ddb4caaf
 # Approved: #341 comments 6461317582 and 6461467469.
 - file: "scripts/validation/mutation_run.py"
