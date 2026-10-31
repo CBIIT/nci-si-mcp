@@ -316,26 +316,35 @@ def runner_termination():
         if cancellation.requested is None:
             cancellation.requested = KeyboardInterrupt()
 
+    failures: list[BaseException] = []
     try:
         for sig in previous:
             signal.signal(sig, defer)
-        try:
-            yield cancellation
-        except BaseException as error:
-            _raise_cancelled_failure(error, cancellation.requested)
-            raise
-        if cancellation.requested is not None:
-            raise cancellation.requested
+        yield cancellation
+    except BaseException as error:  # noqa: BLE001 - retain original failure through handler restoration
+        failures.append(error)
     finally:
         for sig, disposition in previous.items():
-            signal.signal(sig, disposition)
+            try:
+                signal.signal(sig, disposition)
+            except BaseException as error:  # noqa: BLE001 - attempt both restores and retain each failure
+                failures.append(error)
+    # Restoration still belongs to this scope: reconcile only after its latch
+    # handlers have handed control back to the caller's signal dispositions.
+    _raise_cancelled_failure(failures, cancellation.requested)
 
 
-def _raise_cancelled_failure(error: BaseException, interruption: KeyboardInterrupt | None) -> None:
-    if interruption is not None and not _contains_exception(error, interruption):
-        raise BaseExceptionGroup(
-            "Runner failed alongside cancellation", [error, interruption]
-        ) from None
+def _raise_cancelled_failure(
+    failures: list[BaseException], interruption: KeyboardInterrupt | None
+) -> None:
+    if interruption is not None and not any(
+        _contains_exception(error, interruption) for error in failures
+    ):
+        failures.append(interruption)
+    if len(failures) == 1:
+        raise failures[0]
+    if failures:
+        raise BaseExceptionGroup("Runner scope failed", failures) from None
 
 
 def _contains_exception(error: BaseException, target: BaseException) -> bool:
