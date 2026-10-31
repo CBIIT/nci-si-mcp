@@ -9,6 +9,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -41,8 +42,7 @@ class _Owner:
 
 @dataclass(slots=True)
 class _Cancellation:
-    requested: bool = False
-    waiting: bool = False
+    requested: KeyboardInterrupt | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,8 +66,12 @@ def _observe(pid: int) -> int | None:
     return row.si_status if row.si_code == os.CLD_EXITED else -row.si_status
 
 
-def _wait_exit(pid: int, deadline: float) -> int | None:
+def _wait_exit(
+    pid: int, deadline: float, cancel: Callable[[], KeyboardInterrupt | None] | None = None
+) -> int | None:
     while True:
+        if cancel is not None and (interruption := cancel()) is not None:
+            raise interruption
         status = _observe(pid)
         if status is not None or monotonic() >= deadline:
             return status
@@ -307,20 +311,37 @@ def runner_termination():
     previous = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
 
     def defer(_signum: int, _frame: FrameType | None) -> None:
-        # Launch must register its handle, and cleanup must finish KILL/reap.
-        # Only the execution wait may unwind; the installed handler never changes.
-        cancellation.requested = True
-        if cancellation.waiting:
-            cancellation.waiting = False
-            raise KeyboardInterrupt
+        # Record once; launch, resource closure and bounded cleanup never unwind
+        # asynchronously. Execution observes this same exception at a checkpoint.
+        if cancellation.requested is None:
+            cancellation.requested = KeyboardInterrupt()
 
     try:
         for sig in previous:
             signal.signal(sig, defer)
-        yield cancellation
+        try:
+            yield cancellation
+        except BaseException as error:  # noqa: BLE001 - preserve resource failure alongside cancellation
+            raise _cancelled_failure(error, cancellation.requested) from None
+        if cancellation.requested is not None:
+            raise cancellation.requested
     finally:
         for sig, disposition in previous.items():
             signal.signal(sig, disposition)
+
+
+def _cancelled_failure(
+    error: BaseException, interruption: KeyboardInterrupt | None
+) -> BaseException:
+    if interruption is not None and not _contains_exception(error, interruption):
+        return BaseExceptionGroup("Runner failed alongside cancellation", [error, interruption])
+    return error
+
+
+def _contains_exception(error: BaseException, target: BaseException) -> bool:
+    if isinstance(error, BaseExceptionGroup):
+        return any(_contains_exception(nested, target) for nested in error.exceptions)
+    return error is target
 
 
 def _finish_process(
@@ -341,13 +362,10 @@ def _cleanup_process(
     owner: _Owner | None,
     worker_cleanup: bool,
     failure: BaseException | None,
-    cancellation: _Cancellation,
 ) -> None:
     try:
         _finish_process(process, owner, worker_cleanup)
     except BaseException as cleanup:
-        if cancellation.requested and failure is None:
-            failure = KeyboardInterrupt()
         if failure is not None:
             raise BaseExceptionGroup(
                 "Runner and owned cleanup failed", [failure, cleanup]
@@ -355,8 +373,6 @@ def _cleanup_process(
         raise
     if failure is not None:
         raise failure
-    if cancellation.requested:
-        raise KeyboardInterrupt
 
 
 def program(
@@ -385,16 +401,12 @@ def program(
             if (os.getpgid(process.pid), os.getsid(process.pid)) != (process.pid, process.pid):
                 raise ValueError(f"Child {process.pid} does not own its process group/session")
             owner = _Owner(process.pid, os.geteuid(), os.getuid())
-            if cancellation.requested:
-                raise KeyboardInterrupt
-            cancellation.waiting = True
-            status = _wait_exit(process.pid, monotonic() + timeout)
+            # Only execution checks the latch; final KILL waits never cancel.
+            status = _wait_exit(process.pid, monotonic() + timeout, lambda: cancellation.requested)
         except BaseException as error:  # noqa: BLE001 - preserve cancellation while cleanup runs
             failure = error
             status = None
-        finally:
-            cancellation.waiting = False
-        _cleanup_process(process, owner, worker_cleanup, failure, cancellation)
+        _cleanup_process(process, owner, worker_cleanup, failure)
         return status
 
 

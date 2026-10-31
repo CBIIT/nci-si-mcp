@@ -165,10 +165,10 @@ class ProgramOwnershipTest(unittest.TestCase):
                 self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
                 return child
 
-            def cancel_wait(pid, deadline):
+            def cancel_wait(pid, deadline, cancellation_check=None):
                 if not sent:
                     cancel()
-                return wait_exit(pid, deadline)
+                return wait_exit(pid, deadline, cancellation_check)
 
             def repeat_during_exception(frame, event, arg):
                 if frame.f_code is not runner.program.__code__:
@@ -447,11 +447,11 @@ class ProgramOwnershipTest(unittest.TestCase):
             )
             wait_exit = runner._wait_exit
 
-            def cancel_ready(pid, deadline):
+            def cancel_ready(pid, deadline, cancel=None):
                 if not ready.exists():
                     self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
                     return None
-                return wait_exit(pid, deadline)
+                return wait_exit(pid, deadline, cancel)
 
             try:
                 with (
@@ -718,12 +718,12 @@ class ProgramOwnershipTest(unittest.TestCase):
             root = Path(directory)
             ready = root / "ready"
 
-            def timeout_after_ready(pid, deadline):
+            def timeout_after_ready(pid, deadline, cancel=None):
                 if not observed:
                     self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
                     observed.append(pid)
                     return None
-                return wait_exit(pid, deadline)
+                return wait_exit(pid, deadline, cancel)
 
             def owned_signal(pid, sig):
                 self.assertEqual(pid, observed[0])
