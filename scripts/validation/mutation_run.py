@@ -321,8 +321,9 @@ def runner_termination():
             signal.signal(sig, defer)
         try:
             yield cancellation
-        except BaseException as error:  # noqa: BLE001 - preserve resource failure alongside cancellation
-            raise _cancelled_failure(error, cancellation.requested) from None
+        except BaseException as error:
+            _raise_cancelled_failure(error, cancellation.requested)
+            raise
         if cancellation.requested is not None:
             raise cancellation.requested
     finally:
@@ -330,12 +331,11 @@ def runner_termination():
             signal.signal(sig, disposition)
 
 
-def _cancelled_failure(
-    error: BaseException, interruption: KeyboardInterrupt | None
-) -> BaseException:
+def _raise_cancelled_failure(error: BaseException, interruption: KeyboardInterrupt | None) -> None:
     if interruption is not None and not _contains_exception(error, interruption):
-        return BaseExceptionGroup("Runner failed alongside cancellation", [error, interruption])
-    return error
+        raise BaseExceptionGroup(
+            "Runner failed alongside cancellation", [error, interruption]
+        ) from None
 
 
 def _contains_exception(error: BaseException, target: BaseException) -> bool:
