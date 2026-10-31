@@ -170,6 +170,10 @@ cannot inherit changes to the parent's environment. Their setup-only lines there
 the whole-fixture fallback, counted like the other domains, rather than claiming per-RPC ownership.
 `runner_seconds_by_domain`, `runner_seconds` and `runner_hours` sum measured mutant test-process
 durations, excluding baseline and scratch setup; they are distinct from shard wall time.
+If their aggregate exceeds reporting range, the shard SUMMARY retains counts and fallback
+accounting but omits those three numeric fields and states `cost_error`; structured `INFRA`
+follows and the command exits 2. Candidate evidence stays unchanged: this reporting failure
+is not fabricated as a candidate-level result, and missing costs are never reported as zero.
 
 Mutation JSON rows record monotonic `elapsed_seconds` for the whole mutant (including scratch
 setup) and a `domains` list of measured test-run durations and outcomes. The scheduler stores
