@@ -337,13 +337,47 @@ class MutationExecutionTest(unittest.TestCase):
             self.assertEqual(json.loads(result.read_text())["outcome"], "NO_TESTS")
 
     def test_corrupt_result_retains_bytes_and_reports_every_candidate_on_cancel_or_success(self):
-        # Given completed, truncated and missing results, neither cancellation nor
+        # Given completed, invalid and missing results, neither cancellation nor
         # a zero scheduler exit may hide later candidates or overwrite evidence.
-        for cancelled in (True, False):
-            with self.subTest(cancelled=cancelled), tempfile.TemporaryDirectory() as temporary:
-                self.assert_corrupt_scheduler_results(Path(temporary).resolve(), cancelled)
+        for cancelled, defect in (
+            (cancelled, defect)
+            for cancelled in (True, False)
+            for defect in self.invalid_candidate_records()
+        ):
+            with (
+                self.subTest(cancelled=cancelled, defect=defect),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                self.assert_corrupt_scheduler_results(Path(temporary).resolve(), cancelled, defect)
 
-    def assert_corrupt_scheduler_results(self, root, cancelled):
+    @staticmethod
+    def invalid_candidate_records():
+        mutants, _ = candidates("src/example.py", b"def answer():\n    return True\n")
+        mutants.sort(key=lambda mutant: (mutant.file, mutant.line, mutant.operator, mutant.site))
+        valid = {**asdict(mutants[1]), "outcome": "KILLED", "restored": True}
+        records = {
+            "syntax": b'{"outcome": "KILLED",',
+            "encoding": b'\xff{"outcome": "KILLED"}',
+            "null": b"null",
+            "list": b"[]",
+            "empty": b"{}",
+            "foreign": json.dumps({**valid, **asdict(mutants[0])}).encode(),
+        }
+        records.update(
+            (f"missing-{key}", json.dumps({k: v for k, v in valid.items() if k != key}).encode())
+            for key in valid
+        )
+        records.update(
+            (f"invalid-{key}-{value!r}", json.dumps({**valid, key: value}).encode())
+            for key, values in (
+                ("outcome", (None, [], "ALLOWLISTED", "unknown")),
+                ("restored", (None, "true", 1, [])),
+            )
+            for value in values
+        )
+        return records
+
+    def assert_corrupt_scheduler_results(self, root, cancelled, defect):
         project(root, "def answer():\n    return True\n")
         mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
         mutants.sort(key=lambda mutant: (mutant.file, mutant.line, mutant.operator, mutant.site))
@@ -359,7 +393,7 @@ class MutationExecutionTest(unittest.TestCase):
             ).encode()
             + b"\n"
         )
-        corrupt = b'{"outcome": "KILLED",'
+        corrupt = self.invalid_candidate_records()[defect]
         work = []
 
         def scheduler(root, directory, data, workers):
@@ -394,7 +428,10 @@ class MutationExecutionTest(unittest.TestCase):
             [row["outcome"] for row in results],
             ["KILLED", "INFRA", "INFRA" if cancelled else "KILLED"],
         )
-        self.assertIn("corrupt JSON", results[1]["message"])
+        self.assertIn("candidate", results[1]["message"])
+        self.assertIs(results[1]["restored"], False)
+        self.assertEqual(results[1]["domains"], [])
+        self.assertEqual(results[1]["fallback_domains"], [])
         self.assertEqual(rows[-1]["outcome"], "INFRA")
         self.assertEqual((work[0] / "result-0.json").read_bytes(), completed)
         self.assertEqual((work[0] / "result-1.json").read_bytes(), corrupt)
