@@ -30,6 +30,27 @@ def exception_leaves(error):
 
 
 class ProgramOwnershipTest(unittest.TestCase):
+    def test_scope_exit_adds_missing_latched_cancellation_to_nested_original_failures(self):
+        # Given nested unrelated failures, the distinct latched interrupt must appear once.
+        body_failure = ValueError("original body failure")
+        independent = KeyboardInterrupt("independent interrupt")
+        previous = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM)}
+        failure = BaseExceptionGroup(
+            "body", [body_failure, BaseExceptionGroup("cleanup", [independent])]
+        )
+        with (
+            self.assertRaises(BaseExceptionGroup) as raised,
+            runner.runner_termination() as cancellation,
+        ):
+            os.kill(os.getpid(), signal.SIGTERM)
+            interruption = cancellation.requested
+            self.assertIsInstance(interruption, KeyboardInterrupt)
+            raise failure
+        leaves = exception_leaves(raised.exception)
+        self.assertEqual(leaves, [body_failure, independent, interruption])
+        self.assertIs(raised.exception.exceptions[0], failure)
+        self.assertEqual({s: signal.getsignal(s) for s in previous}, previous)
+
     def test_scope_exit_preserves_cancellation_already_nested_in_failure_group(self):
         previous = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM)}
         body_failure = ValueError("original body failure")

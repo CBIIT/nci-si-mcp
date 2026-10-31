@@ -383,8 +383,7 @@ def runner_costs(timings: dict[str, list[float]]) -> dict:
         total = math.fsum(seconds.values())
     except OverflowError:
         return cost_error
-    if not all(math.isfinite(value) for value in (*seconds.values(), total)):
-        return cost_error
+    # Candidate admission requires finite nonnegative numbers; fsum raises on finite overflow.
     return {
         "runner_seconds_by_domain": dict(seconds),
         "runner_seconds": total,

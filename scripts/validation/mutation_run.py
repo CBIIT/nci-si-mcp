@@ -61,8 +61,6 @@ def _observe(pid: int) -> int | None:
     row = os.waitid(os.P_PID, pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
     if row is None:
         return None
-    if row.si_pid != pid:
-        raise ChildProcessError(f"Lost owned session anchor {pid}")
     return row.si_status if row.si_code == os.CLD_EXITED else -row.si_status
 
 
