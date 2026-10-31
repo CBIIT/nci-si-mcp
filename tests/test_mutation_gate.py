@@ -346,6 +346,7 @@ class MutationExecutionTest(unittest.TestCase):
     def assert_corrupt_scheduler_results(self, root, cancelled):
         project(root, "def answer():\n    return True\n")
         mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
+        mutants.sort(key=lambda mutant: (mutant.file, mutant.line, mutant.operator, mutant.site))
         completed = (
             json.dumps(
                 {
@@ -367,6 +368,9 @@ class MutationExecutionTest(unittest.TestCase):
             (directory / "result-1.json").write_bytes(corrupt)
             if cancelled:
                 raise KeyboardInterrupt("original scheduler cancellation")
+            (directory / "result-2.json").write_text(
+                json.dumps({**json.loads(completed), **asdict(mutants[2])})
+            )
             return 0
 
         output = io.StringIO()
@@ -386,16 +390,22 @@ class MutationExecutionTest(unittest.TestCase):
             [{name: row[name] for name in mutants[0].key()} for row in results],
             [mutant.key() for mutant in mutants],
         )
-        self.assertEqual([row["outcome"] for row in results], ["KILLED", "INFRA", "INFRA"])
+        self.assertEqual(
+            [row["outcome"] for row in results],
+            ["KILLED", "INFRA", "INFRA" if cancelled else "KILLED"],
+        )
         self.assertIn("corrupt JSON", results[1]["message"])
-        self.assertIn("no result", results[2]["message"])
         self.assertEqual(rows[-1]["outcome"], "INFRA")
         self.assertEqual((work[0] / "result-0.json").read_bytes(), completed)
         self.assertEqual((work[0] / "result-1.json").read_bytes(), corrupt)
         self.assertEqual(json.loads((work[0] / "result-1.infra.json").read_text()), results[1])
         self.assertEqual((work[0] / "result-2.json").read_text(), json.dumps(results[2]))
-        diagnostic = (work[0] / "traceback.txt").read_text()
+        self.assert_corrupt_scheduler_diagnostic(work[0], results, cancelled)
+
+    def assert_corrupt_scheduler_diagnostic(self, work, results, cancelled):
+        diagnostic = (work / "traceback.txt").read_text()
         if cancelled:
+            self.assertIn("no result", results[2]["message"])
             self.assertIn("KeyboardInterrupt: original scheduler cancellation", diagnostic)
             self.assertIn('raise KeyboardInterrupt("original scheduler cancellation")', diagnostic)
 
@@ -457,7 +467,7 @@ class MutationExecutionTest(unittest.TestCase):
             output = io.StringIO()
             directories = []
 
-            def scheduler(command, cwd, env, timeout, log):
+            def scheduler(command, cwd, env, timeout, log, *, worker_cleanup):
                 announcement = json.loads(output.getvalue().splitlines()[-1])
                 self.assertEqual(announcement, {"outcome": "EVIDENCE", "directory": str(cwd)})
                 self.assertTrue(cwd.is_dir())
@@ -500,7 +510,9 @@ class MutationExecutionTest(unittest.TestCase):
                 with self.subTest(error=type(error).__name__):
                     work = []
 
-                    def scheduler(command, cwd, env, timeout, log, work=work, error=error):
+                    def scheduler(
+                        command, cwd, env, timeout, log, work=work, error=error, *, worker_cleanup
+                    ):
                         work.append(cwd)
                         execute_job(Path(command[-1]), 0)
                         raise error
@@ -642,12 +654,12 @@ class MutationExecutionTest(unittest.TestCase):
             "mutants = [item for item in found if item.operator == 'boolean:literal']\n"
             "original = gate.program\n"
             "finish_owned = run_module._finish_owned\n"
-            "def denied_cleanup(process, owner):\n"
-            "    finish_owned(process, owner)\n"
+            "def denied_cleanup(process, owner, **kwargs):\n"
+            "    finish_owned(process, owner, **kwargs)\n"
             "    raise PermissionError('injected scheduler cleanup denial')\n"
-            "def run(command, cwd, env, timeout, log):\n"
+            "def run(command, cwd, env, timeout, log, **kwargs):\n"
             "    (root / 'work').write_text(str(cwd))\n"
-            "    return original(command, cwd, env, timeout, log)\n"
+            "    return original(command, cwd, env, timeout, log, **kwargs)\n"
             "with patch.object(gate, 'collect', return_value=(mutants, [])), "
             f"patch.object(gate, 'imported_coverage', return_value={mapping!r}), "
             "patch.object(gate.random.Random, 'shuffle'), patch.object(gate, 'program', run), "
@@ -1283,7 +1295,7 @@ class MutationExecutionTest(unittest.TestCase):
             mapping = {"unit": {"src/example.py": {2: ["tests/test_example.py::test_value|run"]}}}
             captured = []
 
-            def scheduler(command, cwd, env, timeout, log):
+            def scheduler(command, cwd, env, timeout, log, *, worker_cleanup):
                 manifest = Path(command[-1])
                 captured.append(json.loads(manifest.read_text()))
                 log.write_text("")

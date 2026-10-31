@@ -14,6 +14,7 @@ from dataclasses import asdict
 from pathlib import Path
 from time import monotonic
 
+from scripts.operator_files import write_json
 from scripts.processes import exit_on_sigterm
 from scripts.validation.mutation_run import (
     baseline,
@@ -69,7 +70,7 @@ def execute_job(path: Path, index: int) -> None:
         "restored": restored,
         "elapsed_seconds": monotonic() - started,
     }
-    (path.parent / f"result-{index}.json").write_text(json.dumps(row))
+    write_json(path.parent / f"result-{index}.json", row)
 
 
 def measure(
@@ -176,6 +177,7 @@ def run_scheduler(root: Path, work: Path, data: dict, workers: int) -> int | Non
         environment(root, work),
         data["timeout"] * (len(data["mutants"]) + 2) * 3,
         work / "scheduler.log",
+        worker_cleanup=True,
     )
 
 
@@ -185,24 +187,31 @@ def scheduler_rows(work: Path, mutants: list[Mutant], data: dict, log: str) -> l
         result = work / f"result-{index}.json"
         try:
             rows.append(json.loads(result.read_text()))
+            continue
         except FileNotFoundError:
-            rows.append(
-                {
-                    **asdict(mutant),
-                    "outcome": "INFRA",
-                    "message": "Controller produced no result for this candidate",
-                    "log": log,
-                    "restored": False,
-                    "domains": [],
-                    "fallback_domains": sorted(
-                        name
-                        for name, tests in data["mutants"][index]["selected"].items()
-                        if not tests
-                    ),
-                }
-            )
-            result.write_text(json.dumps(rows[-1]))
+            message = "Controller produced no result for this candidate"
+        except json.JSONDecodeError as error:
+            message = f"Controller produced corrupt JSON for this candidate: {error}"
+            # Keep the original bytes as evidence, including truncated worker writes.
+            row = incomplete_result(mutant, data["mutants"][index]["selected"], message, log)
+            write_json(work / f"result-{index}.infra.json", row)
+            rows.append(row)
+            continue
+        rows.append(incomplete_result(mutant, data["mutants"][index]["selected"], message, log))
+        result.write_text(json.dumps(rows[-1]))
     return rows
+
+
+def incomplete_result(mutant: Mutant, selected: dict, message: str, log: str) -> dict:
+    return {
+        **asdict(mutant),
+        "outcome": "INFRA",
+        "message": message,
+        "log": log,
+        "restored": False,
+        "domains": [],
+        "fallback_domains": sorted(name for name, tests in selected.items() if not tests),
+    }
 
 
 def verdict(rows: list[dict], exemptions: list[dict]) -> int:
