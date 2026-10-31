@@ -14,12 +14,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from threading import current_thread, main_thread
 from time import monotonic, sleep
+from types import FrameType
 
 from coverage import CoverageData
 from pytest import ExitCode
 from scripts.processes import STOP_SECONDS, exit_on_sigterm, stop
 
-# A worker may need both bounded TERM/KILL waits to reap its separate-session runner.
+# An ordinary runner has STOP_SECONDS of grace plus STOP_SECONDS for final KILL/reap.
+# A scheduler must let that entire nested cleanup finish before its own final KILL.
 # Leave one second for unwinding after those waits; remeasure if nested cleanup changes.
 WORKER_CLEANUP_SECONDS = 2 * STOP_SECONDS + 1
 # Reserve a final bounded KILL/reap interval after nested workers' cleanup grace.
@@ -124,7 +126,10 @@ def _validate_anchor(rows: list[_Member], owner: _Owner) -> None:
 
 
 def _terminal_group(owner: _Owner, deadline: float) -> bool:
-    _observe(owner.pid)  # A consumed/vanished anchor invalidates all group operations.
+    # A live anchor proves nonterminal state without spawning ps every 10ms.
+    # Only early leader exit needs a snapshot to distinguish live descendants.
+    if _observe(owner.pid) is None:
+        return False
     rows = _group_snapshot(owner, deadline)
     _validate_anchor(rows, owner)
     return all(_terminal_member(row, owner) for row in rows)
@@ -158,23 +163,49 @@ def _signal_owned(owner: _Owner, sig: signal.Signals, deadline: float) -> bool:
     return True
 
 
-def _cleanup_group(owner: _Owner, deadline: float) -> None:
-    if not _signal_owned(owner, signal.SIGTERM, deadline):
-        return
-    grace = min(deadline, monotonic() + WORKER_CLEANUP_SECONDS)
+def _grace_complete(owner: _Owner, deadline: float, grace_seconds: float) -> bool:
+    grace = min(deadline, monotonic() + grace_seconds)
     while monotonic() < grace:
         if _terminal_group(owner, deadline):
-            return
+            return True
         sleep(min(OBSERVE_INTERVAL, max(0, grace - monotonic())))
+    return False
+
+
+def _kill_owned(owner: _Owner, deadline: float) -> None:
     if _signal_owned(owner, signal.SIGKILL, deadline) and _wait_exit(owner.pid, deadline) is None:
         raise TimeoutError("Owned child survived final SIGKILL")
 
 
-def _finish_owned(process: subprocess.Popen[bytes], owner: _Owner) -> None:
-    deadline = monotonic() + OWNED_CLEANUP_SECONDS
+def _cleanup_group(owner: _Owner, deadline: float, grace_seconds: float) -> None:
+    # Denied TERM is not permission to escalate; only successful TERM opens grace.
+    if not _signal_owned(owner, signal.SIGTERM, deadline):
+        return
+    try:
+        terminal = _grace_complete(owner, deadline, grace_seconds)
+    except (OSError, ValueError, subprocess.SubprocessError) as inspection:
+        # Inspection cannot forfeit final cleanup of the original anchored group.
+        # _signal_owned rechecks the unreaped anchor; no discovered PID is signalled.
+        try:
+            _kill_owned(owner, deadline)
+        except BaseException as final:  # noqa: BLE001 - retain both original cleanup failures
+            raise BaseExceptionGroup(
+                "Owned inspection and final cleanup failed", [inspection, final]
+            ) from None
+        raise
+    if not terminal:
+        _kill_owned(owner, deadline)
+
+
+def _finish_owned(
+    process: subprocess.Popen[bytes], owner: _Owner, *, worker_cleanup: bool = False
+) -> None:
+    grace = WORKER_CLEANUP_SECONDS if worker_cleanup else STOP_SECONDS
+    budget = OWNED_CLEANUP_SECONDS if worker_cleanup else 2 * STOP_SECONDS
+    deadline = monotonic() + budget
     failure = None
     try:
-        _cleanup_group(owner, deadline)
+        _cleanup_group(owner, deadline, grace)
     except BaseException as error:  # noqa: BLE001 - retain cleanup failure through actual-parent reap
         failure = error
     try:
@@ -259,42 +290,76 @@ def environment(scratch: Path, work: Path) -> dict[str, str]:
 def runner_termination():
     # Nested pytest workers normally die on SIGTERM without unwinding. Their child
     # sessions escape the scheduler's group, so the waiting owner must clean them.
+    pending: list[int] = []
     if current_thread() is not main_thread():
-        yield
+        yield pending
         return
     previous = signal.getsignal(signal.SIGTERM)
+
+    def defer(signum: int, _frame: FrameType | None) -> None:
+        # Popen must return its handle before cancellation can unwind the owner.
+        pending.append(signum)
+
     try:
-        exit_on_sigterm()
-        yield
+        signal.signal(signal.SIGTERM, defer)
+        yield pending
     finally:
         signal.signal(signal.SIGTERM, previous)
 
 
-def program(command: list[str], cwd: Path, env: dict[str, str], timeout: float, log: Path):
-    with runner_termination(), log.open("wb") as stream:
-        process = subprocess.Popen(  # noqa: S603 - fixed Python executable and argument arrays
-            command,
-            cwd=cwd,
-            env=env,
-            stdout=stream,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-        )
+def _arm_termination(pending: list[int]) -> None:
+    if current_thread() is main_thread():
+        exit_on_sigterm()
+        if pending:
+            signal.raise_signal(signal.SIGTERM)
+
+
+def _finish_process(
+    process: subprocess.Popen[bytes] | None, owner: _Owner | None, worker_cleanup: bool
+) -> None:
+    if process is None:
+        return
+    if owner is None:
+        stop(process)  # Broken launch: only the direct child belongs to us.
+    elif worker_cleanup:
+        _finish_owned(process, owner, worker_cleanup=True)
+    else:
+        _finish_owned(process, owner)
+
+
+def program(
+    command: list[str],
+    cwd: Path,
+    env: dict[str, str],
+    timeout: float,
+    log: Path,
+    *,
+    worker_cleanup: bool = False,
+):
+    """Run an owned session; scheduler callers allow nested workers' full cleanup budget."""
+    with runner_termination() as pending, log.open("wb") as stream:
+        process = None
         owner = None
         failure = None
         try:
+            process = subprocess.Popen(  # noqa: S603 - fixed Python executable and argument arrays
+                command,
+                cwd=cwd,
+                env=env,
+                stdout=stream,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
             if (os.getpgid(process.pid), os.getsid(process.pid)) != (process.pid, process.pid):
                 raise ValueError(f"Child {process.pid} does not own its process group/session")
             owner = _Owner(process.pid, os.geteuid(), os.getuid())
+            _arm_termination(pending)
             status = _wait_exit(process.pid, monotonic() + timeout)
         except BaseException as error:  # noqa: BLE001 - preserve cancellation while cleanup runs
             failure = error
             status = None
         try:
-            if owner is None:
-                stop(process)  # Broken launch: only the direct child belongs to us.
-            else:
-                _finish_owned(process, owner)
+            _finish_process(process, owner, worker_cleanup)
         except BaseException as cleanup:
             if failure is not None:
                 raise BaseExceptionGroup(

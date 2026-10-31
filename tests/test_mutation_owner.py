@@ -13,7 +13,202 @@ from scripts.processes import wait_until
 from scripts.validation import mutation_run as runner
 
 
+def reap_remaining(children):
+    for child in children:
+        if child.poll() is None:
+            child.kill()
+        child.wait(timeout=5)
+
+
+def exception_leaves(error):
+    if isinstance(error, BaseExceptionGroup):
+        return [leaf for nested in error.exceptions for leaf in exception_leaves(nested)]
+    return [error]
+
+
 class ProgramOwnershipTest(unittest.TestCase):
+    def test_scheduler_allows_nested_runner_cleanup_before_final_kill(self):
+        # Given nested separate-session work, scheduler cancellation must let its
+        # worker kill/reap that runner and record completion before escalation.
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            ready, cleaned = root / "ready", root / "cleaned"
+            nested = (
+                "import os,signal; from pathlib import Path; "
+                "signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                f"Path({str(ready)!r}).write_text(str(os.getpid())); signal.pause()"
+            )
+            worker = (
+                "import os,sys; from pathlib import Path\n"
+                "from scripts.validation import mutation_run as r\n"
+                "r.STOP_SECONDS=0.1; r.WORKER_CLEANUP_SECONDS=0.5; r.OWNED_CLEANUP_SECONDS=0.7\n"
+                "children=[]; launch=r.subprocess.Popen\n"
+                "def capture(*args,**kwargs):\n"
+                "    child=launch(*args,**kwargs); children.append(child); return child\n"
+                "r.subprocess.Popen=capture\n"
+                "try:\n"
+                f"    r.program([sys.executable,'-c',{nested!r}],Path({str(root)!r}),"
+                f"dict(os.environ),10,Path({str(root / 'nested.log')!r}))\n"
+                "finally:\n"
+                f"    Path({str(cleaned)!r}).write_text(str(children[0].returncode))\n"
+            )
+            wait_exit = runner._wait_exit
+
+            def cancel_ready(pid, deadline):
+                if not ready.exists():
+                    self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
+                    return None
+                return wait_exit(pid, deadline)
+
+            try:
+                with (
+                    patch.object(runner, "STOP_SECONDS", 0.1),
+                    patch.object(runner, "WORKER_CLEANUP_SECONDS", 0.5),
+                    patch.object(runner, "OWNED_CLEANUP_SECONDS", 0.7),
+                    patch.object(runner, "_wait_exit", side_effect=cancel_ready),
+                ):
+                    result = runner.program(
+                        [sys.executable, "-c", worker],
+                        root,
+                        {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1])},
+                        10,
+                        root / "worker.log",
+                        worker_cleanup=True,
+                    )
+                self.assertIsNone(result)
+                self.assertTrue(cleaned.exists(), "worker did not finish nested cleanup")
+                self.assertEqual(cleaned.read_text(), str(-signal.SIGKILL))
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(int(ready.read_text()), 0)
+            finally:
+                if ready.exists():
+                    self._kill_leftover(int(ready.read_text()))
+
+    @staticmethod
+    def _kill_leftover(pid):
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            return
+
+    def test_failed_grace_inspection_still_kills_and_reaps_live_owned_child(self):
+        # Given successful TERM of a ready ignoring child, failed inspection must
+        # remain visible without leaking that child or touching an unrelated one.
+        children = []
+        popen = subprocess.Popen
+        inspection = ValueError("injected grace inspection failure")
+        sentinel = popen([sys.executable, "-c", "import signal; signal.pause()"])
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            ready = root / "ready"
+
+            def launch(*args, **kwargs):
+                child = popen(*args, **kwargs)
+                children.append(child)
+                self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
+                return child
+
+            script = (
+                "import signal; from pathlib import Path; "
+                "signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                f"Path({str(ready)!r}).touch(); signal.pause()"
+            )
+            try:
+                with (
+                    patch.object(runner.subprocess, "Popen", side_effect=launch),
+                    patch.object(runner, "STOP_SECONDS", 0.25),
+                    patch.object(runner, "_terminal_group", side_effect=inspection),
+                    self.assertRaises(BaseException) as raised,
+                ):
+                    runner.program(
+                        [sys.executable, "-c", script], root, dict(os.environ), 0, root / "log"
+                    )
+                self.assertIn(inspection, exception_leaves(raised.exception))
+                self.assertEqual(children[0].returncode, -signal.SIGKILL)
+                with self.assertRaises(ChildProcessError):
+                    os.waitpid(children[0].pid, os.WNOHANG)
+                self.assertIsNone(sentinel.poll())
+            finally:
+                reap_remaining([*children, sentinel])
+
+    def test_sigterm_at_popen_return_cleans_registered_child_and_restores_handler(self):
+        children = []
+        popen = subprocess.Popen
+        previous = signal.getsignal(signal.SIGTERM)
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+
+            def launch(*args, **kwargs):
+                child = popen(*args, **kwargs)
+                children.append(child)
+                os.kill(os.getpid(), signal.SIGTERM)
+                return child
+
+            try:
+                with (
+                    patch.object(runner.subprocess, "Popen", side_effect=launch),
+                    patch.object(runner, "STOP_SECONDS", 0.25),
+                    self.assertRaises(KeyboardInterrupt),
+                ):
+                    runner.program(
+                        [sys.executable, "-c", "import signal; signal.pause()"],
+                        root,
+                        dict(os.environ),
+                        5,
+                        root / "log",
+                    )
+                self.assertIsNotNone(children[0].returncode)
+                with self.assertRaises(ChildProcessError):
+                    os.waitpid(children[0].pid, os.WNOHANG)
+                self.assertEqual(signal.getsignal(signal.SIGTERM), previous)
+            finally:
+                reap_remaining(children)
+
+    def test_initiating_inspection_and_final_signal_errors_all_survive_reap(self):
+        interruption = KeyboardInterrupt("initiating cancellation")
+        inspection = ValueError("grace inspection failed")
+        final = PermissionError("final signal failed after delivery")
+        children = []
+        popen, killpg = subprocess.Popen, os.killpg
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            ready = root / "ready"
+            script = (
+                "import signal; from pathlib import Path; "
+                "signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                f"Path({str(ready)!r}).touch(); signal.pause()"
+            )
+
+            def launch(*args, **kwargs):
+                child = popen(*args, **kwargs)
+                children.append(child)
+                self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
+                return child
+
+            def deliver(pid, sig):
+                killpg(pid, sig)
+                if sig == signal.SIGKILL:
+                    raise final
+
+            try:
+                with (
+                    patch.object(runner.subprocess, "Popen", side_effect=launch),
+                    patch.object(runner, "_wait_exit", side_effect=interruption),
+                    patch.object(runner, "_terminal_group", side_effect=inspection),
+                    patch.object(runner.os, "killpg", side_effect=deliver),
+                    patch.object(runner, "STOP_SECONDS", 0.25),
+                    self.assertRaises(BaseExceptionGroup) as raised,
+                ):
+                    runner.program(
+                        [sys.executable, "-c", script], root, dict(os.environ), 5, root / "log"
+                    )
+                self.assertEqual(
+                    exception_leaves(raised.exception), [interruption, inspection, final]
+                )
+                self.assertEqual(children[0].returncode, -signal.SIGKILL)
+            finally:
+                reap_remaining(children)
+
     def test_waitid_observation_is_repeatable_until_actual_parent_reaps(self):
         child = subprocess.Popen(
             [sys.executable, "-c", "import sys; sys.stdin.readline(); raise SystemExit(23)"],
@@ -150,7 +345,7 @@ class ProgramOwnershipTest(unittest.TestCase):
             try:
                 with (
                     patch.object(runner, "_wait_exit", side_effect=timeout_after_ready),
-                    patch.object(runner, "WORKER_CLEANUP_SECONDS", 0),
+                    patch.object(runner, "STOP_SECONDS", 0.25),
                     patch.object(runner.os, "killpg", side_effect=owned_signal),
                 ):
                     result = runner.program(
@@ -195,6 +390,26 @@ class ProgramOwnershipTest(unittest.TestCase):
 
 class InjectedInspectionTest(unittest.TestCase):
     """Injected denial tables supplement the real platform zombie and live paths."""
+
+    def test_denied_term_with_unknown_inspection_never_escalates_to_kill(self):
+        sent = []
+        denial = PermissionError("genuinely denied TERM")
+        inspection = ValueError("unknown group state")
+
+        def deny(pid, sig):
+            sent.append((pid, sig))
+            raise denial
+
+        with (
+            patch.object(runner, "_observe", return_value=None),
+            patch.object(runner.os, "killpg", side_effect=deny),
+            patch.object(runner, "_terminal_group", side_effect=inspection),
+            self.assertRaises(PermissionError) as raised,
+        ):
+            runner._cleanup_group(runner._Owner(123, 501, 502), runner.monotonic() + 5, 1)
+        self.assertIs(raised.exception, denial)
+        self.assertIs(raised.exception.__cause__, inspection)
+        self.assertEqual(sent, [(123, signal.SIGTERM)])
 
     def test_platform_queries_are_scoped_to_original_owned_group_or_session(self):
         with patch.object(runner.sys, "platform", "darwin"):
