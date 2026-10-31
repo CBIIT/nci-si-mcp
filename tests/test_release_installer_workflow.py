@@ -28,7 +28,7 @@ steps:
     with: {ref: '${{ needs.prepare.outputs.ref }}', fetch-depth: 0, persist-credentials: false}
   - name: Install Python
     id: python
-    uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+    uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
     with: {python-version: '3.14'}
   - name: Prepare pull request source (CI only)
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
