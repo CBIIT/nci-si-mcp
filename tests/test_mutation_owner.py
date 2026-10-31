@@ -1,9 +1,11 @@
 """The mutation runner retains its session anchor until owned cleanup is complete."""
 
+import json
 import os
 import signal
 import subprocess
 import sys
+import textwrap
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
@@ -28,6 +30,72 @@ def exception_leaves(error):
 
 
 class ProgramOwnershipTest(unittest.TestCase):
+    def test_first_sigterm_during_handler_restoration_is_diagnostic_and_restores_both(self):
+        # Given inner resources have closed, deliver the first real TERM while
+        # the latch still owns it, immediately before the first caller restore.
+        script = textwrap.dedent("""\
+            import json, os, signal, sys
+            from unittest.mock import patch
+            from scripts.validation import mutation_run as runner
+
+            previous = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM)}
+            install = signal.signal
+            restored = []
+            body_failure, restore_failure = map(int, sys.argv[1:])
+
+            def restore(sig, disposition):
+                if disposition is previous[sig]:
+                    if not restored:
+                        os.kill(os.getpid(), signal.SIGTERM)
+                    install(sig, disposition)
+                    restored.append(sig.name)
+                    if restore_failure and len(restored) == 1:
+                        raise OSError('original restoration failure')
+                    return
+                return install(sig, disposition)
+
+            def leaves(error):
+                if isinstance(error, BaseExceptionGroup):
+                    return [leaf for nested in error.exceptions for leaf in leaves(nested)]
+                return [type(error).__name__]
+
+            try:
+                with patch.object(runner.signal, 'signal', side_effect=restore):
+                    with runner.runner_termination():
+                        if body_failure:
+                            raise ValueError('original body failure')
+            except BaseException as error:
+                print(json.dumps({'errors': leaves(error), 'restored': restored,
+                    'handlers_restored': all(signal.getsignal(s) is h
+                        for s, h in previous.items())}), flush=True)
+                raise
+            else:
+                print(json.dumps({'errors': [], 'restored': restored,
+                    'handlers_restored': all(signal.getsignal(s) is h
+                        for s, h in previous.items())}), flush=True)
+            """)
+        for body_failure, restore_failure in ((0, 0), (1, 0), (0, 1), (1, 1)):
+            with self.subTest(body=body_failure, restore=restore_failure):
+                result = subprocess.run(  # noqa: S603 - fixed interpreter and authored signal scenario
+                    [sys.executable, "-c", script, str(body_failure), str(restore_failure)],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    check=False,
+                )
+                evidence = json.loads(result.stdout)
+                self.assertNotEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(evidence["restored"], ["SIGINT", "SIGTERM"])
+                self.assertTrue(evidence["handlers_restored"])
+                expected = ["ValueError"] if body_failure else []
+                expected += ["OSError"] if restore_failure else []
+                self.assertEqual(evidence["errors"], [*expected, "KeyboardInterrupt"])
+                self.assertIn("KeyboardInterrupt", result.stderr)
+                if body_failure:
+                    self.assertIn("ValueError: original body failure", result.stderr)
+                if restore_failure:
+                    self.assertIn("OSError: original restoration failure", result.stderr)
+
     def test_first_signal_at_wait_finally_transition_still_cleans_and_reaps(self):
         # Given a ready ignoring child, signal on the first program line after
         # its wait returns, before cleanup begins (not inside a cleanup helper).
