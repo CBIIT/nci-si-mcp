@@ -5,6 +5,7 @@ import signal
 import subprocess
 import sys
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -27,6 +28,116 @@ def exception_leaves(error):
 
 
 class ProgramOwnershipTest(unittest.TestCase):
+    def test_first_signal_at_wait_finally_transition_still_cleans_and_reaps(self):
+        # Given a ready ignoring child, signal on the first program line after
+        # its wait returns, before cleanup begins (not inside a cleanup helper).
+        children, returned = [], []
+        popen = subprocess.Popen
+        previous = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM)}
+        previous_trace = sys.gettrace()
+        sentinel = popen([sys.executable, "-c", "import signal; signal.pause()"])
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            ready = root / "ready"
+            script = (
+                "import signal; from pathlib import Path; "
+                "signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                f"Path({str(ready)!r}).touch(); signal.pause()"
+            )
+
+            def launch(*args, **kwargs):
+                child = popen(*args, **kwargs)
+                children.append(child)
+                self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
+                return child
+
+            def signal_transition(frame, event, _arg):
+                if frame.f_code is runner._wait_exit.__code__ and event == "return":
+                    returned.append(frame.f_code)
+                if frame.f_code is runner.program.__code__ and event == "line" and returned:
+                    returned.clear()
+                    os.kill(os.getpid(), signal.SIGTERM)
+                return signal_transition
+
+            try:
+                with (
+                    patch.object(runner.subprocess, "Popen", side_effect=launch),
+                    patch.object(runner, "STOP_SECONDS", 0.1),
+                    self.assertRaises(BaseException) as raised,
+                ):
+                    sys.settrace(signal_transition)
+                    try:
+                        runner.program(
+                            [sys.executable, "-c", script], root, dict(os.environ), 0, root / "log"
+                        )
+                    finally:
+                        sys.settrace(previous_trace)
+                self.assertEqual(children[0].returncode, -signal.SIGKILL)
+                self.assertEqual(
+                    [type(e) for e in exception_leaves(raised.exception)], [KeyboardInterrupt]
+                )
+                with self.assertRaises(ChildProcessError):
+                    os.waitpid(children[0].pid, os.WNOHANG)
+                self.assertIsNone(sentinel.poll())
+                self.assertEqual({s: signal.getsignal(s) for s in previous}, previous)
+            finally:
+                reap_remaining([*children, sentinel])
+
+    def test_signal_after_actual_log_close_prevents_normal_return(self):
+        self.assertEqual(self._signal_after_log_close(None), [KeyboardInterrupt])
+
+    def test_signal_after_log_close_preserves_existing_failure_alongside_cancellation(self):
+        for error in (ValueError("close failed"), KeyboardInterrupt("independent interrupt")):
+            with self.subTest(error=type(error).__name__):
+                self.assertEqual(self._signal_after_log_close(error), [KeyboardInterrupt])
+
+    def _signal_after_log_close(self, failure):
+        opened, children = [], []
+        path_open, popen = Path.open, subprocess.Popen
+        previous = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM)}
+
+        @contextmanager
+        def close_then_signal(path, *args, **kwargs):
+            with path_open(path, *args, **kwargs) as stream:
+                opened.append(stream)
+                yield stream
+            os.kill(os.getpid(), signal.SIGTERM)
+            if failure is not None:
+                raise failure
+
+        def launch(*args, **kwargs):
+            child = popen(*args, **kwargs)
+            children.append(child)
+            return child
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = None
+            try:
+                with (
+                    patch.object(Path, "open", close_then_signal),
+                    patch.object(runner.subprocess, "Popen", side_effect=launch),
+                ):
+                    try:
+                        result = runner.program(
+                            [sys.executable, "-c", "pass"], root, dict(os.environ), 5, root / "log"
+                        )
+                    except BaseException as error:  # noqa: BLE001 - assert caller-visible failure below
+                        result = error
+                self.assertIsInstance(result, BaseException)
+                leaves = exception_leaves(result)
+                if failure is not None:
+                    self.assertIs(leaves.pop(0), failure)
+                self.assertEqual([type(e) for e in leaves], [KeyboardInterrupt])
+                self.assertTrue(opened[0].closed)
+                self.assertEqual(children[0].returncode, 0)
+                with self.assertRaises(ChildProcessError):
+                    os.waitpid(children[0].pid, os.WNOHANG)
+                self.assertEqual({s: signal.getsignal(s) for s in previous}, previous)
+                return [type(e) for e in leaves]
+            finally:
+                reap_remaining(children)
+
     def test_repeated_sigterm_while_handling_first_interrupt_still_kills_and_reaps(self):
         # Given a ready TERM-ignoring child, repeat TERM while handling the first
         # interrupt, before cleanup; both signals must leave owned cleanup intact.
