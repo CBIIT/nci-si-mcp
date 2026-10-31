@@ -19,6 +19,7 @@ from unittest.mock import patch
 import yaml
 from scripts.processes import stop, wait_until
 from scripts.validation import mutation_gate
+from scripts.validation import mutation_run as runner
 from scripts.validation.mutation_gate import execute_job
 from scripts.validation.mutation_run import coverage_map, program, run_domain, selection, snapshot
 from scripts.validation.mutation_source import allowlist, candidates, diff_lines, scope
@@ -307,6 +308,146 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_worker_publication_cancellation_keeps_previous_complete_result(self):
+        # Given an existing result, cancellation at atomic publication must leave
+        # its bytes intact; a subsequent successful publication is complete JSON.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n")
+            mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
+            manifest = root / "mutations.json"
+            manifest.write_text(json.dumps(mutation_gate.manifest_data(root, mutants[:1], {}, 20)))
+            result = root / "result-0.json"
+            original = b'{"previous": true}\n'
+            result.write_bytes(original)
+
+            def cancel_publication(source, destination):
+                self.assertEqual(destination, result)
+                self.assertEqual(result.read_bytes(), original)
+                self.assertEqual(json.loads(source.read_text())["outcome"], "NO_TESTS")
+                raise KeyboardInterrupt("cancelled before result publication")
+
+            with (
+                patch.object(Path, "replace", autospec=True, side_effect=cancel_publication),
+                self.assertRaisesRegex(KeyboardInterrupt, "cancelled before result publication"),
+            ):
+                execute_job(manifest, 0)
+            self.assertEqual(result.read_bytes(), original)
+            execute_job(manifest, 0)
+            self.assertEqual(json.loads(result.read_text())["outcome"], "NO_TESTS")
+
+    def test_corrupt_result_retains_bytes_and_reports_every_candidate_on_cancel_or_success(self):
+        # Given completed, truncated and missing results, neither cancellation nor
+        # a zero scheduler exit may hide later candidates or overwrite evidence.
+        for cancelled in (True, False):
+            with self.subTest(cancelled=cancelled), tempfile.TemporaryDirectory() as temporary:
+                self.assert_corrupt_scheduler_results(Path(temporary).resolve(), cancelled)
+
+    def assert_corrupt_scheduler_results(self, root, cancelled):
+        project(root, "def answer():\n    return True\n")
+        mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
+        completed = (
+            json.dumps(
+                {
+                    **asdict(mutants[0]),
+                    "outcome": "KILLED",
+                    "restored": True,
+                    "domains": [],
+                    "fallback_domains": [],
+                }
+            ).encode()
+            + b"\n"
+        )
+        corrupt = b'{"outcome": "KILLED",'
+        work = []
+
+        def scheduler(root, directory, data, workers):
+            work.append(directory)
+            (directory / "result-0.json").write_bytes(completed)
+            (directory / "result-1.json").write_bytes(corrupt)
+            if cancelled:
+                raise KeyboardInterrupt("original scheduler cancellation")
+            return 0
+
+        output = io.StringIO()
+        with (
+            patch.object(mutation_gate, "collect", return_value=(mutants, [])),
+            patch.object(mutation_gate, "imported_coverage", return_value={}),
+            patch.object(mutation_gate.random.Random, "shuffle"),
+            patch.object(mutation_gate, "run_scheduler", side_effect=scheduler),
+            contextlib.redirect_stdout(output),
+        ):
+            status = mutation_gate.main(["--root", str(root), "--paths", "src/example.py"])
+        self.assertEqual(status, 2)
+        rows = [json.loads(line) for line in output.getvalue().splitlines()]
+        results = mutant_rows(rows)
+        self.assertEqual(len(results), len(mutants))
+        self.assertEqual(
+            [{name: row[name] for name in mutants[0].key()} for row in results],
+            [mutant.key() for mutant in mutants],
+        )
+        self.assertEqual([row["outcome"] for row in results], ["KILLED", "INFRA", "INFRA"])
+        self.assertIn("corrupt JSON", results[1]["message"])
+        self.assertIn("no result", results[2]["message"])
+        self.assertEqual(rows[-1]["outcome"], "INFRA")
+        self.assertEqual((work[0] / "result-0.json").read_bytes(), completed)
+        self.assertEqual((work[0] / "result-1.json").read_bytes(), corrupt)
+        self.assertEqual(json.loads((work[0] / "result-1.infra.json").read_text()), results[1])
+        self.assertEqual((work[0] / "result-2.json").read_text(), json.dumps(results[2]))
+        diagnostic = (work[0] / "traceback.txt").read_text()
+        if cancelled:
+            self.assertIn("KeyboardInterrupt: original scheduler cancellation", diagnostic)
+            self.assertIn('raise KeyboardInterrupt("original scheduler cancellation")', diagnostic)
+
+    def test_declared_scheduler_call_allows_real_nested_worker_cleanup(self):
+        # The production scheduler call, not its name, must enable the longer
+        # grace needed for a worker's separate-session TERM-ignoring runner.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            ready, cleaned = root / "ready", root / "cleaned"
+            nested = (
+                "import os,signal; from pathlib import Path; "
+                "signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                f"Path({str(ready)!r}).write_text(str(os.getpid())); signal.pause()"
+            )
+            worker = (
+                "import os,sys; from pathlib import Path\n"
+                "from scripts.validation import mutation_run as r\n"
+                "r.STOP_SECONDS=0.1; r.WORKER_CLEANUP_SECONDS=0.5; r.OWNED_CLEANUP_SECONDS=0.7\n"
+                "try:\n"
+                f"    r.program([sys.executable,'-c',{nested!r}],Path({str(root)!r}),"
+                f"dict(os.environ),10,Path({str(root / 'nested.log')!r}))\n"
+                "finally:\n"
+                f"    Path({str(cleaned)!r}).touch()\n"
+            )
+            wait_exit = runner._wait_exit
+
+            def cancel_ready(pid, deadline):
+                if not ready.exists():
+                    self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
+                    return None
+                return wait_exit(pid, deadline)
+
+            def launch_worker(command, cwd, env, timeout, log, **kwargs):
+                return program([sys.executable, "-c", worker], cwd, env, timeout, log, **kwargs)
+
+            try:
+                with (
+                    patch.object(mutation_gate, "program", side_effect=launch_worker),
+                    patch.object(runner, "STOP_SECONDS", 0.1),
+                    patch.object(runner, "WORKER_CLEANUP_SECONDS", 0.5),
+                    patch.object(runner, "OWNED_CLEANUP_SECONDS", 0.7),
+                    patch.object(runner, "_wait_exit", side_effect=cancel_ready),
+                ):
+                    status = mutation_gate.run_scheduler(
+                        ROOT, root, {"timeout": 10, "mutants": []}, 1
+                    )
+                self.assertIsNone(status)
+                self.assertTrue(cleaned.exists(), "declared scheduler call cut off worker cleanup")
+                self.assertFalse(self.process_exists(int(ready.read_text())))
+            finally:
+                self.kill_marked_group(ready)
+
     def test_scheduler_owns_unique_retained_directories_and_announces_before_launch(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
