@@ -27,6 +27,75 @@ def exception_leaves(error):
 
 
 class ProgramOwnershipTest(unittest.TestCase):
+    def test_repeated_sigterm_while_handling_first_interrupt_still_kills_and_reaps(self):
+        # Given a ready TERM-ignoring child, repeat TERM while handling the first
+        # interrupt, before cleanup; both signals must leave owned cleanup intact.
+        children, sent, interruptions = [], [], []
+        popen, wait_exit = subprocess.Popen, runner._wait_exit
+        previous = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM)}
+        previous_trace = sys.gettrace()
+        sentinel = popen([sys.executable, "-c", "import signal; signal.pause()"])
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            ready = root / "ready"
+            script = (
+                "import signal; from pathlib import Path; "
+                "signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                f"Path({str(ready)!r}).touch(); signal.pause()"
+            )
+
+            def cancel():
+                sent.append(signal.SIGTERM)
+                os.kill(os.getpid(), signal.SIGTERM)
+
+            def launch(*args, **kwargs):
+                child = popen(*args, **kwargs)
+                children.append(child)
+                self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
+                return child
+
+            def cancel_wait(pid, deadline):
+                if not sent:
+                    cancel()
+                return wait_exit(pid, deadline)
+
+            def repeat_during_exception(frame, event, arg):
+                if frame.f_code is not runner.program.__code__:
+                    return None
+                if (
+                    event == "line"
+                    and len(sent) == 1
+                    and isinstance(sys.exception(), KeyboardInterrupt)
+                ):
+                    interruptions.append(sys.exception())
+                    cancel()
+                return repeat_during_exception
+
+            try:
+                with (
+                    patch.object(runner.subprocess, "Popen", side_effect=launch),
+                    patch.object(runner, "_wait_exit", side_effect=cancel_wait),
+                    patch.object(runner, "STOP_SECONDS", 0.1),
+                    self.assertRaises(BaseException) as raised,
+                ):
+                    sys.settrace(repeat_during_exception)
+                    try:
+                        runner.program(
+                            [sys.executable, "-c", script], root, dict(os.environ), 5, root / "log"
+                        )
+                    finally:
+                        sys.settrace(previous_trace)
+                self.assertEqual(sent, [signal.SIGTERM, signal.SIGTERM])
+                self.assertEqual(len(interruptions), 1)
+                self.assertEqual(exception_leaves(raised.exception), interruptions)
+                self.assertEqual(children[0].returncode, -signal.SIGKILL)
+                with self.assertRaises(ChildProcessError):
+                    os.waitpid(children[0].pid, os.WNOHANG)
+                self.assertIsNone(sentinel.poll())
+                self.assertEqual({s: signal.getsignal(s) for s in previous}, previous)
+            finally:
+                reap_remaining([*children, sentinel])
+
     def test_sigterm_at_cleanup_entry_cannot_escape_owned_cleanup(self):
         self.assertEqual(self._cancellation_window(signal.SIGTERM, "cleanup"), -signal.SIGKILL)
 

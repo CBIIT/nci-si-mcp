@@ -311,6 +311,7 @@ def runner_termination():
         # Only the execution wait may unwind; the installed handler never changes.
         cancellation.requested = True
         if cancellation.waiting:
+            cancellation.waiting = False
             raise KeyboardInterrupt
 
     try:

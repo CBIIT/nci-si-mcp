@@ -176,6 +176,14 @@ The registry derives adapter parameters from handler signatures; closed choices 
 | `validation.py` | Defines the closed value sets (search modes, directions, edge types), the identifier forms of `spec/tools.yaml` (`NCIT_CODE_FORM`, `REGISTRY_ID_FORM`, `ITEM_VERSION_FORM`, `RELEASE_FORM`, `TERMINOLOGY_FORM`), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, limits in `bounds.py` |
 | `errors.py` | Defines validation errors, `PlatformError` with the specification's closed error-code set, correlation and `serialise`. Index exceptions belong to the package and are mapped by `invocation._ERROR_CODES`. | Python standard library |
 
+The scripts share `scripts/processes.py` for ordinary bounded stop/wait operations, SIGTERM
+unwinding and log tails. Mutation execution has a dedicated owner in
+`scripts/validation/mutation_run.py`: `program()` retains an unreaped session/group leader
+through exit observation and bounded group cleanup, then reaps its direct child. Read-only
+Darwin/Linux process snapshots can justify stopping signals, never signalling discovered PIDs
+or claiming durable containment. The scheduler retains candidate evidence and combined failure
+traces; [Mutation gate](CONTRIBUTING.md#mutation-gate) documents budgets and evidence inspection.
+
 ## Portable index package
 
 The top-level `ncit_index` package ships in the same distribution but imports neither
