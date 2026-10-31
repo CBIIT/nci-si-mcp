@@ -27,6 +27,136 @@ def exception_leaves(error):
 
 
 class ProgramOwnershipTest(unittest.TestCase):
+    def test_sigterm_at_cleanup_entry_cannot_escape_owned_cleanup(self):
+        self.assertEqual(self._cancellation_window(signal.SIGTERM, "cleanup"), -signal.SIGKILL)
+
+    def test_sigint_during_launch_and_grace_cannot_escape_owned_cleanup(self):
+        for stage in ("launch", "grace"):
+            with self.subTest(stage=stage):
+                self.assertEqual(self._cancellation_window(signal.SIGINT, stage), -signal.SIGKILL)
+
+    def _cancellation_window(self, sig, stage):
+        # Given a ready TERM-ignoring child, real cancellation at each ownership
+        # boundary must remain diagnostic only after final KILL and parent reap.
+        children, cancelled = [], []
+        popen = subprocess.Popen
+        cleanup, terminal_group = runner._cleanup_process, runner._terminal_group
+        previous = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM)}
+        sentinel = popen([sys.executable, "-c", "import signal; signal.pause()"])
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            ready = root / "ready"
+            script = (
+                "import signal; from pathlib import Path; "
+                "signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                f"Path({str(ready)!r}).touch(); signal.pause()"
+            )
+
+            def cancel():
+                cancelled.append(sig)
+                os.kill(os.getpid(), sig)
+
+            def launch(*args, **kwargs):
+                child = popen(*args, **kwargs)
+                children.append(child)
+                self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
+                if stage == "launch":
+                    cancel()
+                return child
+
+            def enter_cleanup(*args):
+                if stage == "cleanup":
+                    cancel()
+                return cleanup(*args)
+
+            def inspect(owner, deadline):
+                if stage == "grace" and not cancelled:
+                    cancel()
+                return terminal_group(owner, deadline)
+
+            try:
+                with (
+                    patch.object(runner.subprocess, "Popen", side_effect=launch),
+                    patch.object(runner, "_cleanup_process", side_effect=enter_cleanup),
+                    patch.object(runner, "_terminal_group", side_effect=inspect),
+                    patch.object(runner, "STOP_SECONDS", 0.1),
+                    self.assertRaises(BaseException) as raised,
+                ):
+                    runner.program(
+                        [sys.executable, "-c", script], root, dict(os.environ), 0, root / "log"
+                    )
+                status = children[0].returncode
+                self.assertEqual(status, -signal.SIGKILL)
+                self.assertEqual(cancelled, [sig])
+                self.assertEqual(
+                    [type(e) for e in exception_leaves(raised.exception)], [KeyboardInterrupt]
+                )
+                with self.assertRaises(ChildProcessError):
+                    os.waitpid(children[0].pid, os.WNOHANG)
+                self.assertIsNone(sentinel.poll())
+                self.assertEqual({s: signal.getsignal(s) for s in previous}, previous)
+                return status
+            finally:
+                reap_remaining([*children, sentinel])
+
+    def test_failed_inspection_preserves_worker_grace_to_reap_nested_runner(self):
+        # Given an exited scheduler and a worker owning a separate-session runner,
+        # inspection failure must not take away the worker's cooperative grace.
+        sentinel = subprocess.Popen([sys.executable, "-c", "import signal; signal.pause()"])
+        inspection = ValueError("injected early-leader inspection failure")
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            ready, cleaned = root / "ready", root / "cleaned"
+            nested = (
+                "import os,signal; from pathlib import Path; "
+                "signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                f"Path({str(ready)!r}).write_text(str(os.getpid())); signal.pause()"
+            )
+            worker = (
+                "import os,sys; from pathlib import Path\n"
+                "from scripts.validation import mutation_run as r\n"
+                "r.STOP_SECONDS=0.15\n"
+                "children=[]; launch=r.subprocess.Popen\n"
+                "def capture(*args,**kwargs):\n"
+                "    child=launch(*args,**kwargs); children.append(child); return child\n"
+                "r.subprocess.Popen=capture\n"
+                "try:\n"
+                f"    r.program([sys.executable,'-c',{nested!r}],Path({str(root)!r}),"
+                f"dict(os.environ),10,Path({str(root / 'nested.log')!r}))\n"
+                "finally:\n"
+                f"    Path({str(cleaned)!r}).write_text(str(children[0].returncode))\n"
+            )
+            leader = (
+                "import subprocess,sys,time; from pathlib import Path\n"
+                f"subprocess.Popen([sys.executable,'-c',{worker!r}])\n"
+                f"while not Path({str(ready)!r}).exists(): time.sleep(0.01)\n"
+            )
+            try:
+                with (
+                    patch.object(runner, "_group_snapshot", side_effect=inspection),
+                    patch.object(runner, "WORKER_CLEANUP_SECONDS", 0.6),
+                    patch.object(runner, "OWNED_CLEANUP_SECONDS", 1),
+                    self.assertRaises(BaseException) as raised,
+                ):
+                    runner.program(
+                        [sys.executable, "-c", leader],
+                        root,
+                        {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1])},
+                        5,
+                        root / "log",
+                        worker_cleanup=True,
+                    )
+                self.assertIn(inspection, exception_leaves(raised.exception))
+                self.assertTrue(cleaned.exists(), "inspection failure cut off nested cleanup")
+                self.assertEqual(cleaned.read_text(), str(-signal.SIGKILL))
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(int(ready.read_text()), 0)
+                self.assertIsNone(sentinel.poll())
+            finally:
+                reap_remaining([sentinel])
+                if ready.exists():
+                    self._kill_leftover(int(ready.read_text()))
+
     def test_first_sigterm_during_grace_still_kills_reaps_and_reports_cancellation(self):
         # Given successful TERM of a ready ignoring child, the first cancellation
         # during grace must not bypass final KILL or become a timeout result.
