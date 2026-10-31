@@ -135,7 +135,13 @@ def schedule(root: Path, mutants: list[Mutant], mapping: dict, args) -> list[dic
         if status != 0 or any(not row["restored"] for row in rows):
             raise SchedulerError(f"Mutant scheduler failed: {log}", rows)
         return rows
-    except (KeyboardInterrupt, OSError, subprocess.SubprocessError, ValueError) as error:
+    except (
+        BaseExceptionGroup,
+        KeyboardInterrupt,
+        OSError,
+        subprocess.SubprocessError,
+        ValueError,
+    ) as error:
         # Record before reading results: a second diagnostic failure must not erase
         # the original cancellation/cleanup traceback. Never resume this directory.
         diagnostic = traceback.format_exc()
