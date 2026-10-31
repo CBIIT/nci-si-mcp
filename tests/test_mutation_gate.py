@@ -308,6 +308,93 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_aggregate_cost_overflow_keeps_complete_summary_and_candidate_bytes(self):
+        # Given valid individual timings, an unreportable aggregate must fail
+        # closed after all candidate identities and summary counts are emitted.
+        for durations, repeated in (
+            ((10**308, 10**308, 1.0), False),
+            ((1e308, 1e308, 1.0), False),
+            ((1e308, 0, 0), True),
+        ):
+            for cancelled in (False, True):
+                with (
+                    self.subTest(durations=durations, cancelled=cancelled),
+                    tempfile.TemporaryDirectory() as temporary,
+                ):
+                    self.assert_aggregate_cost_report(
+                        Path(temporary), durations, repeated, cancelled
+                    )
+
+    def assert_aggregate_cost_report(self, root, durations, repeated, cancelled):
+        project(root, "def answer():\n    return True\n")
+        retained = {}
+        work = []
+        later_durations = durations if repeated else (0, 0, 0)
+
+        def scheduler(root, directory, data, workers):
+            work.append(directory)
+            for index, item in enumerate(data["mutants"]):
+                row = {key: value for key, value in item.items() if key != "selected"}
+                row["before"] = data["sources"][item["file"]][item["start"] : item["end"]]
+                row.update(
+                    outcome="KILLED",
+                    restored=True,
+                    kind="assertion",
+                    fallback_domains=["unit"],
+                    domains=[
+                        {
+                            "domain": domain,
+                            "elapsed_seconds": duration,
+                        }
+                        for domain, duration in zip(
+                            mutation_gate.DOMAINS,
+                            later_durations if index else durations,
+                            strict=True,
+                        )
+                    ],
+                )
+                retained[index] = (json.dumps(row) + "\n").encode()
+                (directory / f"result-{index}.json").write_bytes(retained[index])
+            if cancelled:
+                raise KeyboardInterrupt("original scheduler cancellation")
+            return 0
+
+        output = io.StringIO()
+        with (
+            patch.object(mutation_gate, "imported_coverage", return_value={}),
+            patch.object(mutation_gate, "run_scheduler", side_effect=scheduler),
+            contextlib.redirect_stdout(output),
+        ):
+            status = mutation_gate.main(
+                ["--root", str(root), "--paths", "src/example.py", "--shard", "1/1"]
+            )
+        self.assertEqual(status, 2, output.getvalue())
+        rows = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual([row["outcome"] for row in mutant_rows(rows)], ["KILLED"] * 3)
+        summary = next(row for row in rows if row["outcome"] == "SUMMARY")
+        self.assertEqual(summary["counts"], {"KILLED": 3})
+        self.assertEqual(summary["kill_kinds"], {"assertion": 3, "error": 0, "import": 0})
+        self.assertEqual(summary["fallback_count"], 3)
+        self.assertEqual(summary["fallback_domains"], {"unit": 3})
+        self.assertEqual(summary["baseline_domains"], [])
+        self.assertEqual(summary["shard_mutants"], 3)
+        self.assertEqual(summary["full_mutants"], 3)
+        self.assertEqual(summary["cost_error"], "Aggregate runner seconds exceeds reporting range")
+        self.assertTrue(
+            {"runner_seconds", "runner_hours", "runner_seconds_by_domain"}.isdisjoint(summary)
+        )
+        self.assertEqual(rows[-1]["outcome"], "INFRA")
+        self.assertIn(
+            "original scheduler cancellation" if cancelled else summary["cost_error"],
+            rows[-1]["message"],
+        )
+        self.assert_retained_cost_evidence(work[0], retained)
+
+    def assert_retained_cost_evidence(self, work, retained):
+        for index, original in retained.items():
+            self.assertEqual((work / f"result-{index}.json").read_bytes(), original)
+        self.assertEqual(list(work.glob("result-*.infra.json")), [])
+
     def test_worker_publication_cancellation_keeps_previous_complete_result(self):
         # Given an existing result, cancellation at atomic publication must leave
         # its bytes intact; a subsequent successful publication is complete JSON.
