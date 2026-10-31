@@ -327,6 +327,31 @@ def _finish_process(
         _finish_owned(process, owner)
 
 
+def _cleanup_process(
+    process: subprocess.Popen[bytes] | None,
+    owner: _Owner | None,
+    worker_cleanup: bool,
+    failure: BaseException | None,
+) -> None:
+    # A first SIGTERM during grace must not unwind past final KILL/reap. Record
+    # it with the launch handler, then report cancellation even if cleanup succeeds.
+    with runner_termination() as pending:
+        try:
+            _finish_process(process, owner, worker_cleanup)
+        except BaseException as cleanup:
+            if pending and failure is None:
+                failure = KeyboardInterrupt()
+            if failure is not None:
+                raise BaseExceptionGroup(
+                    "Runner and owned cleanup failed", [failure, cleanup]
+                ) from None
+            raise
+        if failure is not None:
+            raise failure
+        if pending:
+            raise KeyboardInterrupt
+
+
 def program(
     command: list[str],
     cwd: Path,
@@ -358,16 +383,7 @@ def program(
         except BaseException as error:  # noqa: BLE001 - preserve cancellation while cleanup runs
             failure = error
             status = None
-        try:
-            _finish_process(process, owner, worker_cleanup)
-        except BaseException as cleanup:
-            if failure is not None:
-                raise BaseExceptionGroup(
-                    "Runner and owned cleanup failed", [failure, cleanup]
-                ) from None
-            raise
-        if failure is not None:
-            raise failure
+        _cleanup_process(process, owner, worker_cleanup, failure)
         return status
 
 
