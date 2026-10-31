@@ -140,8 +140,10 @@ def schedule(root: Path, mutants: list[Mutant], mapping: dict, args) -> list[dic
         # the original cancellation/cleanup traceback. Never resume this directory.
         diagnostic = traceback.format_exc()
         (work / "traceback.txt").write_text(diagnostic)
-        rows = scheduler_rows(work, mutants, data, diagnostic)
-        raise SchedulerError(f"Mutant scheduler failed: {diagnostic}", rows) from error
+        if isinstance(error, SchedulerError):
+            raise
+        rows = scheduler_rows(work, mutants, data, str(error))
+        raise SchedulerError(f"Mutant scheduler failed: {error}", rows) from error
 
 
 def run_scheduler(root: Path, work: Path, data: dict, workers: int) -> int | None:

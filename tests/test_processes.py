@@ -156,8 +156,10 @@ class StopTest(unittest.TestCase):
     def test_group_probe_permission_failure_propagates(self):
         process = SlowToExit(grace=0)
         process.pid = 123
+        signals = []
 
         def denied_probe(pid, sig):
+            signals.append(sig)
             if sig == 0:
                 raise PermissionError("group probe denied")
 
@@ -166,6 +168,7 @@ class StopTest(unittest.TestCase):
             self.assertRaisesRegex(PermissionError, "group probe denied"),
         ):
             stop(process, group=True, group_grace=12)
+        self.assertEqual(signals, [signal.SIGTERM, 0, signal.SIGKILL])
 
 
 def _alive(pid: int) -> bool:
