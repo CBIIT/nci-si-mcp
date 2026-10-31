@@ -246,7 +246,11 @@ def validate_result_choices(row: dict) -> None:
 def validate_elapsed(value: object) -> None:
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise ValueError("Result elapsed_seconds must be a finite nonnegative number")
-    if value < 0 or (isinstance(value, float) and not math.isfinite(value)):
+    try:
+        finite = math.isfinite(value)
+    except OverflowError as error:
+        raise ValueError("Result elapsed_seconds exceeds reporting range") from error
+    if value < 0 or not finite:
         raise ValueError("Result elapsed_seconds must be a finite nonnegative number")
 
 

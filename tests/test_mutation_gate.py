@@ -375,7 +375,10 @@ class MutationExecutionTest(unittest.TestCase):
             for key, values in (
                 ("domain", (None, [], "unknown")),
                 ("outcome", (None, [], "ALLOWLISTED", "unknown")),
-                ("elapsed_seconds", (None, "1", True, False, -1, float("nan"), float("inf"))),
+                (
+                    "elapsed_seconds",
+                    (None, "1", True, False, -1, float("nan"), float("inf"), 10**400),
+                ),
             )
             for value in values
         )
@@ -395,7 +398,10 @@ class MutationExecutionTest(unittest.TestCase):
                     "fallback_domains",
                     (None, {}, "unit", [None], [[]], ["unknown"], ["unit", "unit"]),
                 ),
-                ("elapsed_seconds", (None, "1", True, False, -1, float("nan"), float("inf"))),
+                (
+                    "elapsed_seconds",
+                    (None, "1", True, False, -1, float("nan"), float("inf"), 10**400),
+                ),
                 ("kind", (None, [], {}, "unknown")),
                 ("domain", (None, [], "unknown")),
             )
