@@ -27,6 +27,89 @@ def exception_leaves(error):
 
 
 class ProgramOwnershipTest(unittest.TestCase):
+    def test_first_sigterm_during_grace_still_kills_reaps_and_reports_cancellation(self):
+        # Given successful TERM of a ready ignoring child, the first cancellation
+        # during grace must not bypass final KILL or become a timeout result.
+        children = []
+        popen, killpg = subprocess.Popen, os.killpg
+        terminal_group = runner._terminal_group
+        previous = signal.getsignal(signal.SIGTERM)
+        sent = []
+        sentinel = popen([sys.executable, "-c", "import signal; signal.pause()"])
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            ready = root / "ready"
+            script = (
+                "import signal; from pathlib import Path; "
+                "signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                f"Path({str(ready)!r}).touch(); signal.pause()"
+            )
+
+            def launch(*args, **kwargs):
+                child = popen(*args, **kwargs)
+                children.append(child)
+                self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
+                return child
+
+            def deliver(pid, sig):
+                killpg(pid, sig)
+                sent.append(sig)
+
+            def cancel_in_grace(owner, deadline):
+                if sent == [signal.SIGTERM]:
+                    sent.append("cancellation")
+                    os.kill(os.getpid(), signal.SIGTERM)
+                return terminal_group(owner, deadline)
+
+            try:
+                with (
+                    patch.object(runner.subprocess, "Popen", side_effect=launch),
+                    patch.object(runner.os, "killpg", side_effect=deliver),
+                    patch.object(runner, "_terminal_group", side_effect=cancel_in_grace),
+                    patch.object(runner, "STOP_SECONDS", 0.25),
+                    self.assertRaises(BaseException) as raised,
+                ):
+                    runner.program(
+                        [sys.executable, "-c", script], root, dict(os.environ), 0, root / "log"
+                    )
+                self.assertEqual(children[0].returncode, -signal.SIGKILL)
+                self.assertEqual(sent, [signal.SIGTERM, "cancellation", signal.SIGKILL])
+                self.assertEqual(
+                    [type(e) for e in exception_leaves(raised.exception)], [KeyboardInterrupt]
+                )
+                with self.assertRaises(ChildProcessError):
+                    os.waitpid(children[0].pid, os.WNOHANG)
+                self.assertIsNone(sentinel.poll())
+                self.assertEqual(signal.getsignal(signal.SIGTERM), previous)
+            finally:
+                reap_remaining([*children, sentinel])
+
+    def test_normal_completion_cleanup_cancellation_is_not_lost_when_group_is_terminal(self):
+        terminal_group = runner._terminal_group
+        previous = signal.getsignal(signal.SIGTERM)
+        cancelled = []
+
+        def cancel_terminal(owner, deadline):
+            terminal = terminal_group(owner, deadline)
+            if terminal and not cancelled:
+                cancelled.append(owner.pid)
+                os.kill(os.getpid(), signal.SIGTERM)
+            return terminal
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            with (
+                patch.object(runner, "_terminal_group", side_effect=cancel_terminal),
+                self.assertRaises(KeyboardInterrupt),
+            ):
+                runner.program(
+                    [sys.executable, "-c", "pass"], root, dict(os.environ), 5, root / "log"
+                )
+        self.assertEqual(len(cancelled), 1)
+        with self.assertRaises(ChildProcessError):
+            os.waitpid(cancelled[0], os.WNOHANG)
+        self.assertEqual(signal.getsignal(signal.SIGTERM), previous)
+
     def test_scheduler_allows_nested_runner_cleanup_before_final_kill(self):
         # Given nested separate-session work, scheduler cancellation must let its
         # worker kill/reap that runner and record completion before escalation.
