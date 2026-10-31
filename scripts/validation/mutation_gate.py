@@ -341,6 +341,7 @@ def shard_catalogue(mutants: list[Mutant], args) -> list[Mutant]:
 def report_results(rows: list[dict], exemptions: list[dict], args, started: float) -> int:
     status = verdict(rows, exemptions)
     if args.shard is not None:
+        costs = execution_costs(rows)
         counts = Counter(row["outcome"] for row in rows)
         kinds = Counter(row.get("kind") for row in rows if row["outcome"] == "KILLED")
         print(
@@ -351,24 +352,40 @@ def report_results(rows: list[dict], exemptions: list[dict], args, started: floa
                     "counts": dict(counts),
                     "kill_kinds": {kind: kinds[kind] for kind in ("assertion", "error", "import")},
                     "baseline_domains": args.baseline_domains,
-                    **execution_costs(rows),
+                    **costs,
                     "elapsed_seconds": monotonic() - started,
                 },
             )
         )
+        if "cost_error" in costs:
+            print(json.dumps({"outcome": "INFRA", "message": costs["cost_error"]}))
+            return 2
     return status
 
 
 def execution_costs(rows: list[dict]) -> dict:
     fallbacks = Counter(domain for row in rows for domain in row.get("fallback_domains", []))
-    seconds = Counter()
+    timings: dict[str, list[float]] = {}
     for row in rows:
         for domain in row.get("domains", []):
-            seconds[domain["domain"]] += domain["elapsed_seconds"]
-    total = sum(seconds.values())
+            timings.setdefault(domain["domain"], []).append(domain["elapsed_seconds"])
     return {
         "fallback_count": sum(bool(row.get("fallback_domains", [])) for row in rows),
         "fallback_domains": dict(fallbacks),
+        **runner_costs(timings),
+    }
+
+
+def runner_costs(timings: dict[str, list[float]]) -> dict:
+    cost_error = {"cost_error": "Aggregate runner seconds exceeds reporting range"}
+    try:
+        seconds = {domain: math.fsum(values) for domain, values in timings.items()}
+        total = math.fsum(seconds.values())
+    except OverflowError:
+        return cost_error
+    if not all(math.isfinite(value) for value in (*seconds.values(), total)):
+        return cost_error
+    return {
         "runner_seconds_by_domain": dict(seconds),
         "runner_seconds": total,
         "runner_hours": total / 3600,
