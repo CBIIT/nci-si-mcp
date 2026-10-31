@@ -350,6 +350,104 @@ class MutationExecutionTest(unittest.TestCase):
             ):
                 self.assert_corrupt_scheduler_results(Path(temporary).resolve(), cancelled, defect)
 
+    def test_supplied_invalid_metrics_fail_infra_without_false_pass_or_summary_abort(self):
+        # Given matching completed identities with malformed optional metrics, the
+        # CLI must retain corrupt bytes and report all candidates, including a shard summary.
+        for sharded in (False, True):
+            for defect, extra in self.invalid_candidate_metrics().items():
+                with (
+                    self.subTest(sharded=sharded, defect=defect),
+                    tempfile.TemporaryDirectory() as t,
+                ):
+                    self.assert_corrupt_scheduler_results(
+                        Path(t).resolve(), False, defect, sharded=sharded, extra=extra
+                    )
+
+    @staticmethod
+    def invalid_candidate_metrics():
+        timing = {"domain": "unit", "outcome": "KILLED", "elapsed_seconds": 0.25}
+        records = {
+            f"domains-{value!r}": {"domains": value}
+            for value in (None, {}, "unit", [None], [[]], [{}])
+        }
+        records.update(
+            (f"timing-{key}-{value!r}", {"domains": [{**timing, key: value}]})
+            for key, values in (
+                ("domain", (None, [], "unknown")),
+                ("outcome", (None, [], "ALLOWLISTED", "unknown")),
+                ("elapsed_seconds", (None, "1", True, False, -1, float("nan"), float("inf"))),
+            )
+            for value in values
+        )
+        records.update(
+            (f"missing-timing-{key}", {"domains": [{k: v for k, v in timing.items() if k != key}]})
+            for key in ("domain", "elapsed_seconds")
+        )
+        records.update(MutationExecutionTest.invalid_optional_metrics())
+        return records
+
+    @staticmethod
+    def invalid_optional_metrics():
+        return {
+            f"{key}-{value!r}": {key: value}
+            for key, values in (
+                (
+                    "fallback_domains",
+                    (None, {}, "unit", [None], [[]], ["unknown"], ["unit", "unit"]),
+                ),
+                ("elapsed_seconds", (None, "1", True, False, -1, float("nan"), float("inf"))),
+                ("kind", (None, [], {}, "unknown")),
+                ("domain", (None, [], "unknown")),
+            )
+            for value in values
+        }
+
+    def test_minimal_and_supplied_valid_metrics_still_report_successful_shards(self):
+        # Optional evidence may be omitted; supplied domain outcomes are optional
+        # too, but valid durations and fallback names must reach the summary intact.
+        for extra in (
+            {},
+            {"domains": [], "fallback_domains": [], "elapsed_seconds": 0},
+            {
+                "domains": [
+                    {"domain": "unit", "elapsed_seconds": 0},
+                    {"domain": "selftest", "outcome": "SURVIVED", "elapsed_seconds": 0.5},
+                    {"domain": "fixture", "outcome": "KILLED", "elapsed_seconds": 1},
+                ],
+                "fallback_domains": ["unit", "selftest", "fixture"],
+                "elapsed_seconds": 2.5,
+                "kind": "assertion",
+                "domain": "fixture",
+            },
+        ):
+            with self.subTest(extra=extra), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary).resolve()
+                project(root, "def answer():\n    return True\n")
+
+                def scheduler(root, directory, data, workers, extra=extra):
+                    for index, item in enumerate(data["mutants"]):
+                        row = {key: value for key, value in item.items() if key != "selected"}
+                        row["before"] = data["sources"][item["file"]][item["start"] : item["end"]]
+                        row.update(outcome="KILLED", restored=True, **extra)
+                        (directory / f"result-{index}.json").write_text(json.dumps(row))
+                    return 0
+
+                output = io.StringIO()
+                with (
+                    patch.object(mutation_gate, "imported_coverage", return_value={}),
+                    patch.object(mutation_gate, "run_scheduler", side_effect=scheduler),
+                    contextlib.redirect_stdout(output),
+                ):
+                    status = mutation_gate.main(
+                        ["--root", str(root), "--paths", "src/example.py", "--shard", "1/1"]
+                    )
+                self.assertEqual(status, 0, output.getvalue())
+                rows = [json.loads(line) for line in output.getvalue().splitlines()]
+                self.assertEqual([row["outcome"] for row in mutant_rows(rows)], ["KILLED"] * 3)
+                self.assertEqual(rows[-1]["outcome"], "SUMMARY")
+                self.assertEqual(rows[-1]["runner_seconds"], 4.5 if "kind" in extra else 0)
+                self.assertEqual(rows[-1]["fallback_count"], 3 if "kind" in extra else 0)
+
     @staticmethod
     def invalid_candidate_records():
         mutants, _ = candidates("src/example.py", b"def answer():\n    return True\n")
@@ -377,7 +475,9 @@ class MutationExecutionTest(unittest.TestCase):
         )
         return records
 
-    def assert_corrupt_scheduler_results(self, root, cancelled, defect):
+    def assert_corrupt_scheduler_results(
+        self, root, cancelled, defect, *, sharded=False, extra=None
+    ):
         project(root, "def answer():\n    return True\n")
         mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
         mutants.sort(key=lambda mutant: (mutant.file, mutant.line, mutant.operator, mutant.site))
@@ -393,7 +493,7 @@ class MutationExecutionTest(unittest.TestCase):
             ).encode()
             + b"\n"
         )
-        corrupt = self.invalid_candidate_records()[defect]
+        corrupt = self.corrupt_candidate_bytes(completed, mutants[1], defect, extra)
         work = []
 
         def scheduler(root, directory, data, workers):
@@ -415,7 +515,8 @@ class MutationExecutionTest(unittest.TestCase):
             patch.object(mutation_gate, "run_scheduler", side_effect=scheduler),
             contextlib.redirect_stdout(output),
         ):
-            status = mutation_gate.main(["--root", str(root), "--paths", "src/example.py"])
+            arguments = ["--root", str(root), "--paths", "src/example.py"]
+            status = mutation_gate.main(arguments + ["--shard", "1/1"] * sharded)
         self.assertEqual(status, 2)
         rows = [json.loads(line) for line in output.getvalue().splitlines()]
         results = mutant_rows(rows)
@@ -433,11 +534,23 @@ class MutationExecutionTest(unittest.TestCase):
         self.assertEqual(results[1]["domains"], [])
         self.assertEqual(results[1]["fallback_domains"], [])
         self.assertEqual(rows[-1]["outcome"], "INFRA")
+        self.assert_corrupt_summary(rows, sharded)
         self.assertEqual((work[0] / "result-0.json").read_bytes(), completed)
         self.assertEqual((work[0] / "result-1.json").read_bytes(), corrupt)
         self.assertEqual(json.loads((work[0] / "result-1.infra.json").read_text()), results[1])
         self.assertEqual((work[0] / "result-2.json").read_text(), json.dumps(results[2]))
         self.assert_corrupt_scheduler_diagnostic(work[0], results, cancelled)
+
+    @staticmethod
+    def corrupt_candidate_bytes(completed, mutant, defect, extra):
+        if extra is None:
+            return MutationExecutionTest.invalid_candidate_records()[defect]
+        return json.dumps({**json.loads(completed), **asdict(mutant), **extra}).encode()
+
+    def assert_corrupt_summary(self, rows, sharded):
+        if sharded:
+            self.assertEqual(rows[-2]["outcome"], "SUMMARY")
+            self.assertEqual(rows[-2]["counts"], {"KILLED": 2, "INFRA": 1})
 
     def assert_corrupt_scheduler_diagnostic(self, work, results, cancelled):
         diagnostic = (work / "traceback.txt").read_text()
