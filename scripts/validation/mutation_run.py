@@ -18,7 +18,7 @@ from types import FrameType
 
 from coverage import CoverageData
 from pytest import ExitCode
-from scripts.processes import STOP_SECONDS, exit_on_sigterm, stop
+from scripts.processes import STOP_SECONDS, stop
 
 # An ordinary runner has STOP_SECONDS of grace plus STOP_SECONDS for final KILL/reap.
 # A scheduler must let that entire nested cleanup finish before its own final KILL.
@@ -37,6 +37,12 @@ class _Owner:
     pid: int
     uid: int
     ruid: int
+
+
+@dataclass(slots=True)
+class _Cancellation:
+    requested: bool = False
+    waiting: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -163,8 +169,7 @@ def _signal_owned(owner: _Owner, sig: signal.Signals, deadline: float) -> bool:
     return True
 
 
-def _grace_complete(owner: _Owner, deadline: float, grace_seconds: float) -> bool:
-    grace = min(deadline, monotonic() + grace_seconds)
+def _grace_complete(owner: _Owner, deadline: float, grace: float) -> bool:
     while monotonic() < grace:
         if _terminal_group(owner, deadline):
             return True
@@ -181,12 +186,17 @@ def _cleanup_group(owner: _Owner, deadline: float, grace_seconds: float) -> None
     # Denied TERM is not permission to escalate; only successful TERM opens grace.
     if not _signal_owned(owner, signal.SIGTERM, deadline):
         return
+    grace = min(deadline, monotonic() + grace_seconds)
     try:
-        terminal = _grace_complete(owner, deadline, grace_seconds)
+        terminal = _grace_complete(owner, deadline, grace)
     except (OSError, ValueError, subprocess.SubprocessError) as inspection:
         # Inspection cannot forfeit final cleanup of the original anchored group.
         # _signal_owned rechecks the unreaped anchor; no discovered PID is signalled.
         try:
+            # A worker may still be reaping its separate-session runner. Failed
+            # inspection cannot shorten its original cooperative grace deadline.
+            while monotonic() < grace:
+                sleep(min(OBSERVE_INTERVAL, max(0, grace - monotonic())))
             _kill_owned(owner, deadline)
         except BaseException as final:  # noqa: BLE001 - retain both original cleanup failures
             raise BaseExceptionGroup(
@@ -290,28 +300,26 @@ def environment(scratch: Path, work: Path) -> dict[str, str]:
 def runner_termination():
     # Nested pytest workers normally die on SIGTERM without unwinding. Their child
     # sessions escape the scheduler's group, so the waiting owner must clean them.
-    pending: list[int] = []
+    cancellation = _Cancellation()
     if current_thread() is not main_thread():
-        yield pending
+        yield cancellation
         return
-    previous = signal.getsignal(signal.SIGTERM)
+    previous = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
 
-    def defer(signum: int, _frame: FrameType | None) -> None:
-        # Popen must return its handle before cancellation can unwind the owner.
-        pending.append(signum)
+    def defer(_signum: int, _frame: FrameType | None) -> None:
+        # Launch must register its handle, and cleanup must finish KILL/reap.
+        # Only the execution wait may unwind; the installed handler never changes.
+        cancellation.requested = True
+        if cancellation.waiting:
+            raise KeyboardInterrupt
 
     try:
-        signal.signal(signal.SIGTERM, defer)
-        yield pending
+        for sig in previous:
+            signal.signal(sig, defer)
+        yield cancellation
     finally:
-        signal.signal(signal.SIGTERM, previous)
-
-
-def _arm_termination(pending: list[int]) -> None:
-    if current_thread() is main_thread():
-        exit_on_sigterm()
-        if pending:
-            signal.raise_signal(signal.SIGTERM)
+        for sig, disposition in previous.items():
+            signal.signal(sig, disposition)
 
 
 def _finish_process(
@@ -332,24 +340,22 @@ def _cleanup_process(
     owner: _Owner | None,
     worker_cleanup: bool,
     failure: BaseException | None,
+    cancellation: _Cancellation,
 ) -> None:
-    # A first SIGTERM during grace must not unwind past final KILL/reap. Record
-    # it with the launch handler, then report cancellation even if cleanup succeeds.
-    with runner_termination() as pending:
-        try:
-            _finish_process(process, owner, worker_cleanup)
-        except BaseException as cleanup:
-            if pending and failure is None:
-                failure = KeyboardInterrupt()
-            if failure is not None:
-                raise BaseExceptionGroup(
-                    "Runner and owned cleanup failed", [failure, cleanup]
-                ) from None
-            raise
+    try:
+        _finish_process(process, owner, worker_cleanup)
+    except BaseException as cleanup:
+        if cancellation.requested and failure is None:
+            failure = KeyboardInterrupt()
         if failure is not None:
-            raise failure
-        if pending:
-            raise KeyboardInterrupt
+            raise BaseExceptionGroup(
+                "Runner and owned cleanup failed", [failure, cleanup]
+            ) from None
+        raise
+    if failure is not None:
+        raise failure
+    if cancellation.requested:
+        raise KeyboardInterrupt
 
 
 def program(
@@ -362,7 +368,7 @@ def program(
     worker_cleanup: bool = False,
 ):
     """Run an owned session; scheduler callers allow nested workers' full cleanup budget."""
-    with runner_termination() as pending, log.open("wb") as stream:
+    with runner_termination() as cancellation, log.open("wb") as stream:
         process = None
         owner = None
         failure = None
@@ -378,12 +384,16 @@ def program(
             if (os.getpgid(process.pid), os.getsid(process.pid)) != (process.pid, process.pid):
                 raise ValueError(f"Child {process.pid} does not own its process group/session")
             owner = _Owner(process.pid, os.geteuid(), os.getuid())
-            _arm_termination(pending)
+            if cancellation.requested:
+                raise KeyboardInterrupt
+            cancellation.waiting = True
             status = _wait_exit(process.pid, monotonic() + timeout)
         except BaseException as error:  # noqa: BLE001 - preserve cancellation while cleanup runs
             failure = error
             status = None
-        _cleanup_process(process, owner, worker_cleanup, failure)
+        finally:
+            cancellation.waiting = False
+        _cleanup_process(process, owner, worker_cleanup, failure, cancellation)
         return status
 
 
