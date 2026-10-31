@@ -30,6 +30,28 @@ def exception_leaves(error):
 
 
 class ProgramOwnershipTest(unittest.TestCase):
+    def test_scope_exit_preserves_cancellation_already_nested_in_failure_group(self):
+        previous = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM)}
+        body_failure = ValueError("original body failure")
+        independent = KeyboardInterrupt("independent interrupt")
+        with (
+            self.assertRaises(BaseExceptionGroup) as raised,
+            runner.runner_termination() as cancellation,
+        ):
+            os.kill(os.getpid(), signal.SIGTERM)
+            interruption = cancellation.requested
+            self.assertIsInstance(interruption, KeyboardInterrupt)
+            failure = BaseExceptionGroup(
+                "body and cleanup failed",
+                [body_failure, BaseExceptionGroup("cleanup", [independent, interruption])],
+            )
+            raise failure
+        self.assertIs(raised.exception, failure)
+        self.assertEqual(
+            exception_leaves(raised.exception), [body_failure, independent, interruption]
+        )
+        self.assertEqual({s: signal.getsignal(s) for s in previous}, previous)
+
     def test_first_sigterm_during_handler_restoration_is_diagnostic_and_restores_both(self):
         # Given inner resources have closed, deliver the first real TERM while
         # the latch still owns it, immediately before the first caller restore.
@@ -917,6 +939,7 @@ class InjectedInspectionTest(unittest.TestCase):
             ("foreign effective uid", "123 99 123 503 502 Z\n", False),
             ("foreign real uid", "123 99 123 501 503 Z\n", False),
             ("foreign group", "123 99 124 501 502 Z\n", False),
+            ("foreign parent", "123 98 123 501 502 Z\n", False),
             ("unknown state", "123 99 123 501 502 Z?\n", False),
         )
         for label, output, allowed in cases:
