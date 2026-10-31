@@ -1337,7 +1337,7 @@ class MutationExecutionTest(unittest.TestCase):
                 captured.append(json.loads(manifest.read_text()))
                 log.write_text("")
                 (manifest.parent / "result-0.json").write_text(
-                    '{"outcome": "KILLED", "restored": true}'
+                    json.dumps({**asdict(mutant), "outcome": "KILLED", "restored": True})
                 )
                 return 0
 
@@ -1345,7 +1345,7 @@ class MutationExecutionTest(unittest.TestCase):
                 rows = mutation_gate.schedule(
                     root, [mutant], mapping, SimpleNamespace(timeout=20, workers=1)
                 )
-            self.assertEqual(rows, [{"outcome": "KILLED", "restored": True}])
+            self.assertEqual(rows, [{**asdict(mutant), "outcome": "KILLED", "restored": True}])
             self.assertEqual(
                 captured,
                 [

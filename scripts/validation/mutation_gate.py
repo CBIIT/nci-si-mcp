@@ -186,13 +186,13 @@ def scheduler_rows(work: Path, mutants: list[Mutant], data: dict, log: str) -> l
     for index, mutant in enumerate(mutants):
         result = work / f"result-{index}.json"
         try:
-            rows.append(json.loads(result.read_text()))
+            rows.append(candidate_result(json.loads(result.read_text()), mutant))
             continue
         except FileNotFoundError:
             message = "Controller produced no result for this candidate"
-        except json.JSONDecodeError as error:
-            message = f"Controller produced corrupt JSON for this candidate: {error}"
-            # Keep the original bytes as evidence, including truncated worker writes.
+        except ValueError as error:
+            message = f"Controller produced invalid evidence for this candidate: {error}"
+            # Keep undecodable, truncated and foreign worker evidence byte-for-byte.
             row = incomplete_result(mutant, data["mutants"][index]["selected"], message, log)
             write_json(work / f"result-{index}.infra.json", row)
             rows.append(row)
@@ -200,6 +200,18 @@ def scheduler_rows(work: Path, mutants: list[Mutant], data: dict, log: str) -> l
         rows.append(incomplete_result(mutant, data["mutants"][index]["selected"], message, log))
         result.write_text(json.dumps(rows[-1]))
     return rows
+
+
+def candidate_result(row: object, mutant: Mutant) -> dict:
+    if not isinstance(row, dict):
+        raise ValueError("Result must be a JSON object")
+    if any(row.get(name) != value for name, value in asdict(mutant).items()):
+        raise ValueError("Result does not match the scheduled candidate")
+    if row.get("outcome") not in ("KILLED", "TIMEOUT", "SURVIVED", "NO_TESTS", "INFRA"):
+        raise ValueError("Result has an unknown outcome")
+    if not isinstance(row.get("restored"), bool):
+        raise ValueError("Result restoration must be a boolean")
+    return row
 
 
 def incomplete_result(mutant: Mutant, selected: dict, message: str, log: str) -> dict:
