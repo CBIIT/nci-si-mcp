@@ -1775,6 +1775,19 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                 },
             )
 
+    def test_collection_row_records_the_stop_marker_only_when_the_report_carries_it(self):
+        # The real-run tests reach this hook only in a child pytest, which loads a copy of the
+        # probe; the recording contract is therefore also checked in process.
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            with patch.object(probe, "DESTINATION", str(path)):
+                for marker in (True, False):
+                    report = SimpleNamespace(failed=True, nodeid="", mutation_stop_notice=marker)
+                    probe.pytest_collectreport(report)
+            rows = [json.loads(line) for line in path.read_text().splitlines()]
+        row = {"node": "", "phase": "collection", "outcome": "failed", "assertion": False}
+        self.assertEqual(rows, [row | {"stop_notice": True}, row])
+
     def test_system_exit_and_internal_errors_never_become_import_kills(self):
         target = Path("src/example.py").resolve()
         failure = {
