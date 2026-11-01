@@ -178,6 +178,7 @@ def _error_detail(exc: HTTPError) -> tuple[str, bool]:
     try:
         payload = _read_progress(exc, 4096)
     except OSError, HTTPException:
+        check_deadline()
         return "", False
     try:
         body = json.loads(payload.decode("utf-8"))
