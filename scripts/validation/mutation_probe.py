@@ -117,9 +117,7 @@ def session_stop(session, call) -> bool:
     lookalike message, another type or a subclass is not the notice either.
     """
     error = getattr(getattr(call, "excinfo", None), "value", None)
-    if error is None:
-        return False
-    return type(error) is session.Failed and error.args == (session.shouldfail,)
+    return type(error) is session.Failed and getattr(error, "args", None) == (session.shouldfail,)
 
 
 def pytest_collectreport(report):
