@@ -17,6 +17,7 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 
 from fakes import data_element
 from nci_si_mcp.cadsr import CaDSRClient
+from nci_si_mcp.server import _invalid_tool_result
 from test_cadsr_client import reply
 from test_cadsr_matching import cde_response
 from test_http_client import ServerTestCase
@@ -76,6 +77,35 @@ def text_descriptions(schema, fields):
 
 
 class InputBoundaryTest(ServerFixture, ServerTestCase):
+    def test_correlation_refusal_result_preserves_the_protocol_error_flag(self):
+        # Given the audit middleware's refusal record, the constructed MCP result is an error.
+        refused = {
+            "error": {
+                "code": "invalid_request",
+                "message": "Use a safe identifier",
+                "correlationId": "safe-1",
+            }
+        }
+        result = _invalid_tool_result(refused)
+        self.assertEqual(result["isError"], True)
+        self.assertEqual(result["structuredContent"], refused)
+        self.assertEqual(json.loads(result["content"][0]["text"]), refused)
+
+    def test_optional_text_branch_without_original_guidance_starts_with_the_limit(self):
+        listing = self.session(lambda client: client.list_tools())
+        schema = next(t.input_schema for t in listing.tools if t.name == "get_data_element")
+        branch = next(
+            n for n in schema["properties"]["questionText"]["anyOf"] if n.get("type") == "string"
+        )
+        self.assertEqual(
+            branch["description"],
+            "At most 2000 Unicode code points per text value; longer input "
+            "is refused with invalid_request before upstream or index work, never shortened."
+            " URL-carried text also has a separate 7,000-byte encoded request-target "
+            "ceiling, including filters and pins; for caDSR this is conservative "
+            "server policy, not measured capacity.",
+        )
+
     def upstream(self, *responses):
         server = self.serve(*responses)
         self.settings = replace(self.settings, cadsr_base_url=server.url, cadsr_ftp_url=server.url)

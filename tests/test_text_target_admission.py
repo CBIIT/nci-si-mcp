@@ -17,6 +17,20 @@ from test_server import ServerFixture
 
 
 class GroundTextAdmissionTest(ServerFixture, ServerTestCase):
+    def test_unpinned_lexical_search_refuses_encoded_target_before_release_discovery(self):
+        # Given permitted lexical input, implicit release discovery must not precede admission.
+        server = self.serve()
+        self.context.evs = EVSClient(server.url)
+        result = self.session(
+            lambda client: client.call_tool(
+                "search_concepts", {"terminology": "ncit", "query": "😀" * 1000, "mode": "lexical"}
+            )
+        )
+        self.assertTrue(result.is_error)
+        self.assertEqual(result.structured_content["error"]["code"], "invalid_request")
+        self.assertEqual(result.structured_content["error"]["details"]["parameter"], "query")
+        self.assertEqual(server.seen, [])
+
     def test_direct_search_emoji_without_release_refuses_before_discovery(self):
         server = self.serve()
         self.context.evs = EVSClient(server.url)

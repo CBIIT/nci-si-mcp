@@ -64,8 +64,8 @@ def safe_correlation(value: object) -> str | None:
     return value if isinstance(value, str) and re.fullmatch(CORRELATION_ID_FORM, value) else None
 
 
-def validate_correlation(value: object, *, supplied: bool = False) -> dict[str, object]:
-    if (supplied or value is not None) and safe_correlation(value) is None:
+def validate_correlation(value: object, *, supplied: bool) -> dict[str, object]:
+    if supplied and safe_correlation(value) is None:
         raise InputValidationError(
             "Use 1 to 128 characters from A-Z, a-z, 0-9, dot, underscore, colon or hyphen",
             "_meta.correlationId",

@@ -7,7 +7,7 @@ from unittest.mock import patch
 from fakes import FakeEVS, concept, release
 from nci_si_mcp.bounds import Budget, deadline_scope
 from nci_si_mcp.errors import correlated
-from nci_si_mcp.traversal import traverse_ncit
+from nci_si_mcp.traversal import _Walk, traverse_ncit
 from test_deadline_http import Clock
 
 
@@ -55,6 +55,23 @@ class ReconciliationClock:
         return result
 
 
+class CostlyRelation:
+    """Reading a verified relation's kind models time spent grouping response data."""
+
+    def __init__(self, clock):
+        self.clock = clock
+        self.read = False
+
+    def __hash__(self):
+        if not self.read:
+            self.read = True
+            self.clock.advance(51)
+        return hash("child")
+
+    def __eq__(self, other):
+        return other == "child"
+
+
 class DeadlineCpuTest(unittest.TestCase):
     def setUp(self):
         self.clock = Clock()
@@ -85,6 +102,24 @@ class DeadlineCpuTest(unittest.TestCase):
                 "exact": False,
             },
         )
+
+    def test_relation_grouping_expiry_stops_before_the_next_verified_relation(self):
+        evs = FakeEVS([concept("C1", children=[{"code": "C2"}, {"code": "C3"}])])
+        kind = CostlyRelation(self.clock)
+        original = _Walk._payload_relations
+
+        def costly(frontier, concepts, kinds):
+            found = original(frontier, concepts, kinds)
+            return [
+                (code, kind if index == 0 else edge, item)
+                for index, (code, edge, item) in enumerate(found)
+            ]
+
+        with patch.object(_Walk, "_payload_relations", side_effect=costly):
+            graph = self.walk(evs, ["child"], depth=2)
+        self.assert_graph(graph, ["C1"], [])
+        self.assert_deadline(graph)
+        self.assertEqual(evs.calls, [("get_concepts_by_codes", "ncit_26.06e", ["C1"])])
 
     def test_expiry_while_emitting_an_edge_stops_before_the_next_edge(self):
         """Given verified relations, when emitting one consumes time, later edges stay absent."""
