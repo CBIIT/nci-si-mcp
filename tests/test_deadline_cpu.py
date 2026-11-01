@@ -105,13 +105,13 @@ class DeadlineCpuTest(unittest.TestCase):
 
     def test_relation_grouping_expiry_stops_before_the_next_verified_relation(self):
         evs = FakeEVS([concept("C1", children=[{"code": "C2"}, {"code": "C3"}])])
-        kind = CostlyRelation(self.clock)
+        relation_kinds = [CostlyRelation(self.clock), CostlyRelation(self.clock)]
         original = _Walk._payload_relations
 
         def costly(frontier, concepts, kinds):
             found = original(frontier, concepts, kinds)
             return [
-                (code, kind if index == 0 else edge, item)
+                (code, relation_kinds[index], item)
                 for index, (code, edge, item) in enumerate(found)
             ]
 

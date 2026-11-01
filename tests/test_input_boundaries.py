@@ -17,7 +17,6 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 
 from fakes import data_element
 from nci_si_mcp.cadsr import CaDSRClient
-from nci_si_mcp.server import _invalid_tool_result
 from test_cadsr_client import reply
 from test_cadsr_matching import cde_response
 from test_http_client import ServerTestCase
@@ -77,20 +76,6 @@ def text_descriptions(schema, fields):
 
 
 class InputBoundaryTest(ServerFixture, ServerTestCase):
-    def test_correlation_refusal_result_preserves_the_protocol_error_flag(self):
-        # Given the audit middleware's refusal record, the constructed MCP result is an error.
-        refused = {
-            "error": {
-                "code": "invalid_request",
-                "message": "Use a safe identifier",
-                "correlationId": "safe-1",
-            }
-        }
-        result = _invalid_tool_result(refused)
-        self.assertEqual(result["isError"], True)
-        self.assertEqual(result["structuredContent"], refused)
-        self.assertEqual(json.loads(result["content"][0]["text"]), refused)
-
     def test_optional_text_branch_without_original_guidance_starts_with_the_limit(self):
         listing = self.session(lambda client: client.list_tools())
         schema = next(t.input_schema for t in listing.tools if t.name == "get_data_element")
@@ -172,11 +157,19 @@ class InputBoundaryTest(ServerFixture, ServerTestCase):
 
     def assert_invalid(self, answer, parameter):
         self.assertTrue(answer["isError"], answer)
+        self.assertEqual(json.loads(answer["content"][0]["text"]), answer["structuredContent"])
         error = answer["structuredContent"]["error"]
         self.assertEqual(error["code"], "invalid_request")
         self.assertEqual(error["details"]["parameter"], parameter)
         self.assertRegex(error["correlationId"], r"^[A-Za-z0-9._:-]{1,128}$")
         return error
+
+    def assert_correlation_omission(self, answer):
+        # Correlation refusal short-circuits before cache hints are selected.
+        self.assertNotIn("_meta", answer)
+        for item in answer["content"]:
+            self.assertNotIn("_meta", item)
+            self.assertNotIn("annotations", item)
 
     def test_malformed_correlation_is_private_and_valid_128_reaches_the_wire(self):
         for transport in ("http", "stdio"):
@@ -191,6 +184,7 @@ class InputBoundaryTest(ServerFixture, ServerTestCase):
             self.assertEqual(len(completed), 6)
             for answer, audit in zip(answers[:-1], completed[:-1], strict=True):
                 error = self.assert_invalid(answer, "_meta.correlationId")
+                self.assert_correlation_omission(answer)
                 self.assertEqual(audit["correlationId"], error["correlationId"])
                 self.assertEqual(
                     (audit["responseCode"], audit["outboundRequests"]), ("invalid_request", 0)
@@ -210,6 +204,7 @@ class InputBoundaryTest(ServerFixture, ServerTestCase):
                     transport, [self.request(publicId="123") | {"_meta": {"correlationId": None}}]
                 )
                 self.assert_invalid(answers[0], "_meta.correlationId")
+                self.assert_correlation_omission(answers[0])
                 self.assertEqual(server.seen, [])
 
     def test_question_maximum_passes_unchanged_and_plus_one_never_reaches_cadsr(self):
