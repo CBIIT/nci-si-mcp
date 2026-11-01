@@ -72,28 +72,6 @@ _CLI_FLAGS = {
 }
 
 
-def _argument_type(annotation: Any) -> tuple[Any, bool, tuple[Any, ...]]:
-    args = get_args(annotation)
-    if get_origin(annotation) is Annotated:
-        # The parameter's description and constraints are for the served schema only.
-        return _argument_type(args[0])
-    if type(None) in args:
-        return _argument_type(next(arg for arg in args if arg is not type(None)))
-    if get_origin(annotation) is list:
-        scalar, _multiple, choices = _argument_type(args[0])
-        return scalar, True, choices
-    if get_origin(annotation) is Literal:
-        return type(args[0]), False, tuple(sorted(args))
-    return _scalar_type(annotation), False, ()
-
-
-def _scalar_type(annotation: Any) -> Any:
-    """Structured CLI arguments are JSON objects; scalar arguments use their own parser."""
-    if get_origin(annotation) is dict or is_typeddict(annotation):
-        return json.loads
-    return annotation
-
-
 @dataclass(frozen=True)
 class ToolSpec:
     """One declaration shared by both adapters; input fields come from the handler."""
@@ -177,8 +155,8 @@ def _public_parameters(handler: Callable[..., Any], hints: Mapping[str, object])
 def _require_cli_spelling(handler: str, parameter: Parameter) -> None:
     # The CLI turns a True default into a store_false flag spelled like the parameter, which
     # reads as the opposite of what it does; such a flag needs a declared negative spelling.
-    scalar, _multiple, _choices = _argument_type(parameter.annotation)
-    if scalar is bool and parameter.default is True and parameter.name not in _CLI_FLAGS:
+    # Every True default is checked, whatever its annotation: only a boolean can hold it.
+    if parameter.default is True and parameter.name not in _CLI_FLAGS:
         raise ValueError(
             f"{handler}: {parameter.name} defaults to True; declare its negative CLI flag "
             "in registry._CLI_FLAGS"
@@ -754,6 +732,28 @@ def invoke(
         result = call(operation, produce)
         record.result = result
         return result
+
+
+def _argument_type(annotation: Any) -> tuple[Any, bool, tuple[Any, ...]]:
+    args = get_args(annotation)
+    if get_origin(annotation) is Annotated:
+        # The parameter's description and constraints are for the served schema only.
+        return _argument_type(args[0])
+    if type(None) in args:
+        return _argument_type(next(arg for arg in args if arg is not type(None)))
+    if get_origin(annotation) is list:
+        scalar, _multiple, choices = _argument_type(args[0])
+        return scalar, True, choices
+    if get_origin(annotation) is Literal:
+        return type(args[0]), False, tuple(sorted(args))
+    return _scalar_type(annotation), False, ()
+
+
+def _scalar_type(annotation: Any) -> Any:
+    """Structured CLI arguments are JSON objects; scalar arguments use their own parser."""
+    if get_origin(annotation) is dict or is_typeddict(annotation):
+        return json.loads
+    return annotation
 
 
 def _value_options(parameter: Parameter) -> dict[str, Any]:
