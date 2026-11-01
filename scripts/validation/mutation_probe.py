@@ -113,13 +113,13 @@ def session_stop(session, call) -> bool:
     """Whether `call` failed with the stop pytest raises once -x has seen a failure.
 
     Session.pytest_collectstart raises `session.Failed(session.shouldfail)` after a first
-    failure; a lookalike message, another type or a stop raised before any failure is not it.
+    failure. Before any failure `shouldfail` is False, so no raised stop matches it; a
+    lookalike message, another type or a subclass is not the notice either.
     """
     error = getattr(getattr(call, "excinfo", None), "value", None)
-    stopped = session.shouldfail
-    if error is None or not stopped:
+    if error is None:
         return False
-    return type(error) is session.Failed and error.args == (stopped,)
+    return type(error) is session.Failed and error.args == (session.shouldfail,)
 
 
 def pytest_collectreport(report):
