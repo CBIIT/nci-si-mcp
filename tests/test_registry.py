@@ -105,7 +105,7 @@ class RegistryTest(ServerFixture):
         )
 
     def test_a_single_new_declaration_drives_both_adapters(self):
-        def echo(context, code: str, limit: int = 3, mode: Literal["a", "b"] = "a"):
+        def echo(context: Context, code: str, limit: int = 3, mode: Literal["a", "b"] = "a"):
             """Echo the shared arguments."""
             return {"code": code, "limit": limit, "mode": mode}
 
@@ -138,7 +138,7 @@ class RegistryTest(ServerFixture):
                 self.assertEqual(cli.build_parser().parse_args(["evaluate"]).operation, "evaluate")
 
     def test_handler_owned_cache_policy_has_no_registry_default(self):
-        def content(context):
+        def content(context: Context):
             before = dict(hint)
             select_cache_hint(resolution=False, unpinned=True)
             return {"before": before}

@@ -61,6 +61,38 @@ from .results import (
 )
 from .validation import text_limit_description, validate_text_lengths
 
+# CLI spellings differ from the shared handler fields only in these legacy flags.
+_CLI_FLAGS = {
+    "includeModules": "--no-modules",
+    "include_hierarchy": "--no-hierarchy",
+    "include_roles": "--no-roles",
+    "include_associations": "--no-associations",
+    "relationship_names": "--relationship-name",
+    "edge_types": "--edge-type",
+}
+
+
+def _argument_type(annotation: Any) -> tuple[Any, bool, tuple[Any, ...]]:
+    args = get_args(annotation)
+    if get_origin(annotation) is Annotated:
+        # The parameter's description and constraints are for the served schema only.
+        return _argument_type(args[0])
+    if type(None) in args:
+        return _argument_type(next(arg for arg in args if arg is not type(None)))
+    if get_origin(annotation) is list:
+        scalar, _multiple, choices = _argument_type(args[0])
+        return scalar, True, choices
+    if get_origin(annotation) is Literal:
+        return type(args[0]), False, tuple(sorted(args))
+    return _scalar_type(annotation), False, ()
+
+
+def _scalar_type(annotation: Any) -> Any:
+    """Structured CLI arguments are JSON objects; scalar arguments use their own parser."""
+    if get_origin(annotation) is dict or is_typeddict(annotation):
+        return json.loads
+    return annotation
+
 
 @dataclass(frozen=True)
 class ToolSpec:
@@ -83,9 +115,10 @@ class ToolSpec:
     def __post_init__(self) -> None:
         hints = get_type_hints(self.handler, include_extras=True)
         parameters = tuple(
-            p.replace(annotation=hints[p.name])
-            for p in list(signature(self.handler).parameters.values())[1:]
+            p.replace(annotation=hints[p.name]) for p in _public_parameters(self.handler, hints)
         )
+        for parameter in parameters:
+            _require_cli_spelling(self.handler.__name__, parameter)
         model = make_dataclass(
             self.handler.__name__ + "Input",
             [_input_field(p) for p in parameters],
@@ -120,6 +153,36 @@ class ToolSpec:
     def arguments(self, args: tuple[Any, ...], kwargs: dict[str, Any]) -> dict[str, Any]:
         bound = Signature(self.parameters).bind(*args, **kwargs)
         return asdict(self.input_model(**bound.arguments))
+
+
+_POSITIONAL = (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)
+
+
+def _public_parameters(handler: Callable[..., Any], hints: dict[str, Any]) -> list[Parameter]:
+    """The inputs after the injected Context, which the handler must take first by position.
+
+    The Context is recognised by its annotation: a public argument may itself be named
+    `context` (list_classification_schemes), and a dropped public first parameter would
+    silently vanish from the schema and the CLI.
+    """
+    parameters = list(signature(handler).parameters.values())
+    first = parameters[0] if parameters else None
+    if first is None or first.kind not in _POSITIONAL or hints.get(first.name) is not Context:
+        raise ValueError(
+            f"{handler.__name__} must take the Context as its first positional parameter"
+        )
+    return parameters[1:]
+
+
+def _require_cli_spelling(handler: str, parameter: Parameter) -> None:
+    # The CLI turns a True default into a store_false flag spelled like the parameter, which
+    # reads as the opposite of what it does; such a flag needs a declared negative spelling.
+    scalar, _multiple, _choices = _argument_type(parameter.annotation)
+    if scalar is bool and parameter.default is True and parameter.name not in _CLI_FLAGS:
+        raise ValueError(
+            f"{handler}: {parameter.name} defaults to True; declare its negative CLI flag "
+            "in registry._CLI_FLAGS"
+        )
 
 
 def _input_field(parameter: Parameter) -> tuple:
@@ -691,39 +754,6 @@ def invoke(
         result = call(operation, produce)
         record.result = result
         return result
-
-
-# CLI spellings differ from the shared handler fields only in these legacy flags.
-_CLI_FLAGS = {
-    "includeModules": "--no-modules",
-    "include_hierarchy": "--no-hierarchy",
-    "include_roles": "--no-roles",
-    "include_associations": "--no-associations",
-    "relationship_names": "--relationship-name",
-    "edge_types": "--edge-type",
-}
-
-
-def _argument_type(annotation: Any) -> tuple[Any, bool, tuple[Any, ...]]:
-    args = get_args(annotation)
-    if get_origin(annotation) is Annotated:
-        # The parameter's description and constraints are for the served schema only.
-        return _argument_type(args[0])
-    if type(None) in args:
-        return _argument_type(next(arg for arg in args if arg is not type(None)))
-    if get_origin(annotation) is list:
-        scalar, _multiple, choices = _argument_type(args[0])
-        return scalar, True, choices
-    if get_origin(annotation) is Literal:
-        return type(args[0]), False, tuple(sorted(args))
-    return _scalar_type(annotation), False, ()
-
-
-def _scalar_type(annotation: Any) -> Any:
-    """Structured CLI arguments are JSON objects; scalar arguments use their own parser."""
-    if get_origin(annotation) is dict or is_typeddict(annotation):
-        return json.loads
-    return annotation
 
 
 def _value_options(parameter: Parameter) -> dict[str, Any]:
