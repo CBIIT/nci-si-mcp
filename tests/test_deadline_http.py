@@ -2,6 +2,7 @@
 
 import os
 import unittest
+from http.client import HTTPException
 from unittest.mock import patch
 from urllib.error import HTTPError
 
@@ -377,6 +378,32 @@ class DeadlineHttpTest(ServerTestCase):
         self.assertEqual(raised.exception.details, {"surface": "evs", "status": 404, "attempts": 1})
         self.assertTrue(self.responses[0].response.closed)
         self.assertEqual(len(server.seen), 1)
+
+    def test_terminal_error_incomplete_read_preserves_deadline_or_status_by_elapsed_time(self):
+        for expired in (False, True):
+            with self.subTest(expired=expired):
+                server = self.serve(Reply(404, body=b'{"message":"missing"}'))
+                client = self.observed_client(server)
+
+                def incomplete(response, size, expired=expired):
+                    response.clock.advance(2 if expired else 0.125)
+                    raise HTTPException("controlled incomplete error body")
+
+                expected = CallDeadlineError if expired else UpstreamRejectedError
+                with (
+                    self.progress_reads(0),
+                    patch.object(ProgressResponse, "read1", incomplete),
+                    deadline_scope(1),
+                    self.assertRaises(expected) as raised,
+                ):
+                    client.get_json("/x")
+                details = {"surface": "evs", "attempts": 1}
+                self.assertEqual(
+                    raised.exception.details, details if expired else details | {"status": 404}
+                )
+                self.assertTrue(self.responses[-1].response.closed)
+                self.assertEqual(len(server.seen), 1)
+                self.assertEqual(self.clock.waits, [])
 
 
 class DeadlineSettingsTest(unittest.TestCase):
