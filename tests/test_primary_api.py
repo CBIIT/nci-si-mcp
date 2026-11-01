@@ -6,55 +6,12 @@ from unittest.mock import patch
 
 from jsonschema import validate
 
-from fakes import FakeEVS, FakeSSIS, concept, data_element
+from fakes import FakeEVS, FakeSSIS, concept, primary_element
 from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.http_client import UpstreamUnavailableError
 from nci_si_mcp.registry import invoke
 from test_evs_client import FakeResponse
 from test_server import ServerFixture
-
-
-def primary_element(value="To a large extent", codes=None, **fields):
-    """Contract-crafted metadata, not a recording of CDE 2178439."""
-    return data_element(
-        fields.pop("publicId", "2178439"),
-        ValueDomain={
-            "PermissibleValues": [
-                {
-                    "publicId": "123",
-                    "value": value,
-                    "ValueMeaning": {
-                        "publicId": "456",
-                        "version": "1",
-                        "longName": "Crafted value meaning",
-                        "Concepts": codes
-                        if codes is not None
-                        else [
-                            {
-                                "conceptCode": "C49508",
-                                "evsSource": "NCI_CONCEPT_CODE",
-                                "primaryIndicator": "No",
-                                "displayOrder": "1",
-                            },
-                            {
-                                "conceptCode": "C25332",
-                                "evsSource": "NCI_CONCEPT_CODE",
-                                "primaryIndicator": "Yes",
-                                "displayOrder": "0",
-                            },
-                            {
-                                "conceptCode": "C65107",
-                                "evsSource": "NCI_CONCEPT_CODE",
-                                "primaryIndicator": "No",
-                                "displayOrder": "2",
-                            },
-                        ],
-                    },
-                }
-            ]
-        },
-        **fields,
-    )
 
 
 def sourced_primary(code, **fields):

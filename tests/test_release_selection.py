@@ -291,10 +291,39 @@ class ReleaseSelectionTest(ServerFixture):
                 self.assertEqual(changed["error"]["code"], "invalid_request")
 
     def test_real_stateless_http_resolves_each_call(self):
-        self.assertEqual(asyncio.run(self.http_sequence(True)), ["26.06e", "26.07d"])
+        self.assertEqual(asyncio.run(self.stateless_http_sequence()), ["26.06e", "26.07d"])
 
-    def test_real_stateful_http_reuses_the_validated_session(self):
-        self.assertEqual(asyncio.run(self.http_sequence(False)), ["26.06e", "26.07d", "26.06e"])
+    def test_alternating_stateful_http_sessions_each_keep_their_own_pin(self):
+        # Given two sessions pinned to different releases, each later call names its own pin.
+        published = {
+            "26.06e": concept("C3262", version="26.06e", active=True),
+            "26.07d": concept("C3262", version="26.07d", active=True),
+        }
+
+        def upstream(_code, release, include=()):
+            return deepcopy(published[release.version])
+
+        async def scenario():
+            app = create_mcp(context=self.context).streamable_http_app(
+                stateless_http=False, json_response=True
+            )
+            async with (
+                app.router.lifespan_context(app),
+                httpx2.AsyncClient(
+                    transport=httpx2.ASGITransport(app), base_url="http://127.0.0.1:8000"
+                ) as client,
+            ):
+                first = await initialize_http(client)
+                versions = [version(await http_concept(client, first))]
+                self.move()
+                second = await initialize_http(client)
+                for headers in (second, first, second):
+                    versions.append(version(await http_concept(client, headers)))
+                return versions
+
+        with patch.object(self.evs, "get_concept", side_effect=upstream):
+            versions = asyncio.run(scenario())
+        self.assertEqual(versions, ["26.06e", "26.07d", "26.06e", "26.07d"])
 
     def test_modern_http_on_a_stateful_app_resolves_each_call_and_accepts_explicit_release(self):
         published = {
@@ -335,9 +364,9 @@ class ReleaseSelectionTest(ServerFixture):
         for reply in replies:
             self.assertNotIn("mcp-session-id", reply.headers)
 
-    async def http_sequence(self, stateless):
+    async def stateless_http_sequence(self):
         app = create_mcp(context=self.context).streamable_http_app(
-            stateless_http=stateless,
+            stateless_http=True,
             json_response=True,
         )
         async with (
@@ -348,14 +377,9 @@ class ReleaseSelectionTest(ServerFixture):
         ):
             headers = await initialize_http(client)
             first = await http_concept(client, headers)
-            versions = [version(first)]
             self.move()
-            if not stateless:
-                other = await http_concept(client, await initialize_http(client))
-                versions.append(version(other))
-                self.evs.concepts["C3262"]["version"] = "26.06e"
             second = await http_concept(client, headers)
-            return [*versions, version(second)]
+            return [version(first), version(second)]
 
 
 async def initialize_http(client):

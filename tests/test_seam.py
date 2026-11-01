@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from fakes import FakeEVS, FakeSSIS, concept, release, terminology_row
+from fakes import FakeEVS, FakeSSIS, concept, primary_element, release, terminology_row
 from nci_si_mcp.bounds import Budget
 from nci_si_mcp.caching import cache_call
 from nci_si_mcp.cadsr import EXPORT_FOLDER
@@ -20,7 +20,6 @@ from nci_si_mcp.registry import invoke
 from nci_si_mcp.release_selection import SessionRelease, session_scope
 from nci_si_mcp.ssis import CADSR_GRAPH, NCIT_GRAPH, SSISClient
 from test_evs_client import FakeResponse
-from test_primary_api import primary_element
 
 NCIT = "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#"
 

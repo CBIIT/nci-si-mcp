@@ -6,10 +6,8 @@ from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import urlsplit
 
-from fakes import data_element
+from fakes import cde_response, cde_row, data_element, form, vm_response, vm_row
 from nci_si_mcp.cadsr import CDE_MATCH, CaDSRClient
-from test_cadsr_forms import form
-from test_cadsr_matching import cde_response, cde_row, vm_response, vm_row
 from test_evs_client import FakeResponse
 from test_server import ServerFixture
 

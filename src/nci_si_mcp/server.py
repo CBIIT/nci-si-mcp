@@ -190,8 +190,9 @@ def _serve_schemas(mcp: Any, name: str) -> None:
     """Replace the schemas the SDK derived for tool `name` with the ones the server publishes.
 
     pydantic's generated titles carry no meaning for a caller, so both schemas lose them; the
-    output schema is named for its tool instead. `mcp._tool_manager` is the one private seam: the
-    SDK offers no hook between deriving a schema and listing it."""
+    output schema is named for its tool instead. `mcp._tool_manager` is a private seam (AGENTS.md
+    lists the SDK internals relied on): the SDK offers no hook between deriving a schema and
+    listing it."""
 
     tool: Any = mcp._tool_manager.get_tool(name)
     tool.parameters = _served_input_schema(_drop_titles(tool.parameters))

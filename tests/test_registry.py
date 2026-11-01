@@ -1,7 +1,7 @@
 import json
 from dataclasses import replace
 from pathlib import Path
-from typing import Literal, TypedDict
+from typing import Annotated, Literal, TypedDict
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -11,13 +11,14 @@ from pydantic import TypeAdapter
 
 from nci_si_mcp import cli, results
 from nci_si_mcp.caching import cache_call, select_cache_hint
+from nci_si_mcp.context import Context
 from nci_si_mcp.http_client import (
     UpstreamRejectedError,
     UpstreamTimeoutError,
     UpstreamTooLargeError,
     UpstreamUnavailableError,
 )
-from nci_si_mcp.registry import OPERATIONS, ToolSpec, invoke
+from nci_si_mcp.registry import OPERATIONS, ToolSpec, cli_arguments, invoke
 from test_server import ServerFixture
 
 
@@ -90,8 +91,21 @@ class RegistryTest(ServerFixture):
                 actual = tool.annotations.model_dump(by_alias=True)
                 self.assertEqual({key: actual[key] for key in expected}, expected)
 
+    def test_known_writing_operations_are_neither_tools_nor_resources(self):
+        # Identified from their handlers: they build, activate or add to the local index, or
+        # record an evaluation (evaluation.evaluate_build). The guard covers these declared
+        # operations; a side effect added to another handler later is not detected here.
+        writers = {"index_codes", "index_build", "index_rebuild", "index_activate", "evaluate"}
+        self.assertEqual(
+            {
+                operation: (OPERATIONS[operation].name, OPERATIONS[operation].uri)
+                for operation in writers
+            },
+            dict.fromkeys(writers, (None, None)),
+        )
+
     def test_a_single_new_declaration_drives_both_adapters(self):
-        def echo(context, code: str, limit: int = 3, mode: Literal["a", "b"] = "a"):
+        def echo(context: Context, code: str, limit: int = 3, mode: Literal["a", "b"] = "a"):
             """Echo the shared arguments."""
             return {"code": code, "limit": limit, "mode": mode}
 
@@ -124,7 +138,7 @@ class RegistryTest(ServerFixture):
                 self.assertEqual(cli.build_parser().parse_args(["evaluate"]).operation, "evaluate")
 
     def test_handler_owned_cache_policy_has_no_registry_default(self):
-        def content(context):
+        def content(context: Context):
             before = dict(hint)
             select_cache_hint(resolution=False, unpinned=True)
             return {"before": before}
@@ -155,6 +169,68 @@ class RegistryTest(ServerFixture):
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class DeclarationTest(TestCase):
+    """A declaration that would silently lose an input or invent a CLI flag is refused."""
+
+    def test_a_handler_that_cannot_take_the_context_first_is_refused_by_name(self):
+        def unannotated(context, code: str):
+            return {}
+
+        def public_first(code: str, context: Context):
+            return {}
+
+        def no_parameters():
+            return {}
+
+        def keyword_context(*, context: Context):
+            return {}
+
+        for handler in (unannotated, public_first, no_parameters, keyword_context):
+            with (
+                self.subTest(handler=handler.__name__),
+                self.assertRaisesRegex(ValueError, f"^{handler.__name__} must take the Context"),
+            ):
+                ToolSpec(handler, "evs", dict, False)
+
+    def test_the_context_type_not_its_spelling_marks_the_injected_parameter(self):
+        # list_classification_schemes names its public caDSR context filter `context`.
+        def schemes(ctx: Context, context: str | None = None):
+            return {}
+
+        self.assertEqual(
+            [p.name for p in ToolSpec(schemes, "cadsr", dict, False).parameters], ["context"]
+        )
+
+    def test_a_true_default_flag_without_a_declared_cli_spelling_is_refused(self):
+        def plain(context: Context, enabled: bool = True):
+            return {"enabled": enabled}
+
+        def described(context: Context, enabled: Annotated[bool, "Described"] = True):
+            return {"enabled": enabled}
+
+        def optional(context: Context, enabled: bool | None = True):
+            return {"enabled": enabled}
+
+        for handler in (plain, described, optional):
+            with (
+                self.subTest(handler=handler.__name__),
+                self.assertRaisesRegex(
+                    ValueError, f"^{handler.__name__}: enabled defaults to True"
+                ),
+            ):
+                ToolSpec(handler, "evs", dict, False)
+
+    def test_declared_negative_flags_and_false_defaults_remain_accepted(self):
+        def legacy(context: Context, include_hierarchy: bool = True, verbose: bool = False):
+            return {"include_hierarchy": include_hierarchy, "verbose": verbose}
+
+        spec = ToolSpec(legacy, "evs", dict, False, command="legacy")
+        flags = [flag for (flag,), _ in cli_arguments(spec)]
+        self.assertEqual(flags, ["--no-hierarchy", "--verbose"])
+
+
 ITEM_TYPES = {
     "concept": "Concept",
     "node": "Node",
