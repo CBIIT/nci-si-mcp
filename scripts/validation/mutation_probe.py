@@ -100,9 +100,32 @@ def call_evidence(rows: list[dict]) -> dict:
     return next((row for row in rows if row["outcome"] == "passed"), rows[0])
 
 
+@pytest.hookimpl(wrapper=True)
+def pytest_make_collect_report(collector):
+    # pytest drops `report.call` before pytest_collectreport (runner.collect_one_node), so the
+    # exception that identifies pytest's own -x stop is read here, by type and session state.
+    report = yield
+    report.mutation_stop_notice = session_stop(collector.session, getattr(report, "call", None))
+    return report
+
+
+def session_stop(session, call) -> bool:
+    """Whether `call` failed with the stop pytest raises once -x has seen a failure.
+
+    Session.pytest_collectstart raises `session.Failed(session.shouldfail)` after a first
+    failure; a lookalike message, another type or a stop raised before any failure is not it.
+    """
+    error = getattr(getattr(call, "excinfo", None), "value", None)
+    stopped = session.shouldfail
+    if error is None or not stopped:
+        return False
+    return type(error) is session.Failed and error.args == (stopped,)
+
+
 def pytest_collectreport(report):
     destination = DESTINATION
     if destination and report.failed:
+        notice = {"stop_notice": True} if getattr(report, "mutation_stop_notice", False) else {}
         with Path(destination).open("a") as stream:
             stream.write(
                 json.dumps(
@@ -112,6 +135,7 @@ def pytest_collectreport(report):
                         "outcome": "failed",
                         "assertion": False,
                         **collection_traceback(report),
+                        **notice,
                     }
                 )
                 + "\n"
