@@ -1927,6 +1927,9 @@ class MutationEvidenceContractsTest(unittest.TestCase):
             "raised stop type": (
                 "raise __import__('pytest').Session.Failed('stopping after 1 failures')\n"
             ),
+            "raised stop type carrying the inactive state": (
+                "raise __import__('pytest').Session.Failed(False)\n"
+            ),
         }
         for case, failure in failures.items():
             with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
@@ -1974,6 +1977,8 @@ class MutationEvidenceContractsTest(unittest.TestCase):
         unrelated = {**failure, "traceback_paths": [str(target.with_name("other.py"))]}
         rejected = {
             "notice only": [notice],
+            "marked primary reaching the file": [{**notice, "traceback_paths": [str(target)]}],
+            "marked primary with an invalid marker": [{**failure, "stop_notice": "true"}, notice],
             "notice before the failure": [{**notice, "traceback_paths": [str(target)]}, failure],
             "marker not exactly true": [failure, {**notice, "stop_notice": "true"}],
             "marker on a call row": [failure, {**notice, "phase": "call"}],
@@ -2009,6 +2014,10 @@ class MutationEvidenceContractsTest(unittest.TestCase):
             "before any failure": (
                 SimpleNamespace(Failed=pytest.Session.Failed, shouldfail=False),
                 raised(pytest.Session.Failed(reason)),
+            ),
+            "stop type carrying the inactive state": (
+                SimpleNamespace(Failed=pytest.Session.Failed, shouldfail=False),
+                raised(pytest.Session.Failed(False)),
             ),
         }
         for case, (session, call) in cases.items():
