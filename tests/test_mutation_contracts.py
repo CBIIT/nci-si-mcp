@@ -1961,7 +1961,7 @@ class MutationEvidenceContractsTest(unittest.TestCase):
         unrelated = {**failure, "traceback_paths": [str(target.with_name("other.py"))]}
         rejected = {
             "notice only": [notice],
-            "notice before the failure": [notice, failure],
+            "notice before the failure": [{**notice, "traceback_paths": [str(target)]}, failure],
             "marker not exactly true": [failure, {**notice, "stop_notice": "true"}],
             "marker on a call row": [failure, {**notice, "phase": "call"}],
             "two independent failures": [failure, {**failure, "node": "tests/b.py"}, notice],
@@ -1975,6 +1975,32 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                     {"outcome": "INFRA", "status": 4, "failures": rows},
                 )
         self.assertEqual(runner.evidence_outcome(3, [failure, notice], target)["outcome"], "INFRA")
+
+    def test_only_pytests_own_stop_after_a_failure_is_a_stop_notice(self):
+        # pytest raises session.Failed(session.shouldfail) once -x has seen a failure; nothing
+        # else, including the same text, another type or a subclass, is that notice.
+        reason = "stopping after 1 failures"
+        stopped = SimpleNamespace(Failed=pytest.Session.Failed, shouldfail=reason)
+
+        def raised(error):
+            return SimpleNamespace(excinfo=SimpleNamespace(value=error))
+
+        self.assertTrue(probe.session_stop(stopped, raised(pytest.Session.Failed(reason))))
+        subclass = type("Subclass", (pytest.Session.Failed,), {})
+        cases = {
+            "no call": (stopped, None),
+            "no exception": (stopped, SimpleNamespace(excinfo=None)),
+            "same text, other type": (stopped, raised(RuntimeError(reason))),
+            "subclass": (stopped, raised(subclass(reason))),
+            "other reason": (stopped, raised(pytest.Session.Failed("stopping after 2 failures"))),
+            "before any failure": (
+                SimpleNamespace(Failed=pytest.Session.Failed, shouldfail=False),
+                raised(pytest.Session.Failed(reason)),
+            ),
+        }
+        for case, (session, call) in cases.items():
+            with self.subTest(case=case):
+                self.assertFalse(probe.session_stop(session, call))
 
     def test_probe_configuration_consumes_launch_sink_and_passes_only_explicit_worker_sink(self):
         with (
