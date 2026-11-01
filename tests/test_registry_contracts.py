@@ -31,7 +31,9 @@ LISTING = '<pre><a href="releasedCDEsXML-OD.zip">export</a> 2026-06-05 12:30\n</
 # except list_terminologies: M2.2 gives it no class, so its row repeats test_caching's
 # status-tool test.
 LONG = (86_400_000, "public")  # release-pinned NCIt content
-SHORT = (3_600_000, "public")  # caDSR content no registry release pins, or joined with it
+# caDSR content no registry release pins, or joined with it: M2.2 bounds the TTL at 3,600,000,
+# and the server uses that bound (caching.SHORT_TTL_MS).
+SHORT = (3_600_000, "public")
 STATUS = (0, "public")  # resolve tools and get_release_alignment (M2.2); list_terminologies too
 COMPUTED = (0, "private")  # the tools marked computed in spec/tools.yaml
 ERROR = (0, "private")  # the error hint, which server._cache_results supplies itself
