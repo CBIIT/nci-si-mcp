@@ -171,7 +171,7 @@ points per scalar, including each nested string. Oversized input is refused with
 
 | Limit | Value | Reason / what to reassess before changing it |
 |---|---|---|
-| Call deadline (`NCI_SI_CALL_DEADLINE_SECONDS`) | 50 s default | Leaves headroom below common 60 s client timeouts; weigh client/gateway timeouts before raising it. One stalled body read can overrun by at most the socket timeout chosen at request open: `min(timeout, remaining)`, with `timeout` set by `NCI_SI_TIMEOUT_SECONDS` or `NCI_SI_MATCH_TIMEOUT_SECONDS` for matching ([A5.2](docs/specification.md#a5--result-bounding-truncation-and-traversal)) |
+| Call deadline (`NCI_SI_CALL_DEADLINE_SECONDS`) | 50 s default | Leaves headroom below common 60 s client timeouts; weigh client/gateway timeouts before raising it. One stalled body read can overrun by at most the socket timeout chosen at request open: `min(timeout, remaining)`, with `timeout` set by `NCI_SI_TIMEOUT_SECONDS` or `NCI_SI_MATCH_TIMEOUT_SECONDS` for matching ([A5.2](docs/specification.md#a5-result-bounding-truncation-and-traversal)) |
 | HTTP shutdown drain | 20 s | Deployment SIGTERM drain policy, not a request timeout; coordinate with the deployment termination grace period ([transport](docs/transport.md#admission-and-readiness)) |
 | `search_concepts.query`, `search_data_elements.query` | 1,000 | Search phrases, with bounded search work; reassess real queries and encoding ([field reasons](spec/tools.yaml)) |
 | `get_data_element.questionText` | 2,000 | July 2026 preferred-question-text maximum was 1,011 (CDE 6148373 v1); snapshot gaps warrant headroom; remeasure broader exports ([hashes and reason](spec/tools.yaml)) |
@@ -179,7 +179,7 @@ points per scalar, including each nested string. Oversized input is refused with
 | Dictionary `columns[].name`, `description`, `sampleValues[]` | 10,000 each | Richer dictionary metadata in bodies; reassess real dictionaries and matching work ([field reasons](spec/tools.yaml)) |
 | URL-carried free text: complete encoded request target, including filters/pins | 7,000 bytes | Existing conservative EVS policy (HTTP 400 observed at 8,046 bytes); caDSR is conservative server policy, not measured capacity; remeasure deployment capacity and encoding ([evidence](ARCHITECTURE.md#public-concept-batches), [policy](spec/tools.yaml)) |
 | Local lexical FTS expression | First 64 tokens, in order | Bounds FTS work; reassess ranking/cost; vector search uses the whole text ([search contract](spec/tools.yaml)) |
-| Supplied `_meta.correlationId` | Full match `[A-Za-z0-9._:-]{1,128}` | Header-safe, bounded audit context; reassess transport/audit budgets; invalid values are refused under a fresh safe ID without echoing them ([A6.2](docs/specification.md#a6--audit-context-correlation-and-telemetry)) |
+| Supplied `_meta.correlationId` | Full match `[A-Za-z0-9._:-]{1,128}` | Header-safe, bounded audit context; reassess transport/audit budgets; invalid values are refused under a fresh safe ID without echoing them ([A6.2](docs/specification.md#a6-audit-context-correlation-and-telemetry)) |
 
 Connection-level timeout refresh is deferred until EVS/caDSR live timings show a mid-body
 stall: none has been observed, and custom HTTP/HTTPS connections add TLS-sensitive complexity.
