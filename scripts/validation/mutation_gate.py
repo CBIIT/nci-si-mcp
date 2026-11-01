@@ -4,15 +4,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import random
 import subprocess
 import sys
 import tempfile
+import traceback
 from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
 from time import monotonic
 
+from scripts.operator_files import write_json
 from scripts.processes import exit_on_sigterm
 from scripts.validation.mutation_run import (
     baseline,
@@ -23,6 +26,9 @@ from scripts.validation.mutation_run import (
     snapshot,
 )
 from scripts.validation.mutation_source import Mutant, allowlist, candidates, digest, scope
+
+OUTCOMES = ("KILLED", "TIMEOUT", "SURVIVED", "NO_TESTS", "INFRA")
+DOMAINS = ("unit", "selftest", "fixture")
 
 
 class SchedulerError(ValueError):
@@ -68,7 +74,7 @@ def execute_job(path: Path, index: int) -> None:
         "restored": restored,
         "elapsed_seconds": monotonic() - started,
     }
-    (path.parent / f"result-{index}.json").write_text(json.dumps(row))
+    write_json(path.parent / f"result-{index}.json", row)
 
 
 def measure(
@@ -121,64 +127,161 @@ def manifest_data(root: Path, mutants: list[Mutant], mapping: dict, timeout: flo
 
 
 def schedule(root: Path, mutants: list[Mutant], mapping: dict, args) -> list[dict]:
-    with tempfile.TemporaryDirectory(prefix="mutation-jobs-") as temporary:
-        work = Path(temporary)
-        manifest = work / "mutations.json"
-        data = manifest_data(root, mutants, mapping, args.timeout)
-        manifest.write_text(json.dumps(data))
-        config = work / "pytest.ini"
-        config.write_text("[pytest]\n")
-        command = [
-            sys.executable,
-            "-m",
-            "pytest",
-            "-c",
-            str(config),
-            "-p",
-            "scripts.validation.mutation_probe",
-            "--no-cov",
-            "-n",
-            str(args.workers),
-            str(manifest),
-        ]
-        env = environment(root, work)
-        try:
-            status = program(
-                command, work, env, args.timeout * (len(mutants) + 2) * 3, work / "scheduler.log"
-            )
-        except (OSError, subprocess.SubprocessError) as error:
-            rows = scheduler_rows(work, mutants, data, str(error))
-            raise SchedulerError(f"Mutant scheduler failed: {error}", rows) from error
-        log = (work / "scheduler.log").read_text()
+    destination = root / "tmp/mutation-runs"
+    destination.mkdir(parents=True, exist_ok=True)
+    work = Path(tempfile.mkdtemp(prefix="run-", dir=destination)).resolve()
+    print(json.dumps({"outcome": "EVIDENCE", "directory": str(work)}), file=sys.stderr, flush=True)
+    data = manifest_data(root, mutants, mapping, args.timeout)
+    try:
+        (work / "scheduler.log").touch()
+        status = run_scheduler(root, work, data, args.workers)
+        log = (work / "scheduler.log").read_text(errors="replace")
         rows = scheduler_rows(work, mutants, data, log)
         if status != 0 or any(not row["restored"] for row in rows):
             raise SchedulerError(f"Mutant scheduler failed: {log}", rows)
         return rows
+    except (
+        BaseExceptionGroup,
+        KeyboardInterrupt,
+        OSError,
+        subprocess.SubprocessError,
+        ValueError,
+    ) as error:
+        # Record before reading results: a second diagnostic failure must not erase
+        # the original cancellation/cleanup traceback. Never resume this directory.
+        diagnostic = traceback.format_exc()
+        (work / "traceback.txt").write_text(diagnostic)
+        if isinstance(error, SchedulerError):
+            raise
+        rows = scheduler_rows(work, mutants, data, str(error))
+        raise SchedulerError(f"Mutant scheduler failed: {error}", rows) from error
+
+
+def run_scheduler(root: Path, work: Path, data: dict, workers: int) -> int | None:
+    manifest = work / "mutations.json"
+    manifest.write_text(json.dumps(data))
+    config = work / "pytest.ini"
+    config.write_text("[pytest]\n")
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "-c",
+        str(config),
+        "-p",
+        "scripts.validation.mutation_probe",
+        "--no-cov",
+        "-n",
+        str(workers),
+        str(manifest),
+    ]
+    return program(
+        command,
+        work,
+        environment(root, work),
+        data["timeout"] * (len(data["mutants"]) + 2) * 3,
+        work / "scheduler.log",
+        worker_cleanup=True,
+    )
 
 
 def scheduler_rows(work: Path, mutants: list[Mutant], data: dict, log: str) -> list[dict]:
     rows = []
     for index, mutant in enumerate(mutants):
         result = work / f"result-{index}.json"
-        if result.exists():
-            rows.append(json.loads(result.read_text()))
-        else:
-            rows.append(
-                {
-                    **asdict(mutant),
-                    "outcome": "INFRA",
-                    "message": "Controller produced no result for this candidate",
-                    "log": log,
-                    "restored": False,
-                    "domains": [],
-                    "fallback_domains": sorted(
-                        name
-                        for name, tests in data["mutants"][index]["selected"].items()
-                        if not tests
-                    ),
-                }
-            )
+        try:
+            rows.append(candidate_result(json.loads(result.read_text()), mutant))
+            continue
+        except FileNotFoundError:
+            message = "Controller produced no result for this candidate"
+        except ValueError as error:
+            message = f"Controller produced invalid evidence for this candidate: {error}"
+            # Keep undecodable, truncated and foreign worker evidence byte-for-byte.
+            row = incomplete_result(mutant, data["mutants"][index]["selected"], message, log)
+            write_json(work / f"result-{index}.infra.json", row)
+            rows.append(row)
+            continue
+        rows.append(incomplete_result(mutant, data["mutants"][index]["selected"], message, log))
+        result.write_text(json.dumps(rows[-1]))
     return rows
+
+
+def candidate_result(row: object, mutant: Mutant) -> dict:
+    if not isinstance(row, dict):
+        raise ValueError("Result must be a JSON object")
+    if any(row.get(name) != value for name, value in asdict(mutant).items()):
+        raise ValueError("Result does not match the scheduled candidate")
+    if row.get("outcome") not in OUTCOMES:
+        raise ValueError("Result has an unknown outcome")
+    if not isinstance(row.get("restored"), bool):
+        raise ValueError("Result restoration must be a boolean")
+    validate_result_metrics(row)
+    return row
+
+
+def validate_result_metrics(row: dict) -> None:
+    """Check supplied reporting fields without requiring legacy rows to carry them."""
+    validate_result_choices(row)
+    if "elapsed_seconds" in row:
+        validate_elapsed(row["elapsed_seconds"])
+    if "domains" in row:
+        if not isinstance(row["domains"], list):
+            raise ValueError("Result domains must be a list")
+        for timing in row["domains"]:
+            validate_domain_timing(timing)
+    if "fallback_domains" in row:
+        validate_fallback_domains(row["fallback_domains"])
+
+
+def validate_result_choices(row: dict) -> None:
+    for name, choices in (
+        ("outcome", OUTCOMES),
+        ("domain", DOMAINS),
+        ("kind", ("assertion", "error", "import")),
+    ):
+        if name in row and row[name] not in choices:
+            raise ValueError(f"Result has an unknown {name}")
+
+
+def validate_elapsed(value: object) -> None:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ValueError("Result elapsed_seconds must be a finite nonnegative number")
+    try:
+        finite = math.isfinite(value)
+    except OverflowError as error:
+        raise ValueError("Result elapsed_seconds exceeds reporting range") from error
+    if value < 0 or not finite:
+        raise ValueError("Result elapsed_seconds must be a finite nonnegative number")
+
+
+def validate_domain_timing(timing: object) -> None:
+    if not isinstance(timing, dict):
+        raise ValueError("Result domain timing must be an object")
+    if timing.get("domain") not in DOMAINS:
+        raise ValueError("Result domain timing has an unknown domain")
+    validate_elapsed(timing.get("elapsed_seconds"))
+    validate_result_choices(timing)
+
+
+def validate_fallback_domains(value: object) -> None:
+    if not isinstance(value, list):
+        raise ValueError("Result fallback_domains must be a list")
+    if any(domain not in DOMAINS for domain in value):
+        raise ValueError("Result fallback_domains has an unknown domain")
+    if len(value) != len(set(value)):
+        raise ValueError("Result fallback_domains must not contain duplicates")
+
+
+def incomplete_result(mutant: Mutant, selected: dict, message: str, log: str) -> dict:
+    return {
+        **asdict(mutant),
+        "outcome": "INFRA",
+        "message": message,
+        "log": log,
+        "restored": False,
+        "domains": [],
+        "fallback_domains": sorted(name for name, tests in selected.items() if not tests),
+    }
 
 
 def verdict(rows: list[dict], exemptions: list[dict]) -> int:
@@ -238,6 +341,7 @@ def shard_catalogue(mutants: list[Mutant], args) -> list[Mutant]:
 def report_results(rows: list[dict], exemptions: list[dict], args, started: float) -> int:
     status = verdict(rows, exemptions)
     if args.shard is not None:
+        costs = execution_costs(rows)
         counts = Counter(row["outcome"] for row in rows)
         kinds = Counter(row.get("kind") for row in rows if row["outcome"] == "KILLED")
         print(
@@ -248,24 +352,39 @@ def report_results(rows: list[dict], exemptions: list[dict], args, started: floa
                     "counts": dict(counts),
                     "kill_kinds": {kind: kinds[kind] for kind in ("assertion", "error", "import")},
                     "baseline_domains": args.baseline_domains,
-                    **execution_costs(rows),
+                    **costs,
                     "elapsed_seconds": monotonic() - started,
                 },
             )
         )
+        if "cost_error" in costs:
+            print(json.dumps({"outcome": "INFRA", "message": costs["cost_error"]}))
+            return 2
     return status
 
 
 def execution_costs(rows: list[dict]) -> dict:
-    fallbacks = Counter(domain for row in rows for domain in row["fallback_domains"])
-    seconds = Counter()
+    fallbacks = Counter(domain for row in rows for domain in row.get("fallback_domains", []))
+    timings: dict[str, list[float]] = {}
     for row in rows:
-        for domain in row["domains"]:
-            seconds[domain["domain"]] += domain["elapsed_seconds"]
-    total = sum(seconds.values())
+        for domain in row.get("domains", []):
+            timings.setdefault(domain["domain"], []).append(domain["elapsed_seconds"])
     return {
-        "fallback_count": sum(bool(row["fallback_domains"]) for row in rows),
+        "fallback_count": sum(bool(row.get("fallback_domains", [])) for row in rows),
         "fallback_domains": dict(fallbacks),
+        **runner_costs(timings),
+    }
+
+
+def runner_costs(timings: dict[str, list[float]]) -> dict:
+    cost_error = {"cost_error": "Aggregate runner seconds exceeds reporting range"}
+    try:
+        seconds = {domain: math.fsum(values) for domain, values in timings.items()}
+        total = math.fsum(seconds.values())
+    except OverflowError:
+        return cost_error
+    # Candidate admission requires finite nonnegative numbers; fsum raises on finite overflow.
+    return {
         "runner_seconds_by_domain": dict(seconds),
         "runner_seconds": total,
         "runner_hours": total / 3600,

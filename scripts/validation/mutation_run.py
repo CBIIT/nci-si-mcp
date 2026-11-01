@@ -5,16 +5,233 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
-from time import monotonic
+from threading import current_thread, main_thread
+from time import monotonic, sleep
+from types import FrameType
 
 from coverage import CoverageData
 from pytest import ExitCode
-from scripts.processes import stop
+from scripts.processes import STOP_SECONDS, stop
+
+# An ordinary runner has STOP_SECONDS of grace plus STOP_SECONDS for final KILL/reap.
+# A scheduler must let that entire nested cleanup finish before its own final KILL.
+# Leave one second for unwinding after those waits; remeasure if nested cleanup changes.
+WORKER_CLEANUP_SECONDS = 2 * STOP_SECONDS + 1
+# Reserve a final bounded KILL/reap interval after nested workers' cleanup grace.
+OWNED_CLEANUP_SECONDS = WORKER_CLEANUP_SECONDS + STOP_SECONDS
+# ps is diagnostic, never allowed to consume the whole remaining cleanup budget.
+INSPECTION_SECONDS = 1.0
+# Responsive cancellation without busy-waiting; remeasure for much larger worker counts.
+OBSERVE_INTERVAL = 0.01
+
+
+@dataclass(frozen=True, slots=True)
+class _Owner:
+    pid: int
+    uid: int
+    ruid: int
+
+
+@dataclass(slots=True)
+class _Cancellation:
+    requested: KeyboardInterrupt | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class _Member:
+    pid: int
+    ppid: int
+    pgid: int
+    sid: int | None
+    uid: int
+    ruid: int
+    state: str
+
+
+def _observe(pid: int) -> int | None:
+    """Observe without consuming the PID/PGID anchor or losing signal status."""
+    row = os.waitid(os.P_PID, pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+    if row is None:
+        return None
+    return row.si_status if row.si_code == os.CLD_EXITED else -row.si_status
+
+
+def _wait_exit(
+    pid: int, deadline: float, cancel: Callable[[], KeyboardInterrupt | None] | None = None
+) -> int | None:
+    while True:
+        if cancel is not None and (interruption := cancel()) is not None:
+            raise interruption
+        status = _observe(pid)
+        if status is not None or monotonic() >= deadline:
+            return status
+        sleep(min(OBSERVE_INTERVAL, max(0, deadline - monotonic())))
+
+
+def _remaining(deadline: float) -> float:
+    remaining = deadline - monotonic()
+    if remaining <= 0:
+        raise TimeoutError("Owned process cleanup deadline exhausted")
+    return remaining
+
+
+def _member(line: str, *, linux: bool) -> _Member:
+    fields = line.split()
+    if len(fields) != (7 if linux else 6):
+        raise ValueError(f"Incomplete owned-group process row: {line!r}")
+    numbers = fields[:-1]
+    if not all(value.isascii() and value.isdecimal() for value in numbers):
+        raise ValueError(f"Invalid owned-group process identity: {line!r}")
+    pid, ppid, pgid = map(int, numbers[:3])
+    uid, ruid = map(int, numbers[-2:])
+    sid = int(numbers[3]) if linux else None
+    return _Member(pid, ppid, pgid, sid, uid, ruid, fields[-1])
+
+
+def _inspection_command(pid: int) -> tuple[list[str], bool]:
+    linux = sys.platform.startswith("linux")
+    if sys.platform != "darwin" and not linux:
+        raise ValueError("Owned-group inspection requires Darwin or Linux ps")
+    fields = "pid=,ppid=,pgid=," + ("sid=," if linux else "") + "uid=,ruid=,state="
+    return ["/bin/ps", "-s" if linux else "-g", str(pid), "-o", fields], linux
+
+
+def _group_snapshot(owner: _Owner, deadline: float) -> list[_Member]:
+    command, linux = _inspection_command(owner.pid)
+    # Darwin uid is effective (ps(1)); Linux uid aliases euid (procps ps(1)).
+    # LC_ALL stabilizes numeric output; COMMAND_MODE excludes Darwin legacy -g.
+    result = subprocess.run(  # noqa: S603 - fixed read-only ps, original owned identity only
+        command,
+        capture_output=True,
+        text=True,
+        timeout=min(INSPECTION_SECONDS, _remaining(deadline)),
+        check=True,
+        env={**os.environ, "LC_ALL": "C", "COMMAND_MODE": "unix2003"},
+    )
+    _remaining(deadline)
+    if result.stderr or not result.stdout.endswith("\n"):
+        raise ValueError("Owned-group inspection has stderr or incomplete output")
+    rows = [_member(line, linux=linux) for line in result.stdout.splitlines()]
+    if linux:
+        rows = [row for row in rows if row.pgid == owner.pid]
+    return rows
+
+
+def _validate_anchor(rows: list[_Member], owner: _Owner) -> None:
+    anchors = [row for row in rows if row.pid == owner.pid]
+    if len(anchors) != 1 or anchors[0].ppid != os.getpid():
+        raise ChildProcessError(f"Missing owned-group anchor {owner.pid}")
+    if len({row.pid for row in rows}) != len(rows):
+        raise ValueError("Duplicate owned-group process identities")
+
+
+def _terminal_group(owner: _Owner, deadline: float) -> bool:
+    # A live anchor proves nonterminal state without spawning ps every 10ms.
+    # Only early leader exit needs a snapshot to distinguish live descendants.
+    if _observe(owner.pid) is None:
+        return False
+    rows = _group_snapshot(owner, deadline)
+    _validate_anchor(rows, owner)
+    return all(_terminal_member(row, owner) for row in rows)
+
+
+def _terminal_member(row: _Member, owner: _Owner) -> bool:
+    # An unreaped session leader reserves PID/PGID; POSIX groups cannot cross
+    # sessions. Darwin zombie SID is unavailable, so the exact anchored PGID
+    # binds membership. ps is non-atomic: this proves only that signals may stop,
+    # never durable containment or that every descendant has been reaped.
+    return (
+        (row.pgid, row.uid, row.ruid) == (owner.pid, owner.uid, owner.ruid)
+        and row.sid in (None, owner.pid)
+        and row.state == "Z"
+    )
+
+
+def _signal_owned(owner: _Owner, sig: signal.Signals, deadline: float) -> bool:
+    _observe(owner.pid)
+    _remaining(deadline)
+    try:
+        os.killpg(owner.pid, sig)
+    except PermissionError as denial:
+        try:
+            terminal = _terminal_group(owner, deadline)
+        except (OSError, ValueError, subprocess.SubprocessError) as inspection:
+            raise denial from inspection
+        if not terminal:
+            raise
+        return False
+    return True
+
+
+def _grace_complete(owner: _Owner, deadline: float, grace: float) -> bool:
+    while monotonic() < grace:
+        if _terminal_group(owner, deadline):
+            return True
+        sleep(min(OBSERVE_INTERVAL, max(0, grace - monotonic())))
+    return False
+
+
+def _kill_owned(owner: _Owner, deadline: float) -> None:
+    if _signal_owned(owner, signal.SIGKILL, deadline) and _wait_exit(owner.pid, deadline) is None:
+        raise TimeoutError("Owned child survived final SIGKILL")
+
+
+def _cleanup_group(owner: _Owner, deadline: float, grace_seconds: float) -> None:
+    # Denied TERM is not permission to escalate; only successful TERM opens grace.
+    if not _signal_owned(owner, signal.SIGTERM, deadline):
+        return
+    grace = min(deadline, monotonic() + grace_seconds)
+    try:
+        terminal = _grace_complete(owner, deadline, grace)
+    except (OSError, ValueError, subprocess.SubprocessError) as inspection:
+        # Inspection cannot forfeit final cleanup of the original anchored group.
+        # _signal_owned rechecks the unreaped anchor; no discovered PID is signalled.
+        try:
+            # A worker may still be reaping its separate-session runner. Failed
+            # inspection cannot shorten its original cooperative grace deadline.
+            while monotonic() < grace:
+                sleep(min(OBSERVE_INTERVAL, max(0, grace - monotonic())))
+            _kill_owned(owner, deadline)
+        except BaseException as final:  # noqa: BLE001 - retain both original cleanup failures
+            raise BaseExceptionGroup(
+                "Owned inspection and final cleanup failed", [inspection, final]
+            ) from None
+        raise
+    if not terminal:
+        _kill_owned(owner, deadline)
+
+
+def _finish_owned(
+    process: subprocess.Popen[bytes], owner: _Owner, *, worker_cleanup: bool = False
+) -> None:
+    grace = WORKER_CLEANUP_SECONDS if worker_cleanup else STOP_SECONDS
+    budget = OWNED_CLEANUP_SECONDS if worker_cleanup else 2 * STOP_SECONDS
+    deadline = monotonic() + budget
+    failure = None
+    try:
+        _cleanup_group(owner, deadline, grace)
+    except BaseException as error:  # noqa: BLE001 - retain cleanup failure through actual-parent reap
+        failure = error
+    try:
+        # The sole consuming operation: no Popen poll/send_signal before here.
+        process.wait(timeout=max(0, deadline - monotonic()))
+    except BaseException as reap_error:
+        if failure is not None:
+            raise BaseExceptionGroup(
+                "Owned cleanup and reap failed", [failure, reap_error]
+            ) from None
+        raise
+    if failure is not None:
+        raise failure
+
 
 DOMAINS = {
     "unit": (".", "tests"),
@@ -81,28 +298,123 @@ def environment(scratch: Path, work: Path) -> dict[str, str]:
     return env
 
 
-def program(command: list[str], cwd: Path, env: dict[str, str], timeout: float, log: Path):
-    with log.open("wb") as stream:
-        process = subprocess.Popen(  # noqa: S603 - fixed Python executable and argument arrays
-            command,
-            cwd=cwd,
-            env=env,
-            stdout=stream,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-        )
-        owned_group = False
+@contextmanager
+def runner_termination():
+    # Nested pytest workers normally die on SIGTERM without unwinding. Their child
+    # sessions escape the scheduler's group, so the waiting owner must clean them.
+    cancellation = _Cancellation()
+    if current_thread() is not main_thread():
+        yield cancellation
+        return
+    previous = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
+
+    def defer(_signum: int, _frame: FrameType | None) -> None:
+        # Record once; launch, resource closure and bounded cleanup never unwind
+        # asynchronously. Execution observes this same exception at a checkpoint.
+        if cancellation.requested is None:
+            cancellation.requested = KeyboardInterrupt()
+
+    failures: list[BaseException] = []
+    try:
+        for sig in previous:
+            signal.signal(sig, defer)
+        yield cancellation
+    except BaseException as error:  # noqa: BLE001 - retain original failure through handler restoration
+        failures.append(error)
+    finally:
+        for sig, disposition in previous.items():
+            try:
+                signal.signal(sig, disposition)
+            except BaseException as error:  # noqa: BLE001 - attempt both restores and retain each failure
+                failures.append(error)
+    # Restoration still belongs to this scope: reconcile only after its latch
+    # handlers have handed control back to the caller's signal dispositions.
+    _raise_cancelled_failure(failures, cancellation.requested)
+
+
+def _raise_cancelled_failure(
+    failures: list[BaseException], interruption: KeyboardInterrupt | None
+) -> None:
+    if interruption is not None and not any(
+        _contains_exception(error, interruption) for error in failures
+    ):
+        failures.append(interruption)
+    if len(failures) == 1:
+        raise failures[0]
+    if failures:
+        raise BaseExceptionGroup("Runner scope failed", failures) from None
+
+
+def _contains_exception(error: BaseException, target: BaseException) -> bool:
+    if isinstance(error, BaseExceptionGroup):
+        return any(_contains_exception(nested, target) for nested in error.exceptions)
+    return error is target
+
+
+def _finish_process(
+    process: subprocess.Popen[bytes] | None, owner: _Owner | None, worker_cleanup: bool
+) -> None:
+    if process is None:
+        return
+    if owner is None:
+        stop(process)  # Broken launch: only the direct child belongs to us.
+    elif worker_cleanup:
+        _finish_owned(process, owner, worker_cleanup=True)
+    else:
+        _finish_owned(process, owner)
+
+
+def _cleanup_process(
+    process: subprocess.Popen[bytes] | None,
+    owner: _Owner | None,
+    worker_cleanup: bool,
+    failure: BaseException | None,
+) -> None:
+    try:
+        _finish_process(process, owner, worker_cleanup)
+    except BaseException as cleanup:
+        if failure is not None:
+            raise BaseExceptionGroup(
+                "Runner and owned cleanup failed", [failure, cleanup]
+            ) from None
+        raise
+    if failure is not None:
+        raise failure
+
+
+def program(
+    command: list[str],
+    cwd: Path,
+    env: dict[str, str],
+    timeout: float,
+    log: Path,
+    *,
+    worker_cleanup: bool = False,
+):
+    """Run an owned session; scheduler callers allow nested workers' full cleanup budget."""
+    with runner_termination() as cancellation, log.open("wb") as stream:
+        process = None
+        owner = None
+        failure = None
         try:
-            owned_group = os.getpgid(process.pid) == process.pid
-            if not owned_group:
-                raise ValueError(f"Child {process.pid} does not own its process group")
-            return process.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            return None
-        finally:
-            # Never translate a broken launch contract into a signal to another
-            # group. The direct Popen child is still ours to terminate and reap.
-            stop(process, group=owned_group)
+            process = subprocess.Popen(  # noqa: S603 - fixed Python executable and argument arrays
+                command,
+                cwd=cwd,
+                env=env,
+                stdout=stream,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+            if (os.getpgid(process.pid), os.getsid(process.pid)) != (process.pid, process.pid):
+                raise ValueError(f"Child {process.pid} does not own its process group/session")
+            owner = _Owner(process.pid, os.geteuid(), os.getuid())
+            # Only execution checks the latch; final KILL waits never cancel.
+            status = _wait_exit(process.pid, monotonic() + timeout, lambda: cancellation.requested)
+        except BaseException as error:  # noqa: BLE001 - preserve cancellation while cleanup runs
+            failure = error
+            status = None
+        _cleanup_process(process, owner, worker_cleanup, failure)
+        return status
 
 
 def classify(status: int | None, evidence: Path, mutated_file: Path | None = None) -> dict:
