@@ -279,7 +279,7 @@ during feature-branch cleanup; it is generated publication data.
 2. Write the handler with the `Context` as its first positional parameter, public inputs typed
    with `parameters.py`, and a docstring that is the client contract.
 3. Add its result `TypedDict` to `results.py` and declare a `ToolSpec` in `registry.SPECS`: its
-   `group`, `name` and `title` (without a `name` it is not served), the output union with
+   `group`, `name` and `title` (without a `name` it is not served as a tool), the output union with
    `ErrorResult`, cache `resolution` or a handler-owned cache hint, an `audit` class per
    parameter, and a `_CLI_FLAGS` spelling for any `True`-default boolean.
 4. Rely on the scopes `registry.invoke` and the server open for every call (permission, input

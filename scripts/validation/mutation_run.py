@@ -457,7 +457,7 @@ def call_kill(status: int, failed: list[dict]) -> dict:
 def import_kill(status: int, failed: list[dict], mutated_file: Path | None) -> dict:
     # pytest -x reports its own stop after the import failure as a further collection failure
     # of the session; the probe marks it, and only notices after the failure are set aside.
-    # import_failure also refuses a marked first row, so a notice can never lead.
+    # import_failure also refuses a marked first row, so a run led by a notice is never a kill.
     notices = [row for row in failed[1:] if stop_notice(row)]
     if (
         status not in (ExitCode.INTERRUPTED, ExitCode.USAGE_ERROR)

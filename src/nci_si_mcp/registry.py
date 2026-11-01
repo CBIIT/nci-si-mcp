@@ -86,8 +86,9 @@ _CLI_FLAGS = {
 class ToolSpec:
     """One declaration shared by both adapters; input fields come from the handler."""
 
-    # The static form of the rule __post_init__ checks at run time (an unannotated or Any
-    # context passes a type checker, and handlers declared in tests are not checked).
+    # The static form of the rule __post_init__ checks at run time: a type checker cannot
+    # require exactly Context (an unannotated, Any or supertype context passes), and handlers
+    # declared in tests are not checked.
     handler: Callable[Concatenate[Context, ...], dict[str, Any]]
     group: str
     output: Any
@@ -167,9 +168,9 @@ def _public_parameters(handler: Callable[..., Any], hints: Mapping[str, object])
 def _require_cli_spelling(handler: str, parameter: Parameter) -> None:
     # The CLI turns a True boolean default into a store_false flag spelled like the parameter,
     # which reads as the opposite of what it does. Any True default must therefore have a
-    # spelling declared in _CLI_FLAGS; the check reads no annotation, so a non-boolean True
-    # default (which no handler has) is refused too. It cannot tell a negative spelling from
-    # a declared rename: the reviewer of the spelling does.
+    # spelling declared in _CLI_FLAGS; the check reads no annotation, so a True default on a
+    # parameter not annotated bool (which no handler has) is refused too. It cannot tell a
+    # negative spelling from a declared rename: the reviewer of the spelling does.
     if parameter.default is True and parameter.name not in _CLI_FLAGS:
         raise ValueError(
             f"{handler}: {parameter.name} defaults to True; declare its negative CLI flag "
