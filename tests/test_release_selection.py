@@ -300,7 +300,9 @@ class ReleaseSelectionTest(ServerFixture):
         app = create_mcp(context=self.context).streamable_http_app(
             stateless_http=True, json_response=True
         )
-        self.assertEqual(asyncio.run(over_http(app, scenario)), ["26.06e", "26.07d"])
+        with patch.object(self.evs, "get_concept", side_effect=release_addressed):
+            versions = asyncio.run(over_http(app, scenario))
+        self.assertEqual(versions, ["26.06e", "26.07d"])
 
     def test_alternating_stateful_http_sessions_each_keep_their_own_pin(self):
         # Given two sessions pinned to different releases, each later call names its own pin.
