@@ -234,8 +234,10 @@ class MutationCliContractsTest(unittest.TestCase):
                 "fixture": {"src/example.py": {2: [""]}},
             }
 
-            def launch(command, cwd, env, timeout, log):
-                return runner.program([*command, "-p", "broken_job"], cwd, env, timeout, log)
+            def launch(command, cwd, env, timeout, log, **options):
+                return runner.program(
+                    [*command, "-p", "broken_job"], cwd, env, timeout, log, **options
+                )
 
             with (
                 patch.object(gate, "program", side_effect=launch),
@@ -542,7 +544,7 @@ class MutationCliContractsTest(unittest.TestCase):
                     )
 
     def test_scheduler_crash_raises_instead_of_returning_partial_results(self):
-        def crash(command, cwd, env, timeout, log):
+        def crash(command, cwd, env, timeout, log, **options):
             log.write_text("worker exited 9")
             return 9
 
@@ -568,7 +570,7 @@ class MutationCliContractsTest(unittest.TestCase):
             completed = {**asdict(mutants[0]), "outcome": "KILLED", "restored": True}
             error = OSError("scheduler wait denied")
 
-            def interrupted(command, cwd, env, timeout, log):
+            def interrupted(command, cwd, env, timeout, log, **options):
                 (cwd / "result-0.json").write_text(json.dumps(completed))
                 raise error
 
@@ -609,7 +611,9 @@ class MutationCliContractsTest(unittest.TestCase):
                 with self.subTest(status=status, restored=restored):
                     row = {**asdict(mutants[0]), "outcome": "KILLED", "restored": restored}
 
-                    def completed(command, cwd, env, timeout, log, row=row, status=status):
+                    def completed(
+                        command, cwd, env, timeout, log, row=row, status=status, **options
+                    ):
                         (cwd / "result-0.json").write_text(json.dumps(row))
                         log.write_text("controller verdict")
                         return status
@@ -640,7 +644,7 @@ class MutationCliContractsTest(unittest.TestCase):
                 "import sys\nfrom pathlib import Path\nfrom unittest.mock import patch\n"
                 f"sys.path.insert(0, {str(package)!r})\n"
                 "from scripts.validation import mutation_gate as gate\n"
-                "def controller(command, cwd, env, timeout, log):\n"
+                "def controller(command, cwd, env, timeout, log, **options):\n"
                 "    gate.execute_job(Path(command[-1]), 1)\n"
                 "    gate.execute_job(Path(command[-1]), 2)\n"
                 "    log.write_text('controller lost job')\n    return 9\n"

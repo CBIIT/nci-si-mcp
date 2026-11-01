@@ -19,6 +19,7 @@ from unittest.mock import patch
 import yaml
 from scripts.processes import stop, wait_until
 from scripts.validation import mutation_gate
+from scripts.validation import mutation_run as runner
 from scripts.validation.mutation_gate import execute_job
 from scripts.validation.mutation_run import coverage_map, program, run_domain, selection, snapshot
 from scripts.validation.mutation_source import allowlist, candidates, diff_lines, scope
@@ -307,6 +308,399 @@ class MutationOperatorsTest(unittest.TestCase):
 
 
 class MutationExecutionTest(unittest.TestCase):
+    def test_aggregate_cost_overflow_keeps_complete_summary_and_candidate_bytes(self):
+        # Given valid individual timings, an unreportable aggregate must fail
+        # closed after all candidate identities and summary counts are emitted.
+        for durations, repeated in (
+            ((10**308, 10**308, 1.0), False),
+            ((1e308, 1e308, 1.0), False),
+            ((1e308, 0, 0), True),
+        ):
+            for cancelled in (False, True):
+                with (
+                    self.subTest(durations=durations, cancelled=cancelled),
+                    tempfile.TemporaryDirectory() as temporary,
+                ):
+                    self.assert_aggregate_cost_report(
+                        Path(temporary), durations, repeated, cancelled
+                    )
+
+    def assert_aggregate_cost_report(self, root, durations, repeated, cancelled):
+        project(root, "def answer():\n    return True\n")
+        retained = {}
+        work = []
+        later_durations = durations if repeated else (0, 0, 0)
+
+        def scheduler(root, directory, data, workers):
+            work.append(directory)
+            for index, item in enumerate(data["mutants"]):
+                row = {key: value for key, value in item.items() if key != "selected"}
+                row["before"] = data["sources"][item["file"]][item["start"] : item["end"]]
+                row.update(
+                    outcome="KILLED",
+                    restored=True,
+                    kind="assertion",
+                    fallback_domains=["unit"],
+                    domains=[
+                        {
+                            "domain": domain,
+                            "elapsed_seconds": duration,
+                        }
+                        for domain, duration in zip(
+                            mutation_gate.DOMAINS,
+                            later_durations if index else durations,
+                            strict=True,
+                        )
+                    ],
+                )
+                retained[index] = (json.dumps(row) + "\n").encode()
+                (directory / f"result-{index}.json").write_bytes(retained[index])
+            if cancelled:
+                raise KeyboardInterrupt("original scheduler cancellation")
+            return 0
+
+        output = io.StringIO()
+        with (
+            patch.object(mutation_gate, "imported_coverage", return_value={}),
+            patch.object(mutation_gate, "run_scheduler", side_effect=scheduler),
+            contextlib.redirect_stdout(output),
+        ):
+            status = mutation_gate.main(
+                ["--root", str(root), "--paths", "src/example.py", "--shard", "1/1"]
+            )
+        self.assertEqual(status, 2, output.getvalue())
+        rows = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual([row["outcome"] for row in mutant_rows(rows)], ["KILLED"] * 3)
+        summary = next(row for row in rows if row["outcome"] == "SUMMARY")
+        self.assertEqual(summary["counts"], {"KILLED": 3})
+        self.assertEqual(summary["kill_kinds"], {"assertion": 3, "error": 0, "import": 0})
+        self.assertEqual(summary["fallback_count"], 3)
+        self.assertEqual(summary["fallback_domains"], {"unit": 3})
+        self.assertEqual(summary["baseline_domains"], [])
+        self.assertEqual(summary["shard_mutants"], 3)
+        self.assertEqual(summary["full_mutants"], 3)
+        self.assertEqual(summary["cost_error"], "Aggregate runner seconds exceeds reporting range")
+        self.assertTrue(
+            {"runner_seconds", "runner_hours", "runner_seconds_by_domain"}.isdisjoint(summary)
+        )
+        self.assertEqual(rows[-1]["outcome"], "INFRA")
+        self.assertIn(
+            "original scheduler cancellation" if cancelled else summary["cost_error"],
+            rows[-1]["message"],
+        )
+        self.assert_retained_cost_evidence(work[0], retained)
+
+    def assert_retained_cost_evidence(self, work, retained):
+        for index, original in retained.items():
+            self.assertEqual((work / f"result-{index}.json").read_bytes(), original)
+        self.assertEqual(list(work.glob("result-*.infra.json")), [])
+
+    def test_worker_publication_cancellation_keeps_previous_complete_result(self):
+        # Given an existing result, cancellation at atomic publication must leave
+        # its bytes intact; a subsequent successful publication is complete JSON.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            project(root, "def answer():\n    return True\n")
+            mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
+            manifest = root / "mutations.json"
+            manifest.write_text(json.dumps(mutation_gate.manifest_data(root, mutants[:1], {}, 20)))
+            result = root / "result-0.json"
+            original = b'{"previous": true}\n'
+            result.write_bytes(original)
+
+            def cancel_publication(source, destination):
+                self.assertEqual(destination, result)
+                self.assertEqual(result.read_bytes(), original)
+                self.assertEqual(json.loads(source.read_text())["outcome"], "NO_TESTS")
+                raise KeyboardInterrupt("cancelled before result publication")
+
+            with (
+                patch.object(Path, "replace", autospec=True, side_effect=cancel_publication),
+                self.assertRaisesRegex(KeyboardInterrupt, "cancelled before result publication"),
+            ):
+                execute_job(manifest, 0)
+            self.assertEqual(result.read_bytes(), original)
+            execute_job(manifest, 0)
+            self.assertEqual(json.loads(result.read_text())["outcome"], "NO_TESTS")
+
+    def test_corrupt_result_retains_bytes_and_reports_every_candidate_on_cancel_or_success(self):
+        # Given completed, invalid and missing results, neither cancellation nor
+        # a zero scheduler exit may hide later candidates or overwrite evidence.
+        for cancelled, defect in (
+            (cancelled, defect)
+            for cancelled in (True, False)
+            for defect in self.invalid_candidate_records()
+        ):
+            with (
+                self.subTest(cancelled=cancelled, defect=defect),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                self.assert_corrupt_scheduler_results(Path(temporary).resolve(), cancelled, defect)
+
+    def test_supplied_invalid_metrics_fail_infra_without_false_pass_or_summary_abort(self):
+        # Given matching completed identities with malformed optional metrics, the
+        # CLI must retain corrupt bytes and report all candidates, including a shard summary.
+        for sharded in (False, True):
+            for defect, extra in self.invalid_candidate_metrics().items():
+                with (
+                    self.subTest(sharded=sharded, defect=defect),
+                    tempfile.TemporaryDirectory() as t,
+                ):
+                    self.assert_corrupt_scheduler_results(
+                        Path(t).resolve(), False, defect, sharded=sharded, extra=extra
+                    )
+
+    @staticmethod
+    def invalid_candidate_metrics():
+        timing = {"domain": "unit", "outcome": "KILLED", "elapsed_seconds": 0.25}
+        records = {
+            f"domains-{value!r}": {"domains": value}
+            for value in (None, {}, "unit", [None], [[]], [{}])
+        }
+        records.update(
+            (f"timing-{key}-{value!r}", {"domains": [{**timing, key: value}]})
+            for key, values in (
+                ("domain", (None, [], "unknown")),
+                ("outcome", (None, [], "ALLOWLISTED", "unknown")),
+                (
+                    "elapsed_seconds",
+                    (None, "1", True, False, -1, float("nan"), float("inf"), 10**400),
+                ),
+            )
+            for value in values
+        )
+        records.update(
+            (f"missing-timing-{key}", {"domains": [{k: v for k, v in timing.items() if k != key}]})
+            for key in ("domain", "elapsed_seconds")
+        )
+        records.update(MutationExecutionTest.invalid_optional_metrics())
+        return records
+
+    @staticmethod
+    def invalid_optional_metrics():
+        return {
+            f"{key}-{value!r}": {key: value}
+            for key, values in (
+                (
+                    "fallback_domains",
+                    (None, {}, "unit", [None], [[]], ["unknown"], ["unit", "unit"]),
+                ),
+                (
+                    "elapsed_seconds",
+                    (None, "1", True, False, -1, float("nan"), float("inf"), 10**400),
+                ),
+                ("kind", (None, [], {}, "unknown")),
+                ("domain", (None, [], "unknown")),
+            )
+            for value in values
+        }
+
+    def test_minimal_and_supplied_valid_metrics_still_report_successful_shards(self):
+        # Optional evidence may be omitted; supplied domain outcomes are optional
+        # too, but valid durations and fallback names must reach the summary intact.
+        for extra in (
+            {},
+            {"domains": [], "fallback_domains": [], "elapsed_seconds": 0},
+            {
+                "domains": [
+                    {"domain": "unit", "elapsed_seconds": 0},
+                    {"domain": "selftest", "outcome": "SURVIVED", "elapsed_seconds": 0.5},
+                    {"domain": "fixture", "outcome": "KILLED", "elapsed_seconds": 1},
+                ],
+                "fallback_domains": ["unit", "selftest", "fixture"],
+                "elapsed_seconds": 2.5,
+                "kind": "assertion",
+                "domain": "fixture",
+            },
+        ):
+            with self.subTest(extra=extra), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary).resolve()
+                project(root, "def answer():\n    return True\n")
+
+                def scheduler(root, directory, data, workers, extra=extra):
+                    for index, item in enumerate(data["mutants"]):
+                        row = {key: value for key, value in item.items() if key != "selected"}
+                        row["before"] = data["sources"][item["file"]][item["start"] : item["end"]]
+                        row.update(outcome="KILLED", restored=True, **extra)
+                        (directory / f"result-{index}.json").write_text(json.dumps(row))
+                    return 0
+
+                output = io.StringIO()
+                with (
+                    patch.object(mutation_gate, "imported_coverage", return_value={}),
+                    patch.object(mutation_gate, "run_scheduler", side_effect=scheduler),
+                    contextlib.redirect_stdout(output),
+                ):
+                    status = mutation_gate.main(
+                        ["--root", str(root), "--paths", "src/example.py", "--shard", "1/1"]
+                    )
+                self.assertEqual(status, 0, output.getvalue())
+                rows = [json.loads(line) for line in output.getvalue().splitlines()]
+                self.assertEqual([row["outcome"] for row in mutant_rows(rows)], ["KILLED"] * 3)
+                self.assertEqual(rows[-1]["outcome"], "SUMMARY")
+                self.assertEqual(rows[-1]["runner_seconds"], 4.5 if "kind" in extra else 0)
+                self.assertEqual(rows[-1]["fallback_count"], 3 if "kind" in extra else 0)
+
+    @staticmethod
+    def invalid_candidate_records():
+        mutants, _ = candidates("src/example.py", b"def answer():\n    return True\n")
+        mutants.sort(key=lambda mutant: (mutant.file, mutant.line, mutant.operator, mutant.site))
+        valid = {**asdict(mutants[1]), "outcome": "KILLED", "restored": True}
+        records = {
+            "syntax": b'{"outcome": "KILLED",',
+            "encoding": b'\xff{"outcome": "KILLED"}',
+            "null": b"null",
+            "list": b"[]",
+            "empty": b"{}",
+            "foreign": json.dumps({**valid, **asdict(mutants[0])}).encode(),
+        }
+        records.update(
+            (f"missing-{key}", json.dumps({k: v for k, v in valid.items() if k != key}).encode())
+            for key in valid
+        )
+        records.update(
+            (f"invalid-{key}-{value!r}", json.dumps({**valid, key: value}).encode())
+            for key, values in (
+                ("outcome", (None, [], "ALLOWLISTED", "unknown")),
+                ("restored", (None, "true", 1, [])),
+            )
+            for value in values
+        )
+        return records
+
+    def assert_corrupt_scheduler_results(
+        self, root, cancelled, defect, *, sharded=False, extra=None
+    ):
+        project(root, "def answer():\n    return True\n")
+        mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
+        mutants.sort(key=lambda mutant: (mutant.file, mutant.line, mutant.operator, mutant.site))
+        completed = (
+            json.dumps(
+                {
+                    **asdict(mutants[0]),
+                    "outcome": "KILLED",
+                    "restored": True,
+                    "domains": [],
+                    "fallback_domains": [],
+                }
+            ).encode()
+            + b"\n"
+        )
+        corrupt = self.corrupt_candidate_bytes(completed, mutants[1], defect, extra)
+        work = []
+
+        def scheduler(root, directory, data, workers):
+            work.append(directory)
+            (directory / "result-0.json").write_bytes(completed)
+            (directory / "result-1.json").write_bytes(corrupt)
+            if cancelled:
+                raise KeyboardInterrupt("original scheduler cancellation")
+            (directory / "result-2.json").write_text(
+                json.dumps({**json.loads(completed), **asdict(mutants[2])})
+            )
+            return 0
+
+        output = io.StringIO()
+        with (
+            patch.object(mutation_gate, "collect", return_value=(mutants, [])),
+            patch.object(mutation_gate, "imported_coverage", return_value={}),
+            patch.object(mutation_gate.random.Random, "shuffle"),
+            patch.object(mutation_gate, "run_scheduler", side_effect=scheduler),
+            contextlib.redirect_stdout(output),
+        ):
+            arguments = ["--root", str(root), "--paths", "src/example.py"]
+            status = mutation_gate.main(arguments + ["--shard", "1/1"] * sharded)
+        self.assertEqual(status, 2)
+        rows = [json.loads(line) for line in output.getvalue().splitlines()]
+        results = mutant_rows(rows)
+        self.assertEqual(len(results), len(mutants))
+        self.assertEqual(
+            [{name: row[name] for name in mutants[0].key()} for row in results],
+            [mutant.key() for mutant in mutants],
+        )
+        self.assertEqual(
+            [row["outcome"] for row in results],
+            ["KILLED", "INFRA", "INFRA" if cancelled else "KILLED"],
+        )
+        self.assertIn("candidate", results[1]["message"])
+        self.assertIs(results[1]["restored"], False)
+        self.assertEqual(results[1]["domains"], [])
+        self.assertEqual(results[1]["fallback_domains"], [])
+        self.assertEqual(rows[-1]["outcome"], "INFRA")
+        self.assert_corrupt_summary(rows, sharded)
+        self.assertEqual((work[0] / "result-0.json").read_bytes(), completed)
+        self.assertEqual((work[0] / "result-1.json").read_bytes(), corrupt)
+        self.assertEqual(json.loads((work[0] / "result-1.infra.json").read_text()), results[1])
+        self.assertEqual((work[0] / "result-2.json").read_text(), json.dumps(results[2]))
+        self.assert_corrupt_scheduler_diagnostic(work[0], results, cancelled)
+
+    @staticmethod
+    def corrupt_candidate_bytes(completed, mutant, defect, extra):
+        if extra is None:
+            return MutationExecutionTest.invalid_candidate_records()[defect]
+        return json.dumps({**json.loads(completed), **asdict(mutant), **extra}).encode()
+
+    def assert_corrupt_summary(self, rows, sharded):
+        if sharded:
+            self.assertEqual(rows[-2]["outcome"], "SUMMARY")
+            self.assertEqual(rows[-2]["counts"], {"KILLED": 2, "INFRA": 1})
+
+    def assert_corrupt_scheduler_diagnostic(self, work, results, cancelled):
+        diagnostic = (work / "traceback.txt").read_text()
+        if cancelled:
+            self.assertIn("no result", results[2]["message"])
+            self.assertIn("KeyboardInterrupt: original scheduler cancellation", diagnostic)
+            self.assertIn('raise KeyboardInterrupt("original scheduler cancellation")', diagnostic)
+
+    def test_declared_scheduler_call_allows_real_nested_worker_cleanup(self):
+        # The production scheduler call, not its name, must enable the longer
+        # grace needed for a worker's separate-session TERM-ignoring runner.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            ready, cleaned = root / "ready", root / "cleaned"
+            nested = (
+                "import os,signal; from pathlib import Path; "
+                "signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+                f"Path({str(ready)!r}).write_text(str(os.getpid())); signal.pause()"
+            )
+            worker = (
+                "import os,sys; from pathlib import Path\n"
+                "from scripts.validation import mutation_run as r\n"
+                "r.STOP_SECONDS=0.1; r.WORKER_CLEANUP_SECONDS=0.5; r.OWNED_CLEANUP_SECONDS=0.7\n"
+                "try:\n"
+                f"    r.program([sys.executable,'-c',{nested!r}],Path({str(root)!r}),"
+                f"dict(os.environ),10,Path({str(root / 'nested.log')!r}))\n"
+                "finally:\n"
+                f"    Path({str(cleaned)!r}).touch()\n"
+            )
+            wait_exit = runner._wait_exit
+
+            def cancel_ready(pid, deadline, cancel=None):
+                if not ready.exists():
+                    self.assertTrue(wait_until(ready.exists, 5, interval=0.01))
+                    return None
+                return wait_exit(pid, deadline, cancel)
+
+            def launch_worker(command, cwd, env, timeout, log, **kwargs):
+                return program([sys.executable, "-c", worker], cwd, env, timeout, log, **kwargs)
+
+            try:
+                with (
+                    patch.object(mutation_gate, "program", side_effect=launch_worker),
+                    patch.object(runner, "STOP_SECONDS", 0.1),
+                    patch.object(runner, "WORKER_CLEANUP_SECONDS", 0.5),
+                    patch.object(runner, "OWNED_CLEANUP_SECONDS", 0.7),
+                    patch.object(runner, "_wait_exit", side_effect=cancel_ready),
+                ):
+                    status = mutation_gate.run_scheduler(
+                        ROOT, root, {"timeout": 10, "mutants": []}, 1
+                    )
+                self.assertIsNone(status)
+                self.assertTrue(cleaned.exists(), "declared scheduler call cut off worker cleanup")
+                self.assertFalse(self.process_exists(int(ready.read_text())))
+            finally:
+                self.kill_marked_group(ready)
+
     def test_scheduler_owns_unique_retained_directories_and_announces_before_launch(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
@@ -316,7 +710,7 @@ class MutationExecutionTest(unittest.TestCase):
             output = io.StringIO()
             directories = []
 
-            def scheduler(command, cwd, env, timeout, log):
+            def scheduler(command, cwd, env, timeout, log, *, worker_cleanup):
                 announcement = json.loads(output.getvalue().splitlines()[-1])
                 self.assertEqual(announcement, {"outcome": "EVIDENCE", "directory": str(cwd)})
                 self.assertTrue(cwd.is_dir())
@@ -348,11 +742,20 @@ class MutationExecutionTest(unittest.TestCase):
             root = Path(temporary).resolve()
             project(root, "def answer():\n    return True\n")
             mutants, _ = candidates("src/example.py", (root / "src/example.py").read_bytes())
-            for error in (KeyboardInterrupt("cancelled"), PermissionError("cleanup denied")):
+            for error in (
+                KeyboardInterrupt("cancelled"),
+                PermissionError("cleanup denied"),
+                BaseExceptionGroup(
+                    "Runner and owned cleanup failed",
+                    [KeyboardInterrupt("cancelled"), PermissionError("cleanup denied")],
+                ),
+            ):
                 with self.subTest(error=type(error).__name__):
                     work = []
 
-                    def scheduler(command, cwd, env, timeout, log, work=work, error=error):
+                    def scheduler(
+                        command, cwd, env, timeout, log, work=work, error=error, *, worker_cleanup
+                    ):
                         work.append(cwd)
                         execute_job(Path(command[-1]), 0)
                         raise error
@@ -386,49 +789,67 @@ class MutationExecutionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
             driver, mutants = self.cancellation_project(root)
-            unrelated = subprocess.Popen(
-                [sys.executable, "-c", "import signal; signal.pause()"],
+            self.assert_real_cancellation(root, driver, mutants, cleanup_denied=False)
+
+    def test_real_scheduler_combined_cancellation_cleanup_failure_retains_evidence(self):
+        # Given real completed and running candidates, cancellation plus an injected
+        # cleanup denial must retain both failures and every candidate's evidence.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            driver, mutants = self.cancellation_project(root, cleanup_denied=True)
+            self.assert_real_cancellation(root, driver, mutants, cleanup_denied=True)
+
+    def assert_real_cancellation(self, root, driver, mutants, *, cleanup_denied):
+        unrelated = subprocess.Popen(
+            [sys.executable, "-c", "import signal; signal.pause()"],
+            start_new_session=True,
+        )
+        with (root / "controller.log").open("w+") as stream:
+            owner = subprocess.Popen(  # noqa: S603 - fixed owned controller, reaped below
+                [sys.executable, "-c", driver],
+                cwd=ROOT,
+                stdout=stream,
+                stderr=subprocess.STDOUT,
                 start_new_session=True,
             )
-            with (root / "controller.log").open("w+") as stream:
-                owner = subprocess.Popen(  # noqa: S603 - fixed owned controller, reaped below
-                    [sys.executable, "-c", driver],
-                    cwd=ROOT,
-                    stdout=stream,
-                    stderr=subprocess.STDOUT,
-                    start_new_session=True,
+            try:
+                self.assertTrue(wait_until((root / "runner").exists, 30, interval=0.01))
+                pid = int((root / "runner").read_text())
+                self.assertEqual(os.getpgid(pid), pid)
+                work = Path((root / "work").read_text())
+                completed = (work / "result-0.json").read_bytes()
+                self.assertEqual(json.loads(completed)["outcome"], "KILLED")
+                owner.send_signal(signal.SIGTERM)
+                status = owner.wait(timeout=45)
+                self.assertNotEqual(status, 0)
+                self.assertTrue(work.exists(), "Cancellation deleted completed scheduler evidence")
+                self.assertEqual((work / "result-0.json").read_bytes(), completed)
+                self.assertTrue((work / "scheduler.log").is_file())
+                self.assertTrue(
+                    (work / "traceback.txt").is_file(),
+                    "Combined cancellation/cleanup failure lost scheduler traceback",
                 )
-                try:
-                    self.assertTrue(wait_until((root / "runner").exists, 30, interval=0.01))
-                    pid = int((root / "runner").read_text())
-                    self.assertEqual(os.getpgid(pid), pid)
-                    work = Path((root / "work").read_text())
-                    completed = (work / "result-0.json").read_bytes()
-                    self.assertEqual(json.loads(completed)["outcome"], "KILLED")
-                    owner.send_signal(signal.SIGTERM)
-                    self.assertNotEqual(owner.wait(timeout=45), 0)
-                    self.assertTrue(
-                        work.exists(), "Cancellation deleted completed scheduler evidence"
-                    )
-                    self.assertEqual((work / "result-0.json").read_bytes(), completed)
-                    self.assertTrue((work / "scheduler.log").is_file())
-                    self.assertIn("KeyboardInterrupt", (work / "traceback.txt").read_text())
-                    catalogue = json.loads((work / "mutations.json").read_text())["mutants"]
-                    stream.seek(0)
-                    output = [json.loads(line) for line in stream if line.startswith("{")]
-                    self.assert_cancelled_rows(mutant_rows(output), catalogue, mutants)
-                    retained = [
-                        json.loads(path.read_text()) for path in sorted(work.glob("result-*.json"))
-                    ]
-                    self.assert_cancelled_rows(retained, catalogue, mutants)
-                    self.assertTrue(
-                        wait_until(lambda: not self.process_exists(pid), 5, interval=0.01)
-                    )
-                    self.assertIsNone(unrelated.poll())
-                finally:
-                    stop(owner, group=True)
-                    stop(unrelated, group=True)
-                    self.kill_marked_group(root / "runner")
+                diagnostic = (work / "traceback.txt").read_text()
+                self.assertEqual(status, 2)
+                self.assertIn("KeyboardInterrupt", diagnostic)
+                if cleanup_denied:
+                    self.assertIn("BaseExceptionGroup: Runner and owned cleanup failed", diagnostic)
+                    self.assertIn("PermissionError: injected scheduler cleanup denial", diagnostic)
+                catalogue = json.loads((work / "mutations.json").read_text())["mutants"]
+                stream.seek(0)
+                output = [json.loads(line) for line in stream if line.startswith("{")]
+                self.assertEqual(output[-1]["outcome"], "INFRA")
+                self.assert_cancelled_rows(mutant_rows(output), catalogue, mutants)
+                retained = [
+                    json.loads(path.read_text()) for path in sorted(work.glob("result-*.json"))
+                ]
+                self.assert_cancelled_rows(retained, catalogue, mutants)
+                self.assertTrue(wait_until(lambda: not self.process_exists(pid), 5, interval=0.01))
+                self.assertIsNone(unrelated.poll())
+            finally:
+                stop(owner, group=True)
+                stop(unrelated, group=True)
+                self.kill_marked_group(root / "runner")
 
     def assert_cancelled_rows(self, rows, catalogue, mutants):
         expected = [mutant.key() for mutant in mutants]
@@ -441,7 +862,7 @@ class MutationExecutionTest(unittest.TestCase):
         self.assertTrue(all("no result" in row["message"] for row in rows[1:]))
 
     @staticmethod
-    def cancellation_project(root):
+    def cancellation_project(root, *, cleanup_denied=False):
         source = "".join(
             f"def {name}():\n    return True\n" for name in ("first", "second", "third")
         )
@@ -469,17 +890,24 @@ class MutationExecutionTest(unittest.TestCase):
         driver = (
             "from pathlib import Path\nfrom unittest.mock import patch\n"
             "from scripts.validation import mutation_gate as gate\n"
+            "from scripts.validation import mutation_run as run_module\n"
             "from scripts.validation.mutation_source import candidates\n"
             f"root = Path({str(root)!r})\n"
             "found, _ = candidates('src/example.py', (root / 'src/example.py').read_bytes())\n"
             "mutants = [item for item in found if item.operator == 'boolean:literal']\n"
             "original = gate.program\n"
-            "def run(command, cwd, env, timeout, log):\n"
+            "finish_owned = run_module._finish_owned\n"
+            "def denied_cleanup(process, owner, **kwargs):\n"
+            "    finish_owned(process, owner, **kwargs)\n"
+            "    raise PermissionError('injected scheduler cleanup denial')\n"
+            "def run(command, cwd, env, timeout, log, **kwargs):\n"
             "    (root / 'work').write_text(str(cwd))\n"
-            "    return original(command, cwd, env, timeout, log)\n"
+            "    return original(command, cwd, env, timeout, log, **kwargs)\n"
             "with patch.object(gate, 'collect', return_value=(mutants, [])), "
             f"patch.object(gate, 'imported_coverage', return_value={mapping!r}), "
-            "patch.object(gate.random.Random, 'shuffle'), patch.object(gate, 'program', run):\n"
+            "patch.object(gate.random.Random, 'shuffle'), patch.object(gate, 'program', run), "
+            "patch.object(run_module, '_finish_owned', "
+            f"denied_cleanup if {cleanup_denied!r} else finish_owned):\n"
             "    raise SystemExit(gate.main(['--root', str(root), '--paths', 'src/example.py']))\n"
         )
         return driver, mutants
@@ -517,9 +945,6 @@ class MutationExecutionTest(unittest.TestCase):
                     "Nested session child survived scheduler group stop",
                 )
                 self.assertTrue((root / "cleaned").exists(), "Worker cleanup was swept early")
-                self.assertTrue(wait_until((root / "reaped").exists, 10, interval=0.01))
-                self.assertEqual((root / "reaped").read_text(), "0")
-                self.assert_cleanup_topology(root)
                 self.assertIsNone(unrelated.poll())
             finally:
                 (root / "release").touch()
@@ -530,49 +955,20 @@ class MutationExecutionTest(unittest.TestCase):
 
     @staticmethod
     def cleanup_scheduler(root):
-        runner = (
-            "import json, os, signal; from pathlib import Path; "
-            "from scripts.processes import wait_until; "
-            f"root = Path({str(root)!r})\n"
-            "def finish(signum, frame):\n"
-            "    signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
-            "    (root / 'cleaning').touch()\n"
-            "    assert wait_until((root / 'release').exists, 30, interval=0.01)\n"
-            "    raise SystemExit(0)\n"
-            "signal.signal(signal.SIGTERM, finish)\n"
-            "(root / 'runner-identity').write_text(json.dumps(\n"
-            "    [os.getpid(), os.getppid(), os.getpgid(0), os.getsid(0)]))\n"
-            "(root / 'runner.pending').write_text(str(os.getpid()))\n"
-            "(root / 'runner.pending').rename(root / 'runner')\n"
-            "signal.pause()\n"
-        )
         worker = (
-            "import json, os, sys; from pathlib import Path; "
-            "from scripts.validation.mutation_run import program; "
-            f"root = Path({str(root)!r})\n"
-            "(root / 'worker-identity').write_text(json.dumps(\n"
-            "    [os.getpid(), os.getppid(), os.getpgid(0), os.getsid(0)]))\n"
-            "try:\n"
-            f"    program([sys.executable, '-c', {runner!r}],\n"
-            f"            Path({str(ROOT)!r}), dict(os.environ), 30, root / 'runner.log')\n"
-            "except KeyboardInterrupt:\n"
+            "import signal, subprocess, sys; from pathlib import Path; "
+            "from scripts.processes import exit_on_sigterm, stop, wait_until; "
+            f"root = Path({str(root)!r}); exit_on_sigterm(); "
+            "runner = subprocess.Popen([sys.executable, '-c', "
+            "\"import signal; print('ready', flush=True); signal.pause()\"], "
+            "stdout=subprocess.PIPE, text=True, start_new_session=True); "
+            "runner.stdout.readline(); (root / 'runner').write_text(str(runner.pid))\n"
+            "try:\n    runner.wait(timeout=30)\n"
+            "finally:\n"
+            "    (root / 'cleaning').touch()\n"
+            "    wait_until((root / 'release').exists, 30, interval=0.01)\n"
+            "    stop(runner, group=True)\n"
             "    (root / 'cleaned').touch()\n"
-            # Leave only after program() has reaped the runner. Even a waiting
-            # parent cannot prevent a brief zombie-only swept group on macOS.
-            "os.setpgid(0, os.getppid())\n"
-            "(root / 'worker-departure').write_text(json.dumps(\n"
-            "    [os.getpid(), os.getppid(), os.getpgid(0), os.getsid(0)]))\n"
-        )
-        reaper = (
-            "import json, os, subprocess, sys; from pathlib import Path; "
-            f"root = Path({str(root)!r})\n"
-            "(root / 'reaper-identity').write_text(json.dumps(\n"
-            "    [os.getpid(), os.getppid(), os.getpgid(0), os.getsid(0)]))\n"
-            f"worker = subprocess.Popen([sys.executable, '-c', {worker!r}],\n"
-            "                          process_group=int((root / 'scheduler').read_text()))\n"
-            "status = worker.wait(timeout=45)\n"
-            "(root / 'reaped.pending').write_text(str(status))\n"
-            "(root / 'reaped.pending').rename(root / 'reaped')\n"
         )
         return (
             "import os, signal, subprocess, sys; from pathlib import Path; "
@@ -583,40 +979,13 @@ class MutationExecutionTest(unittest.TestCase):
             "    assert wait_until((root / 'cleaning').exists, 10, interval=0.01)\n"
             "    raise SystemExit(0)\n"
             "signal.signal(signal.SIGTERM, finish)\n"
+            f"subprocess.Popen([sys.executable, '-c', {worker!r}])\n"
             "(root / 'scheduler').write_text(str(os.getpid()))\n"
-            # A different group in the SAME session can parent and reap a worker
-            # that joins the scheduler group while its leader can still exit first.
-            f"subprocess.Popen([sys.executable, '-c', {reaper!r}], process_group=0)\n"
             "signal.pause()\n"
         )
 
-    def assert_cleanup_topology(self, root):
-        scheduler = int((root / "scheduler").read_text())
-        reaper, reaper_parent, reaper_group, reaper_session = json.loads(
-            (root / "reaper-identity").read_text()
-        )
-        worker, worker_parent, worker_group, worker_session = json.loads(
-            (root / "worker-identity").read_text()
-        )
-        runner, runner_parent, runner_group, runner_session = json.loads(
-            (root / "runner-identity").read_text()
-        )
-        self.assertEqual(
-            (reaper_parent, reaper_group, reaper_session), (scheduler, reaper, scheduler)
-        )
-        self.assertNotEqual(reaper, scheduler)
-        self.assertEqual(
-            (worker_parent, worker_group, worker_session), (reaper, scheduler, scheduler)
-        )
-        self.assertEqual(
-            json.loads((root / "worker-departure").read_text()),
-            [worker, reaper, reaper, scheduler],
-        )
-        self.assertEqual((runner_parent, runner_group, runner_session), (worker, runner, runner))
-        self.assertNotEqual(runner_session, scheduler)
-
-    @classmethod
-    def release_worker(cls, root, released):
+    @staticmethod
+    def release_worker(root, released):
         if not wait_until(
             lambda: (root / "runner").exists() and (root / "scheduler").exists(),
             10,
@@ -625,7 +994,13 @@ class MutationExecutionTest(unittest.TestCase):
             return
         scheduler = int((root / "scheduler").read_text())
         os.killpg(scheduler, signal.SIGTERM)
-        exited = wait_until(lambda: not cls.process_exists(scheduler), 10, interval=0.01)
+        exited = wait_until(
+            lambda: (
+                os.waitid(os.P_PID, scheduler, os.WEXITED | os.WNOHANG | os.WNOWAIT) is not None
+            ),
+            10,
+            interval=0.01,
+        )
         released.append(exited)
         (root / "release").touch()
 
@@ -1163,12 +1538,12 @@ class MutationExecutionTest(unittest.TestCase):
             mapping = {"unit": {"src/example.py": {2: ["tests/test_example.py::test_value|run"]}}}
             captured = []
 
-            def scheduler(command, cwd, env, timeout, log):
+            def scheduler(command, cwd, env, timeout, log, *, worker_cleanup):
                 manifest = Path(command[-1])
                 captured.append(json.loads(manifest.read_text()))
                 log.write_text("")
                 (manifest.parent / "result-0.json").write_text(
-                    '{"outcome": "KILLED", "restored": true}'
+                    json.dumps({**asdict(mutant), "outcome": "KILLED", "restored": True})
                 )
                 return 0
 
@@ -1176,7 +1551,7 @@ class MutationExecutionTest(unittest.TestCase):
                 rows = mutation_gate.schedule(
                     root, [mutant], mapping, SimpleNamespace(timeout=20, workers=1)
                 )
-            self.assertEqual(rows, [{"outcome": "KILLED", "restored": True}])
+            self.assertEqual(rows, [{**asdict(mutant), "outcome": "KILLED", "restored": True}])
             self.assertEqual(
                 captured,
                 [

@@ -176,6 +176,10 @@ cannot inherit changes to the parent's environment. Their setup-only lines there
 the whole-fixture fallback, counted like the other domains, rather than claiming per-RPC ownership.
 `runner_seconds_by_domain`, `runner_seconds` and `runner_hours` sum measured mutant test-process
 durations, excluding baseline and scratch setup; they are distinct from shard wall time.
+If their aggregate exceeds reporting range, the shard SUMMARY retains counts and fallback
+accounting but omits those three numeric fields and states `cost_error`; structured `INFRA`
+follows and the command exits 2. Candidate evidence stays unchanged: this reporting failure
+is not fabricated as a candidate-level result, and missing costs are never reported as zero.
 
 Mutation JSON rows record monotonic `elapsed_seconds` for the whole mutant (including scratch
 setup) and a `domains` list of measured test-run durations and outcomes. The scheduler stores
@@ -183,10 +187,47 @@ each source once, span/replacement edits and preselected test routes; it does no
 the baseline coverage map per worker. The probe consumes its launch-only evidence destination
 at configuration; only declared xdist workers receive it, so nested pytest programs cannot
 append to the parent's records.
-Each controller child must lead its own process group before it is waited on; a broken
-launch contract reaps only the direct child and fails. Scheduler failure exits as infrastructure
-failure while retaining every completed candidate row and emitting an explicit `INFRA` row for
-each missing result. A missing row never counts as a kill or verified scratch restoration.
+
+The mutation runner supports Darwin and Linux. `mutation_run.program()` verifies that its
+direct child leads a new session and process group, observes exit with `waitid(WNOWAIT)` without
+reaping, then owns TERM, grace, final KILL if needed and actual-parent reap. The unreaped child
+reserves the original PID/PGID until cleanup finishes; a consumed or missing anchor fails the
+ownership contract. A broken launch contract uses direct-child cleanup only and fails.
+
+While the anchor is live, exit observation needs no `ps`. After early leader exit, and when
+diagnosing denied group signals, inspection uses `/bin/ps -g PID` on Darwin or `/bin/ps -s PID`
+on Linux, filtering the latter's session rows to the original PGID. Both request
+`pid,ppid,pgid,uid,ruid,state` fields with numeric identities; Linux also requests `sid`.
+A complete, nonempty snapshot must contain the actual-parent anchor, have unique PIDs,
+and show only zombies with the expected
+PGID and effective/real UID (and Linux SID) before further signals can stop. Darwin zombie SID
+is unavailable: the retained session/group leader anchors membership because POSIX groups
+cannot cross sessions. `waitid`'s `si_uid` is not ownership evidence.
+Snapshots are non-atomic and establish no durable ownership or containment. Signals target
+only the original anchored group, never PIDs discovered by inspection. Live, mixed, foreign or
+unknown state cannot suppress a permission denial; failed inspection retains that denial.
+If inspection fails after successful TERM, cleanup still attempts final KILL through the
+verified anchor and retains the inspection error. Only the direct child is reaped here;
+descendants require their actual parents, including workers owning separate-session runners.
+
+`--timeout` defaults to 600 seconds per mutant domain run; `--baseline-timeout` defaults to
+1,800 seconds per baseline domain. The scheduler execution limit is
+`timeout × (candidate count + 2) × 3`. Cleanup has a separate single monotonic deadline:
+ordinary runners allow 10 seconds of TERM grace within 20 seconds total; the scheduler's
+`worker_cleanup=True` allows 21 seconds of grace within 31 seconds total so workers can finish
+nested cleanup. Inspection takes at most one second or the remaining cleanup time, whichever
+is smaller; polls and inspections never reset the deadline. `TIMEOUT` counts as killed by
+policy, not assertion-strength evidence; cleanup failures remain diagnostic failures.
+
+Each scheduler run prints its unique `tmp/mutation-runs/run-*` directory under the selected
+root to stderr as soon as it exists. Inspect `mutations.json`, `scheduler.log` and
+`result-N.json` there; worker results are published atomically. Scheduler failures and
+cooperative cancellation retain `traceback.txt`, including combined initiating/cleanup errors,
+and exit nonzero even if all candidates finished. Completed result bytes remain intact.
+Missing results receive explicit `INFRA` rows; corrupt JSON remains byte-for-byte in the
+original file, with its synthesized row in `result-N.infra.json`. Corruption fails the command
+even after scheduler exit zero; file permission failures remain diagnostic. An incomplete row
+never counts as a kill or verified scratch restoration. Retained runs are never resumed automatically.
 
 ## Coverage badges
 
