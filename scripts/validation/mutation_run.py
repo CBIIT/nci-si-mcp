@@ -455,18 +455,32 @@ def call_kill(status: int, failed: list[dict]) -> dict:
 
 
 def import_kill(status: int, failed: list[dict], mutated_file: Path | None) -> dict:
+    # pytest -x reports its own stop after the import failure as a further collection failure
+    # of the session; the probe marks it, and only notices after the failure are set aside.
+    notices = [row for row in failed[1:] if stop_notice(row)]
     if (
         status not in (ExitCode.INTERRUPTED, ExitCode.USAGE_ERROR)
-        or not mutated_file
-        or len(failed) != 1
+        or len(failed) != 1 + len(notices)
+        or not import_failure(failed[0], mutated_file)
     ):
         return {}
-    row = failed[0]
-    if row["phase"] != "collection" or row.get("exception", "").startswith("SystemExit"):
-        return {}
-    if str(mutated_file.resolve()) not in row.get("traceback_paths", []):
-        return {}
-    return {"outcome": "KILLED", "kind": "import", "phase": "collection", "node": row["node"]}
+    kill = {"outcome": "KILLED", "kind": "import", "phase": "collection", "node": failed[0]["node"]}
+    return kill | ({"stop_notices": notices} if notices else {})
+
+
+def import_failure(row: dict, mutated_file: Path | None) -> bool:
+    # A primary failure carries no stop marker of any value: a notice never stands in for it.
+    return (
+        mutated_file is not None
+        and "stop_notice" not in row
+        and row["phase"] == "collection"
+        and not row.get("exception", "").startswith("SystemExit")
+        and str(mutated_file.resolve()) in row.get("traceback_paths", [])
+    )
+
+
+def stop_notice(row: dict) -> bool:
+    return row["phase"] == "collection" and row.get("stop_notice") is True
 
 
 def run_domain(
