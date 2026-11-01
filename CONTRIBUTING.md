@@ -269,6 +269,19 @@ during feature-branch cleanup; it is generated publication data.
 7. **Keep the documentation in step, and short.** Update it in the same change. The README
    answers the first questions and links onward; details belong in the deeper documents.
 
+### Adding a tool
+
+1. Specify it in `spec/tools.yaml` first; run `pdm run spec-render` and `pdm run quickstart-tools`.
+2. Write the handler with the `Context` as its first positional parameter, public inputs typed
+   with `parameters.py`, and a docstring that is the client contract.
+3. Add its result `TypedDict` to `results.py` and declare a `ToolSpec` in `registry.SPECS`:
+   output union with `ErrorResult`, cache `resolution` or a handler-owned cache hint, an `audit`
+   class per parameter, and a `_CLI_FLAGS` spelling for any `True`-default boolean.
+4. Rely on the scopes `registry.invoke` and the server open for every call (permission, input
+   limits, cache decision, release selection, deadline, audited correlation); never reopen them.
+5. Add its scenario to `tests/test_registry_contracts.py`, update QUICKSTART.md, and commit
+   `acceptance/expected/fixture.json` from a fresh fixture run if outcomes move.
+
 ### Typing conventions
 
 These are the target conventions for new and changed code, not a claim that legacy upstream
