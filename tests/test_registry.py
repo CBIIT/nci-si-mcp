@@ -90,6 +90,19 @@ class RegistryTest(ServerFixture):
                 actual = tool.annotations.model_dump(by_alias=True)
                 self.assertEqual({key: actual[key] for key in expected}, expected)
 
+    def test_known_writing_operations_are_neither_tools_nor_resources(self):
+        # Identified from their handlers: they build, activate or add to the local index, or
+        # record an evaluation (evaluation.evaluate_build). The guard covers these declared
+        # operations; a side effect added to another handler later is not detected here.
+        writers = {"index_codes", "index_build", "index_rebuild", "index_activate", "evaluate"}
+        self.assertEqual(
+            {
+                operation: (OPERATIONS[operation].name, OPERATIONS[operation].uri)
+                for operation in writers
+            },
+            dict.fromkeys(writers, (None, None)),
+        )
+
     def test_a_single_new_declaration_drives_both_adapters(self):
         def echo(context, code: str, limit: int = 3, mode: Literal["a", "b"] = "a"):
             """Echo the shared arguments."""
