@@ -149,7 +149,11 @@ with `kind: assertion` or `kind: error`. Multiple unittest subtest reports becom
 call record; mixed assertion and error subtest failures are `KILLED` with `kind: error`.
 A collection exception whose traceback reaches the mutated file is a `kind: import`
 kill after a clean baseline, including pytest's exit 4 when precise node selection cannot
-collect that node because of the mutated import. Exit 4 without that collection evidence
+collect that node because of the mutated import. When the owners span several files, pytest
+`-x` then stops collecting and reports that stop as a further failed collection of the session;
+the probe marks only that exception (`Session.Failed` carrying the session's own stop reason,
+read in `pytest_make_collect_report` before pytest discards `report.call`), and the kill keeps
+such notices as `stop_notices`. Exit 4 without that collection evidence
 stays infrastructure failure. Unrelated collection failures, `SystemExit`, setup,
 teardown, internal and baseline failures stay infrastructure errors.
 Evidence collection loads an immutable controller copy, even when testing the probe.
