@@ -349,6 +349,35 @@ class DeadlineHttpTest(ServerTestCase):
         self.assertTrue(self.responses[0].response.closed)
         self.assertEqual(len(server.seen), 1)
 
+    def test_terminal_error_read_timeout_after_expiry_reports_deadline_not_rejection(self):
+        # Given a real terminal error response, a stalled body read cannot erase expiry.
+        server = self.serve(Reply(404, body=b'{"message":"missing"}'))
+        client = self.observed_client(server)
+        with (
+            self.progress_reads(2, timed_out=True),
+            deadline_scope(1),
+            self.assertRaises(CallDeadlineError) as raised,
+        ):
+            client.get_json("/x")
+        self.assertEqual(raised.exception.details, {"surface": "evs", "attempts": 1})
+        self.assertTrue(self.responses[0].response.closed)
+        self.assertEqual(len(server.seen), 1)
+        self.assertEqual(self.records[0].status, 404)
+        self.assertEqual(self.clock.waits, [])
+
+    def test_terminal_error_read_timeout_before_expiry_keeps_status_rejection(self):
+        server = self.serve(Reply(404, body=b'{"message":"missing"}'))
+        client = self.observed_client(server)
+        with (
+            self.progress_reads(0.125, timed_out=True),
+            deadline_scope(5),
+            self.assertRaises(UpstreamRejectedError) as raised,
+        ):
+            client.get_json("/x")
+        self.assertEqual(raised.exception.details, {"surface": "evs", "status": 404, "attempts": 1})
+        self.assertTrue(self.responses[0].response.closed)
+        self.assertEqual(len(server.seen), 1)
+
 
 class DeadlineSettingsTest(unittest.TestCase):
     def test_deadline_defaults_to_fifty_seconds_and_accepts_a_fractional_override(self):
