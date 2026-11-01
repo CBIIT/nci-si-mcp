@@ -27,7 +27,8 @@ The specification of the required tools and their behaviour is owned by this rep
 source of record is the data in `spec/` (conventions, records, tools, requirements);
 `docs/specification.md` is generated from it with `pdm run spec-render` and is never edited by
 hand. Tokens such as `(A4.4)`, `M2.2` or `X-22` in code, tests and documents are convention and
-requirement IDs from `spec/conventions.yaml` and `spec/requirements.yaml`. `docs/implementation-plan.md` plans the implementation, and `acceptance/` holds the
+requirement IDs from `spec/conventions.yaml` and `spec/requirements.yaml`; `OP-…` tokens such as
+`OP-C10` name platform operations, listed in `acceptance/request-forms/` and `docs/upstream/`. `docs/implementation-plan.md` plans the implementation, and `acceptance/` holds the
 acceptance suite that tests the requirements (its README says how).
 
 ## Engineering standards
@@ -354,9 +355,10 @@ Rules learned the hard way:
   `mcp._tool_manager` and `Tool.fn_metadata.output_schema`. A rename fails at startup with an
   `AttributeError`; `tests/test_server.py` compares the published schemas.
 - Synchronous tool callbacks run in a worker thread through `anyio.to_thread.run_sync`, which
-  copies the calling task's context. The correlation, deadline, permission, release-pin and
-  cache-decision context variables reach a handler only through that copy, and a value set in
-  the worker does not flow back, hence the mutable carrier in `caching.cache_call`.
+  copies the calling task's context. The correlation, permission, session release-pin and
+  cache-decision context variables, set by server middleware, reach a handler only through that
+  copy; `registry.invoke` opens the deadline and per-call release selection inside the worker.
+  A value set in the worker does not flow back, hence the mutable carrier in `caching.cache_call`.
 - The package must be installed to be imported: `__version__` reads the installed metadata.
 
 ## Architecture in brief

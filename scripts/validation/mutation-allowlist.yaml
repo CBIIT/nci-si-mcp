@@ -285,7 +285,7 @@
   original: "b2bbc444950f9b0b0b967dc529eb889a7cf0d4003be033124fc090f4e1571b48"
   mutated: "e19ede9f5e840ec5e9c3ca6096c7341b0458e6c5c14c80709062e61900e94f51"
   reason: "Source sends the successful main return only to sys.exit; None and 0 both exit 0 with identical output after the same CI validation. Recorded row 138 survived the selected successful-main-push CLI test."
-# Approved: #430 comment 6563710618; re-approval of the #341 equivalent after the #430 rewrite. Observed SURVIVED at ba60194 under context d756fec984fa00ac8c69926e82acf888091a325c8de8133a5bd445f0618246b4 (tmp/mutation-runs/run-d7n67fxh).
+# Approved: #430 comment 6563710618; re-approval of the #341 equivalent after the #430 rewrite. Observed SURVIVED at ba60194 under its earlier context d756fec984fa00ac8c69926e82acf888091a325c8de8133a5bd445f0618246b4 (site values/2; tmp/mutation-runs/run-d7n67fxh); the key below is that site after ebe0746 added the unmarked-primary conjunct.
 - file: "scripts/validation/mutation_run.py"
   qualname: "import_failure"
   operator: "string:key-mode-setting"

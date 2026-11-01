@@ -27,10 +27,11 @@ ROOT = Path(__file__).resolve().parents[1]
 VALUE_SET = ROOT / "acceptance/fixtures/recorded/evs-fhir/expand-c85492.json"
 LISTING = '<pre><a href="releasedCDEsXML-OD.zip">export</a> 2026-06-05 12:30\n</pre>'
 
-# Expected hints come from spec/conventions.yaml M2.2 and M2.3, not from the implementation.
+# Expected hints come from spec/conventions.yaml M2.2 and M2.3 (list_terminologies: the existing
+# status-tool test in test_caching), not from the implementation.
 LONG = (86_400_000, "public")  # release-pinned NCIt content
 SHORT = (3_600_000, "public")  # caDSR content no registry release pins, or joined with it
-STATUS = (0, "public")  # the resolve tools; list_terminologies (test_caching status tools)
+STATUS = (0, "public")  # resolve tools and get_release_alignment (M2.2); list_terminologies
 COMPUTED = (0, "private")  # the tools marked computed in spec/tools.yaml
 ERROR = (0, "private")  # the error hint, which server._cache_results supplies itself
 

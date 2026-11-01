@@ -9,7 +9,16 @@ from dataclasses import asdict, dataclass, field, make_dataclass
 from functools import cache
 from importlib.resources import files
 from inspect import Parameter, Signature, getdoc, signature
-from typing import Annotated, Any, Literal, get_args, get_origin, get_type_hints, is_typeddict
+from typing import (
+    Annotated,
+    Any,
+    Concatenate,
+    Literal,
+    get_args,
+    get_origin,
+    get_type_hints,
+    is_typeddict,
+)
 
 from . import cadsr_content, cadsr_matching, content, handlers, seam, workflows
 from .audit import AuditClass, audited, secrets
@@ -61,7 +70,8 @@ from .results import (
 )
 from .validation import text_limit_description, validate_text_lengths
 
-# CLI spellings differ from the shared handler fields only in these legacy flags.
+# The CLI spellings that differ from the handler field: the negative flag of each True-default
+# boolean, and singular spellings of repeatable list arguments.
 _CLI_FLAGS = {
     "includeModules": "--no-modules",
     "include_hierarchy": "--no-hierarchy",
@@ -76,7 +86,9 @@ _CLI_FLAGS = {
 class ToolSpec:
     """One declaration shared by both adapters; input fields come from the handler."""
 
-    handler: Callable[..., dict[str, Any]]
+    # The static form of the rule __post_init__ checks at run time (an unannotated or Any
+    # context passes a type checker, and handlers declared in tests are not checked).
+    handler: Callable[Concatenate[Context, ...], dict[str, Any]]
     group: str
     output: Any
     # None means the handler supplies the whole policy, without a registry default.
@@ -153,9 +165,11 @@ def _public_parameters(handler: Callable[..., Any], hints: Mapping[str, object])
 
 
 def _require_cli_spelling(handler: str, parameter: Parameter) -> None:
-    # The CLI turns a True default into a store_false flag spelled like the parameter, which
-    # reads as the opposite of what it does; such a flag needs a declared negative spelling.
-    # Every True default is checked, whatever its annotation: only a boolean can hold it.
+    # The CLI turns a True boolean default into a store_false flag spelled like the parameter,
+    # which reads as the opposite of what it does. Any True default must therefore have a
+    # spelling declared in _CLI_FLAGS; the check reads no annotation, so a non-boolean True
+    # default (which no handler has) is refused too. It cannot tell a negative spelling from
+    # a declared rename: the reviewer of the spelling does.
     if parameter.default is True and parameter.name not in _CLI_FLAGS:
         raise ValueError(
             f"{handler}: {parameter.name} defaults to True; declare its negative CLI flag "
