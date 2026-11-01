@@ -5,17 +5,110 @@ from dataclasses import replace
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
-from fakes import FakeSSIS, concept, release, terminology_row
+from fakes import FakeSSIS, concept, data_element, release, terminology_row
 from nci_si_mcp.cadsr import CaDSRClient
 from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import InputValidationError
 from nci_si_mcp.evs import EVSClient
 from nci_si_mcp.validation import validate_text_target
+from test_cadsr_client import reply
 from test_http_client import Reply, ServerTestCase
 from test_server import ServerFixture
 
 
 class GroundTextAdmissionTest(ServerFixture, ServerTestCase):
+    def test_direct_search_emoji_without_release_refuses_before_discovery(self):
+        server = self.serve()
+        self.context.evs = EVSClient(server.url)
+        with patch("nci_si_mcp.server.configure_logging"):
+            failed, result = self.call("search_concepts", query="😀" * 1000)
+        self.assertTrue(failed)
+        self.assertEqual(result["error"]["code"], "invalid_request")
+        self.assertEqual(result["error"]["details"]["parameter"], "query")
+        self.assertEqual(server.seen, [])
+
+    def test_direct_search_explicit_release_admits_exact_target_and_refuses_one_more(self):
+        prefix = "/api/v1/concept/ncit_26.06e/search?term="
+        suffix = "&type=contains&include=minimal%2Chighlights&fromRecord=0&pageSize=10"
+        query = "😀" * 570 + "x" * (7000 - len(prefix + suffix) - 570 * 12)
+        for extra in ("x", ""):
+            with self.subTest(extra=extra):
+                server = self.serve(reply({"total": 0}))
+                self.context.evs = EVSClient(server.url)
+                with patch("nci_si_mcp.server.configure_logging"):
+                    failed, result = self.call(
+                        "search_concepts", query=query + extra, release="26.06e"
+                    )
+                self.assertEqual(failed, bool(extra), result)
+                if extra:
+                    self.assertEqual(result["error"]["code"], "invalid_request")
+                    self.assertEqual(result["error"]["details"]["parameter"], "query")
+                    self.assertEqual(server.seen, [])
+                else:
+                    self.assertEqual(result["results"], [])
+                    self.assertEqual(
+                        [target for target, _ in server.seen],
+                        [prefix + query.replace("😀", "%F0%9F%98%80") + suffix],
+                    )
+
+    def test_pinned_cadsr_routes_admit_exact_target_and_refuse_before_pin_discovery(self):
+        pin = "fixture-1"
+        row = {"identifier": pin, "generatedAt": "2026-07-01T22:19", "latest": True}
+        cases = (
+            (
+                "get_data_element",
+                "questionText",
+                "/NCIAPI/1.0/api/DataElements/ReferenceDocument?documentText=",
+                "&documentType=Preferred+Question+Text&headerOnly=true&registryRelease=" + pin,
+            ),
+            (
+                "search_data_elements",
+                "query",
+                "/NCIAPI/1.0/api/DataElement/search?keyword=",
+                "&pageSize=1000&registryRelease=" + pin,
+            ),
+        )
+        for tool, parameter, prefix, suffix in cases:
+            text = "😀" * 570 + "x" * (7000 - len(prefix + suffix) - 570 * 12)
+            for extra in ("x", ""):
+                with self.subTest(tool=tool, extra=extra):
+                    server = self.serve(
+                        reply({"registryReleases": [row]}),
+                        reply({"DataElements": [{"publicId": "123"}], "registryRelease": pin})
+                        if tool == "get_data_element"
+                        else reply({"DataElements": [], "registryRelease": pin}),
+                        reply({"DataElement": data_element(), "registryRelease": pin}),
+                    )
+                    self.context.cadsr = CaDSRClient(
+                        replace(self.settings, cadsr_base_url=server.url)
+                    )
+                    with patch("nci_si_mcp.server.configure_logging"):
+                        failed, result = self.call(
+                            tool, **{parameter: text + extra, "registryRelease": pin}
+                        )
+                    self.assertEqual(failed, bool(extra), result)
+                    if extra:
+                        self.assertEqual(result["error"]["code"], "invalid_request")
+                        self.assertEqual(
+                            result["error"]["details"],
+                            {
+                                "parameter": parameter,
+                                "reason": "Encoded request target is 7001 bytes; "
+                                "use at most 7000 bytes",
+                            },
+                        )
+                        self.assertEqual(server.seen, [])
+                    else:
+                        self.assertEqual(
+                            result.get("publicId", result.get("results")),
+                            "123" if tool == "get_data_element" else [],
+                        )
+                        self.assertEqual(server.seen[0][0], "/NCIAPI/1.0/api/registry/releases")
+                        self.assertEqual(
+                            server.seen[1][0], prefix + text.replace("😀", "%F0%9F%98%80") + suffix
+                        )
+                        self.assertEqual(len(server.seen), 3 if tool == "get_data_element" else 2)
+
     def test_emoji_target_is_rejected_by_mcp_before_any_discovery(self):
         # Given legal code-point length but an oversized URL, no source is contacted.
         server = self.serve()

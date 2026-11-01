@@ -174,6 +174,25 @@ def data_element_request(
     return f"{DATA_API}/DataElement/{public_id}", params
 
 
+def question_request(text: str, pin: str | None) -> tuple[str, dict[str, object]]:
+    """Use the same question target for admission and the upstream request."""
+    return f"{DATA_API}/DataElements/ReferenceDocument", {
+        "documentText": text,
+        "documentType": "Preferred Question Text",
+        "headerOnly": "true",
+        "registryRelease": pin,
+    }
+
+
+def search_request(query: str, size: int, pin: str | None) -> tuple[str, dict[str, object]]:
+    """Use the same keyword target for admission and the upstream request."""
+    return f"{DATA_API}/DataElement/search", {
+        "keyword": query,
+        "pageSize": size,
+        "registryRelease": pin,
+    }
+
+
 class CaDSRClient:
     def __init__(self, settings: Settings) -> None:
         credential = settings.cadsr_credential
@@ -219,13 +238,7 @@ class CaDSRClient:
     def get_by_question_text(
         self, text: str, *, registry_release: str | None = None
     ) -> list[dict[str, Any]]:
-        path = f"{DATA_API}/DataElements/ReferenceDocument"
-        params = {
-            "documentText": text,
-            "documentType": "Preferred Question Text",
-            "headerOnly": "true",
-            "registryRelease": registry_release,
-        }
+        path, params = question_request(text, registry_release)
         validate_text_target(self.http.url(path, params), "questionText")
         response = self.http.get_json(path, params)
         _verify_registry_pin(response, registry_release)
@@ -264,8 +277,7 @@ class CaDSRClient:
         registry pin follows the requested future C-1 contract.
         """
         size = bounded(page_size, 1000, "pageSize")
-        path = f"{DATA_API}/DataElement/search"
-        params = {"keyword": query, "pageSize": size, "registryRelease": registry_release}
+        path, params = search_request(query, size, registry_release)
         validate_text_target(self.http.url(path, params), "query")
         response = self.http.get_json(path, params)
         _verify_registry_pin(response, registry_release)

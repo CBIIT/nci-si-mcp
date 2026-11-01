@@ -177,7 +177,6 @@ def _fetch_concepts(
 
     try:
         for batch in batched(codes, batch_size, strict=False):
-            check_deadline()
             for concepts, too_large, requested in _fetch_batch(
                 client, list(batch), release, include
             ):
@@ -553,7 +552,6 @@ class _Walk:
                 self._checked_chunk(found, missing, oversized, depth, kinds)
                 concepts.update(found)
         except CallDeadlineError:
-            self._mark_deadline()
             # Retain verified initial batches before deciding whether a partial graph exists.
             self.concepts.update(_node_payloads(concepts))
             self.start(frontier, concepts, depth)

@@ -7,10 +7,28 @@ from nci_si_mcp import content
 from nci_si_mcp.bounds import Budget, check_deadline, deadline_scope
 from nci_si_mcp.errors import correlated
 from nci_si_mcp.release import ReleaseContext
+from nci_si_mcp.traversal import traverse_ncit
 from test_server import ServerFixture
 
 
 class DeadlineProjectionTest(ServerFixture):
+    def test_depth_zero_expiry_preserves_verified_first_batch_of_start_nodes(self):
+        """Given multiple seed batches, expiry on the second retains the verified first fifty."""
+        self.children(51)
+        starts = [f"C{i}" for i in range(1, 52)]
+        batches = self.install_deadline(2)
+        release = ReleaseContext("ncit", "monthly", "26.06e", None, "ncit_26.06e")
+        with correlated(), deadline_scope(50):
+            graph = traverse_ncit(
+                self.evs, starts, release, ["child"], Budget(depth=0), exclusions=frozenset()
+            )
+            self.assertEqual(graph.truncation.to_dict(), self.deadline_cut())
+        self.assertEqual([node.code for node in graph.nodes], starts[:50])
+        self.assertEqual(set(graph.concepts), set(starts[:50]))
+        self.assertEqual(graph.edges, [])
+        self.assertTrue(graph.deadline_exhausted)
+        self.assertEqual(batches, [tuple(starts[:50]), ("C51",)])
+
     def assert_deadline_projection(self, graph):
         arguments = {
             "terminology": "ncit",

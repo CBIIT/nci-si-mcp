@@ -23,7 +23,6 @@ from .bounds import (
     RequestBudgetError,
     budgeted,
     current_budget,
-    current_deadline,
 )
 from .catalogue import exclusion_codes, load_catalogue
 from .context import Context
@@ -599,7 +598,10 @@ def _search_target(
     if mode in ("semantic", "hybrid"):
         return
     # Admission precedes discovery; the actual request checks its resolved fields again.
-    path, params = search_request(f"{terminology}_{release or ''}", query, mode, 0, limit)
+    pinned = terminology + "_"
+    if release is not None:
+        pinned += release
+    path, params = search_request(pinned, query, mode, 0, limit)
     validate_text_target(context.evs.uri(path, params), parameter)
 
 
@@ -1096,10 +1098,7 @@ def _hydration_bound(
     budget: Budget, omitted: int, error: RequestBudgetError | CallDeadlineError | None
 ) -> Truncation:
     if isinstance(error, CallDeadlineError):
-        deadline = current_deadline()
-        if deadline is None:
-            raise error
-        limit, reached, omitted = deadline.figures()
+        limit, reached, omitted = error.figures
         return Truncation(True, "deadline", limit, reached, omitted, False)
     return _request_cut(budget, omitted)
 

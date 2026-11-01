@@ -67,8 +67,7 @@ def _text_code(context: Context, text: str, selected: ReleaseContext) -> str:
     try:
         found = content.search_concepts(context, "ncit", text, pin)["results"]
     except InputValidationError as exc:
-        if exc.details.get("parameter") != "query":
-            raise
+        # Fixed options, validated release/text and no cursor leave only query refusal here.
         raise InputValidationError(str(exc), "text") from exc
     if not found:
         raise PlatformError(

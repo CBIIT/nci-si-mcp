@@ -214,22 +214,22 @@ def _served_input_schema(schema: dict[str, Any]) -> dict[str, Any]:
 
     def bounded_text(node: Any, path: str) -> Any:
         maximum = TEXT_LIMITS.get(path)
-        if maximum is not None:
-            if node.get("type") == "string":
-                node["maxLength"] = maximum
-            if "description" in node or node.get("type") == "string":
-                node["description"] = (
-                    node.get("description", "")
-                    + f" At most {maximum} Unicode code points per text value; longer input "
-                    "is refused with invalid_request before upstream or index work, "
-                    "never shortened."
-                ).strip()
-                if path in {"query", "questionText"}:
-                    node["description"] += (
-                        " URL-carried text also has a separate 7,000-byte encoded request-target "
-                        "ceiling, including filters and pins; for caDSR this is conservative "
-                        "server policy, not measured capacity."
-                    )
+        if maximum is None:
+            return node
+        if node.get("type") == "string":
+            node["maxLength"] = maximum
+        node["description"] = (
+            node.get("description", "")
+            + f" At most {maximum} Unicode code points per text value; longer input "
+            "is refused with invalid_request before upstream or index work, "
+            "never shortened."
+        ).strip()
+        if path in {"query", "questionText"}:
+            node["description"] += (
+                " URL-carried text also has a separate 7,000-byte encoded request-target "
+                "ceiling, including filters and pins; for caDSR this is conservative "
+                "server policy, not measured capacity."
+            )
         return node
 
     def descend(node: Any, path: str) -> Any:

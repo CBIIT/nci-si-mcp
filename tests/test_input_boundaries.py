@@ -57,6 +57,24 @@ def lengths(node, definitions, path=""):
     return found
 
 
+def field_nodes(node, definitions, path=""):
+    if "$ref" in node:
+        yield from field_nodes(definitions[node["$ref"].split("/")[-1]], definitions, path)
+    yield path, node
+    for branch in node.get("anyOf", []):
+        yield from field_nodes(branch, definitions, path)
+    for name, child in node.get("properties", {}).items():
+        yield from field_nodes(child, definitions, f"{path}.{name}".lstrip("."))
+    if "items" in node:
+        yield from field_nodes(node["items"], definitions, path + "[]")
+
+
+def text_descriptions(schema, fields):
+    for path, node in field_nodes(schema, schema.get("$defs", {})):
+        if path in fields and ("description" in node or node.get("type") == "string"):
+            yield path, node
+
+
 class InputBoundaryTest(ServerFixture, ServerTestCase):
     def upstream(self, *responses):
         server = self.serve(*responses)
@@ -221,6 +239,43 @@ class InputBoundaryTest(ServerFixture, ServerTestCase):
         }
         for name, fields in EXPECTED.items():
             self.assertEqual({path: schemas[name].get(path) for path in fields}, fields, name)
+
+    def test_text_descriptions_keep_guidance_and_state_limits_on_fields_branches_and_items(self):
+        listing = self.session(lambda client: client.list_tools())
+        schemas = {tool.name: tool.input_schema for tool in listing.tools}
+        guidance = {
+            (
+                "search_data_elements",
+                "query",
+            ): "Words to search for, for example breast cancer stage.",
+            ("get_data_element", "questionText"): "The preferred question text of the data element",
+        }
+        for (name, path), original in guidance.items():
+            self.assertIn(original, schemas[name]["properties"][path]["description"])
+        for name, fields in EXPECTED.items():
+            schema = schemas[name]
+            for path, node in text_descriptions(schema, fields):
+                with self.subTest(tool=name, path=path, type=node.get("type")):
+                    description = node["description"]
+                    self.assertIn(
+                        f"At most {fields[path]} Unicode code points per text value",
+                        description,
+                    )
+                    self.assertIn(
+                        "refused with invalid_request before upstream or index work, "
+                        "never shortened.",
+                        description,
+                    )
+                    if path in {"query", "questionText"}:
+                        self.assertIn(
+                            "separate 7,000-byte encoded request-target ceiling, "
+                            "including filters and pins",
+                            description,
+                        )
+                        policy = (
+                            "for caDSR this is conservative server policy, not measured capacity."
+                        )
+                        self.assertIn(policy, description)
 
     def test_overlong_nested_text_names_its_path_before_any_upstream_or_index_work(self):
         """Given one overlong scalar, when called over MCP, then refuse before doing work."""

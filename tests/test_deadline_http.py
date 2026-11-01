@@ -191,6 +191,33 @@ class DeadlineHttpTest(ServerTestCase):
         self.assertEqual(len(server.seen), 1)
         self.assertEqual(len(self.records), 1)
 
+    def test_final_transient_attempt_expiry_reports_deadline_instead_of_status(self):
+        """Given no retries remain, expiry after the actual failure still owns the error."""
+        server = self.serve(Reply(503))
+        client = self.observed_client(server, advance=1, max_attempts=1)
+        with deadline_scope(1), correlated("final-attempt-expiry"):
+            result = call("lookup", lambda: client.get_json("/x"))
+        self.assertEqual(
+            result,
+            {
+                "error": {
+                    "code": "upstream_unavailable",
+                    "message": (
+                        "The call exhausted its elapsed-time budget. "
+                        "Retry later or ask for less work."
+                    ),
+                    "details": {"surface": "evs", "attempts": 1},
+                    "correlationId": "final-attempt-expiry",
+                }
+            },
+        )
+        self.assertEqual([path for path, _ in server.seen], ["/x"])
+        self.assertEqual(
+            [(row.attempt, row.status, row.failure) for row in self.records],
+            [(1, 503, "http_status")],
+        )
+        self.assertEqual(self.clock.waits, [])
+
     def test_shared_attempt_total_includes_retries_and_names_the_last_surface(self):
         """Given two clients in one call, expiry reports all actual attempts."""
         server = self.serve(Reply(503))

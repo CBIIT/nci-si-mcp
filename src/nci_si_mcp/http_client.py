@@ -632,7 +632,6 @@ class HttpClient:
         attempts = timeouts = 0
         last_http: dict[str, Any] = {}
         while True:
-            check_deadline()
             attempts += 1
             try:
                 return self._attempt(request, path, attempts, reject, json_response, interpret)

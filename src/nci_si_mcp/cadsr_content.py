@@ -8,7 +8,14 @@ from typing import Annotated, Any, NoReturn, get_args
 
 from . import cursor as cursors
 from .caching import select_cache_hint
-from .cadsr import DATA_API, EXPORT_FOLDER, FORM_API, data_element_request
+from .cadsr import (
+    DATA_API,
+    EXPORT_FOLDER,
+    FORM_API,
+    data_element_request,
+    question_request,
+    search_request,
+)
 from .context import Context
 from .errors import InputValidationError, PlatformError
 from .models import Truncation, live_provenance, results_cut, with_attribution
@@ -423,16 +430,10 @@ def get_data_element(
     """
     sections = _lookup_options(publicId, longName, questionText, version, include)
     if questionText is not None:
+        path, params = question_request(questionText, registryRelease)
+        # Refuse the actual target before pin discovery can contact caDSR.
         validate_text_target(
-            context.cadsr.http.url(
-                f"{DATA_API}/DataElements/ReferenceDocument",
-                {
-                    "documentText": questionText,
-                    "documentType": "Preferred Question Text",
-                    "headerOnly": "true",
-                    "registryRelease": registryRelease,
-                },
-            ),
+            context.cadsr.http.url(path, params),
             "questionText",
         )
     release = _pin(context, registryRelease)
@@ -510,13 +511,9 @@ def search_data_elements(
     publicId or question text instead.
     """
     _search_options(query, mode, filters)
-    validate_text_target(
-        context.cadsr.http.url(
-            f"{DATA_API}/DataElement/search",
-            {"keyword": query, "pageSize": _SEARCH_CAP, "registryRelease": registryRelease},
-        ),
-        "query",
-    )
+    path, params = search_request(query, _SEARCH_CAP, registryRelease)
+    # Refuse the actual target before pin discovery can contact caDSR.
+    validate_text_target(context.cadsr.http.url(path, params), "query")
     size = bounded(limit, 100, "limit")
     args = {
         "tool": "search_data_elements",
@@ -533,12 +530,7 @@ def search_data_elements(
     if filters:
         _unavailable("data-element search filters (OP-C03, docs/upstream/cadsr.md#cadsr-search)")
     response = _search_route(context, query, registryRelease)
-    provenance = _provenance(
-        context,
-        release,
-        f"{DATA_API}/DataElement/search",
-        {"keyword": query, "pageSize": _SEARCH_CAP, "registryRelease": registryRelease},
-    )
+    provenance = _provenance(context, release, path, params)
     rows = response["DataElements"]
     records = [{"dataElement": _element(row, [], provenance)} for row in rows[:_SEARCH_CAP]]
     result = _page(records, "results", position.offset, size, args, provenance)

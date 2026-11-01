@@ -13,7 +13,8 @@ from .errors import PlatformError
 class CallDeadlineError(PlatformError):
     """The invocation cannot start more work within its elapsed-time allowance."""
 
-    def __init__(self, attempts: int, surface: str | None) -> None:
+    def __init__(self, attempts: int, surface: str | None, figures: tuple[int, int, int]) -> None:
+        self.figures = figures
         super().__init__(
             "upstream_unavailable",
             "The call exhausted its elapsed-time budget. Retry later or ask for less work.",
@@ -35,7 +36,7 @@ class Deadline:
 
     def check(self, wait: float = 0) -> None:
         if self.remaining() <= wait:
-            raise CallDeadlineError(self.attempts, self.surface)
+            raise CallDeadlineError(self.attempts, self.surface, self.figures())
 
     def request(self, surface: str) -> None:
         self.surface = surface
