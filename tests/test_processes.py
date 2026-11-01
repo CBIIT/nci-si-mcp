@@ -128,48 +128,6 @@ class StopTest(unittest.TestCase):
         finally:
             leader.stdout.close()
 
-    def test_group_grace_returns_without_polling_delay_when_the_group_is_gone(self):
-        process = SlowToExit(grace=0)
-        process.pid = 123
-        with (
-            patch("scripts.processes.os.killpg", side_effect=ProcessLookupError),
-            patch("scripts.processes.time.sleep") as sleep,
-        ):
-            stop(process, group=True, group_grace=12)
-        self.assertEqual(process.returncode, 7)
-        self.assertEqual(sleep.call_count, 0)
-
-    def test_group_grace_is_bounded_even_if_a_zombie_keeps_the_group_present(self):
-        process = SlowToExit(grace=0)
-        process.pid = 123
-        signals = []
-        with (
-            patch("scripts.processes.os.killpg", side_effect=lambda pid, sig: signals.append(sig)),
-            patch("scripts.processes.time.monotonic", side_effect=(0, 0, 12)),
-            patch("scripts.processes.time.sleep") as sleep,
-        ):
-            stop(process, group=True, group_grace=12)
-        self.assertEqual(signals, [signal.SIGTERM, 0, 0, signal.SIGKILL])
-        self.assertEqual(sleep.call_args.args, (0.01,))
-        self.assertEqual(process.returncode, 7)
-
-    def test_group_probe_permission_failure_propagates(self):
-        process = SlowToExit(grace=0)
-        process.pid = 123
-        signals = []
-
-        def denied_probe(pid, sig):
-            signals.append(sig)
-            if sig == 0:
-                raise PermissionError("group probe denied")
-
-        with (
-            patch("scripts.processes.os.killpg", side_effect=denied_probe),
-            self.assertRaisesRegex(PermissionError, "group probe denied"),
-        ):
-            stop(process, group=True, group_grace=12)
-        self.assertEqual(signals, [signal.SIGTERM, 0, signal.SIGKILL])
-
 
 def _alive(pid: int) -> bool:
     try:

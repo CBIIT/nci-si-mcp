@@ -38,23 +38,12 @@ def _send(process: subprocess.Popen[bytes], sig: signal.Signals, *, group: bool)
         process.send_signal(sig)
 
 
-def _group_gone(pid: int) -> bool:
-    try:
-        os.killpg(pid, 0)
-    except ProcessLookupError:
-        return True
-    return False
-
-
-def stop(process: subprocess.Popen[bytes], *, group: bool = False, group_grace: float = 0) -> None:
+def stop(process: subprocess.Popen[bytes], *, group: bool = False) -> None:
     """Terminate, wait, then kill and reap `process`; with `group` its whole process group,
     which the process must lead.
 
     The plain path returns at once for a process that has finished. With `group` the sequence
     always ends with a SIGKILL sweep of the group, even when the leader has already exited.
-    An opt-in `group_grace` lets surviving workers finish cleanup after the leader is reaped;
-    absent groups return immediately, and groups held by zombies still reach the final sweep.
-    It adds at most the grace plus one 10 ms polling interval to the existing bounded waits.
     """
 
     # The same terminate, wait, kill sequence as OwnedServer.stop in nci_si_acceptance, kept
@@ -70,11 +59,7 @@ def stop(process: subprocess.Popen[bytes], *, group: bool = False, group_grace: 
         process.wait(timeout=STOP_SECONDS)
     if group:
         # A group leader can exit while an owned descendant ignores graceful termination.
-        try:
-            if group_grace > 0:
-                wait_until(lambda: _group_gone(process.pid), group_grace, interval=0.01)
-        finally:
-            _send(process, signal.SIGKILL, group=True)
+        _send(process, signal.SIGKILL, group=True)
 
 
 def wait_until(predicate: Callable[[], bool], seconds: float, *, interval: float) -> bool:
