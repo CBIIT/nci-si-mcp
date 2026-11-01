@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Mapping
 from dataclasses import asdict, dataclass, field, make_dataclass
 from functools import cache
 from importlib.resources import files
@@ -158,7 +158,7 @@ class ToolSpec:
 _POSITIONAL = (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)
 
 
-def _public_parameters(handler: Callable[..., Any], hints: dict[str, Any]) -> list[Parameter]:
+def _public_parameters(handler: Callable[..., Any], hints: Mapping[str, object]) -> list[Parameter]:
     """The inputs after the injected Context, which the handler must take first by position.
 
     The Context is recognised by its annotation: a public argument may itself be named
