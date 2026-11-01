@@ -112,12 +112,17 @@ def pytest_make_collect_report(collector):
 def session_stop(session, call) -> bool:
     """Whether `call` failed with the stop pytest raises once -x has seen a failure.
 
-    Session.pytest_collectstart raises `session.Failed(session.shouldfail)` after a first
-    failure. Before any failure `shouldfail` is False, so no raised stop matches it; a
-    lookalike message, another type or a subclass is not the notice either.
+    Session.pytest_collectstart raises `session.Failed(session.shouldfail)` only after a first
+    failure has set `shouldfail`. A collector raising that type before then, a lookalike
+    message, another type or a subclass is not the notice.
     """
+    stopped = session.shouldfail
     error = getattr(getattr(call, "excinfo", None), "value", None)
-    return type(error) is session.Failed and getattr(error, "args", None) == (session.shouldfail,)
+    return (
+        bool(stopped)
+        and type(error) is session.Failed
+        and getattr(error, "args", None) == (stopped,)
+    )
 
 
 def pytest_collectreport(report):

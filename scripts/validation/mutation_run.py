@@ -469,8 +469,10 @@ def import_kill(status: int, failed: list[dict], mutated_file: Path | None) -> d
 
 
 def import_failure(row: dict, mutated_file: Path | None) -> bool:
+    # A primary failure carries no stop marker of any value: a notice never stands in for it.
     return (
         mutated_file is not None
+        and "stop_notice" not in row
         and row["phase"] == "collection"
         and not row.get("exception", "").startswith("SystemExit")
         and str(mutated_file.resolve()) in row.get("traceback_paths", [])
