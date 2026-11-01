@@ -14,6 +14,24 @@ from test_server import ServerFixture
 
 
 class HTTPLaunchTest(ServerFixture):
+    def test_http_shutdown_has_the_documented_twenty_second_drain(self):
+        configs = []
+
+        def serve(app, **options):
+            configs.append(uvicorn.Config(app, **options))
+
+        with patch("uvicorn.run", serve):
+            run_http(self.settings, self.context)
+        self.assertEqual(
+            (
+                configs[0].host,
+                configs[0].port,
+                configs[0].proxy_headers,
+                configs[0].timeout_graceful_shutdown,
+            ),
+            ("127.0.0.1", 8000, False, 20),
+        )
+
     def test_forwarded_headers_do_not_rewrite_client_identity_or_scheme(self):
         async def identity(request):
             return JSONResponse({"host": request.client.host, "scheme": request.url.scheme})

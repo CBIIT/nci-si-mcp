@@ -144,6 +144,8 @@ flowchart LR
 
 Host/Origin admission applies even on loopback and to health probes. `/health` checks the
 process; `/ready` checks local index/model compatibility, not upstream availability. The
+`/health` and `/ready` probes are unauthenticated and must be reachable only from the
+orchestrator network. The
 default image has no client authentication configured. Keep it private until the approved
 identity integration is supplied. Allow 20 seconds for SIGTERM shutdown; commands and mount
 requirements are in the [runbook](container.md#start-with-external-assets).

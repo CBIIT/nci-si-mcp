@@ -25,6 +25,9 @@ from .validation import (
 
 # Upper bound for the timeout and backoff settings; socket timeouts overflow far above it.
 MAX_SECONDS = 3600
+# Leave headroom below common 60-second MCP client timeouts. Reassess client/gateway
+# deadlines before raising this owner-approved per-call elapsed-time allowance.
+DEFAULT_CALL_DEADLINE_SECONDS = 50.0
 MAX_ATTEMPTS = 10
 # A response is read into memory whole before it is parsed, so the limit is capped.
 MAX_RESPONSE_BYTES = 1024**3
@@ -296,6 +299,7 @@ class Settings:
     embedding_provider: str = "hashing"
     embedding_model: str = DEFAULT_EMBEDDING_MODEL
     timeout_seconds: float = 30.0
+    call_deadline_seconds: float = DEFAULT_CALL_DEADLINE_SECONDS
     match_timeout_seconds: float = 45.0
     evs_max_attempts: int = 3
     evs_retry_backoff_seconds: float = 0.25
@@ -322,6 +326,7 @@ class Settings:
         _require_licence_key(self.evs_license_key)
         _require_credential(self.cadsr_credential)
         _require_seconds("NCI_SI_TIMEOUT_SECONDS", self.timeout_seconds)
+        _require_seconds("NCI_SI_CALL_DEADLINE_SECONDS", self.call_deadline_seconds)
         _require_seconds("NCI_SI_MATCH_TIMEOUT_SECONDS", self.match_timeout_seconds)
         _require_between("NCI_SI_EVS_MAX_ATTEMPTS", self.evs_max_attempts, 1, MAX_ATTEMPTS)
         _require_between(
@@ -361,6 +366,9 @@ class Settings:
             embedding_provider=os.getenv("NCI_SI_EMBEDDING_PROVIDER", "hashing"),
             embedding_model=os.getenv("NCI_SI_EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL),
             timeout_seconds=_env_number("NCI_SI_TIMEOUT_SECONDS", "30", float),
+            call_deadline_seconds=_env_number(
+                "NCI_SI_CALL_DEADLINE_SECONDS", str(DEFAULT_CALL_DEADLINE_SECONDS), float
+            ),
             match_timeout_seconds=_env_number("NCI_SI_MATCH_TIMEOUT_SECONDS", "45", float),
             evs_max_attempts=_env_number("NCI_SI_EVS_MAX_ATTEMPTS", "3", int),
             evs_retry_backoff_seconds=_env_number(

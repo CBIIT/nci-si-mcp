@@ -130,6 +130,7 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_CADSR_CREDENTIAL` | unset | caDSR credential as `user:password` (the password at least 8 characters); handled like the licence key |
 | `NCI_SI_TIMEOUT_SECONDS` | `30` | Per-request timeout |
 | `NCI_SI_MATCH_TIMEOUT_SECONDS` | `45` | Timeout of a caDSR match request |
+| `NCI_SI_CALL_DEADLINE_SECONDS` | `50` | Shared elapsed-time budget per call, including release discovery, retries and workflow hops; finite and positive, no disable switch. Index operator commands are outside this deadline. DNS resolution and connection setup are bounded only by the per-request timeout: this is not a hard real-time cutoff |
 | `NCI_SI_EVS_MAX_ATTEMPTS` | `3` | Request attempts, 1 to 10. Only a 5xx, a 429 and a connection failure are retried; a 429 waits for its `Retry-After` (a platform that asks for more than 60 seconds is not asked again) |
 | `NCI_SI_EVS_RETRY_BACKOFF_SECONDS` | `0.25` | Initial exponential backoff, jittered between half and all of it; a single wait is capped at 60 seconds |
 | `NCI_SI_EVS_MAX_RESPONSE_BYTES` | `10485760` | Maximum accepted EVS REST or FHIR response, up to 1 GiB |
@@ -146,6 +147,10 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_HTTP_ALLOWED_ORIGINS` | `http://127.0.0.1:*,http://localhost:*,http://[::1]:*` | Permitted Origin authorities, exact or wildcard port; requests without Origin are allowed |
 | `NCI_SI_HTTP_REQUIRE_INDEX` | `0` | Boolean switch, read as `0` or `1` only (anything else is a configuration error). Set to 1 when deployment supplies an index: readiness requires an active build compatible with the configured embedding model. With 0 an absent index permits live tools; an existing active build is still verified |
 
+HTTP synchronous calls share AnyIO's default ceiling of 40 worker tokens per process. Each
+call holds a token for its whole duration, including upstream waits. `/health` needs no worker
+token; `/ready` dispatches its storage check to that pool.
+
 The caDSR lookup, registry, matching, form and code-map tools use upstream APIs.
 Registry discovery reads the export folder's exact distribution row. The folder gives
 local server time without a zone, so `generatedAt` carries no offset (for example
@@ -157,6 +162,27 @@ default, and one that is given replaces that default. In `fixture` mode every on
 server cannot reach a production host by accident; a missing one stops startup, naming it. The
 server adds the platform's own paths to each base URL. A setting set to an empty value is
 rejected: unset it instead.
+
+## Limits and reasons
+
+The input limits below are published in tool schemas and enforced by the server. Text lengths count Unicode code
+points per scalar, including each nested string. Oversized input is refused with
+`invalid_request` before upstream or index work, never shortened; upstream content is preserved.
+
+| Limit | Value | Reason / what to reassess before changing it |
+|---|---|---|
+| Call deadline (`NCI_SI_CALL_DEADLINE_SECONDS`) | 50 s default | Leaves headroom below common 60 s client timeouts; weigh client/gateway timeouts before raising it. One stalled body read can overrun by at most the socket timeout chosen at request open: `min(timeout, remaining)`, with `timeout` set by `NCI_SI_TIMEOUT_SECONDS` or `NCI_SI_MATCH_TIMEOUT_SECONDS` for matching ([A5.2](docs/specification.md#a5-result-bounding-truncation-and-traversal)) |
+| HTTP shutdown drain | 20 s | Deployment SIGTERM drain policy, not a request timeout; coordinate with the deployment termination grace period ([transport](docs/transport.md#admission-and-readiness)) |
+| `search_concepts.query`, `search_data_elements.query` | 1,000 | Search phrases, with bounded search work; reassess real queries and encoding ([field reasons](spec/tools.yaml)) |
+| `get_data_element.questionText` | 2,000 | July 2026 preferred-question-text maximum was 1,011 (CDE 6148373 v1); snapshot gaps warrant headroom; remeasure broader exports ([hashes and reason](spec/tools.yaml)) |
+| `ground_value.text`; CDE-match `entities[].name`, `userTip`, `permissibleValues[]`; `match_value_meanings.values[]` | 2,000 each | Short grounding/matching inputs, with bounded body work; reassess legitimate inputs ([field reasons](spec/tools.yaml)) |
+| Dictionary `columns[].name`, `description`, `sampleValues[]` | 10,000 each | Richer dictionary metadata in bodies; reassess real dictionaries and matching work ([field reasons](spec/tools.yaml)) |
+| URL-carried free text: complete encoded request target, including filters/pins | 7,000 bytes | Existing conservative EVS policy (HTTP 400 observed at 8,046 bytes); caDSR is conservative server policy, not measured capacity; remeasure deployment capacity and encoding ([evidence](ARCHITECTURE.md#public-concept-batches), [policy](spec/tools.yaml)) |
+| Local lexical FTS expression | First 64 tokens, in order | Bounds FTS work; reassess ranking/cost; vector search uses the whole text ([search contract](spec/tools.yaml)) |
+| Supplied `_meta.correlationId` | Full match `[A-Za-z0-9._:-]{1,128}` | Header-safe, bounded audit context; reassess transport/audit budgets; invalid values are refused under a fresh safe ID without echoing them ([A6.2](docs/specification.md#a6-audit-context-correlation-and-telemetry)) |
+
+Connection-level timeout refresh is deferred until EVS/caDSR live timings show a mid-body
+stall: none has been observed, and custom HTTP/HTTPS connections add TLS-sensitive complexity.
 
 ## Build a small local index
 
@@ -526,8 +552,8 @@ upstream supplied one; a hierarchy link has the kind `parent`, `child` or `desce
 set today. A node carries the provenance of the edge that first reached it.
 
 A tool that bounds its result returns `truncation`. It is `{"occurred": false}` when nothing
-was cut. Otherwise it holds `bound` (`results`, `depth`, `nodes`, `edges`, `kind_budget`, `requests` or
-`upstream_cap`), `limit`,
+was cut. Otherwise it holds `bound` (`results`, `depth`, `nodes`, `edges`, `kind_budget`, `requests`,
+`upstream_cap` or `deadline`), `limit`,
 `reached`, `omitted` (always a number) and `exact` (false where `omitted` is a lower bound). A
 traversal reports the first bound that dropped something; it counts the concepts or edges it
 dropped, not those beyond them, so `exact` is false. `upstream_cap` is a concept whose relations
@@ -548,7 +574,7 @@ Clients may display a tool's human-readable title in pickers and approval prompt
 use its programmatic name. These display labels are separate from schema titles.
 
 Every parameter of every tool is described in the served input schema, with an example, its default
-and its maximum where it has them, its stated form (`pattern`) and its list limits
+and its maximum where it has them, text `maxLength`, its stated form (`pattern`) and its list limits
 (`minItems`, `maxItems`); the schema closes the argument set, and that of each nested record (`additionalProperties: false`),
 and carries no generated titles.
 A parameter caDSR does not serve yet says so there, with its requirement identifier, and is left unset.
@@ -579,10 +605,10 @@ The tools, generated from `spec/tools.yaml` by `pdm run quickstart-tools`:
 | `resolve_release` | EVS | Which release of a terminology is current, by channel (without one, the channel configured, A3.6.2); called explicitly for discovery; NCIt content calls may instead omit release under X-22. |
 | `get_concept` | EVS | One concept with the detail selected. |
 | `get_concepts` | EVS | Many concepts in one platform call, with the detail selected. |
-| `search_concepts` | EVS | Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1). Retired concepts are returned with the others (retired include, the default, as the platform returns them), or alone (retired only), where retirement is a concept status the search can select: the listing's metadata.retiredStatusValue is among its metadata.conceptStatuses, and that status is what is sent. On 2 October 2026 this holds for NCIt alone. Every mode takes the same two values. Search cannot leave retired concepts out: the platform offers no such selection, and each result's active and status let a caller drop them itself. |
-| `get_concept_hierarchy` | EVS | A concept's parents, children or paths to the root, bounded. nodes holds the concepts reached, not the one asked about, and limit is a page that the cursor continues. pathsToRoot returns each path the platform gives in paths, the codes from the concept to the root in the platform's order, with each concept on them once in nodes; depth, limit and cursor do not apply to it. |
+| `search_concepts` | EVS | Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1). Local lexical candidate selection uses the first 64 tokens in order to bound FTS work; only longer token sequences change lexical/hybrid ranking; vector search uses the whole text. Retired concepts are returned with the others (retired include, the default, as the platform returns them), or alone (retired only), where retirement is a concept status the search can select: the listing's metadata.retiredStatusValue is among its metadata.conceptStatuses, and that status is what is sent. On 2 October 2026 this holds for NCIt alone. Every mode takes the same two values. Search cannot leave retired concepts out: the platform offers no such selection, and each result's active and status let a caller drop them itself. |
+| `get_concept_hierarchy` | EVS | A concept's parents, children or paths to the root, bounded. nodes holds the concepts reached, not the one asked about, and limit is a page that the cursor continues. pathsToRoot returns each path the platform gives in paths, the codes from the concept to the root in the platform's order, with each concept on them once in nodes; depth, limit and cursor do not apply to it. For parent/child, deadline exhaustion preserves verified partial content without nextCursor; the first actual bound stays, otherwise truncation.bound is deadline with limit/reached in milliseconds. Ask for less depth or retry. Before any verified start, or for pathsToRoot, deadline exhaustion is upstream_unavailable, never partial paths. |
 | `expand_value_set` | EVS | The members of a value set, paged and bounded by the tool itself. It pages by count and offset, as FHIR $expand does, in place of a cursor (the exception to M6.1); activeOnly is false unless given. |
-| `get_concept_neighborhood` | EVS | Bounded traversal across roles and associations with a budget per kind; nodes holds the concept asked about at depth 0 and those reached, and maxNodes counts them all. Given, budgetPerKind bounds the nodes each kind adds; not given, the tool shares maxNodes among the kinds asked so that none present is starved, in a way of its own. Negative assertions are returned marked, with the nodes they reach, which are not followed further unless includeNegative. |
+| `get_concept_neighborhood` | EVS | Bounded traversal across roles and associations with a budget per kind; nodes holds the concept asked about at depth 0 and those reached, and maxNodes counts them all. Given, budgetPerKind bounds the nodes each kind adds; not given, the tool shares maxNodes among the kinds asked so that none present is starved, in a way of its own. Negative assertions are returned marked, with the nodes they reach, which are not followed further unless includeNegative. Deadline exhaustion preserves the verified partial graph with per-kind truncation and the first actual bound; otherwise truncation.bound is deadline with limit/reached in milliseconds. Ask for less depth or fewer kinds, or retry; before any verified start, it is upstream_unavailable. |
 | `get_concept_subsets` | EVS | The subsets a concept belongs to. |
 | `get_concept_mappings` | EVS | The maps the platform carries on a concept, from it to other terminologies, unchanged and each with its target's version where the platform gives one; maps into the terminology from others are not this tool's. targetTerminology keeps the maps whose target the platform names exactly so, case included. |
 | `resolve_retired_code` | EVS | Whether a code is retired (active false, as the platform publishes it), its status, and what the platform names as replacing it: replacements is an empty list, present, where the platform names none, retired or not. |
@@ -673,6 +699,16 @@ the first bound that dropped anything, using `requests` if no earlier bound was 
 their own truncation record with `omitted: 0` and `exact: false` when the omitted
 relation count is unknown. An explicit kind allowance uses `kind_budget`
 truncation. These budgets are independent for concurrent calls.
+The shared 50 s default call deadline also stops traversal work. On deadline exhaustion,
+neighborhood, CLI traversal and parent/child hierarchy preserve existing verified partial
+content; before any start node is verified it is `upstream_unavailable`. `pathsToRoot` returns
+an error, never partial paths. Other upstream failures remain errors.
+The first actual bound still wins; the deadline never overwrites it. Otherwise truncation
+reports `deadline`, with `limit` and
+`reached` in integer milliseconds. Per-kind omissions are lower bounds with `exact: false`
+(zero when no positive minimum is known). A deadline-partial result is a successful truncated
+answer, with no `nextCursor`, not an error code or a claim of completeness. Ask for less depth
+or fewer relationship kinds, or retry.
 At `depth`, the walk checks the selected relation lists of the final frontier
 within the same request budget. Unseen targets produce a `depth` cut: `omitted`
 counts distinct targets one level further, with `exact: false` because further
@@ -784,12 +820,12 @@ EVS wraps in a success status but that is an error envelope, an error
 
 | Code | Meaning | `details` |
 | --- | --- | --- |
-| `invalid_request` | An argument is missing, malformed, out of range, or contradicts another; CLI only: an environment variable is invalid | `parameter`, `reason` |
+| `invalid_request` | An argument is missing, malformed, out of range, or contradicts another. Text exceeding its field's `maxLength` or the 7,000-byte encoded URL-target ceiling is refused, never shortened: reduce the named field and check filters/pins. A supplied `_meta.correlationId` must fully match `[A-Za-z0-9._:-]{1,128}`: correct it or omit it; refusal uses a fresh safe ID without echoing the rejected value. CLI only: an environment variable is invalid | `parameter`, `reason` |
 | `not_found` | The requested release has no concept with that code, or `index-sample` named codes the release does not contain (nothing was indexed); Form-by-ID alone also reads HTTP 200 with `form: null` and `apiResponse.type` E as `not_found`, after the id is validated ([cadsr-forms](docs/upstream/cadsr.md#cadsr-forms)) | `identifiers` |
 | `release_not_available` | EVS did not name exactly one latest NCIt release for the channel (`requested` names the requested channel; optional `found` lists versions when several rows were returned), EVS no longer serves the pinned release, or a release resource names an unserved version or one with absent/ambiguous channel metadata; a caDSR matching pin that is not listed upstream | `requested`, `source`, `found` |
 | `release_mismatch` | The local index holds a different release than the requested one, or EVS served a concept of another release than the one requested | `requested`, `served` (a list of releases), `source` |
-| `upstream_unavailable` | EVS could not be reached or kept failing after the retries, rejected the request, or returned something unusable: a malformed, HTML or masked-error body, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`); an empty unfiltered terminology listing, with its actual `status` and `attempts` | `surface`, `status`, `attempts`, `retryAfter` (`status` and `retryAfter` where known) |
-| `timeout` | Every attempt at an upstream request timed out (`NCI_SI_TIMEOUT_SECONDS`; `NCI_SI_MATCH_TIMEOUT_SECONDS` for caDSR matching); timeouts are errors, never empty results | `surface`, `seconds`, `attempts` |
+| `upstream_unavailable` | EVS could not be reached or kept failing after the retries, rejected the request, or returned something unusable: a malformed, HTML or masked-error body, or a 404 from any request other than a single-concept lookup (check `NCI_SI_EVS_BASE_URL`); an empty unfiltered terminology listing, with its actual `status` and `attempts`. Call deadline exhaustion uses this code, with `attempts` counting all outbound requests actually started across the call, including retries and release discovery | `surface`, `status`, `attempts`, `retryAfter` (`status` and `retryAfter` where known; deadline `surface` where known) |
+| `timeout` | Every attempt at an upstream request timed out (`NCI_SI_TIMEOUT_SECONDS`; `NCI_SI_MATCH_TIMEOUT_SECONDS` for caDSR matching) before the call deadline; timeouts are errors, never empty results | `surface`, `seconds`, `attempts` |
 | `bound_exceeded` | An EVS response exceeds `NCI_SI_EVS_MAX_RESPONSE_BYTES`, the request budget is exhausted before a graph is available, or hierarchy page replay exhausts its request budget | `bound`, `limit`, `reached` (for response size, the limit plus one when EVS declared no length) |
 | `capability_unavailable` | The requested terminology or operation is not supported yet, or an index resource has no active index; the MCP tool descriptions name the interim limits; a published caDSR registry pin on form lookup, matching or grounding (capability `pinned form lookup`, `pinned matching` or `pinned grounding`), because those APIs have no `registryRelease` field yet ([cadsr-match-parameters](docs/upstream/cadsr.md#cadsr-match-parameters)); no unpinned match is labelled pinned | `capability` |
 | `cursor_expired` | EVS no longer serves a hierarchy or live-search cursor’s release, or the active indexed-search build changed; restart the query. Same-release build replacement also expires a cursor, with equal release identifiers | `cursorRelease`, `currentRelease` |

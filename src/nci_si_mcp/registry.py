@@ -13,7 +13,9 @@ from typing import Annotated, Any, Literal, get_args, get_origin, get_type_hints
 
 from . import cadsr_content, cadsr_matching, content, handlers, seam, workflows
 from .audit import AuditClass, audited, secrets
+from .bounds import deadline_description, deadline_scope
 from .caching import invocation_policy
+from .config import DEFAULT_CALL_DEADLINE_SECONDS
 from .context import Context
 from .invocation import call
 from .permissions import require
@@ -57,6 +59,7 @@ from .results import (
     ValueMeaningMatches,
     ValueSetExpansion,
 )
+from .validation import text_limit_description, validate_text_lengths
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,7 @@ class ToolSpec:
     command: str | None = None
     uri: str | None = None
     audit: dict[str, AuditClass] = field(default_factory=dict)
+    deadline: bool = True
     input_model: type = field(init=False)
     parameters: tuple[Parameter, ...] = field(init=False)
 
@@ -95,7 +99,11 @@ class ToolSpec:
 
     @property
     def description(self) -> str:
-        return getdoc(self.handler) or ""
+        description = getdoc(self.handler) or ""
+        if self.deadline:
+            description += "\n\n" + deadline_description(DEFAULT_CALL_DEADLINE_SECONDS)
+            description += "\n" + text_limit_description()
+        return description
 
     @property
     def annotations(self) -> dict[str, bool]:
@@ -581,6 +589,7 @@ SPECS = (
         dict[str, Any],
         False,
         command="index-sample",
+        deadline=False,
         audit={"codes": "plain"},
     ),
     ToolSpec(
@@ -591,14 +600,19 @@ SPECS = (
         command="evaluate",
         audit={"build_id": "plain"},
     ),
-    ToolSpec(handlers.index_build, "evs", dict[str, Any], False, command="index-build"),
-    ToolSpec(handlers.index_builds, "evs", dict[str, Any], False, command="index-builds"),
+    ToolSpec(
+        handlers.index_build, "evs", dict[str, Any], False, command="index-build", deadline=False
+    ),
+    ToolSpec(
+        handlers.index_builds, "evs", dict[str, Any], False, command="index-builds", deadline=False
+    ),
     ToolSpec(
         handlers.index_rebuild,
         "evs",
         dict[str, Any],
         False,
         command="index-rebuild",
+        deadline=False,
         audit={"build_id": "plain"},
     ),
     ToolSpec(
@@ -607,6 +621,7 @@ SPECS = (
         dict[str, Any],
         False,
         command="index-activate",
+        deadline=False,
         audit={"build_id": "plain"},
     ),
     ToolSpec(
@@ -663,8 +678,12 @@ def invoke(
 
     def produce() -> dict[str, Any]:
         require(spec.operation)
+        validate_text_lengths(spec.arguments(args, kwargs))
         with invocation_policy(resolution=spec.resolution), selection_scope():
-            return spec.handler(context, **spec.arguments(args, kwargs))
+            if not spec.deadline:
+                return spec.handler(context, **spec.arguments(args, kwargs))
+            with deadline_scope(context.settings.call_deadline_seconds):
+                return spec.handler(context, **spec.arguments(args, kwargs))
 
     arguments = dict(zip((p.name for p in spec.parameters), args, strict=False)) | kwargs
     hidden = secrets(context.settings.evs_license_key, context.settings.cadsr_credential)

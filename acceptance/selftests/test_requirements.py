@@ -231,6 +231,56 @@ def test_a_tool_row_states_its_identifier_forms_and_free_text():
     assert "Free text: `entities[].name`, `entities[].userTip`" in rendered
 
 
+@pytest.mark.parametrize(
+    ("metadata", "details"),
+    [
+        ({}, ""),
+        (
+            {
+                "text_limits": {
+                    "query": {"maxLength": 123, "why": "Search phrase budget."},
+                    "entities[].permissibleValues[]": {
+                        "maxLength": 456,
+                        "why": "Individual values | not lists.\nReassess body work.",
+                    },
+                }
+            },
+            " `query`: at most 123 Unicode code points. Why: Search phrase budget."
+            " `entities[].permissibleValues[]`: at most 456 Unicode code points."
+            " Why: Individual values \\| not lists. Reassess body work.",
+        ),
+        (
+            {"encoded_target": {"maximumBytes": 6789, "why": "Remeasure URL capacity."}},
+            " Encoded request target (path and query): at most 6789 bytes."
+            " Why: Remeasure URL capacity.",
+        ),
+        (
+            {"lexical_tokens": {"maximum": 23, "why": "Reassess FTS cost."}},
+            " Local lexical token prefix: at most 23 tokens. Why: Reassess FTS cost.",
+        ),
+    ],
+)
+def test_tool_details_render_input_work_limits_and_their_reasons(monkeypatch, metadata, details):
+    monkeypatch.setitem(
+        TOOLS,
+        "search_concepts",
+        {
+            "title": "Search",
+            "group": "evs",
+            "inputs": "(query)",
+            "returns": "results",
+            "summary": "Search terms.",
+            **metadata,
+        },
+    )
+
+    rows = [line for line in render({}).splitlines() if "<br>`search_concepts` |" in line]
+
+    assert rows == [
+        f"| Search<br>`search_concepts` | `(query) → results` | Search terms.{details} |"
+    ]
+
+
 def test_tool_display_titles_are_rendered_beside_their_programmatic_names():
     rendered = render({})
     assert "| Current terminology release<br>`resolve_release` |" in rendered

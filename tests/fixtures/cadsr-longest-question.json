@@ -1,0 +1,15 @@
+{
+  "provenance": {
+    "source": "https://cadsr.nci.nih.gov/ftp/caDSR_Downloads/CDE/Excel/releasedCDEsExcel-OD.zip",
+    "archive_sha256": "e9c35f248f25c76089f63952c6117d51a241c6b20e645b9c9b5e7cc521c036c1",
+    "workbook": "excel_cde_20260701201930_6.xlsx",
+    "sheet": "Custom Download",
+    "row": 30411,
+    "scope": "Observed July 2026 public export maximum; publisher excludes RETIRED, TEST and TRAINING records. Surrounding HTTP replies in tests are contract-crafted, not API recordings."
+  },
+  "publicId": "6148373",
+  "version": "1",
+  "code_points": 1011,
+  "question_sha256": "0c579c0318b0d9c0e8afc23a84b07700372d3ccfd998c70941a8bd417076938e",
+  "questionText": "Does patient have Inadequate bone marrow reserve or organ function (as demonstrated by any of the following laboratory values: absolute neutrophil count less than 1.5 x 10e9/L; platelet count less than 100 x 10e9/L; haemoglobin less than 90 g/L; alanine aminotransferase greater than 2.5 times ULN if no demonstrable liver metastases or greater than 5 times ULN in the presence of liver metastases; aspartate aminotransferase greater than 2.5 times ULN if no demonstrable liver metastases or greater than 5 times ULN in the presence of liver metastases; total bilirubin greater than 1.5 times ULN if no liver metastases or greater than 3 times ULN in the presence of documented Gilbert's Syndrome [unconjugated hyperbilirubinaemia] or liver metastases; serum creatinine greater than 1.5 times ULN concurrent with creatinine clearance less than 50 mL/min [measured or calculated by Cockcroft and Gault equation]'confirmation of creatinine clearance is only required when creatinine is greater than 1.5 times ULN?"
+}

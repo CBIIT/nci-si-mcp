@@ -360,6 +360,13 @@ content tools, `content.py`, with injectable collaborators in `context.Context`.
 sets live once in `validation.py`. A profile selects the tools, resources and prompts the server
 serves (M1.5, M1.6); caller policy can only narrow that surface.
 
+`bounds.py` owns the shared call deadline; `ToolSpec.deadline` exempts long-running index
+operator commands. `validation.py` owns input bounds in `TEXT_LIMITS` and
+`MAX_TEXT_TARGET_BYTES`. Every limit is a named constant with a comment stating its reason,
+evidence and what to re-measure; a new limit also needs a spec `why`, an `inputSchema` entry
+and a QUICKSTART limits row. Tool descriptions carry the shared deadline and input-limit
+wording from one source so clients receive the same contract.
+
 Each ToolSpec classifies its parameters as plain or hashed for audit. Undeclared parameters
 default to hashed. `audit.py` emits one JSON completion record per call, including validation
 failures, with correlation, result size, truncation and request counts from the HTTP client's
