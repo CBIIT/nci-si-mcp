@@ -71,7 +71,8 @@ def field_nodes(node, definitions, path=""):
 
 def text_descriptions(schema, fields):
     for path, node in field_nodes(schema, schema.get("$defs", {})):
-        if path in fields and ("description" in node or node.get("type") == "string"):
+        # Select the contractual schema locations, not whether their guidance survived.
+        if path in fields and node.get("type") != "null":
             yield path, node
 
 

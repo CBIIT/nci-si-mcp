@@ -12,6 +12,28 @@ from test_server import ServerFixture
 
 
 class DeadlineProjectionTest(ServerFixture):
+    def test_duplicate_hydration_identity_refuses_the_neighborhood_instead_of_overwriting(self):
+        self.children(2)
+        self.evs.concepts["C3262"]["inverseRoles"] = [
+            {"type": "Related", "relatedCode": "C2", "relatedName": "Child 2"}
+        ]
+        fetch = self.evs.get_concepts_by_codes
+        requested = []
+
+        def duplicate(codes, **kwargs):
+            requested.append(tuple(codes))
+            rows = fetch(codes, **kwargs)
+            return rows + rows if tuple(codes) == ("C2",) else rows
+
+        with patch.object(self.evs, "get_concepts_by_codes", side_effect=duplicate):
+            failed, result = self.call(
+                "get_concept_neighborhood", code="C3262", kinds=["inverseRole"], depth=1
+            )
+        self.assertTrue(failed)
+        self.assertEqual(result["error"]["code"], "upstream_unavailable")
+        self.assertNotIn("nodes", result)
+        self.assertEqual(requested, [("C3262",), ("C2",)])
+
     def test_depth_zero_expiry_preserves_verified_first_batch_of_start_nodes(self):
         """Given multiple seed batches, expiry on the second retains the verified first fifty."""
         self.children(51)

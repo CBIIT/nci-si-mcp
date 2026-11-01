@@ -6,7 +6,7 @@ from functools import partial
 from json.scanner import py_make_scanner
 from unittest.mock import patch
 
-from fakes import concept
+from fakes import concept, release
 from nci_si_mcp.cadsr import CaDSRClient
 from nci_si_mcp.config import Settings
 from nci_si_mcp.errors import correlated
@@ -36,6 +36,24 @@ class ResponseParsingTest(ServerTestCase):
         self.assertEqual(error["correlationId"], "deep-form")
         self.assertEqual(error["details"], {"surface": "cadsr", "attempts": 1})
         self.assertEqual(len(server.seen), 1)
+
+    def test_deep_404_concept_error_body_is_unavailable_not_concept_absence(self):
+        body = b"[" * 2000 + b"0" + b"]" * 2000
+        server = self.serve(Reply(404, body))
+        client = EVSClient(server.url, max_attempts=1)
+        with correlated("deep-concept-404"):
+            result = call(
+                "get_concept",
+                lambda: client.get_concept("C1", release=release(), include="minimal"),
+            )
+        self.assertEqual(result["error"]["code"], "upstream_unavailable")
+        self.assertEqual(result["error"]["correlationId"], "deep-concept-404")
+        self.assertEqual(
+            result["error"]["details"], {"surface": "evs", "status": 404, "attempts": 1}
+        )
+        self.assertEqual(
+            [path for path, _ in server.seen], ["/api/v1/concept/ncit_26.06e/C1?include=minimal"]
+        )
 
     def test_deep_success_json_is_an_upstream_failure_with_attempts(self):
         # Given deep JSON under the byte cap, parsing reports an upstream failure.
