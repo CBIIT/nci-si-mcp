@@ -1470,7 +1470,8 @@ class MutationExecutionTest(unittest.TestCase):
             (root / "tests/test_example.py").write_text(
                 "from test_mutation_gate import command\nfrom pathlib import Path\n"
                 "def test_child():\n"
-                "    status, rows = command(Path.cwd(), '--paths', 'src/child.py')\n"
+                "    status, rows = command(Path.cwd(), '--paths', 'src/child.py', "
+                "'--allowlist', 'allow.yaml')\n"
                 "    assert (status, rows) == (0, [{'outcome': 'EMPTY', 'mutants': 0}])\n"
                 "def test_unrelated():\n    assert True\n"
             )
@@ -1481,6 +1482,8 @@ class MutationExecutionTest(unittest.TestCase):
                 .split("class MutationOperatorsTest")[0]
             )
             shutil.copytree(ROOT / "scripts", root / "scripts")
+            # This tiny independent project owns no reviewed production equivalents.
+            (root / "allow.yaml").write_text("[]\n")
             result, data = run_domain(root, "unit", [], 30, baseline=True)
             self.assertEqual(result["outcome"], "SURVIVED", result)
             mapping = coverage_map(data, root)
