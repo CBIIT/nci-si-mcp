@@ -1858,6 +1858,124 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                             },
                         )
 
+    def two_file_import_run(self, root, text, first_test):
+        """A clean baseline, then the flag-flipping mutant with owners selected in two files."""
+        project(root, text)
+        (root / "tests/test_example.py").write_text(first_test)
+        (root / "tests/test_other.py").write_text(
+            "import example\ndef test_other():\n    assert example.answer()\n"
+        )
+        baseline, _ = runner.run_domain(root, "unit", [], 20, baseline=True)
+        self.assertEqual(baseline["outcome"], "SURVIVED", baseline)
+        mutant = next(
+            m for m in source.candidates("src/example.py", text.encode())[0] if m.line == 1
+        )
+        owners = ["tests/test_example.py::test_value|run", "tests/test_other.py::test_other|run"]
+        mapping = {"unit": {"src/example.py": {1: owners}}}
+        path = root / "mutations.json"
+        path.write_text(json.dumps(gate.manifest_data(root, [mutant], mapping, 20)))
+        gate.execute_job(path, 0)
+        return json.loads((root / "result-0.json").read_text())
+
+    def test_import_failure_across_selected_files_is_an_import_kill_keeping_the_stop_notice(self):
+        # Given owners in two files, pytest -x stops collecting after the first file's import
+        # failure and reports that stop as a second collection failure of the session.
+        with tempfile.TemporaryDirectory() as directory:
+            row = self.two_file_import_run(
+                Path(directory).resolve(),
+                "flag = True\nif not flag:\n    raise TypeError('invalid table')\n"
+                "def answer():\n    return flag\n",
+                "import example\ndef test_value():\n    assert example.answer() is True\n",
+            )
+        self.assertEqual(
+            {name: row.get(name) for name in ("outcome", "kind", "phase", "node")},
+            {
+                "outcome": "KILLED",
+                "kind": "import",
+                "phase": "collection",
+                "node": "tests/test_example.py",
+            },
+            row,
+        )
+        (notice,) = row["stop_notices"]
+        self.assertEqual(
+            {name: notice[name] for name in ("node", "phase", "outcome", "stop_notice")},
+            {"node": "", "phase": "collection", "outcome": "failed", "stop_notice": True},
+        )
+        self.assertEqual(notice["exception"], "_pytest.main.Failed: stopping after 1 failures")
+
+    def test_an_unrelated_or_lookalike_first_collection_failure_stays_infra(self):
+        # Given a mutant that leaves its module importable, the first selected file's own
+        # collector fails (an unrelated error, a lookalike message, or pytest's stop type raised
+        # by the test itself). No row is a stop notice and the run stays infrastructure failure.
+        failures = {
+            "unrelated": "raise TypeError('unrelated collector')\n",
+            "lookalike text": "raise RuntimeError('stopping after 1 failures')\n",
+            "raised stop type": (
+                "raise __import__('pytest').Session.Failed('stopping after 1 failures')\n"
+            ),
+        }
+        for case, failure in failures.items():
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                row = self.two_file_import_run(
+                    Path(directory).resolve(),
+                    "flag = True\ndef answer():\n    return flag\n",
+                    "import example\nif not example.flag:\n    "
+                    + failure
+                    + "def test_value():\n    assert example.answer()\n",
+                )
+                self.assertEqual(row["outcome"], "INFRA", row)
+                self.assertEqual(row["failures"][0]["node"], "tests/test_example.py")
+                self.assertNotIn("stop_notice", row["failures"][0])
+                self.assertNotIn("stop_notices", row)
+
+    def test_only_a_marked_notice_after_one_qualifying_import_failure_is_set_aside(self):
+        target = Path("src/example.py").resolve()
+        failure = {
+            "node": "tests/test_example.py",
+            "phase": "collection",
+            "outcome": "failed",
+            "assertion": False,
+            "traceback_paths": [str(target)],
+            "exception": "TypeError: invalid table",
+        }
+        notice = {
+            "node": "",
+            "phase": "collection",
+            "outcome": "failed",
+            "assertion": False,
+            "traceback_paths": [],
+            "exception": "_pytest.main.Failed: stopping after 1 failures",
+            "stop_notice": True,
+        }
+        self.assertEqual(
+            runner.evidence_outcome(4, [failure, notice], target),
+            {
+                "outcome": "KILLED",
+                "kind": "import",
+                "phase": "collection",
+                "node": "tests/test_example.py",
+                "stop_notices": [notice],
+            },
+        )
+        unrelated = {**failure, "traceback_paths": [str(target.with_name("other.py"))]}
+        rejected = {
+            "notice only": [notice],
+            "notice before the failure": [notice, failure],
+            "marker not exactly true": [failure, {**notice, "stop_notice": "true"}],
+            "marker on a call row": [failure, {**notice, "phase": "call"}],
+            "two independent failures": [failure, {**failure, "node": "tests/b.py"}, notice],
+            "SystemExit": [{**failure, "exception": "SystemExit: 1"}, notice],
+            "unrelated path": [unrelated, notice],
+        }
+        for case, rows in rejected.items():
+            with self.subTest(case=case):
+                self.assertEqual(
+                    runner.evidence_outcome(4, rows, target),
+                    {"outcome": "INFRA", "status": 4, "failures": rows},
+                )
+        self.assertEqual(runner.evidence_outcome(3, [failure, notice], target)["outcome"], "INFRA")
+
     def test_probe_configuration_consumes_launch_sink_and_passes_only_explicit_worker_sink(self):
         with (
             patch.object(probe, "DESTINATION", None),
