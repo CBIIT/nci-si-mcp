@@ -492,7 +492,7 @@ def _commit_from_direct_url(direct: object) -> str | None:
 
 def _run_command(command: Sequence[str]) -> int:
     return subprocess.run(  # noqa: S603 - fixed or owned interpreter, reviewed arguments
-        list(command), check=False
+        list(command), check=False, stdout=sys.stderr
     ).returncode
 
 
