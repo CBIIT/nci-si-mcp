@@ -1,5 +1,7 @@
+import importlib.metadata
 import io
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -31,7 +33,12 @@ class LocalInstallerTest(unittest.TestCase):
             code = installer.main(arguments)
         return code, stdout.getvalue(), stderr.getvalue()
 
-    def write_distribution(self, version="0.21.0", revision="v0.21.0"):
+    def write_distribution(
+        self,
+        version="0.21.0",
+        revision="v0.21.0",
+        commit="a" * 40,
+    ):
         site = self.data_dir / "venv" / "lib" / "python3.14" / "site-packages"
         dist = site / "nci_si_mcp-0.21.0.dist-info"
         dist.mkdir(parents=True, exist_ok=True)
@@ -43,7 +50,11 @@ class LocalInstallerTest(unittest.TestCase):
             json.dumps(
                 {
                     "url": "https://github.com/CBIIT/nci-si-mcp",
-                    "vcs_info": {"vcs": "git", "requested_revision": revision},
+                    "vcs_info": {
+                        "vcs": "git",
+                        "requested_revision": revision,
+                        "commit_id": commit,
+                    },
                 }
             ),
             encoding="utf-8",
@@ -69,18 +80,50 @@ class LocalInstallerTest(unittest.TestCase):
             ),
         )
 
-    def test_install_and_verify_use_only_the_installers_exact_release_tag(self):
+    def test_install_uses_the_installers_commit_and_hash_locked_dependencies(self):
         calls = []
+        commit = "b" * 40
+        requirements = self.data_dir / "server-requirements.txt"
+        requirements.write_text(
+            f"pdm-backend==2.5.0 \\\n+    --hash=sha256:{'c' * 64}\n",
+            encoding="utf-8",
+        )
+
+        class BootstrapDistribution:
+            version = "0.21.0"
+
+            @staticmethod
+            def read_text(name):
+                if name != "direct_url.json":
+                    return None
+                return json.dumps(
+                    {
+                        "url": "https://github.com/CBIIT/nci-si-mcp",
+                        "vcs_info": {
+                            "vcs": "git",
+                            "requested_revision": "v0.21.0",
+                            "commit_id": commit,
+                        },
+                    }
+                )
 
         def command(argv, **kwargs):
             calls.append((argv, kwargs))
             if argv[1:3] == ["-m", "venv"]:
                 self.write_distribution()
+            if argv[-1].endswith(f"@{commit}"):
+                self.write_distribution(revision=commit, commit=commit)
             return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
 
         with (
             patch.object(installer, "__version__", "0.21.0", create=True),
+            patch.object(installer, "SERVER_REQUIREMENTS", requirements, create=True),
             patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(
+                importlib.metadata,
+                "distribution",
+                return_value=BootstrapDistribution(),
+            ),
             patch.object(installer.subprocess, "run", side_effect=command),
         ):
             code, output, error = self.run_main(
@@ -93,18 +136,32 @@ class LocalInstallerTest(unittest.TestCase):
             json.loads(output)["completed"],
             ["check_prerequisites", "install", "configure", "verify"],
         )
-        self.assertIn(
-            (
+        self.assertEqual(
+            [argv for argv, _ in calls[:3]],
+            [
+                [sys.executable, "-m", "venv", str(self.data_dir / "venv")],
                 [
                     str(venv_python),
                     "-m",
                     "pip",
                     "install",
-                    "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@v0.21.0",
+                    "--require-hashes",
+                    "--only-binary=:all:",
+                    "-r",
+                    str(requirements),
                 ],
-                {"check": True},
-            ),
-            calls,
+                [
+                    str(venv_python),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--no-deps",
+                    "--no-build-isolation",
+                    "--no-index",
+                    "--no-cache-dir",
+                    f"nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@{commit}",
+                ],
+            ],
         )
         self.assertTrue(
             any(argv[:2] == [str(venv_python), "-c"] for argv, _ in calls),
@@ -114,6 +171,31 @@ class LocalInstallerTest(unittest.TestCase):
             self.assertTrue((self.data_dir / child / ".installer-owned").is_file())
         verify = next(kwargs for argv, kwargs in calls if argv[:2] == [str(venv_python), "-c"])
         self.assertEqual(verify["env"]["NCI_SI_DATA_DIR"], str(self.data_dir / "server-data"))
+
+    def test_unsupported_bootstrap_identity_blocks_before_any_installation_change(self):
+        class WheelDistribution:
+            version = "0.21.0"
+
+            @staticmethod
+            def read_text(_name):
+                return None
+
+        with (
+            patch.object(installer, "__version__", "0.21.0", create=True),
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(importlib.metadata, "distribution", return_value=WheelDistribution()),
+            patch.object(installer.subprocess, "run") as run,
+        ):
+            code, output, error = self.run_main(
+                "run", "--target", "local", "--data-dir", str(self.data_dir), "--non-interactive"
+            )
+
+        self.assertEqual((code, error), (1, ""))
+        blocked = json.loads(output)["blocked"]
+        self.assertEqual([item["step"] for item in blocked], ["install"])
+        self.assertIn("git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z", output)
+        self.assertFalse((self.data_dir / "venv").exists())
+        run.assert_not_called()
 
     def test_development_installer_is_blocked_without_running_an_install_command(self):
         with (
@@ -158,6 +240,16 @@ class LocalInstallerTest(unittest.TestCase):
                     (self.data_dir / "runtime" / "server.json").read_text(encoding="utf-8")
                 )
                 self.assertEqual(configuration, expected)
+
+    def test_configuration_creates_the_runtime_directory_private(self):
+        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
+        previous = os.umask(0o022)
+        try:
+            actions.apply("configure")
+        finally:
+            os.umask(previous)
+
+        self.assertEqual(self.data_dir.joinpath("runtime").stat().st_mode & 0o777, 0o700)
 
     def test_state_identity_includes_transport_and_profile(self):
         state = cast("Any", installer_state.InstallationState)(
