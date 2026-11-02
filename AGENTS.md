@@ -51,10 +51,10 @@ These are the owner's rules. They apply to every change.
   could observe and must be able to fail on a regression. A test of a workflow or other
   configuration file asserts the exact value of each property it protects (a job's condition,
   permissions, dependencies, environment and commands), never a substring or one member of a list.
-- **Coverage: the checked minimum is 95%, the aim is above 97%.** The gap exists so that nobody
+- **Coverage: the checked minimum is 95%, the aim is above 98%.** The gap exists so that nobody
   pads coverage to pass a threshold. Take every real opportunity to cover untested behaviour;
   never write a test whose purpose is the number (no assertion-free tests, no tests that only
-  check that a mock was called). CI fails below 95% and warns at or below 97%.
+  check that a mock was called). CI fails below 95% and warns at or below 98%.
 - **Design: KISS and DRY.** The simplest structure that does the job, one place for each fact,
   and the established architecture (thin adapters over the registry, one error path, closed value
   sets in `validation.py`). No abstraction for a single use.

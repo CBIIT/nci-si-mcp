@@ -251,6 +251,16 @@ the expected outcomes in the same pull request: run the suite as the job does, t
 the README's table, which is generated from the expected outcomes and kept current by a
 self-test. The diff of `expected/fixture.json` is what the review reads.
 
+On a pull request, current expected/report equality remains mandatory. CI then extracts the
+expected outcomes at the event's immutable base commit. A base `passed` test that no longer
+passes, including a removed test omitted by both current expected outcomes and the report,
+requires an exact `expected/regressions.yaml` record for the base SHA, test and before/after
+transition, with a reason and review reference. A record for the current base that matches no
+regression fails as stale; a record for an older base is inert. The reference records review but
+does not authenticate it. Manual CI dispatch requires a full base commit that is an ancestor of
+the dispatched head; pushes to `main` retain the current equality check after the pull request
+has run the base comparison.
+
 The job's summary holds the run's duration (a warning at 7 minutes of the 10 allowed: shard the
 run before it grows into the limit) and the per-tool report; the artifact `acceptance-fixture`
 keeps `fixture.json` and the rendered report for 30 days. A run on workers writes the report a

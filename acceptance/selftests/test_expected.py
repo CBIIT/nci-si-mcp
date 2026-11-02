@@ -4,6 +4,7 @@ from a report on request."""
 import json
 
 import pytest
+import yaml
 
 from nci_si_acceptance.expected import (
     ABSENT_FROM_EXPECTED,
@@ -13,6 +14,9 @@ from nci_si_acceptance.expected import (
     main,
 )
 from nci_si_acceptance.report import RANK
+
+BASE_SHA = "a" * 40
+OLD_SHA = "b" * 40
 
 
 def report(tests, mode):
@@ -41,6 +45,42 @@ def files(tmp_path):
             str(tmp_path / "report.json"),
             "--expected",
             str(tmp_path / "expected.json"),
+        ]
+
+    return write
+
+
+def approval(test, after, *, base_sha=BASE_SHA, before="passed"):
+    return {
+        "base_sha": base_sha,
+        "test": test,
+        "before": before,
+        "after": after,
+        "reason": "Reviewed regression",
+        "reference": "#403",
+    }
+
+
+@pytest.fixture
+def historical_files(files, tmp_path):
+    """Write current, base and approval inputs for the historical check mode."""
+
+    def write(base, current, actual, approvals):
+        arguments = files(current, actual)
+        base_path = tmp_path / "base.json"
+        approvals_path = tmp_path / "regressions.yaml"
+        base_path.write_text(json.dumps(base), encoding="utf-8")
+        approvals_path.write_text(
+            yaml.safe_dump({"version": 1, "approvals": approvals}), encoding="utf-8"
+        )
+        return [
+            *arguments,
+            "--base",
+            str(base_path),
+            "--base-sha",
+            BASE_SHA,
+            "--approvals",
+            str(approvals_path),
         ]
 
     return write
@@ -127,6 +167,83 @@ def test_update_writes_no_message_or_request_the_report_holds(files, tmp_path):
 def test_outcomes_that_share_a_prefix_are_a_difference(files, capsys, expected, actual):
     assert main(files({"t.py::a": expected}, {"t.py::a": actual})) == 1
     assert f"| `t.py::a` | {expected} | {actual} |" in capsys.readouterr().out
+
+
+def test_exact_approvals_admit_failed_and_removed_base_passes(historical_files, capsys):
+    arguments = historical_files(
+        {"t.py::failed": "passed", "t.py::gone": "passed", "t.py::improved": "failed"},
+        {"t.py::failed": "failed", "t.py::improved": "passed", "t.py::new": "passed"},
+        {"t.py::failed": "failed", "t.py::improved": "passed", "t.py::new": "passed"},
+        [approval("t.py::failed", "failed"), approval("t.py::gone", "absent")],
+    )
+
+    assert main(arguments) == 0
+    assert capsys.readouterr().out.endswith("Approved 2 regressions from passed outcomes.\n")
+
+
+def test_approval_never_excuses_current_expected_report_difference(historical_files, capsys):
+    arguments = historical_files(
+        {"t.py::a": "passed"},
+        {"t.py::a": "passed"},
+        {"t.py::a": "failed"},
+        [approval("t.py::a", "failed")],
+    )
+
+    assert main(arguments) == 1
+    assert "differ from the expected outcomes" in capsys.readouterr().out
+
+
+def test_wrong_base_does_not_approve_and_older_records_are_inert(historical_files, capsys):
+    arguments = historical_files(
+        {"t.py::a": "passed"},
+        {"t.py::a": "failed"},
+        {"t.py::a": "failed"},
+        [approval("t.py::a", "failed", base_sha=OLD_SHA)],
+    )
+
+    assert main(arguments) == 1
+    output = capsys.readouterr().out
+    assert "1 regression from passed needs approval" in output
+    assert "t.py::a" in output
+
+
+def test_current_base_approval_without_its_exact_regression_is_stale(historical_files, capsys):
+    arguments = historical_files(
+        {"t.py::a": "passed"},
+        {"t.py::a": "passed"},
+        {"t.py::a": "passed"},
+        [approval("t.py::a", "failed"), approval("t.py::old", "failed", base_sha=OLD_SHA)],
+    )
+
+    assert main(arguments) == 1
+    assert "Remove 1 stale approval for this base" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "approvals",
+    [
+        [approval("t.py::a", "failed"), approval("t.py::a", "no_fixture")],
+        [approval("t.py::a", "unknown")],
+        [{**approval("t.py::a", "failed"), "extra": "not allowed"}],
+        [{**approval("t.py::a", "failed"), "reason": ""}],
+    ],
+)
+def test_duplicate_conflicting_and_malformed_approvals_fail(historical_files, approvals):
+    arguments = historical_files(
+        {"t.py::a": "passed"}, {"t.py::a": "failed"}, {"t.py::a": "failed"}, approvals
+    )
+
+    with pytest.raises(SystemExit, match="Invalid regression approvals"):
+        main(arguments)
+
+
+def test_historical_arguments_are_supplied_as_one_complete_set(files, tmp_path):
+    arguments = files({"t.py::a": "passed"}, {"t.py::a": "passed"})
+
+    with pytest.raises(
+        SystemExit, match="--base, --base-sha and --approvals must be used together"
+    ):
+        main([*arguments, "--base", str(tmp_path / "base.json")])
 
 
 def test_the_committed_outcomes_are_in_the_reports_vocabulary_and_in_test_order():
