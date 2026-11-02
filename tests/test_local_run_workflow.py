@@ -202,8 +202,6 @@ LOOPBACK_ENV = {
     "NCI_SI_SSIS_SPARQL_URL": "http://127.0.0.1:8767/ssis-sparql",
     "no_proxy": "127.0.0.1,localhost,::1,cadsrapi.cancer.gov,cadsrapi-stage.cancer.gov,"
     "cadsr.nci.nih.gov,shared.semantics.cancer.gov",
-    "NO_PROXY": "127.0.0.1,localhost,::1,cadsrapi.cancer.gov,cadsrapi-stage.cancer.gov,"
-    "cadsr.nci.nih.gov,shared.semantics.cancer.gov",
 }
 
 HOSTS_BACKSTOP_RUN = r"""set -euo pipefail
