@@ -97,9 +97,21 @@ def recorded_log(*requests):
 
     with tempfile.TemporaryDirectory() as directory:
         log_path = Path(directory) / "requests.log"
+        served = Path(directory) / "empty"
+        served.mkdir()
         with log_path.open("wb") as log:
-            server = subprocess.Popen(
-                [sys.executable, "-u", "-m", "http.server", "0", "--bind", "127.0.0.1"],
+            server = subprocess.Popen(  # noqa: S603 - the test's own interpreter, loopback only
+                [
+                    sys.executable,
+                    "-u",
+                    "-m",
+                    "http.server",
+                    "0",
+                    "--bind",
+                    "127.0.0.1",
+                    "--directory",
+                    str(served),
+                ],
                 cwd=directory,
                 stdout=subprocess.PIPE,
                 stderr=log,
