@@ -1,4 +1,3 @@
-import importlib.metadata
 import io
 import json
 import os
@@ -21,6 +20,12 @@ class LocalInstallerTest(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.data_dir = Path(directory.name)
+        requirements = self.data_dir / "server-requirements.txt"
+        requirements.write_text(f"demo==1 \\\n+    --hash=sha256:{'a' * 64}\n")
+        self.release = installer.ReleaseIdentity("0.21.0", "a" * 40, requirements)
+        identity = patch.object(installer, "_release_identity", return_value=self.release)
+        identity.start()
+        self.addCleanup(identity.stop)
 
     @staticmethod
     def passed_prerequisite(*_):
@@ -89,24 +94,6 @@ class LocalInstallerTest(unittest.TestCase):
             encoding="utf-8",
         )
 
-        class BootstrapDistribution:
-            version = "0.21.0"
-
-            @staticmethod
-            def read_text(name):
-                if name != "direct_url.json":
-                    return None
-                return json.dumps(
-                    {
-                        "url": "https://github.com/CBIIT/nci-si-mcp",
-                        "vcs_info": {
-                            "vcs": "git",
-                            "requested_revision": "v0.21.0",
-                            "commit_id": commit,
-                        },
-                    }
-                )
-
         def command(argv, **kwargs):
             calls.append((argv, kwargs))
             if argv[1:3] == ["-m", "venv"]:
@@ -117,13 +104,12 @@ class LocalInstallerTest(unittest.TestCase):
 
         with (
             patch.object(installer, "__version__", "0.21.0", create=True),
-            patch.object(installer, "SERVER_REQUIREMENTS", requirements, create=True),
-            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
             patch.object(
-                importlib.metadata,
-                "distribution",
-                return_value=BootstrapDistribution(),
+                installer,
+                "_release_identity",
+                return_value=installer.ReleaseIdentity("0.21.0", commit, requirements),
             ),
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
             patch.object(installer.subprocess, "run", side_effect=command),
         ):
             code, output, error = self.run_main(
@@ -173,17 +159,10 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(verify["env"]["NCI_SI_DATA_DIR"], str(self.data_dir / "server-data"))
 
     def test_unsupported_bootstrap_identity_blocks_before_any_installation_change(self):
-        class WheelDistribution:
-            version = "0.21.0"
-
-            @staticmethod
-            def read_text(_name):
-                return None
-
         with (
             patch.object(installer, "__version__", "0.21.0", create=True),
             patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
-            patch.object(importlib.metadata, "distribution", return_value=WheelDistribution()),
+            patch.object(installer, "_release_identity", return_value=None),
             patch.object(installer.subprocess, "run") as run,
         ):
             code, output, error = self.run_main(
@@ -197,9 +176,66 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertFalse((self.data_dir / "venv").exists())
         run.assert_not_called()
 
+    def test_current_installation_is_reused_without_running_an_install_command(self):
+        self.write_distribution(commit="a" * 40)
+        actions = installer.LocalActions(
+            self.data_dir,
+            transport="stdio",
+            profile="unified",
+            release=self.release,
+            run_command=lambda _command: self.fail("a current install must be reused"),
+        )
+
+        self.assertTrue(actions.verify("install"))
+
+    def test_failed_install_command_leaves_the_step_failed_and_the_venv_owned(self):
+        calls = []
+
+        def command(argv):
+            calls.append(list(argv))
+            if argv[1:3] == ["-m", "venv"]:
+                # A failed creation can still leave the directory behind.
+                (self.data_dir / "venv/bin").mkdir(parents=True)
+                return 1
+            return 0
+
+        actions = installer.LocalActions(
+            self.data_dir,
+            transport="stdio",
+            profile="unified",
+            release=self.release,
+            run_command=command,
+        )
+        with patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite):
+            state = installer_state.reconcile(
+                self.data_dir,
+                "local",
+                ("server",),
+                actions,
+            )
+
+        self.assertEqual(state.outcomes[-1], installer_state.StepOutcome("install", "failed"))
+        self.assertEqual(len(calls), 1)
+        self.assertTrue((self.data_dir / "venv/.installer-owned").is_file())
+
+    def test_install_refuses_a_running_owned_server_before_deleting_the_venv(self):
+        venv = self.data_dir / "venv"
+        venv.mkdir()
+        (venv / ".installer-owned").touch()
+        (venv / "preserve").write_text("old installation")
+        actions = installer.LocalActions(
+            self.data_dir, transport="http", profile="unified", release=self.release
+        )
+        with patch.object(installer, "_owned_process", return_value=4321):
+            missing = actions.missing_inputs("install")
+
+        self.assertEqual(missing, ("Stop the owned HTTP server before reinstalling.",))
+        self.assertEqual((venv / "preserve").read_text(), "old installation")
+
     def test_development_installer_is_blocked_without_running_an_install_command(self):
         with (
             patch.object(installer, "__version__", "0.21.1.dev3+gabc", create=True),
+            patch.object(installer, "_release_identity", return_value=None),
             patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
             patch.object(installer.subprocess, "run") as run,
         ):
@@ -209,7 +245,7 @@ class LocalInstallerTest(unittest.TestCase):
 
         self.assertEqual((code, error), (1, ""))
         self.assertEqual(json.loads(output)["blocked"][0]["step"], "install")
-        self.assertIn("released installer", output)
+        self.assertIn("git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z", output)
         run.assert_not_called()
 
     def test_configuration_preserves_profile_and_keeps_each_transport_local(self):
@@ -376,17 +412,16 @@ class LocalInstallerTest(unittest.TestCase):
             self.assertEqual((code, output), (2, ""))
             self.assertIn("incomplete", error)
 
-    def test_release_version_is_anchored_and_revision_must_match(self):
+    def test_installed_version_and_commit_must_match_the_bootstrap_identity(self):
         self.assertTrue(installer.RELEASE_VERSION.pattern.endswith(r"\Z"))
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
-        for version, revision in (("0.21.0.dev1", "v0.21.0"), ("0.21.0", "v0.20.0")):
-            with self.subTest(version=version, revision=revision):
-                self.write_distribution(version, revision)
-                with patch.object(installer, "__version__", "0.21.0"):
-                    self.assertFalse(actions.verify("install"))
+        for version, commit in (("0.21.0.dev1", "a" * 40), ("0.21.0", "b" * 40)):
+            with self.subTest(version=version, commit=commit):
+                self.write_distribution(version, revision="any-tag", commit=commit)
+                self.assertFalse(actions.verify("install"))
                 shutil.rmtree(self.data_dir / "venv")
 
-    def test_release_metadata_requires_one_distribution_and_a_requested_revision(self):
+    def test_release_metadata_requires_one_distribution_and_a_commit_id(self):
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         self.write_distribution()
         direct = next((self.data_dir / "venv").glob("lib/python*/site-packages/*/direct_url.json"))

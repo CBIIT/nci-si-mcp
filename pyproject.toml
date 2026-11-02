@@ -56,6 +56,11 @@ docs = [
 release = [
     "python-semantic-release==10.7.0",
 ]
+# The local installer builds the exact application commit without build isolation; this backend
+# therefore belongs in its hash-locked requirements file.
+build = [
+    "pdm-backend==2.5.0",
+]
 
 [tool.pdm]
 distribution = true
