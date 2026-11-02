@@ -92,6 +92,14 @@ pdm run spec-render                       # regenerate docs/specification.md fro
 pdm run quickstart-tools                  # regenerate the tool table of QUICKSTART.md from spec/
 ```
 
+- **Know the executing shell.** At session start, use the tool's declared shell or inspect the
+  current shell process; do not infer it from `$SHELL` alone. This workstation's command tool uses
+  zsh. In zsh, `status` is a read-only special parameter: use `gate_status`, `exit_code` or another
+  non-special name for exit-status capture. Run Bash-specific scripts explicitly with `bash`; a
+  terminal tool named Bash does not imply its commands execute in Bash. Before an expensive run,
+  exercise a new wrapper with cheap success and failure commands in the same shell and verify
+  status capture and propagation. A syntax-only check cannot catch read-only-variable assignments.
+  A wrapper failure before test launch is not a test run.
 - Run the tests through `pdm run` (`pdm run test`, `pdm run pytest ...`), never a bare `pytest`,
   so the project's environment and configuration apply.
 - The tests are unittest-style and offline. They import shared doubles with `from fakes import
