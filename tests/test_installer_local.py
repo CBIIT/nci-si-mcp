@@ -88,6 +88,10 @@ class LocalInstallerTest(unittest.TestCase):
     def test_install_uses_the_installers_commit_and_hash_locked_dependencies(self):
         calls = []
         commit = "b" * 40
+        stale = self.data_dir / "venv" / "stale-package"
+        stale.parent.mkdir()
+        (stale.parent / ".installer-owned").touch()
+        stale.touch()
         requirements = self.data_dir / "server-requirements.txt"
         requirements.write_text(
             f"pdm-backend==2.5.0 \\\n+    --hash=sha256:{'c' * 64}\n",
@@ -97,6 +101,7 @@ class LocalInstallerTest(unittest.TestCase):
         def command(argv, **kwargs):
             calls.append((argv, kwargs))
             if argv[1:3] == ["-m", "venv"]:
+                self.assertFalse(stale.exists())
                 self.write_distribution()
             if argv[-1].endswith(f"@{commit}"):
                 self.write_distribution(revision=commit, commit=commit)
@@ -188,14 +193,14 @@ class LocalInstallerTest(unittest.TestCase):
 
         self.assertTrue(actions.verify("install"))
 
-    def test_failed_install_command_leaves_the_step_failed_and_the_venv_owned(self):
+    def test_failed_install_command_leaves_matching_metadata_failed_and_owned(self):
         calls = []
 
         def command(argv):
             calls.append(list(argv))
             if argv[1:3] == ["-m", "venv"]:
-                # A failed creation can still leave the directory behind.
-                (self.data_dir / "venv/bin").mkdir(parents=True)
+                self.assertTrue((self.data_dir / "venv/.installer-owned").is_file())
+                self.write_distribution()
                 return 1
             return 0
 
@@ -218,6 +223,30 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertTrue((self.data_dir / "venv/.installer-owned").is_file())
 
+        def mismatched(_argv):
+            self.write_distribution(commit="b" * 40)
+            return 0
+
+        actions = installer.LocalActions(
+            self.data_dir,
+            transport="stdio",
+            profile="unified",
+            release=self.release,
+            run_command=mismatched,
+        )
+        error = io.StringIO()
+        with redirect_stderr(error):
+            actions.apply("install")
+        self.write_distribution()
+        self.assertIs(actions.verify("install"), False)
+        self.assertIn("does not match the installer's", error.getvalue())
+
+        with patch.object(installer, "_release_identity", return_value=None):
+            unavailable = installer.LocalActions(
+                self.data_dir, transport="stdio", profile="unified"
+            )
+        self.assertIs(unavailable.verify("install"), False)
+
     def test_install_command_keeps_child_diagnostics_out_of_json_stdout(self):
         completed = subprocess.CompletedProcess(["python"], 7)
         with patch.object(installer.subprocess, "run", return_value=completed) as run:
@@ -225,6 +254,7 @@ class LocalInstallerTest(unittest.TestCase):
 
         self.assertEqual(result, 7)
         self.assertIs(run.call_args.kwargs.get("stdout"), sys.stderr)
+        self.assertFalse(run.call_args.kwargs["check"])
 
     def test_install_refuses_a_running_owned_server_before_deleting_the_venv(self):
         venv = self.data_dir / "venv"
@@ -255,10 +285,9 @@ class LocalInstallerTest(unittest.TestCase):
         self.addCleanup(self.identity.start)
 
         class Distribution:
-            version = "0.21.0"
-
-            def __init__(self, direct):
+            def __init__(self, direct, version="0.21.0"):
                 self.direct = direct
+                self.version = version
 
             def read_text(self, name):
                 return json.dumps(self.direct) if name == "direct_url.json" else None
@@ -272,6 +301,8 @@ class LocalInstallerTest(unittest.TestCase):
             {**valid, "url": "https://example.org/fork"},
             {**valid, "vcs_info": {"vcs": "hg", "commit_id": "a" * 40}},
             {**valid, "vcs_info": {"vcs": "git", "commit_id": "short"}},
+            {**valid, "vcs_info": []},
+            {**valid, "vcs_info": {"vcs": "git", "commit_id": 1}},
         )
         requirements.write_text(f"demo==1 \\\n+    --hash=sha256:{'b' * 64}\n")
         for direct in invalid:
@@ -286,6 +317,33 @@ class LocalInstallerTest(unittest.TestCase):
                 ),
             ):
                 self.assertIsNone(installer._release_identity())
+
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "SERVER_REQUIREMENTS", requirements),
+            patch.object(
+                installer.importlib.metadata, "distribution", return_value=Distribution(valid)
+            ),
+        ):
+            self.assertEqual(
+                installer._release_identity(),
+                installer.ReleaseIdentity("0.21.0", "a" * 40, requirements),
+            )
+
+        with patch.object(installer, "__version__", "0.21.1.dev1"):
+            self.assertIsNone(installer._release_identity())
+        with patch.object(
+            installer.importlib.metadata, "distribution", return_value=Distribution(valid, "0.20.0")
+        ):
+            self.assertIsNone(installer._release_identity())
+
+        class MalformedDistribution(Distribution):
+            def read_text(self, name):
+                return "{" if name == "direct_url.json" else None
+
+        malformed = MalformedDistribution(valid)
+        with patch.object(installer.importlib.metadata, "distribution", return_value=malformed):
+            self.assertIsNone(installer._release_identity())
 
         requirements.write_text("demo==1\n")
         with (
@@ -356,6 +414,25 @@ class LocalInstallerTest(unittest.TestCase):
 
         self.data_dir.joinpath("runtime").chmod(0o755)
         self.assertFalse(actions.verify("configure"))
+        path = self.data_dir / "not-a-directory"
+        path.write_text("content", encoding="utf-8")
+        path.chmod(0o700)
+        self.assertIs(installer._private_directory(path), False)
+
+        with patch.object(Path, "is_dir", side_effect=OSError("unreadable")):
+            self.assertIs(installer._private_directory(path), False)
+
+        root = self.data_dir / "nested" / "new-private-directory"
+        previous = os.umask(0)
+        try:
+            with (
+                patch.object(Path, "chmod", side_effect=OSError("read only")),
+                self.assertRaisesRegex(OSError, "read only"),
+            ):
+                installer._claim_child(root, mode=0o700)
+        finally:
+            os.umask(previous)
+        self.assertEqual(root.stat().st_mode & 0o777, 0o700)
 
     def test_state_identity_includes_transport_and_profile(self):
         state = cast("Any", installer_state.InstallationState)(
@@ -498,6 +575,17 @@ class LocalInstallerTest(unittest.TestCase):
         direct.write_text('{"vcs_info":{}}')
         with patch.object(installer, "__version__", "0.21.0"):
             self.assertFalse(actions.verify("install"))
+        shutil.rmtree(self.data_dir / "venv")
+
+        self.write_distribution()
+        record = self.data_dir / "venv/lib/python3.14/site-packages/nci_si_mcp-0.21.0.dist-info"
+        (record / "METADATA").write_text("Metadata-Version: 2.4\nName: nci-si-mcp\n")
+        self.assertIsNone(installer._installed_release(self.data_dir / "venv"))
+        (record / "METADATA").write_text(
+            "Metadata-Version: 2.4\nName: nci-si-mcp\nVersion: 0.21.0\n"
+        )
+        (record / "direct_url.json").write_text('{"vcs_info":{"commit_id":1}}')
+        self.assertIsNone(installer._installed_release(self.data_dir / "venv"))
         shutil.rmtree(self.data_dir / "venv")
 
         self.write_distribution()
