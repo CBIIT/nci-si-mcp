@@ -142,17 +142,16 @@ steps:
               records.append((found["method"], found["path"], found["status"]))
           else:
               assert notice.search(line), line
-      assert all(allowed.fullmatch(path) and status == "404" for _, path, status in records), records
+      assert all(method in ("GET", "HEAD") and allowed.fullmatch(path) and status == "404" for method, path, status in records), records
       assert ("GET", "/cadsr", "404") in records, records
       print("loopback requests:", records)
       PY
-      if "$INSTALLER_VENV/bin/nci-si-install" check --target local > "$RUNNER_TEMP/unreachable.json"; then exit 1; fi
+      if "$INSTALLER_VENV/bin/nci-si-install" check --target local > "$RUNNER_TEMP/unreachable.json"; then unreachable=0; else unreachable=$?; fi
+      [ "$unreachable" -eq 1 ] || { echo "::error::check against the stopped recorder exited $unreachable, not 1."; exit 1; }
       python3 - "$RUNNER_TEMP/unreachable.json" <<'PY'
       import json, sys
       record = json.load(open(sys.argv[1], encoding="utf-8"))
-      results = {result["name"]: result for result in record["results"]}
-      assert record["status"] == "failed", record
-      assert results["cadsr_reachable"] == {"name": "cadsr_reachable", "status": "failed", "fix": "Restore network access to NCI_SI_CADSR_BASE_URL."}, record
+      assert record == {"target": "local", "components": ["server"], "status": "failed", "results": [{"name": "supported_os", "status": "passed"}, {"name": "git", "status": "passed"}, {"name": "python", "status": "passed"}, {"name": "evs_reachable", "status": "passed"}, {"name": "cadsr_reachable", "status": "failed", "fix": "Restore network access to NCI_SI_CADSR_BASE_URL."}]}, record
       PY
       export NCI_SI_UPSTREAM_MODE=fixture
       export NCI_SI_EVS_BASE_URL=http://127.0.0.1:8766/evs

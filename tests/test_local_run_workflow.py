@@ -255,7 +255,7 @@ for line in open(sys.argv[1], encoding="utf-8").read().splitlines():
         records.append((found["method"], found["path"], found["status"]))
     else:
         assert notice.search(line), line
-assert all(allowed.fullmatch(path) and status == "404" for _, path, status in records), records
+assert all(method in ("GET", "HEAD") and allowed.fullmatch(path) and status == "404" for method, path, status in records), records
 assert ("GET", "/cadsr", "404") in records, records
 print("loopback requests:", records)
 PY
