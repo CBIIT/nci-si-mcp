@@ -23,9 +23,9 @@ class LocalInstallerTest(unittest.TestCase):
         requirements = self.data_dir / "server-requirements.txt"
         requirements.write_text(f"demo==1 \\\n+    --hash=sha256:{'a' * 64}\n")
         self.release = installer.ReleaseIdentity("0.21.0", "a" * 40, requirements)
-        identity = patch.object(installer, "_release_identity", return_value=self.release)
-        identity.start()
-        self.addCleanup(identity.stop)
+        self.identity = patch.object(installer, "_release_identity", return_value=self.release)
+        self.identity.start()
+        self.addCleanup(self.identity.stop)
 
     @staticmethod
     def passed_prerequisite(*_):
@@ -232,6 +232,65 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(missing, ("Stop the owned HTTP server before reinstalling.",))
         self.assertEqual((venv / "preserve").read_text(), "old installation")
 
+    def test_install_refuses_to_delete_the_environment_running_the_installer(self):
+        actions = installer.LocalActions(
+            self.data_dir, transport="stdio", profile="unified", release=self.release
+        )
+        with patch.object(installer.sys, "prefix", str(actions.venv)):
+            missing = actions.missing_inputs("install")
+
+        self.assertEqual(missing, ("Run the installer outside the owned server environment.",))
+
+    def test_bootstrap_identity_requires_canonical_git_commit_and_a_hashed_lock(self):
+        requirements = self.data_dir / "server-requirements.txt"
+        self.identity.stop()
+        self.addCleanup(self.identity.start)
+
+        class Distribution:
+            version = "0.21.0"
+
+            def __init__(self, direct):
+                self.direct = direct
+
+            def read_text(self, name):
+                return json.dumps(self.direct) if name == "direct_url.json" else None
+
+        valid = {
+            "url": "https://github.com/CBIIT/nci-si-mcp",
+            "vcs_info": {"vcs": "git", "commit_id": "a" * 40},
+        }
+        invalid = (
+            None,
+            {**valid, "url": "https://example.org/fork"},
+            {**valid, "vcs_info": {"vcs": "hg", "commit_id": "a" * 40}},
+            {**valid, "vcs_info": {"vcs": "git", "commit_id": "short"}},
+        )
+        requirements.write_text(f"demo==1 \\\n+    --hash=sha256:{'b' * 64}\n")
+        for direct in invalid:
+            with (
+                self.subTest(direct=direct),
+                patch.object(installer, "__version__", "0.21.0"),
+                patch.object(installer, "SERVER_REQUIREMENTS", requirements),
+                patch.object(
+                    installer.importlib.metadata,
+                    "distribution",
+                    return_value=Distribution(direct),
+                ),
+            ):
+                self.assertIsNone(installer._release_identity())
+
+        requirements.write_text("demo==1\n")
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "SERVER_REQUIREMENTS", requirements),
+            patch.object(
+                installer.importlib.metadata,
+                "distribution",
+                return_value=Distribution(valid),
+            ),
+        ):
+            self.assertIsNone(installer._release_identity())
+
     def test_development_installer_is_blocked_without_running_an_install_command(self):
         with (
             patch.object(installer, "__version__", "0.21.1.dev3+gabc", create=True),
@@ -286,6 +345,9 @@ class LocalInstallerTest(unittest.TestCase):
             os.umask(previous)
 
         self.assertEqual(self.data_dir.joinpath("runtime").stat().st_mode & 0o777, 0o700)
+
+        self.data_dir.joinpath("runtime").chmod(0o755)
+        self.assertFalse(actions.verify("configure"))
 
     def test_state_identity_includes_transport_and_profile(self):
         state = cast("Any", installer_state.InstallationState)(
