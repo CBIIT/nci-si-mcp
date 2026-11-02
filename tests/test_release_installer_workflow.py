@@ -188,8 +188,9 @@ steps:
       "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
       original_tag="$(git rev-parse "$RELEASE_TAG^{commit}")"
       git tag -f "$RELEASE_TAG" "$original_tag^"
-      if "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$MOVED_TAG_ROOT" --non-interactive > "$RUNNER_TEMP/moved-tag.json" 2> "$RUNNER_TEMP/moved-tag.err"; then exit 1; fi
+      if "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$MOVED_TAG_ROOT" --non-interactive > "$RUNNER_TEMP/moved-tag.json" 2> "$RUNNER_TEMP/moved-tag.err"; then moved_status=0; else moved_status=$?; fi
       git tag -f "$RELEASE_TAG" "$original_tag"
+      [ "$moved_status" -eq 1 ] || { echo "::error::moved-tag run exited $moved_status, not 1."; exit 1; }
       python3 - "$RUNNER_TEMP/moved-tag.json" "$RUNNER_TEMP/moved-tag.err" "$original_tag" <<'PY'
       import json, sys
       record = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -206,8 +207,9 @@ steps:
       text = re.sub(r"--hash=sha256:[0-9a-f]{64}", "--hash=sha256:" + "0" * 64, text)
       open(path, "w", encoding="utf-8").write(text)
       PY
-      if "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$TAMPERED_HASH_ROOT" --non-interactive > "$RUNNER_TEMP/tampered-hash.json"; then exit 1; fi
+      if "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$TAMPERED_HASH_ROOT" --non-interactive > "$RUNNER_TEMP/tampered-hash.json"; then hash_status=0; else hash_status=$?; fi
       cp "$RUNNER_TEMP/server-requirements.txt" "$lock"
+      [ "$hash_status" -eq 1 ] || { echo "::error::tampered-hash run exited $hash_status, not 1."; exit 1; }
       python3 - "$RUNNER_TEMP/tampered-hash.json" "$TAMPERED_HASH_ROOT/venv/bin/python" <<'PY'
       import json, subprocess, sys
       record = json.load(open(sys.argv[1], encoding="utf-8"))
