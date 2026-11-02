@@ -22,6 +22,7 @@ on:
       - tests/test_installer_containment_workflow.py
       - tests/test_release_installer_workflow.py
       - tests/test_local_run_workflow.py
+      - tests/test_workflow_containment.py
 permissions:
   contents: read
 concurrency:
@@ -39,7 +40,7 @@ jobs:
         with: {fetch-depth: 0, persist-credentials: false}
       - uses: $/.github/actions/setup
       - name: Require the reviewed containment before either workflow runs
-        run: pdm run pytest tests/test_installer_containment_workflow.py tests/test_release_installer_workflow.py tests/test_local_run_workflow.py
+        run: pdm run pytest tests/test_installer_containment_workflow.py tests/test_release_installer_workflow.py tests/test_local_run_workflow.py tests/test_workflow_containment.py
   local-installer:
     name: local installer
     needs: contained
