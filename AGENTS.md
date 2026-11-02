@@ -100,6 +100,9 @@ pdm run quickstart-tools                  # regenerate the tool table of QUICKST
   exercise a new wrapper with cheap success and failure commands in the same shell and verify
   status capture and propagation. A syntax-only check cannot catch read-only-variable assignments.
   A wrapper failure before test launch is not a test run.
+- **Distinguish the working tree from the index.** Before testing, inspect both `git diff` and
+  `git diff --cached`: staging changes commit contents, not the files a test executes. Preserve
+  the test command's exact output; never present a paraphrase as captured output.
 - Run the tests through `pdm run` (`pdm run test`, `pdm run pytest ...`), never a bare `pytest`,
   so the project's environment and configuration apply.
 - The tests are unittest-style and offline. They import shared doubles with `from fakes import
