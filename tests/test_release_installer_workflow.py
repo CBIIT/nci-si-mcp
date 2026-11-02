@@ -1,4 +1,8 @@
+import json
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -86,6 +90,7 @@ steps:
       set -euo pipefail
       recorder=""
       original_tag=""
+      expected_commit=""
       lock=""
       cleanup() {
         status=$?
@@ -209,17 +214,19 @@ steps:
       "$PYTHON" -m venv "$NEGATIVE_INSTALLER_VENV"
       "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
       original_tag="$(git -C "$GITHUB_WORKSPACE" rev-parse "$RELEASE_TAG^{commit}")"
+      expected_commit="$original_tag"
       git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag^"
       if "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$MOVED_TAG_ROOT" --non-interactive > "$RUNNER_TEMP/moved-tag.json" 2> "$RUNNER_TEMP/moved-tag.err"; then moved_status=0; else moved_status=$?; fi
       git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag"
       original_tag=""
       [ "$moved_status" -eq 1 ] || { echo "::error::moved-tag run exited $moved_status, not 1."; exit 1; }
-      python3 - "$RUNNER_TEMP/moved-tag.json" "$RUNNER_TEMP/moved-tag.err" "$original_tag" <<'PY'
-      import json, sys
+      python3 - "$RUNNER_TEMP/moved-tag.json" "$RUNNER_TEMP/moved-tag.err" "$expected_commit" <<'PY'
+      import json, re, sys
       record = json.load(open(sys.argv[1], encoding="utf-8"))
       error = open(sys.argv[2], encoding="utf-8").read()
       assert record["completed"] == ["check_prerequisites"], record
       assert record["failed"] == ["install"], record
+      assert re.fullmatch(r"[0-9a-f]{40}", sys.argv[3]), sys.argv[3]
       assert "release tag may have moved" in error and sys.argv[3] in error, error
       PY
       lock="$NEGATIVE_INSTALLER_VENV/lib/python3.14/site-packages/nci_si_mcp/server-requirements.txt"
@@ -359,6 +366,18 @@ def workflow_operator_lines(run):
     return [line for line in selected if "|| cleanup_status=$?" not in line]
 
 
+def moved_tag_verdict():
+    run = next(
+        step["run"]
+        for step in named_steps()
+        if step["name"] == "Verify stdio and HTTP installer lifecycles"
+    )
+    command = 'python3 - "$RUNNER_TEMP/moved-tag.json"'
+    command_start = run.index(command)
+    start = run.index("<<'PY'\n", command_start) + len("<<'PY'\n")
+    return run[start:].split("\nPY\n", 1)[0]
+
+
 class ReleaseInstallerWorkflowTest(unittest.TestCase):
     def test_the_whole_release_installer_job_is_exact(self):
         self.assertEqual(job(), EXPECTED_JOB)
@@ -417,3 +436,22 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
             workflow_operator_lines(lifecycle["run"]),
             expected,
         )
+
+    def test_moved_tag_verdict_requires_the_full_expected_commit_in_the_diagnostic(self):
+        commit = "a" * 40
+        record = {"completed": ["check_prerequisites"], "failed": ["install"]}
+        with tempfile.TemporaryDirectory() as directory:
+            status = Path(directory) / "status.json"
+            error = Path(directory) / "error.txt"
+            status.write_text(json.dumps(record), encoding="utf-8")
+            command = [sys.executable, "-c", moved_tag_verdict(), str(status), str(error), commit]
+            error.write_text(f"{commit}; the release tag may have moved", encoding="utf-8")
+            accepted = subprocess.run(  # noqa: S603 - test interpreter and temporary paths
+                command, check=False
+            ).returncode
+            error.write_text("the release tag may have moved", encoding="utf-8")
+            rejected = subprocess.run(  # noqa: S603 - test interpreter and temporary paths
+                command, check=False
+            ).returncode
+
+        self.assertEqual((accepted, rejected), (0, 1))
