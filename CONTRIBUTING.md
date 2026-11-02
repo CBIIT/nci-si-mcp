@@ -394,12 +394,14 @@ Fixture checks never establish live-service assurance.
 | `acceptance-live/acceptance-live` | Live drift exemption: measures real services, not fixture behavior; operationally disabled, no PR live run. |
 | `scorecard/analysis` | ci/test exact offline workflow contract; first run after the milestone merge, reported in step 9. |
 
-Bounded exemption until #434's containment is on `main`: Local installer and Local run are
-disabled, so the `release/local-installer` verifier above and both workflows' own path-filtered
-pull-request runs are suspended. Meanwhile `installer-containment.yml` runs both on pull requests
-that change their workflow files or containment tests, only after those tests pass at the merge
-commit; changes to their other inputs get no hosted installer verification before merge. The
-exemption and that workflow end when both are re-enabled.
+Temporary verification route until #434's containment is on `main`: the standalone Local
+installer and Local run workflows are disabled. `installer-containment.yml` runs both through
+same-revision reusable calls, only on pull requests that change their workflow files or
+containment tests, and only after those tests pass at the merge commit. The route verifies that
+containment change only; it is not a waiver for other changes. Until both are re-enabled on a
+contained `main`, no other change to their inputs and no release-triggering change merges.
+Disabling a workflow does not stop calls to it, so `release.yml`'s call to Local installer is
+held back by that restriction, not by the toggle. The route is removed once both are re-enabled.
 
 ## Workflow credentials
 
