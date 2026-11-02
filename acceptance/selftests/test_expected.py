@@ -169,6 +169,22 @@ def test_outcomes_that_share_a_prefix_are_a_difference(files, capsys, expected, 
     assert f"| `t.py::a` | {expected} | {actual} |" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ([], "expected outcomes must be an object"),
+        ({"t.py::a": 1}, "expected outcomes must map test strings to outcome strings"),
+        ({"t.py::a": "unknown"}, "expected outcomes has an unknown outcome: unknown"),
+    ],
+)
+def test_malformed_expected_outcomes_are_refused(files, tmp_path, value, message):
+    arguments = files({}, {})
+    (tmp_path / "expected.json").write_text(json.dumps(value), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        main(arguments)
+
+
 def test_exact_approvals_admit_failed_and_removed_base_passes(historical_files, capsys):
     arguments = historical_files(
         {"t.py::failed": "passed", "t.py::gone": "passed", "t.py::improved": "failed"},
@@ -220,30 +236,111 @@ def test_current_base_approval_without_its_exact_regression_is_stale(historical_
 
 
 @pytest.mark.parametrize(
-    "approvals",
+    ("document", "message"),
     [
-        [approval("t.py::a", "failed"), approval("t.py::a", "no_fixture")],
-        [approval("t.py::a", "unknown")],
-        [{**approval("t.py::a", "failed"), "extra": "not allowed"}],
-        [{**approval("t.py::a", "failed"), "reason": ""}],
+        (
+            {"version": 1, "approvals": [approval("t.py::a", "failed")] * 2},
+            "a base and test may have only one approval",
+        ),
+        (
+            {"version": 1, "approvals": [approval("t.py::a", "unknown")]},
+            "approval transition has an unknown outcome",
+        ),
+        (
+            {"version": 1, "approvals": [{**approval("t.py::a", "failed"), "extra": "x"}]},
+            "each approval must have exactly the six documented fields",
+        ),
+        (
+            {"version": 1, "approvals": [{**approval("t.py::a", "failed"), "reason": ""}]},
+            "test, reason and reference must be nonempty",
+        ),
+        ([], "root must be an object"),
+        (
+            {"version": 1, "approvals": [], "extra": True},
+            "root must contain exactly version and approvals",
+        ),
+        ({"version": True, "approvals": []}, "version must be integer 1"),
+        ({"version": 2, "approvals": []}, "version must be integer 1"),
+        ({"version": 1, "approvals": {}}, "approvals must be a list"),
+        ({"version": 1, "approvals": [[]]}, "each approval must be an object"),
+        (
+            {"version": 1, "approvals": [{**approval("t.py::a", "failed"), "reason": 1}]},
+            "every approval field must be a string",
+        ),
+        (
+            {"version": 1, "approvals": [approval("t.py::a", "failed", base_sha="bad")]},
+            "base_sha must be 40 lowercase hexadecimal characters",
+        ),
+        (
+            {"version": 1, "approvals": [approval("t.py::a", "failed", before="failed")]},
+            "approval transition has an unknown outcome",
+        ),
     ],
 )
-def test_duplicate_conflicting_and_malformed_approvals_fail(historical_files, approvals):
+def test_duplicate_conflicting_and_malformed_approvals_fail(historical_files, document, message):
     arguments = historical_files(
-        {"t.py::a": "passed"}, {"t.py::a": "failed"}, {"t.py::a": "failed"}, approvals
+        {"t.py::a": "passed"}, {"t.py::a": "failed"}, {"t.py::a": "failed"}, []
+    )
+    with open(arguments[-1], "w", encoding="utf-8") as approvals_file:
+        yaml.safe_dump(document, approvals_file)
+
+    with pytest.raises(SystemExit) as error:
+        main(arguments)
+    assert str(error.value) == f"Invalid regression approvals: {message}"
+
+
+def test_only_base_passes_that_changed_need_approval(historical_files, capsys):
+    arguments = historical_files(
+        {"t.py::steady": "passed", "t.py::nonpass": "failed"},
+        {"t.py::steady": "passed", "t.py::nonpass": "no_fixture"},
+        {"t.py::steady": "passed", "t.py::nonpass": "no_fixture"},
+        [],
     )
 
-    with pytest.raises(SystemExit, match="Invalid regression approvals"):
-        main(arguments)
+    assert main(arguments) == 0
+    assert capsys.readouterr().out.endswith("Approved 0 regressions from passed outcomes.\n")
 
 
-def test_historical_arguments_are_supplied_as_one_complete_set(files, tmp_path):
+@pytest.mark.parametrize(
+    "flags",
+    [
+        ("--base",),
+        ("--base-sha",),
+        ("--approvals",),
+        ("--base", "--base-sha"),
+        ("--base", "--approvals"),
+        ("--base-sha", "--approvals"),
+    ],
+)
+def test_historical_arguments_are_supplied_as_one_complete_set(files, tmp_path, flags):
     arguments = files({"t.py::a": "passed"}, {"t.py::a": "passed"})
+    values = {
+        "--base": str(tmp_path / "base.json"),
+        "--base-sha": BASE_SHA,
+        "--approvals": str(tmp_path / "regressions.yaml"),
+    }
+    historical = [item for flag in flags for item in (flag, values[flag])]
 
     with pytest.raises(
         SystemExit, match="--base, --base-sha and --approvals must be used together"
     ):
-        main([*arguments, "--base", str(tmp_path / "base.json")])
+        main([*arguments, *historical])
+
+
+def test_malformed_historical_inputs_are_refused(historical_files, tmp_path):
+    arguments = historical_files(
+        {"t.py::a": "passed"}, {"t.py::a": "passed"}, {"t.py::a": "passed"}, []
+    )
+    (tmp_path / "base.json").write_text("[]", encoding="utf-8")
+    with pytest.raises(SystemExit, match="Invalid base expected outcomes"):
+        main(arguments)
+
+    (tmp_path / "base.json").write_text('{"t.py::a":"passed"}', encoding="utf-8")
+    arguments[arguments.index("--base-sha") + 1] = "not-a-commit"
+    with pytest.raises(SystemExit, match="--base-sha must be 40 lowercase hexadecimal"):
+        main(arguments)
+    with pytest.raises(SystemExit, match="historical arguments apply only to check"):
+        main(["update", *arguments[1:]])
 
 
 def test_the_committed_outcomes_are_in_the_reports_vocabulary_and_in_test_order():

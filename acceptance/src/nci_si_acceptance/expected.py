@@ -68,9 +68,9 @@ def read_outcomes(path: Path, label: str) -> dict[str, str]:
     return dict(_outcome(item, label) for item in value.items())
 
 
-def _outcome(item: tuple[object, object], label: str) -> tuple[str, str]:
+def _outcome(item: tuple[str, object], label: str) -> tuple[str, str]:
     test, outcome = item
-    if not isinstance(test, str) or not isinstance(outcome, str):
+    if not isinstance(outcome, str):
         raise ValueError(f"{label} must map test strings to outcome strings")
     if outcome not in RANK:
         raise ValueError(f"{label} has an unknown outcome: {outcome}")
