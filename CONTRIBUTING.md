@@ -394,6 +394,11 @@ Fixture checks never establish live-service assurance.
 | `acceptance-live/acceptance-live` | Live drift exemption: measures real services, not fixture behavior; operationally disabled, no PR live run. |
 | `scorecard/analysis` | ci/test exact offline workflow contract; first run after the milestone merge, reported in step 9. |
 
+Local installer and Local run are disabled until their caDSR and Shared SI containment is on
+`main` (#434). Meanwhile `installer-containment.yml` runs both on pull requests that change them,
+only after their exact containment tests pass at the same revision. It is removed once both are
+re-enabled.
+
 ## Workflow credentials
 
 Only protected live checks need issued credentials. Anonymous live checks and fixture CI need
