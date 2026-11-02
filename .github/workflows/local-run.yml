@@ -13,8 +13,6 @@ on:
   schedule:
     - cron: "17 7 * * 1"
   workflow_dispatch:
-  # Currently called only by the temporary pre-merge verifier of #434 (installer-containment.yml).
-  workflow_call:
   pull_request:
     paths:
       - src/**
