@@ -18,6 +18,7 @@ PDM_ROWS = "matrix.server || matrix.host_docs"
 
 # Every step in order: its name and its condition.
 STEPS = [
+    ("Resolve prohibited caDSR and Shared SI hosts to loopback (CI only)", None),
     (
         "Require container contexts for Compose rows (CI only)",
         "(matrix.compose_docs || matrix.compose_companion) && "
@@ -35,7 +36,12 @@ STEPS = [
     ("Print the EVS release", "matrix.combination == 'server'"),
     ("Select the released index source (CI only)", "matrix.server || matrix.index"),
     ("Install released server and optional index environments", "matrix.server || matrix.index"),
+    ("Start the loopback caDSR and Shared SI recorder (CI only)", "matrix.server"),
     ("Verify the local server lifecycle", "matrix.server"),
+    (
+        "Stop the loopback recorder and check its requests (CI only)",
+        "always() && matrix.server && steps.recorder.outcome != 'skipped'",
+    ),
     ("Build and evaluate a small local index", "matrix.index"),
     ("Write the readiness probe (CI only)", None),
     ("Serve over stdio and initialize (CI only)", "matrix.server"),
@@ -112,6 +118,13 @@ status=$?
 
 # What exists only in CI, by step name (the whole step) or by exact line, and why.
 CI_ONLY = {
+    "Resolve prohibited caDSR and Shared SI hosts to loopback (CI only)": "a fail-closed "
+    "backstop: any caDSR or Shared SI request the job environment misses reaches loopback, "
+    "never NCI",
+    "Start the loopback caDSR and Shared SI recorder (CI only)": "the installer's caDSR "
+    "reachability check probes this recorder instead of production caDSR",
+    "Stop the loopback recorder and check its requests (CI only)": "stops the owned recorder "
+    "and proves the check probed it, with only caDSR and Shared SI paths",
     "Remove the runner's python.org Python (macOS)": "the runner image ships python.org builds "
     "in /Library/Frameworks that a clean Mac lacks, and PDM picks them over Homebrew's",
     "Remove preinstalled Python and PDM (macOS)": "brew install exits 0 without installing a "
@@ -180,6 +193,75 @@ CI_ONLY = {
     'did not finish (exit status $status)."; exit 1; }': "exit status 1 means some tests did "
     "not pass, which the comparison judges; any other status, or no report, is no run",
 }
+
+# caDSR and Shared SI never leave the runner: every step sees loopback URLs, proxies are
+# bypassed for loopback and the prohibited hosts, and those hosts resolve to loopback.
+LOOPBACK_ENV = {
+    "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:8767/cadsr",
+    "NCI_SI_CADSR_FTP_URL": "http://127.0.0.1:8767/cadsr-ftp",
+    "NCI_SI_SSIS_SPARQL_URL": "http://127.0.0.1:8767/ssis-sparql",
+    "no_proxy": "127.0.0.1,localhost,::1,cadsrapi.cancer.gov,cadsrapi-stage.cancer.gov,"
+    "cadsr.nci.nih.gov,shared.semantics.cancer.gov",
+    "NO_PROXY": "127.0.0.1,localhost,::1,cadsrapi.cancer.gov,cadsrapi-stage.cancer.gov,"
+    "cadsr.nci.nih.gov,shared.semantics.cancer.gov",
+}
+
+HOSTS_BACKSTOP_RUN = r"""set -euo pipefail
+hosts="cadsrapi.cancer.gov cadsrapi-stage.cancer.gov cadsr.nci.nih.gov shared.semantics.cancer.gov"
+printf '127.0.0.1 %s\n::1 %s\n' "$hosts" "$hosts" | sudo tee -a /etc/hosts
+if [ "$RUNNER_OS" = "macOS" ]; then sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder; fi
+HOSTS="$hosts" python3 - <<'PY'
+import os, socket
+for host in os.environ["HOSTS"].split():
+    addresses = {info[4][0] for info in socket.getaddrinfo(host, 443)}
+    assert addresses and addresses <= {"127.0.0.1", "::1"}, (host, addresses)
+    print(host, sorted(addresses))
+PY
+"""  # noqa: E501
+
+RECORDER_START_RUN = r"""set -euo pipefail
+mkdir -p "$RUNNER_TEMP/upstream-recorder"
+python3 -m http.server 8767 --bind 127.0.0.1 --directory "$RUNNER_TEMP/upstream-recorder" < /dev/null > "$RUNNER_TEMP/upstream-recorder.out" 2> "$RUNNER_TEMP/upstream-requests.log" &
+recorder=$!
+echo "$recorder" > "$RUNNER_TEMP/upstream-recorder.pid"
+for attempt in $(seq 1 100); do
+  kill -0 "$recorder"
+  if (: <> /dev/tcp/127.0.0.1/8767) 2>/dev/null; then break; fi
+  if [ "$attempt" -eq 100 ]; then echo "::error::The loopback recorder did not listen."; exit 1; fi
+  sleep 0.1
+done
+"""  # noqa: E501
+
+RECORDER_STOP_RUN = r"""set -euo pipefail
+if [ ! -f "$RUNNER_TEMP/upstream-recorder.pid" ]; then echo "::error::No loopback recorder was started."; exit 1; fi
+recorder="$(cat "$RUNNER_TEMP/upstream-recorder.pid")"
+case "$(ps -p "$recorder" -o command= || true)" in
+  *"-m http.server 8767 --bind 127.0.0.1 "*) ;;
+  *) echo "::error::Process $recorder is not the owned loopback recorder."; exit 1 ;;
+esac
+kill "$recorder"
+for attempt in $(seq 1 100); do
+  case "$(ps -p "$recorder" -o stat= || true)" in ""|Z*) break ;; esac
+  if [ "$attempt" -eq 100 ]; then echo "::error::The loopback recorder did not stop."; exit 1; fi
+  sleep 0.1
+done
+python3 - "$RUNNER_TEMP/upstream-requests.log" <<'PY'
+import re, sys
+request = re.compile(r'"(?P<method>[A-Z]+) (?P<path>\S+) HTTP/1\.[01]" (?P<status>\d{3}) ')
+notice = re.compile(r"code 404, message File not found$")
+allowed = re.compile(r"/(cadsr|cadsr-ftp|ssis-sparql)(/\S*)?")
+records = []
+for line in open(sys.argv[1], encoding="utf-8").read().splitlines():
+    found = request.search(line)
+    if found:
+        records.append((found["method"], found["path"], found["status"]))
+    else:
+        assert notice.search(line), line
+assert all(allowed.fullmatch(path) and status == "404" for _, path, status in records), records
+assert ("GET", "/cadsr", "404") in records, records
+print("loopback requests:", records)
+PY
+"""  # noqa: E501
 
 # The CI-only probe steps run a documented server command; the document that gives the command,
 # the command, and the readiness URL the probe waits for (None: an initialize over stdio).
@@ -869,11 +951,12 @@ class LocalRunWorkflowTest(unittest.TestCase):
     def test_nothing_changes_a_step_beside_its_pinned_keys(self):
         # An env, defaults, working-directory or continue-on-error would change what a documented
         # line does, or keep a failed check from failing the job, with every run line unchanged.
+        # The one job env is deliberate: it keeps caDSR and Shared SI on loopback (tested below).
         workflow = load(LOCAL_RUN)
         self.assertEqual(set(workflow), {"name", True, "permissions", "concurrency", "jobs"})
         self.assertEqual(
             set(job()),
-            {"name", "needs", "if", "runs-on", "strategy", "timeout-minutes", "steps"},
+            {"name", "needs", "if", "runs-on", "strategy", "timeout-minutes", "env", "steps"},
         )
         allowed = {"name", "if", "uses", "with", "shell", "timeout-minutes", "run"}
         extra = {
@@ -887,10 +970,39 @@ class LocalRunWorkflowTest(unittest.TestCase):
             {
                 "Select the released index source (CI only)": ["env"],
                 "Install released server and optional index environments": ["env"],
+                "Start the loopback caDSR and Shared SI recorder (CI only)": ["id"],
                 "Build selected local container images": ["env"],
                 "Verify the selected Compose profiles (CI only)": ["env"],
                 "Verify every selected component together (CI only)": ["env"],
             },
+        )
+
+    def test_every_step_reaches_cadsr_and_shared_si_only_on_loopback(self):
+        self.assertEqual(job().get("env"), LOOPBACK_ENV)
+        backstop = job()["steps"][0]
+        self.assertEqual(
+            backstop,
+            {
+                "name": "Resolve prohibited caDSR and Shared SI hosts to loopback (CI only)",
+                "run": HOSTS_BACKSTOP_RUN,
+            },
+        )
+
+    def test_the_recorder_is_owned_ready_first_and_judged_after_the_lifecycle(self):
+        by_name = {step["name"]: step for step in steps()}
+        start = by_name.get("Start the loopback caDSR and Shared SI recorder (CI only)", {})
+        self.assertEqual((start.get("id"), start.get("run")), ("recorder", RECORDER_START_RUN))
+        stop = by_name.get("Stop the loopback recorder and check its requests (CI only)", {})
+        self.assertEqual(stop.get("run"), RECORDER_STOP_RUN)
+        names = [step["name"] for step in steps()]
+        lifecycle = names.index("Verify the local server lifecycle")
+        self.assertEqual(
+            names[lifecycle - 1 : lifecycle + 2],
+            [
+                "Start the loopback caDSR and Shared SI recorder (CI only)",
+                "Verify the local server lifecycle",
+                "Stop the loopback recorder and check its requests (CI only)",
+            ],
         )
 
     def test_only_the_fixture_run_survives_a_failing_command_to_judge_its_status(self):

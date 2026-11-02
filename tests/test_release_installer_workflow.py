@@ -23,7 +23,26 @@ permissions: {contents: read}
 strategy:
   fail-fast: false
   matrix: {os: [macos-latest, ubuntu-24.04]}
+env:
+  NCI_SI_CADSR_BASE_URL: http://127.0.0.1:8767/cadsr
+  NCI_SI_CADSR_FTP_URL: http://127.0.0.1:8767/cadsr-ftp
+  NCI_SI_SSIS_SPARQL_URL: http://127.0.0.1:8767/ssis-sparql
+  no_proxy: 127.0.0.1,localhost,::1,cadsrapi.cancer.gov,cadsrapi-stage.cancer.gov,cadsr.nci.nih.gov,shared.semantics.cancer.gov
+  NO_PROXY: 127.0.0.1,localhost,::1,cadsrapi.cancer.gov,cadsrapi-stage.cancer.gov,cadsr.nci.nih.gov,shared.semantics.cancer.gov
 steps:
+  - name: Resolve prohibited caDSR and Shared SI hosts to loopback (CI only)
+    run: |
+      set -euo pipefail
+      hosts="cadsrapi.cancer.gov cadsrapi-stage.cancer.gov cadsr.nci.nih.gov shared.semantics.cancer.gov"
+      printf '127.0.0.1 %s\n::1 %s\n' "$hosts" "$hosts" | sudo tee -a /etc/hosts
+      if [ "$RUNNER_OS" = "macOS" ]; then sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder; fi
+      HOSTS="$hosts" python3 - <<'PY'
+      import os, socket
+      for host in os.environ["HOSTS"].split():
+          addresses = {info[4][0] for info in socket.getaddrinfo(host, 443)}
+          assert addresses and addresses <= {"127.0.0.1", "::1"}, (host, addresses)
+          print(host, sorted(addresses))
+      PY
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
     with: {ref: '${{ needs.prepare.outputs.ref }}', fetch-depth: 0, persist-credentials: false}
   - name: Install Python
@@ -61,6 +80,7 @@ steps:
       HTTP_ROOT: ${{ runner.temp }}/http-install
     run: |
       set -euo pipefail
+      recorder=""
       cleanup() {
         status=$?
         cleanup_status=0
@@ -72,10 +92,23 @@ steps:
           "$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT" || cleanup_status=$?
           "$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT" || cleanup_status=$?
         fi
+        if [ -n "$recorder" ]; then
+          kill "$recorder" 2>/dev/null || true
+          wait "$recorder" || true
+        fi
         if [ "$status" -eq 0 ]; then status=$cleanup_status; fi
         exit "$status"
       }
       trap cleanup EXIT
+      mkdir -p "$RUNNER_TEMP/upstream-recorder"
+      python3 -m http.server 8767 --bind 127.0.0.1 --directory "$RUNNER_TEMP/upstream-recorder" < /dev/null > "$RUNNER_TEMP/upstream-recorder.out" 2> "$RUNNER_TEMP/upstream-requests.log" &
+      recorder=$!
+      for attempt in $(seq 1 100); do
+        kill -0 "$recorder"
+        if (: <> /dev/tcp/127.0.0.1/8767) 2>/dev/null; then break; fi
+        if [ "$attempt" -eq 100 ]; then echo "::error::The loopback recorder did not listen."; exit 1; fi
+        sleep 0.1
+      done
       export STDIO_REQUIRED_TESTS="test_a_resolved_release_is_never_cached test_an_index_mode_without_an_index_is_unavailable"
       export HTTP_REQUIRED_TESTS="test_a_resolved_release_is_never_cached test_a_discovered_release_identifies_the_concept_and_its_provenance"
       mkdir -p "$STDIO_ROOT"
@@ -95,6 +128,33 @@ steps:
       "$INSTALLER_VENV/bin/nci-si-install" check --target local
       "$INSTALLER_VENV/bin/nci-si-install" run --target local --transport http --data-dir "$HTTP_ROOT" --non-interactive
       "$INSTALLER_VENV/bin/nci-si-install" status --target local --transport http --data-dir "$HTTP_ROOT"
+      kill "$recorder"
+      wait "$recorder" || [ $? -eq 143 ]
+      recorder=""
+      python3 - "$RUNNER_TEMP/upstream-requests.log" <<'PY'
+      import re, sys
+      request = re.compile(r'"(?P<method>[A-Z]+) (?P<path>\S+) HTTP/1\.[01]" (?P<status>\d{3}) ')
+      notice = re.compile(r"code 404, message File not found$")
+      allowed = re.compile(r"/(cadsr|cadsr-ftp|ssis-sparql)(/\S*)?")
+      records = []
+      for line in open(sys.argv[1], encoding="utf-8").read().splitlines():
+          found = request.search(line)
+          if found:
+              records.append((found["method"], found["path"], found["status"]))
+          else:
+              assert notice.search(line), line
+      assert all(allowed.fullmatch(path) and status == "404" for _, path, status in records), records
+      assert ("GET", "/cadsr", "404") in records, records
+      print("loopback requests:", records)
+      PY
+      if "$INSTALLER_VENV/bin/nci-si-install" check --target local > "$RUNNER_TEMP/unreachable.json"; then exit 1; fi
+      python3 - "$RUNNER_TEMP/unreachable.json" <<'PY'
+      import json, sys
+      record = json.load(open(sys.argv[1], encoding="utf-8"))
+      results = {result["name"]: result for result in record["results"]}
+      assert record["status"] == "failed", record
+      assert results["cadsr_reachable"] == {"name": "cadsr_reachable", "status": "failed", "fix": "Restore network access to NCI_SI_CADSR_BASE_URL."}, record
+      PY
       export NCI_SI_UPSTREAM_MODE=fixture
       export NCI_SI_EVS_BASE_URL=http://127.0.0.1:8766/evs
       export NCI_SI_EVS_FHIR_BASE_URL=http://127.0.0.1:8766/evs-fhir
