@@ -2,6 +2,11 @@ name: CI
 
 on:
   workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Full ancestor commit for acceptance regression comparison
+        required: true
+        type: string
   push:
     branches: [main]
   pull_request:
@@ -327,9 +332,22 @@ jobs:
           fi
       - name: Compare the outcomes with the expected ones
         if: ${{ always() && hashFiles('acceptance/fixture.json') != '' }}
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          DISPATCH_BASE_SHA: ${{ inputs.base_sha }}
         run: |
           status=0
-          pdm run acceptance-expected check acceptance/fixture.json > acceptance/difference.md || status=$?
+          arguments=()
+          if [ "$EVENT_NAME" = "pull_request" ] || [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$EVENT_NAME" = "pull_request" ]; then BASE_SHA="$PR_BASE_SHA"; else BASE_SHA="$DISPATCH_BASE_SHA"; fi
+            [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            git cat-file -e "$BASE_SHA^{commit}"
+            git merge-base --is-ancestor "$BASE_SHA" HEAD
+            git show "$BASE_SHA:acceptance/expected/fixture.json" > tmp/base-fixture.json
+            arguments=(--base tmp/base-fixture.json --base-sha "$BASE_SHA" --approvals acceptance/expected/regressions.yaml)
+          fi
+          pdm run acceptance-expected check acceptance/fixture.json "${arguments[@]}" > acceptance/difference.md || status=$?
           { echo "### Outcomes against acceptance/expected/fixture.json"; echo; cat acceptance/difference.md; } >> "$GITHUB_STEP_SUMMARY"
           cat acceptance/difference.md
           exit "$status"
