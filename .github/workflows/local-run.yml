@@ -98,8 +98,9 @@ jobs:
     # Step shells get loopback caDSR and Shared SI URLs, not production (#434), unlike the
     # documents. The installer's reachability check probes an owned loopback recorder, started and
     # judged around the server lifecycle below. Proxies are bypassed for loopback and the listed
-    # hosts. Not covered: children started with a filtered environment (the MCP SDK's stdio_client
-    # in the server-only search step) and Compose containers. The hosts backstop is defense in
+    # hosts. Not covered: children started with a filtered environment (for example by the MCP
+    # SDK's stdio_client in the server-only search step; the acceptance harness sets its own
+    # fixture URLs) and Compose containers. The hosts backstop is defense in
     # depth for the listed names on hosted runners; none of this proves that no other request
     # leaves the runner.
     env:

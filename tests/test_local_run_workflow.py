@@ -195,8 +195,9 @@ CI_ONLY = {
 }
 
 # The job points caDSR and Shared SI at loopback: step shells get loopback URLs and no_proxy for
-# loopback and the listed hosts, which also resolve to loopback. local-run.yml says what this does
-# not cover; tests/test_workflow_containment.py ties both installer jobs to the same design.
+# loopback and the listed hosts, which resolve to loopback for resolvers that read /etc/hosts.
+# local-run.yml says what this does not cover; tests/test_workflow_containment.py ties both
+# installer jobs to the same design.
 LOOPBACK_ENV = {
     "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:8767/cadsr",
     "NCI_SI_CADSR_FTP_URL": "http://127.0.0.1:8767/cadsr-ftp",

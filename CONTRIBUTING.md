@@ -394,11 +394,12 @@ Fixture checks never establish live-service assurance.
 | `acceptance-live/acceptance-live` | Live drift exemption: measures real services, not fixture behavior; operationally disabled, no PR live run. |
 | `scorecard/analysis` | ci/test exact offline workflow contract; first run after the milestone merge, reported in step 9. |
 
-Local installer and Local run are disabled until their caDSR and Shared SI containment is on
-`main` (#434). Meanwhile `installer-containment.yml` runs both on pull requests that change their
-workflow files or exact tests, only after those tests pass at the merge commit; changes to their
-other inputs get no hosted installer verification before merge. It is removed once both are
-re-enabled.
+Bounded exemption until #434's containment is on `main`: Local installer and Local run are
+disabled, so the `release/local-installer` verifier above and both workflows' own path-filtered
+pull-request runs are suspended. Meanwhile `installer-containment.yml` runs both on pull requests
+that change their workflow files or containment tests, only after those tests pass at the merge
+commit; changes to their other inputs get no hosted installer verification before merge. The
+exemption and that workflow end when both are re-enabled.
 
 ## Workflow credentials
 
