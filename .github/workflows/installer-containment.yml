@@ -1,0 +1,57 @@
+name: Installer containment
+
+# Temporary pre-merge verifier (#434). Local installer and Local run stay disabled until their
+# contained versions are on main; this workflow runs those versions from the pull request's own
+# revision, and only after their exact containment tests pass there. It is a verification route,
+# not a security boundary against a hostile pull request. Remove it once contained main is merged
+# and both originals are re-enabled.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/installer-containment.yml
+      - .github/workflows/local-installer.yml
+      - .github/workflows/local-run.yml
+      - tests/test_installer_containment_workflow.py
+      - tests/test_release_installer_workflow.py
+      - tests/test_local_run_workflow.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installer-containment-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
+jobs:
+  contained:
+    name: containment tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: $/.github/actions/setup
+      - name: Require the reviewed containment before either workflow runs
+        run: pdm run pytest tests/test_installer_containment_workflow.py tests/test_release_installer_workflow.py tests/test_local_run_workflow.py
+
+  # Same-revision calls ($/). An empty ref keeps Local installer's pull-request source selection.
+  local-installer:
+    name: local installer
+    needs: contained
+    permissions:
+      contents: read
+    uses: $/.github/workflows/local-installer.yml
+    with:
+      ref: ''
+      tag: ''
+
+  local-run:
+    name: local run
+    needs: contained
+    permissions:
+      contents: read
+    uses: $/.github/workflows/local-run.yml
