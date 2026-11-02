@@ -64,7 +64,7 @@ steps:
       PYTHON: ${{ steps.python.outputs.python-path }}
     run: |
       "$PYTHON" -m venv "$INSTALLER_VENV"
-      "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+      "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
   - name: Install the acceptance suite (CI only)
     env: {PYTHON: '${{ steps.python.outputs.python-path }}'}
     run: |
@@ -77,6 +77,11 @@ steps:
       INSTALLER_VENV: ${{ runner.temp }}/installer-venv
       STDIO_ROOT: ${{ runner.temp }}/stdio-install
       HTTP_ROOT: ${{ runner.temp }}/http-install
+      NEGATIVE_INSTALLER_VENV: ${{ runner.temp }}/negative-installer-venv
+      MOVED_TAG_ROOT: ${{ runner.temp }}/moved-tag-install
+      TAMPERED_HASH_ROOT: ${{ runner.temp }}/tampered-hash-install
+      PYTHON: ${{ steps.python.outputs.python-path }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
     run: |
       set -euo pipefail
       recorder=""
@@ -177,7 +182,38 @@ steps:
           actual = {key: value["outcome"] for key, value in report["tests"].items()}
           assert set(actual) == required, (name, set(actual), required)
           assert set(actual.values()) == {"passed"}, (name, actual)
-          assert actual == {key: expected[key] for key in actual}, (name, actual)
+      assert actual == {key: expected[key] for key in actual}, (name, actual)
+      PY
+      "$PYTHON" -m venv "$NEGATIVE_INSTALLER_VENV"
+      "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+      original_tag="$(git rev-parse "$RELEASE_TAG^{commit}")"
+      git tag -f "$RELEASE_TAG" "$original_tag^"
+      if "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$MOVED_TAG_ROOT" --non-interactive > "$RUNNER_TEMP/moved-tag.json" 2> "$RUNNER_TEMP/moved-tag.err"; then exit 1; fi
+      git tag -f "$RELEASE_TAG" "$original_tag"
+      python3 - "$RUNNER_TEMP/moved-tag.json" "$RUNNER_TEMP/moved-tag.err" "$original_tag" <<'PY'
+      import json, sys
+      record = json.load(open(sys.argv[1], encoding="utf-8"))
+      error = open(sys.argv[2], encoding="utf-8").read()
+      assert record["failed"] == ["install"], record
+      assert "release tag may have moved" in error and sys.argv[3] in error, error
+      PY
+      lock="$NEGATIVE_INSTALLER_VENV/lib/python3.14/site-packages/nci_si_mcp/server-requirements.txt"
+      cp "$lock" "$RUNNER_TEMP/server-requirements.txt"
+      python3 - "$lock" <<'PY'
+      import re, sys
+      path = sys.argv[1]
+      text = open(path, encoding="utf-8").read()
+      text = re.sub(r"--hash=sha256:[0-9a-f]{64}", "--hash=sha256:" + "0" * 64, text)
+      open(path, "w", encoding="utf-8").write(text)
+      PY
+      if "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$TAMPERED_HASH_ROOT" --non-interactive > "$RUNNER_TEMP/tampered-hash.json"; then exit 1; fi
+      cp "$RUNNER_TEMP/server-requirements.txt" "$lock"
+      python3 - "$RUNNER_TEMP/tampered-hash.json" "$TAMPERED_HASH_ROOT/venv/bin/python" <<'PY'
+      import json, subprocess, sys
+      record = json.load(open(sys.argv[1], encoding="utf-8"))
+      assert record["failed"] == ["install"], record
+      packages = subprocess.check_output([sys.argv[2], "-m", "pip", "list", "--format=json"], text=True)
+      assert [item["name"].lower() for item in json.loads(packages)] == ["pip"], packages
       PY
 """)
 
@@ -275,7 +311,7 @@ def documented_install_lines():
         line
         for line in (
             '"$PYTHON" -m venv "$INSTALLER_VENV"',
-            '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ '
+            '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ '
             'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"',
         )
         if line in commands
