@@ -93,18 +93,20 @@ jobs:
           - {os: ubuntu-24.04, combination: everything, server: true, index: true, host_docs: false, host_companion: false, compose_docs: true, compose_companion: true, processes: "required-index HTTP, Compose documentation, administration and ingress", ports: "8000,8080,8081"}
           - {os: macos-latest, combination: server, server: true, index: false, host_docs: false, host_companion: false, compose_docs: false, compose_companion: false, processes: "installer stdio, then installer HTTP", ports: "8000"}
           - {os: macos-latest, combination: everything-without-docker, server: true, index: true, host_docs: true, host_companion: true, compose_docs: false, compose_companion: false, processes: "required-index HTTP, host documentation and portal", ports: "8000,8080,8081"}
-    # Production caDSR and Shared SI are never contacted from CI (#434). The installer's
-    # reachability check probes an owned loopback recorder instead (started and judged around
-    # the server lifecycle below). Proxies are bypassed for loopback and the prohibited hosts,
-    # which also resolve to loopback.
+    # Every host step's caDSR and Shared SI URLs point at loopback, not production (#434). The
+    # installer's reachability check probes an owned loopback recorder, started and judged around
+    # the server lifecycle below. Proxies are bypassed for loopback and the listed hosts. The hosts
+    # backstop is defense in depth for those names on hosted runners; none of this proves that no
+    # other request leaves the runner, and Compose containers do not inherit this environment.
     env:
       NCI_SI_CADSR_BASE_URL: http://127.0.0.1:8767/cadsr
       NCI_SI_CADSR_FTP_URL: http://127.0.0.1:8767/cadsr-ftp
       NCI_SI_SSIS_SPARQL_URL: http://127.0.0.1:8767/ssis-sparql
       no_proxy: 127.0.0.1,localhost,::1,cadsrapi.cancer.gov,cadsrapi-stage.cancer.gov,cadsr.nci.nih.gov,shared.semantics.cancer.gov
     steps:
-      # A fail-closed backstop on hosted runners, not an egress guarantee: a request the job
-      # environment misses resolves to loopback. Container DNS does not read this file.
+      # Defense in depth on hosted runners, not an egress guarantee: a request for a listed name
+      # that the job environment misses resolves to loopback. Proxies that resolve names
+      # themselves and container DNS do not read this file.
       - name: Resolve prohibited caDSR and Shared SI hosts to loopback (CI only)
         run: |
           set -euo pipefail
@@ -285,7 +287,7 @@ jobs:
                   records.append((found["method"], found["path"], found["status"]))
               else:
                   assert notice.search(line), line
-          assert all(allowed.fullmatch(path) and status == "404" for _, path, status in records), records
+          assert all(method in ("GET", "HEAD") and allowed.fullmatch(path) and status == "404" for method, path, status in records), records
           assert ("GET", "/cadsr", "404") in records, records
           print("loopback requests:", records)
           PY
