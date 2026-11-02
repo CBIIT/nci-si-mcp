@@ -59,7 +59,10 @@ The gate's nested self-tests require the larger timeout; current timing evidence
 the issue and pull request, not a standing runtime promise.
 
 CI's existing unit, harness self-test and prepared-fixture jobs collect per-test and child-phase
-coverage once. They export one-day fragments bound to the checked-out merge commit and tracked
+coverage once. Each job's generated config (`mutation_coverage configure`) names that job's own
+absolute data file (`.coverage` at the root for unit, `acceptance/.coverage` for the harness
+domains), so a child started from another working directory writes beside it and is combined.
+They export one-day fragments bound to the checked-out merge commit and tracked
 input bytes; mutation shards wait for those producers and the coverage floors, download their
 same-run fragments and pass `--coverage-dir`. A missing, incomplete, malformed or mismatched
 import fails as `INFRA`, even for an empty catalogue; it never silently reruns a baseline.
@@ -149,7 +152,11 @@ with `kind: assertion` or `kind: error`. Multiple unittest subtest reports becom
 call record; mixed assertion and error subtest failures are `KILLED` with `kind: error`.
 A collection exception whose traceback reaches the mutated file is a `kind: import`
 kill after a clean baseline, including pytest's exit 4 when precise node selection cannot
-collect that node because of the mutated import. Exit 4 without that collection evidence
+collect that node because of the mutated import. When the owners span several files, pytest
+`-x` then stops collecting and reports that stop as a further failed collection of the session;
+the probe marks only that exception (`Session.Failed` carrying the session's own stop reason,
+read in `pytest_make_collect_report` before pytest discards `report.call`), and the kill keeps
+such notices as `stop_notices`. Exit 4 without that collection evidence
 stays infrastructure failure. Unrelated collection failures, `SystemExit`, setup,
 teardown, internal and baseline failures stay infrastructure errors.
 Evidence collection loads an immutable controller copy, even when testing the probe.
@@ -268,6 +275,21 @@ during feature-branch cleanup; it is generated publication data.
 6. **Remove dead code** in the change that makes it dead.
 7. **Keep the documentation in step, and short.** Update it in the same change. The README
    answers the first questions and links onward; details belong in the deeper documents.
+
+### Adding a tool
+
+1. Specify it in `spec/tools.yaml` first; run `pdm run spec-render` and `pdm run quickstart-tools`.
+2. Write the handler with the `Context` as its first positional parameter, public inputs typed
+   with `parameters.py`, and a docstring that is the client contract.
+3. Add its result `TypedDict` to `results.py` and declare a `ToolSpec` in `registry.SPECS`: its
+   `group`, `name` and `title` (without a `name` it is not served as a tool), the output union with
+   `ErrorResult`, cache `resolution` or a handler-owned cache hint, an `audit` class per
+   parameter, and a `_CLI_FLAGS` spelling for any `True`-default boolean.
+4. Rely on the scopes `registry.invoke` and the server open for every call (permission, input
+   limits, cache decision, release selection, deadline, audited correlation); never reopen them.
+5. Add its scenario to `tests/test_registry_contracts.py` and update QUICKSTART.md; if outcomes
+   move, commit `acceptance/expected/fixture.json` from a fresh fixture run and run
+   `pdm run acceptance-status`.
 
 ### Typing conventions
 

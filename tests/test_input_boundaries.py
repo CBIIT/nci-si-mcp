@@ -15,10 +15,9 @@ import yaml
 from mcp.client import Client
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
-from fakes import data_element
+from fakes import cde_response, data_element
 from nci_si_mcp.cadsr import CaDSRClient
 from test_cadsr_client import reply
-from test_cadsr_matching import cde_response
 from test_http_client import ServerTestCase
 from test_release_selection import initialize_http
 from test_server import ServerFixture

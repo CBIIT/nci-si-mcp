@@ -455,18 +455,33 @@ def call_kill(status: int, failed: list[dict]) -> dict:
 
 
 def import_kill(status: int, failed: list[dict], mutated_file: Path | None) -> dict:
+    # pytest -x reports its own stop after the import failure as a further collection failure
+    # of the session; the probe marks it, and only notices after the failure are set aside.
+    # import_failure also refuses a marked first row, so a run led by a notice is never a kill.
+    notices = [row for row in failed[1:] if stop_notice(row)]
     if (
         status not in (ExitCode.INTERRUPTED, ExitCode.USAGE_ERROR)
-        or not mutated_file
-        or len(failed) != 1
+        or len(failed) != 1 + len(notices)
+        or not import_failure(failed[0], mutated_file)
     ):
         return {}
-    row = failed[0]
-    if row["phase"] != "collection" or row.get("exception", "").startswith("SystemExit"):
-        return {}
-    if str(mutated_file.resolve()) not in row.get("traceback_paths", []):
-        return {}
-    return {"outcome": "KILLED", "kind": "import", "phase": "collection", "node": row["node"]}
+    kill = {"outcome": "KILLED", "kind": "import", "phase": "collection", "node": failed[0]["node"]}
+    return kill | ({"stop_notices": notices} if notices else {})
+
+
+def import_failure(row: dict, mutated_file: Path | None) -> bool:
+    # A primary failure carries no stop marker of any value: a notice never stands in for it.
+    return (
+        mutated_file is not None
+        and "stop_notice" not in row
+        and row["phase"] == "collection"
+        and not row.get("exception", "").startswith("SystemExit")
+        and str(mutated_file.resolve()) in row.get("traceback_paths", [])
+    )
+
+
+def stop_notice(row: dict) -> bool:
+    return row["phase"] == "collection" and row.get("stop_notice") is True
 
 
 def run_domain(
@@ -515,18 +530,29 @@ def run_domain(
     return result, work / ".coverage"
 
 
-def coverage_args(scratch: Path, work: Path, baseline: bool, env: dict[str, str]) -> list[str]:
+def coverage_args(
+    scratch: Path,
+    work: Path,
+    baseline: bool,
+    env: dict[str, str],
+    *,
+    data_file: Path | None = None,
+) -> list[str]:
     if not baseline:
         return ["--no-cov"]
     config = work / ".coveragerc"
     env["COVERAGE_PROCESS_START"] = str(config)
     sources = [str(scratch / name) for name in ("src", "scripts", "acceptance/src")]
+    # Children reread this file and resolve a relative data file against their own working
+    # directory; an absolute one keeps the data of children started elsewhere.
+    destination = f"data_file = {data_file}\n" if data_file else ""
     config.write_text(
         "[run]\nbranch = True\ncore = ctrace\npatch = subprocess\n"
         "context = ${MUTATION_COVERAGE_CONTEXT-}\n"
         + "source =\n    "
         + "\n    ".join(sources)
         + "\n"
+        + destination
     )
     return [
         f"--cov-config={config}",

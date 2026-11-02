@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from fakes import FakeEVS, FakeSSIS, concept, release
+from fakes import FakeEVS, FakeSSIS, cde_response, cde_row, concept, release, vm_response, vm_row
 from nci_si_mcp.bounds import Budget, current_budget
 from nci_si_mcp.caching import cache_call
 from nci_si_mcp.config import Settings
@@ -18,7 +18,6 @@ from nci_si_mcp.registry import invoke
 from nci_si_mcp.release_selection import SessionRelease, session_scope
 from test_bounds import BudgetEVS
 from test_cadsr_client import reply
-from test_cadsr_matching import cde_response, cde_row, vm_response, vm_row
 from test_http_client import Reply, ServerTestCase
 from test_seam import NCIT, element, gdc_map
 

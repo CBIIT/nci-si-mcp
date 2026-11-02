@@ -291,42 +291,53 @@ class ReleaseSelectionTest(ServerFixture):
                 self.assertEqual(changed["error"]["code"], "invalid_request")
 
     def test_real_stateless_http_resolves_each_call(self):
-        self.assertEqual(asyncio.run(self.http_sequence(True)), ["26.06e", "26.07d"])
+        async def scenario(client):
+            headers = await initialize_http(client)
+            first = await http_concept(client, headers)
+            self.move()
+            return [version(first), version(await http_concept(client, headers))]
 
-    def test_real_stateful_http_reuses_the_validated_session(self):
-        self.assertEqual(asyncio.run(self.http_sequence(False)), ["26.06e", "26.07d", "26.06e"])
+        app = create_mcp(context=self.context).streamable_http_app(
+            stateless_http=True, json_response=True
+        )
+        with patch.object(self.evs, "get_concept", side_effect=release_addressed):
+            versions = asyncio.run(over_http(app, scenario))
+        self.assertEqual(versions, ["26.06e", "26.07d"])
+
+    def test_alternating_stateful_http_sessions_each_keep_their_own_pin(self):
+        # Given two sessions pinned to different releases, each later call names its own pin.
+        async def scenario(client):
+            first = await initialize_http(client)
+            versions = [version(await http_concept(client, first))]
+            self.move()
+            second = await initialize_http(client)
+            for headers in (second, first, second):
+                versions.append(version(await http_concept(client, headers)))
+            return versions
+
+        app = create_mcp(context=self.context).streamable_http_app(
+            stateless_http=False, json_response=True
+        )
+        with patch.object(self.evs, "get_concept", side_effect=release_addressed):
+            versions = asyncio.run(over_http(app, scenario))
+        self.assertEqual(versions, ["26.06e", "26.07d", "26.06e", "26.07d"])
 
     def test_modern_http_on_a_stateful_app_resolves_each_call_and_accepts_explicit_release(self):
-        published = {
-            "26.06e": concept("C3262", version="26.06e", active=True),
-            "26.07d": concept("C3262", version="26.07d", active=True),
-        }
-
-        def upstream(_code, release, include=()):
-            return deepcopy(published[release.version])
-
-        async def scenario():
-            app = create_http_app(
-                replace(self.settings, http_sessions="stateful"), context=self.context
+        async def scenario(client):
+            first = await modern_concept(client)
+            self.assertNotIn("error", first.json()["result"]["structuredContent"])
+            self.move()
+            second = await modern_concept(client)
+            explicit = await modern_concept(
+                client, version(first.json()["result"]["structuredContent"])
             )
-            async with (
-                app.router.lifespan_context(app),
-                httpx2.AsyncClient(
-                    transport=httpx2.ASGITransport(app), base_url="http://127.0.0.1:8000"
-                ) as client,
-            ):
-                first = await modern_concept(client)
-                self.assertNotIn("error", first.json()["result"]["structuredContent"])
-                self.move()
-                second = await modern_concept(client)
-                explicit = await modern_concept(
-                    client, version(first.json()["result"]["structuredContent"])
-                )
-                last = await modern_concept(client)
-                return first, second, explicit, last
+            return first, second, explicit, await modern_concept(client)
 
-        with patch.object(self.evs, "get_concept", side_effect=upstream):
-            replies = asyncio.run(scenario())
+        app = create_http_app(
+            replace(self.settings, http_sessions="stateful"), context=self.context
+        )
+        with patch.object(self.evs, "get_concept", side_effect=release_addressed):
+            replies = asyncio.run(over_http(app, scenario))
         contents = [reply.json()["result"]["structuredContent"] for reply in replies]
         self.assertEqual(
             [version(content) for content in contents],
@@ -335,27 +346,27 @@ class ReleaseSelectionTest(ServerFixture):
         for reply in replies:
             self.assertNotIn("mcp-session-id", reply.headers)
 
-    async def http_sequence(self, stateless):
-        app = create_mcp(context=self.context).streamable_http_app(
-            stateless_http=stateless,
-            json_response=True,
-        )
-        async with (
-            app.router.lifespan_context(app),
-            httpx2.AsyncClient(
-                transport=httpx2.ASGITransport(app), base_url="http://127.0.0.1:8000"
-            ) as client,
-        ):
-            headers = await initialize_http(client)
-            first = await http_concept(client, headers)
-            versions = [version(first)]
-            self.move()
-            if not stateless:
-                other = await http_concept(client, await initialize_http(client))
-                versions.append(version(other))
-                self.evs.concepts["C3262"]["version"] = "26.06e"
-            second = await http_concept(client, headers)
-            return [*versions, version(second)]
+
+PUBLISHED = {
+    "26.06e": concept("C3262", version="26.06e", active=True),
+    "26.07d": concept("C3262", version="26.07d", active=True),
+}
+
+
+def release_addressed(_code, release, include=()):
+    """EVS answering C3262 at whichever release the request names."""
+    return deepcopy(PUBLISHED[release.version])
+
+
+async def over_http(app, scenario):
+    """Run `scenario(client)` against `app` in process, inside its lifespan."""
+    async with (
+        app.router.lifespan_context(app),
+        httpx2.AsyncClient(
+            transport=httpx2.ASGITransport(app), base_url="http://127.0.0.1:8000"
+        ) as client,
+    ):
+        return await scenario(client)
 
 
 async def initialize_http(client):
