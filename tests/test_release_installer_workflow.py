@@ -213,11 +213,11 @@ steps:
       done
       "$PYTHON" -m venv "$NEGATIVE_INSTALLER_VENV"
       "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
-      git config --global url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
+      git config --file "$RUNNER_TEMP/moved-tag.gitconfig" url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
       original_tag="$(git -C "$GITHUB_WORKSPACE" rev-parse "$RELEASE_TAG^{commit}")"
       expected_commit="$original_tag"
       git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag^"
-      if "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$MOVED_TAG_ROOT" --non-interactive > "$RUNNER_TEMP/moved-tag.json" 2> "$RUNNER_TEMP/moved-tag.err"; then moved_status=0; else moved_status=$?; fi
+      if GIT_CONFIG_GLOBAL="$RUNNER_TEMP/moved-tag.gitconfig" "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$MOVED_TAG_ROOT" --non-interactive > "$RUNNER_TEMP/moved-tag.json" 2> "$RUNNER_TEMP/moved-tag.err"; then moved_status=0; else moved_status=$?; fi
       git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag"
       original_tag=""
       [ "$moved_status" -eq 1 ] || { echo "::error::moved-tag run exited $moved_status, not 1."; exit 1; }
