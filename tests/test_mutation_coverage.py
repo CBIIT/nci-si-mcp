@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from copy import deepcopy
@@ -11,7 +12,7 @@ from types import SimpleNamespace
 from coverage import CoverageData
 from scripts.validation.mutation_coverage import SHARDS, export, identity, load
 from scripts.validation.mutation_gate import schedule
-from scripts.validation.mutation_run import baseline, run_domain, selection
+from scripts.validation.mutation_run import baseline, environment, run_domain, selection
 from scripts.validation.mutation_source import candidates
 
 from test_mutation_gate import ROOT, cli, project
@@ -99,6 +100,60 @@ def expected_nodes():
         )
         for domain, count in SHARDS.items()
     }
+
+
+CHILD_SOURCE = "def answer():\n    return True\n\n\ndef child():\n    return 'child-only'\n"
+CHILD_TEST = (
+    "import subprocess, sys, tempfile\n"
+    "def test_child():\n"
+    "    with tempfile.TemporaryDirectory() as elsewhere:\n"
+    "        done = subprocess.run(\n"
+    "            [sys.executable, '-c', 'import example; example.child()'], cwd=elsewhere\n"
+    "        )\n"
+    "    assert done.returncode == 0\n"
+)
+
+
+def coverage_cli(*arguments):
+    return subprocess.run(  # noqa: S603 - fixed CLI, owned argument paths
+        ["pdm", "run", "python", "-m", "scripts.validation.mutation_coverage", *arguments],  # noqa: S607
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+
+
+def produce(root, config, *tests):
+    """Run a real producer as CI does: subject probe, shared config, child coverage startup."""
+    env = environment(root, root / "tmp")  # drops inherited COVERAGE_* settings
+    env["COVERAGE_PROCESS_START"] = str(config)
+    return subprocess.run(  # noqa: S603 - the CI producer command, owned paths
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-p",
+            "scripts.validation.mutation_probe",
+            "-p",
+            "no:cacheprovider",
+            "-n",
+            "0",
+            "--cov",
+            f"--cov-config={config}",
+            "--cov-context=test",
+            "--cov-fail-under=0",
+            "--cov-report=",
+            *tests,
+        ],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+    )
 
 
 def verdict_rows(rows):
@@ -205,6 +260,64 @@ class SharedCoverageTest(unittest.TestCase):
                 result.args, cwd=ROOT, capture_output=True, text=True, timeout=30, check=False
             )
             self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+
+    def test_each_producer_configuration_names_its_own_absolute_data_file(self):
+        # Unit writes beside the repository; self-test and fixture producers run in separate
+        # jobs, each writing acceptance/.coverage in its own workspace.
+        with tempfile.TemporaryDirectory(prefix="producer root ") as directory:
+            root = Path(directory).resolve()
+            for domain, folder in (
+                ("unit", ""),
+                ("selftest", "acceptance/"),
+                ("fixture", "acceptance/"),
+            ):
+                with self.subTest(domain=domain):
+                    output = root / f"config {domain}"
+                    result = coverage_cli(
+                        "configure", domain, "--root", str(root), "--output", str(output)
+                    )
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertEqual(
+                        (output / ".coveragerc").read_text(),
+                        "[run]\nbranch = True\ncore = ctrace\npatch = subprocess\n"
+                        "context = ${MUTATION_COVERAGE_CONTEXT-}\n"
+                        f"source =\n    {root}/src\n    {root}/scripts\n    {root}/acceptance/src\n"
+                        f"data_file = {root}/{folder}.coverage\n",
+                    )
+
+    def test_a_producer_keeps_coverage_of_children_started_in_another_directory(self):
+        # Given a test whose child process runs from another temporary directory, the
+        # producer's exported mapping must still credit that test with the child's line.
+        with tempfile.TemporaryDirectory(prefix="producer root ") as directory:
+            root = Path(directory).resolve()
+            repository(root)
+            (root / "src/example.py").write_text(CHILD_SOURCE)
+            (root / "tests/test_child.py").write_text(CHILD_TEST)
+            config = root / "tmp/mutation-config"
+            configured = coverage_cli(
+                "configure", "unit", "--root", str(root), "--output", str(config)
+            )
+            self.assertEqual(configured.returncode, 0, configured.stdout + configured.stderr)
+            produced = produce(
+                root, config / ".coveragerc", "tests/test_example.py", "tests/test_child.py"
+            )
+            self.assertEqual(produced.returncode, 0, produced.stdout + produced.stderr)
+            exported = coverage_cli(
+                "export",
+                "unit",
+                "--root",
+                str(root),
+                "--data",
+                str(root / ".coverage"),
+                "--shard",
+                "1/4",
+                "--output",
+                str(root / "unit.json"),
+            )
+            self.assertEqual(exported.returncode, 0, exported.stdout + exported.stderr)
+            lines = json.loads((root / "unit.json").read_text())["mapping"]["src/example.py"]
+            self.assertEqual(lines.get("6"), ["tests/test_child.py::test_child|run"])
+            self.assertFalse((root / "acceptance/.coverage").exists())
 
     def test_check_reports_missing_producer_data_as_structured_infrastructure(self):
         with tempfile.TemporaryDirectory() as directory:
