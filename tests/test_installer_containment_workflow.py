@@ -1,5 +1,5 @@
 """The temporary pre-merge verifier of #434 runs the contained installer workflows only after
-their exact containment tests pass, at the pull request's own revision."""
+their exact containment tests pass, at the pull request's merge commit."""
 
 import unittest
 from pathlib import Path

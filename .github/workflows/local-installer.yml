@@ -87,8 +87,8 @@ jobs:
         os: [macos-latest, ubuntu-24.04]
     # This job's caDSR and Shared SI URLs point at an owned loopback recorder, not production
     # (#434). It listens before the first installer command and answers 404, which the
-    # reachability check counts as reached. After the last check the step proves that only GET or
-    # HEAD requests for caDSR and Shared SI paths reached it, then that the same endpoint fails
+    # reachability check counts as reached. After the HTTP status the step proves that only GET
+    # or HEAD requests for caDSR and Shared SI paths reached it, then that the same endpoint fails
     # with exit 1 once the recorder is stopped. Proxies are bypassed for loopback and the listed
     # hosts. The hosts backstop below is defense in depth for those names on hosted runners;
     # none of this proves that no other request leaves the runner.

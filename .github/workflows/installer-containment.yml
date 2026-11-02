@@ -1,10 +1,11 @@
 name: Installer containment
 
 # Temporary pre-merge verifier (#434). Local installer and Local run stay disabled until their
-# contained versions are on main; this workflow runs those versions from the pull request's own
-# revision, and only after their exact containment tests pass there. It is a verification route,
-# not a security boundary against a hostile pull request. Remove it once contained main is merged
-# and both originals are re-enabled.
+# contained versions are on main. This workflow runs their files and exact containment tests at
+# the pull request's merge commit, and calls them only after those tests pass; Local installer
+# then installs the pull request's head commit. It is a verification route, not a security
+# boundary against a hostile pull request. Remove it once contained main is merged and both
+# originals are re-enabled.
 on:
   pull_request:
     paths:
@@ -38,7 +39,8 @@ jobs:
       - name: Require the reviewed containment before either workflow runs
         run: pdm run pytest tests/test_installer_containment_workflow.py tests/test_release_installer_workflow.py tests/test_local_run_workflow.py
 
-  # Same-revision calls ($/). An empty ref keeps Local installer's pull-request source selection.
+  # Calls at this workflow's own commit ($/). An empty ref keeps Local installer's pull-request
+  # source selection.
   local-installer:
     name: local installer
     needs: contained

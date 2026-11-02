@@ -118,9 +118,9 @@ status=$?
 
 # What exists only in CI, by step name (the whole step) or by exact line, and why.
 CI_ONLY = {
-    "Resolve prohibited caDSR and Shared SI hosts to loopback (CI only)": "a fail-closed "
-    "backstop: any caDSR or Shared SI request the job environment misses reaches loopback, "
-    "never NCI",
+    "Resolve prohibited caDSR and Shared SI hosts to loopback (CI only)": "defense in depth: "
+    "the listed caDSR and Shared SI names resolve to loopback for resolvers that read "
+    "/etc/hosts; not an egress guarantee",
     "Start the loopback caDSR and Shared SI recorder (CI only)": "the installer's caDSR "
     "reachability check probes this recorder instead of production caDSR",
     "Stop the loopback recorder and check its requests (CI only)": "stops the owned recorder "
@@ -194,8 +194,9 @@ CI_ONLY = {
     "not pass, which the comparison judges; any other status, or no report, is no run",
 }
 
-# caDSR and Shared SI never leave the runner: every step sees loopback URLs, proxies are
-# bypassed for loopback and the prohibited hosts, and those hosts resolve to loopback.
+# The job points caDSR and Shared SI at loopback: step shells get loopback URLs and no_proxy for
+# loopback and the listed hosts, which also resolve to loopback. local-run.yml says what this does
+# not cover; tests/test_workflow_containment.py ties both installer jobs to the same design.
 LOOPBACK_ENV = {
     "NCI_SI_CADSR_BASE_URL": "http://127.0.0.1:8767/cadsr",
     "NCI_SI_CADSR_FTP_URL": "http://127.0.0.1:8767/cadsr-ftp",
@@ -450,7 +451,7 @@ TRIGGERS = {
     "push": {"branches": ["main"]},
     "schedule": [{"cron": "17 7 * * 1"}],
     "workflow_dispatch": None,
-    # Called only by the temporary pre-merge verifier of #434 (installer-containment.yml).
+    # Currently called only by the temporary pre-merge verifier of #434 (installer-containment.yml).
     "workflow_call": None,
     "pull_request": {
         "paths": [
@@ -965,7 +966,8 @@ class LocalRunWorkflowTest(unittest.TestCase):
             for step in job()["steps"]
             if set(step) - allowed
         }
-        # Exact env values are owned by test_ci_required; no other step gains env.
+        # Exact step env values are owned by test_ci_required and the job env by the loopback
+        # tests; no other step gains env, and only the recorder step gains an id.
         self.assertEqual(
             extra,
             {
@@ -978,33 +980,23 @@ class LocalRunWorkflowTest(unittest.TestCase):
             },
         )
 
-    def test_every_step_reaches_cadsr_and_shared_si_only_on_loopback(self):
+    def test_the_job_points_cadsr_and_shared_si_at_loopback_with_a_hosts_backstop(self):
         self.assertEqual(job().get("env"), LOOPBACK_ENV)
-        backstop = job()["steps"][0]
+        by_name = {step["name"]: step for step in steps()}
         self.assertEqual(
-            backstop,
+            by_name.get("Resolve prohibited caDSR and Shared SI hosts to loopback (CI only)"),
             {
                 "name": "Resolve prohibited caDSR and Shared SI hosts to loopback (CI only)",
                 "run": HOSTS_BACKSTOP_RUN,
             },
         )
 
-    def test_the_recorder_is_owned_ready_first_and_judged_after_the_lifecycle(self):
+    def test_the_recorder_is_owned_ready_and_judged_exactly(self):
         by_name = {step["name"]: step for step in steps()}
         start = by_name.get("Start the loopback caDSR and Shared SI recorder (CI only)", {})
         self.assertEqual((start.get("id"), start.get("run")), ("recorder", RECORDER_START_RUN))
         stop = by_name.get("Stop the loopback recorder and check its requests (CI only)", {})
         self.assertEqual(stop.get("run"), RECORDER_STOP_RUN)
-        names = [step["name"] for step in steps()]
-        lifecycle = names.index("Verify the local server lifecycle")
-        self.assertEqual(
-            names[lifecycle - 1 : lifecycle + 2],
-            [
-                "Start the loopback caDSR and Shared SI recorder (CI only)",
-                "Verify the local server lifecycle",
-                "Stop the loopback recorder and check its requests (CI only)",
-            ],
-        )
 
     def test_only_the_fixture_run_survives_a_failing_command_to_judge_its_status(self):
         # Under the default `bash -e`, exit status 1 would end the step before the guard and the

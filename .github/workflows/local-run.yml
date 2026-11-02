@@ -13,7 +13,7 @@ on:
   schedule:
     - cron: "17 7 * * 1"
   workflow_dispatch:
-  # Called only by the temporary pre-merge verifier of #434 (installer-containment.yml).
+  # Currently called only by the temporary pre-merge verifier of #434 (installer-containment.yml).
   workflow_call:
   pull_request:
     paths:
@@ -95,11 +95,13 @@ jobs:
           - {os: ubuntu-24.04, combination: everything, server: true, index: true, host_docs: false, host_companion: false, compose_docs: true, compose_companion: true, processes: "required-index HTTP, Compose documentation, administration and ingress", ports: "8000,8080,8081"}
           - {os: macos-latest, combination: server, server: true, index: false, host_docs: false, host_companion: false, compose_docs: false, compose_companion: false, processes: "installer stdio, then installer HTTP", ports: "8000"}
           - {os: macos-latest, combination: everything-without-docker, server: true, index: true, host_docs: true, host_companion: true, compose_docs: false, compose_companion: false, processes: "required-index HTTP, host documentation and portal", ports: "8000,8080,8081"}
-    # Every host step's caDSR and Shared SI URLs point at loopback, not production (#434). The
-    # installer's reachability check probes an owned loopback recorder, started and judged around
-    # the server lifecycle below. Proxies are bypassed for loopback and the listed hosts. The hosts
-    # backstop is defense in depth for those names on hosted runners; none of this proves that no
-    # other request leaves the runner, and Compose containers do not inherit this environment.
+    # Step shells get loopback caDSR and Shared SI URLs, not production (#434), unlike the
+    # documents. The installer's reachability check probes an owned loopback recorder, started and
+    # judged around the server lifecycle below. Proxies are bypassed for loopback and the listed
+    # hosts. Not covered: children started with a filtered environment (the MCP SDK's stdio_client
+    # in the server-only search step) and Compose containers. The hosts backstop is defense in
+    # depth for the listed names on hosted runners; none of this proves that no other request
+    # leaves the runner.
     env:
       NCI_SI_CADSR_BASE_URL: http://127.0.0.1:8767/cadsr
       NCI_SI_CADSR_FTP_URL: http://127.0.0.1:8767/cadsr-ftp
