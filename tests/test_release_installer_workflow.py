@@ -182,19 +182,34 @@ steps:
           actual = {key: value["outcome"] for key, value in report["tests"].items()}
           assert set(actual) == required, (name, set(actual), required)
           assert set(actual.values()) == {"passed"}, (name, actual)
-      assert actual == {key: expected[key] for key in actual}, (name, actual)
+          assert actual == {key: expected[key] for key in actual}, (name, actual)
       PY
+      export NCI_SI_UPSTREAM_MODE=fixture
+      export NCI_SI_EVS_BASE_URL=http://127.0.0.1:8767/evs
+      export NCI_SI_EVS_FHIR_BASE_URL=http://127.0.0.1:8767/evs-fhir
+      export NCI_SI_CADSR_BASE_URL=http://127.0.0.1:8767/cadsr
+      export NCI_SI_CADSR_FTP_URL=http://127.0.0.1:8767/cadsr-ftp
+      export NCI_SI_SSIS_SPARQL_URL=http://127.0.0.1:8767/ssis-sparql
+      python3 -m http.server 8767 --bind 127.0.0.1 --directory "$RUNNER_TEMP/upstream-recorder" < /dev/null > "$RUNNER_TEMP/negative-upstream.out" 2> "$RUNNER_TEMP/negative-upstream.log" &
+      recorder=$!
+      for attempt in $(seq 1 100); do
+        kill -0 "$recorder"
+        if (: <> /dev/tcp/127.0.0.1/8767) 2>/dev/null; then break; fi
+        if [ "$attempt" -eq 100 ]; then echo "::error::The negative-scenario recorder did not listen."; exit 1; fi
+        sleep 0.1
+      done
       "$PYTHON" -m venv "$NEGATIVE_INSTALLER_VENV"
       "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
-      original_tag="$(git rev-parse "$RELEASE_TAG^{commit}")"
-      git tag -f "$RELEASE_TAG" "$original_tag^"
+      original_tag="$(git -C "$GITHUB_WORKSPACE" rev-parse "$RELEASE_TAG^{commit}")"
+      git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag^"
       if "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$MOVED_TAG_ROOT" --non-interactive > "$RUNNER_TEMP/moved-tag.json" 2> "$RUNNER_TEMP/moved-tag.err"; then moved_status=0; else moved_status=$?; fi
-      git tag -f "$RELEASE_TAG" "$original_tag"
+      git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag"
       [ "$moved_status" -eq 1 ] || { echo "::error::moved-tag run exited $moved_status, not 1."; exit 1; }
       python3 - "$RUNNER_TEMP/moved-tag.json" "$RUNNER_TEMP/moved-tag.err" "$original_tag" <<'PY'
       import json, sys
       record = json.load(open(sys.argv[1], encoding="utf-8"))
       error = open(sys.argv[2], encoding="utf-8").read()
+      assert record["completed"] == ["check_prerequisites"], record
       assert record["failed"] == ["install"], record
       assert "release tag may have moved" in error and sys.argv[3] in error, error
       PY
@@ -213,10 +228,14 @@ steps:
       python3 - "$RUNNER_TEMP/tampered-hash.json" "$TAMPERED_HASH_ROOT/venv/bin/python" <<'PY'
       import json, subprocess, sys
       record = json.load(open(sys.argv[1], encoding="utf-8"))
+      assert record["completed"] == ["check_prerequisites"], record
       assert record["failed"] == ["install"], record
       packages = subprocess.check_output([sys.argv[2], "-m", "pip", "list", "--format=json"], text=True)
       assert [item["name"].lower() for item in json.loads(packages)] == ["pip"], packages
       PY
+      kill "$recorder"
+      wait "$recorder" || [ $? -eq 143 ]
+      recorder=""
 """)
 
 EXPECTED_TRIGGERS = yaml.safe_load(r"""
