@@ -93,7 +93,31 @@ jobs:
           - {os: ubuntu-24.04, combination: everything, server: true, index: true, host_docs: false, host_companion: false, compose_docs: true, compose_companion: true, processes: "required-index HTTP, Compose documentation, administration and ingress", ports: "8000,8080,8081"}
           - {os: macos-latest, combination: server, server: true, index: false, host_docs: false, host_companion: false, compose_docs: false, compose_companion: false, processes: "installer stdio, then installer HTTP", ports: "8000"}
           - {os: macos-latest, combination: everything-without-docker, server: true, index: true, host_docs: true, host_companion: true, compose_docs: false, compose_companion: false, processes: "required-index HTTP, host documentation and portal", ports: "8000,8080,8081"}
+    # Production caDSR and Shared SI are never contacted from CI (#434). The installer's
+    # reachability check probes an owned loopback recorder instead (started and judged around
+    # the server lifecycle below). Proxies are bypassed for loopback and the prohibited hosts,
+    # which also resolve to loopback.
+    env:
+      NCI_SI_CADSR_BASE_URL: http://127.0.0.1:8767/cadsr
+      NCI_SI_CADSR_FTP_URL: http://127.0.0.1:8767/cadsr-ftp
+      NCI_SI_SSIS_SPARQL_URL: http://127.0.0.1:8767/ssis-sparql
+      no_proxy: 127.0.0.1,localhost,::1,cadsrapi.cancer.gov,cadsrapi-stage.cancer.gov,cadsr.nci.nih.gov,shared.semantics.cancer.gov
     steps:
+      # A fail-closed backstop on hosted runners, not an egress guarantee: a request the job
+      # environment misses resolves to loopback. Container DNS does not read this file.
+      - name: Resolve prohibited caDSR and Shared SI hosts to loopback (CI only)
+        run: |
+          set -euo pipefail
+          hosts="cadsrapi.cancer.gov cadsrapi-stage.cancer.gov cadsr.nci.nih.gov shared.semantics.cancer.gov"
+          printf '127.0.0.1 %s\n::1 %s\n' "$hosts" "$hosts" | sudo tee -a /etc/hosts
+          if [ "$RUNNER_OS" = "macOS" ]; then sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder; fi
+          HOSTS="$hosts" python3 - <<'PY'
+          import os, socket
+          for host in os.environ["HOSTS"].split():
+              addresses = {info[4][0] for info in socket.getaddrinfo(host, 443)}
+              assert addresses and addresses <= {"127.0.0.1", "::1"}, (host, addresses)
+              print(host, sorted(addresses))
+          PY
       - name: Require container contexts for Compose rows (CI only)
         if: (matrix.compose_docs || matrix.compose_companion) && needs.prepare-containers.result != 'success'
         run: |
@@ -198,6 +222,22 @@ jobs:
             echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"
           fi
           echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"
+      # The recorder answers 404, which the reachability check counts as reached.
+      - name: Start the loopback caDSR and Shared SI recorder (CI only)
+        id: recorder
+        if: matrix.server
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/upstream-recorder"
+          python3 -m http.server 8767 --bind 127.0.0.1 --directory "$RUNNER_TEMP/upstream-recorder" < /dev/null > "$RUNNER_TEMP/upstream-recorder.out" 2> "$RUNNER_TEMP/upstream-requests.log" &
+          recorder=$!
+          echo "$recorder" > "$RUNNER_TEMP/upstream-recorder.pid"
+          for attempt in $(seq 1 100); do
+            kill -0 "$recorder"
+            if (: <> /dev/tcp/127.0.0.1/8767) 2>/dev/null; then break; fi
+            if [ "$attempt" -eq 100 ]; then echo "::error::The loopback recorder did not listen."; exit 1; fi
+            sleep 0.1
+          done
       - name: Verify the local server lifecycle
         if: matrix.server
         timeout-minutes: 5
@@ -216,6 +256,39 @@ jobs:
           curl --fail --silent http://127.0.0.1:8000/ready
           "$SERVER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT"
           "$SERVER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT"
+      # Runs whenever the recorder step ran, so a failed lifecycle still stops the owned recorder.
+      - name: Stop the loopback recorder and check its requests (CI only)
+        if: always() && matrix.server && steps.recorder.outcome != 'skipped'
+        run: |
+          set -euo pipefail
+          if [ ! -f "$RUNNER_TEMP/upstream-recorder.pid" ]; then echo "::error::No loopback recorder was started."; exit 1; fi
+          recorder="$(cat "$RUNNER_TEMP/upstream-recorder.pid")"
+          case "$(ps -p "$recorder" -o command= || true)" in
+            *"-m http.server 8767 --bind 127.0.0.1 "*) ;;
+            *) echo "::error::Process $recorder is not the owned loopback recorder."; exit 1 ;;
+          esac
+          kill "$recorder"
+          for attempt in $(seq 1 100); do
+            case "$(ps -p "$recorder" -o stat= || true)" in ""|Z*) break ;; esac
+            if [ "$attempt" -eq 100 ]; then echo "::error::The loopback recorder did not stop."; exit 1; fi
+            sleep 0.1
+          done
+          python3 - "$RUNNER_TEMP/upstream-requests.log" <<'PY'
+          import re, sys
+          request = re.compile(r'"(?P<method>[A-Z]+) (?P<path>\S+) HTTP/1\.[01]" (?P<status>\d{3}) ')
+          notice = re.compile(r"code 404, message File not found$")
+          allowed = re.compile(r"/(cadsr|cadsr-ftp|ssis-sparql)(/\S*)?")
+          records = []
+          for line in open(sys.argv[1], encoding="utf-8").read().splitlines():
+              found = request.search(line)
+              if found:
+                  records.append((found["method"], found["path"], found["status"]))
+              else:
+                  assert notice.search(line), line
+          assert all(allowed.fullmatch(path) and status == "404" for _, path, status in records), records
+          assert ("GET", "/cadsr", "404") in records, records
+          print("loopback requests:", records)
+          PY
       - name: Build and evaluate a small local index
         if: matrix.index
         run: |
