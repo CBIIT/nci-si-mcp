@@ -100,6 +100,9 @@ pdm run quickstart-tools                  # regenerate the tool table of QUICKST
   exercise a new wrapper with cheap success and failure commands in the same shell and verify
   status capture and propagation. A syntax-only check cannot catch read-only-variable assignments.
   A wrapper failure before test launch is not a test run.
+- **Distinguish the working tree from the index.** Before testing, inspect both `git diff` and
+  `git diff --cached`: staging changes commit contents, not the files a test executes. Preserve
+  the test command's exact output; never present a paraphrase as captured output.
 - Run the tests through `pdm run` (`pdm run test`, `pdm run pytest ...`), never a bare `pytest`,
   so the project's environment and configuration apply.
 - The tests are unittest-style and offline. They import shared doubles with `from fakes import
@@ -317,6 +320,16 @@ and the reviewer acts for the coordinator.
     automatically. Then remove your branches, worktrees, scratch files and any process or
     wait loop you started. Verify that no merged issue branches or the milestone branch remain
     on origin; check the branch-cleanup run and remove any leftovers yourself.
+
+The context that creates a temporary file or directory, branch, worktree, process or watcher owns
+its cleanup through the artifact's full lifecycle, not merely the current session. A handoff names
+the owner and purpose, exact path or ref, retained-evidence location and cleanup condition; the
+successor inherits that duty. Before deleting, verify project ownership, no active work/open
+pull request/current dependency, a clean worktree or preserved changes, merge or supersession
+status, and evidence-retention obligations. Remove only known-obsolete project artifacts. Preserve
+retained evidence outside deleted worktrees, and retain unknown-owner items; never glob-delete,
+reset another session's tree or remove another project's scratch. At milestone closure or session
+handoff, record exact paths and refs removed and those retained with their reason and next owner.
 
 The `milestone branches` ruleset forbids force pushes to `milestone/*` and requires no status
 checks, because the milestone pull request into `main` runs the full CI on the milestone head and

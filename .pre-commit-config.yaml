@@ -135,6 +135,14 @@ repos:
         always_run: true
         stages: [pre-commit]
 
+      - id: installer-requirements
+        name: installer requirements are current
+        entry: pdm export -G server -G build --no-default -o src/nci_si_mcp/server-requirements.txt
+        language: system
+        pass_filenames: false
+        files: ^(pyproject\.toml|pdm\.lock|src/nci_si_mcp/server-requirements\.txt)$
+        stages: [pre-commit]
+
       - id: complexity
         name: cyclomatic complexity below 8
         entry: pdm run python scripts/validation/check_complexity.py

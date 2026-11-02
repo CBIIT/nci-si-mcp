@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -19,6 +20,12 @@ class LocalInstallerTest(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.data_dir = Path(directory.name)
+        requirements = self.data_dir / "server-requirements.txt"
+        requirements.write_text(f"demo==1 \\\n+    --hash=sha256:{'a' * 64}\n")
+        self.release = installer.ReleaseIdentity("0.21.0", "a" * 40, requirements)
+        self.identity = patch.object(installer, "_release_identity", return_value=self.release)
+        self.identity.start()
+        self.addCleanup(self.identity.stop)
 
     @staticmethod
     def passed_prerequisite(*_):
@@ -31,7 +38,12 @@ class LocalInstallerTest(unittest.TestCase):
             code = installer.main(arguments)
         return code, stdout.getvalue(), stderr.getvalue()
 
-    def write_distribution(self, version="0.21.0", revision="v0.21.0"):
+    def write_distribution(
+        self,
+        version="0.21.0",
+        revision="v0.21.0",
+        commit="a" * 40,
+    ):
         site = self.data_dir / "venv" / "lib" / "python3.14" / "site-packages"
         dist = site / "nci_si_mcp-0.21.0.dist-info"
         dist.mkdir(parents=True, exist_ok=True)
@@ -43,7 +55,11 @@ class LocalInstallerTest(unittest.TestCase):
             json.dumps(
                 {
                     "url": "https://github.com/CBIIT/nci-si-mcp",
-                    "vcs_info": {"vcs": "git", "requested_revision": revision},
+                    "vcs_info": {
+                        "vcs": "git",
+                        "requested_revision": revision,
+                        "commit_id": commit,
+                    },
                 }
             ),
             encoding="utf-8",
@@ -69,17 +85,30 @@ class LocalInstallerTest(unittest.TestCase):
             ),
         )
 
-    def test_install_and_verify_use_only_the_installers_exact_release_tag(self):
+    def test_install_uses_the_installers_commit_and_hash_locked_dependencies(self):
         calls = []
+        commit = "b" * 40
+        requirements = self.data_dir / "server-requirements.txt"
+        requirements.write_text(
+            f"pdm-backend==2.5.0 \\\n+    --hash=sha256:{'c' * 64}\n",
+            encoding="utf-8",
+        )
 
         def command(argv, **kwargs):
             calls.append((argv, kwargs))
             if argv[1:3] == ["-m", "venv"]:
                 self.write_distribution()
+            if argv[-1].endswith(f"@{commit}"):
+                self.write_distribution(revision=commit, commit=commit)
             return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
 
         with (
             patch.object(installer, "__version__", "0.21.0", create=True),
+            patch.object(
+                installer,
+                "_release_identity",
+                return_value=installer.ReleaseIdentity("0.21.0", commit, requirements),
+            ),
             patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
             patch.object(installer.subprocess, "run", side_effect=command),
         ):
@@ -93,18 +122,32 @@ class LocalInstallerTest(unittest.TestCase):
             json.loads(output)["completed"],
             ["check_prerequisites", "install", "configure", "verify"],
         )
-        self.assertIn(
-            (
+        self.assertEqual(
+            [argv for argv, _ in calls[:3]],
+            [
+                [sys.executable, "-m", "venv", str(self.data_dir / "venv")],
                 [
                     str(venv_python),
                     "-m",
                     "pip",
                     "install",
-                    "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@v0.21.0",
+                    "--require-hashes",
+                    "--only-binary=:all:",
+                    "-r",
+                    str(requirements),
                 ],
-                {"check": True},
-            ),
-            calls,
+                [
+                    str(venv_python),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--no-deps",
+                    "--no-build-isolation",
+                    "--no-index",
+                    "--no-cache-dir",
+                    f"nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@{commit}",
+                ],
+            ],
         )
         self.assertTrue(
             any(argv[:2] == [str(venv_python), "-c"] for argv, _ in calls),
@@ -115,9 +158,151 @@ class LocalInstallerTest(unittest.TestCase):
         verify = next(kwargs for argv, kwargs in calls if argv[:2] == [str(venv_python), "-c"])
         self.assertEqual(verify["env"]["NCI_SI_DATA_DIR"], str(self.data_dir / "server-data"))
 
+    def test_unsupported_bootstrap_identity_blocks_before_any_installation_change(self):
+        with (
+            patch.object(installer, "__version__", "0.21.0", create=True),
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(installer, "_release_identity", return_value=None),
+            patch.object(installer.subprocess, "run") as run,
+        ):
+            code, output, error = self.run_main(
+                "run", "--target", "local", "--data-dir", str(self.data_dir), "--non-interactive"
+            )
+
+        self.assertEqual((code, error), (1, ""))
+        blocked = json.loads(output)["blocked"]
+        self.assertEqual([item["step"] for item in blocked], ["install"])
+        self.assertIn("git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z", output)
+        self.assertFalse((self.data_dir / "venv").exists())
+        run.assert_not_called()
+
+    def test_current_installation_is_reused_without_running_an_install_command(self):
+        self.write_distribution(commit="a" * 40)
+        actions = installer.LocalActions(
+            self.data_dir,
+            transport="stdio",
+            profile="unified",
+            release=self.release,
+            run_command=lambda _command: self.fail("a current install must be reused"),
+        )
+
+        self.assertTrue(actions.verify("install"))
+
+    def test_failed_install_command_leaves_the_step_failed_and_the_venv_owned(self):
+        calls = []
+
+        def command(argv):
+            calls.append(list(argv))
+            if argv[1:3] == ["-m", "venv"]:
+                # A failed creation can still leave the directory behind.
+                (self.data_dir / "venv/bin").mkdir(parents=True)
+                return 1
+            return 0
+
+        actions = installer.LocalActions(
+            self.data_dir,
+            transport="stdio",
+            profile="unified",
+            release=self.release,
+            run_command=command,
+        )
+        with patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite):
+            state = installer_state.reconcile(
+                self.data_dir,
+                "local",
+                ("server",),
+                actions,
+            )
+
+        self.assertEqual(state.outcomes[-1], installer_state.StepOutcome("install", "failed"))
+        self.assertEqual(len(calls), 1)
+        self.assertTrue((self.data_dir / "venv/.installer-owned").is_file())
+
+    def test_install_command_keeps_child_diagnostics_out_of_json_stdout(self):
+        completed = subprocess.CompletedProcess(["python"], 7)
+        with patch.object(installer.subprocess, "run", return_value=completed) as run:
+            result = installer._run_command(["python", "-m", "pip"])
+
+        self.assertEqual(result, 7)
+        self.assertIs(run.call_args.kwargs.get("stdout"), sys.stderr)
+
+    def test_install_refuses_a_running_owned_server_before_deleting_the_venv(self):
+        venv = self.data_dir / "venv"
+        venv.mkdir()
+        (venv / ".installer-owned").touch()
+        (venv / "preserve").write_text("old installation")
+        actions = installer.LocalActions(
+            self.data_dir, transport="http", profile="unified", release=self.release
+        )
+        with patch.object(installer, "_owned_process", return_value=4321):
+            missing = actions.missing_inputs("install")
+
+        self.assertEqual(missing, ("Stop the owned HTTP server before reinstalling.",))
+        self.assertEqual((venv / "preserve").read_text(), "old installation")
+
+    def test_install_refuses_to_delete_the_environment_running_the_installer(self):
+        actions = installer.LocalActions(
+            self.data_dir, transport="stdio", profile="unified", release=self.release
+        )
+        with patch.object(installer.sys, "prefix", str(actions.venv)):
+            missing = actions.missing_inputs("install")
+
+        self.assertEqual(missing, ("Run the installer outside the owned server environment.",))
+
+    def test_bootstrap_identity_requires_canonical_git_commit_and_a_hashed_lock(self):
+        requirements = self.data_dir / "server-requirements.txt"
+        self.identity.stop()
+        self.addCleanup(self.identity.start)
+
+        class Distribution:
+            version = "0.21.0"
+
+            def __init__(self, direct):
+                self.direct = direct
+
+            def read_text(self, name):
+                return json.dumps(self.direct) if name == "direct_url.json" else None
+
+        valid = {
+            "url": "https://github.com/CBIIT/nci-si-mcp",
+            "vcs_info": {"vcs": "git", "commit_id": "a" * 40},
+        }
+        invalid = (
+            None,
+            {**valid, "url": "https://example.org/fork"},
+            {**valid, "vcs_info": {"vcs": "hg", "commit_id": "a" * 40}},
+            {**valid, "vcs_info": {"vcs": "git", "commit_id": "short"}},
+        )
+        requirements.write_text(f"demo==1 \\\n+    --hash=sha256:{'b' * 64}\n")
+        for direct in invalid:
+            with (
+                self.subTest(direct=direct),
+                patch.object(installer, "__version__", "0.21.0"),
+                patch.object(installer, "SERVER_REQUIREMENTS", requirements),
+                patch.object(
+                    installer.importlib.metadata,
+                    "distribution",
+                    return_value=Distribution(direct),
+                ),
+            ):
+                self.assertIsNone(installer._release_identity())
+
+        requirements.write_text("demo==1\n")
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "SERVER_REQUIREMENTS", requirements),
+            patch.object(
+                installer.importlib.metadata,
+                "distribution",
+                return_value=Distribution(valid),
+            ),
+        ):
+            self.assertIsNone(installer._release_identity())
+
     def test_development_installer_is_blocked_without_running_an_install_command(self):
         with (
             patch.object(installer, "__version__", "0.21.1.dev3+gabc", create=True),
+            patch.object(installer, "_release_identity", return_value=None),
             patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
             patch.object(installer.subprocess, "run") as run,
         ):
@@ -127,7 +312,7 @@ class LocalInstallerTest(unittest.TestCase):
 
         self.assertEqual((code, error), (1, ""))
         self.assertEqual(json.loads(output)["blocked"][0]["step"], "install")
-        self.assertIn("released installer", output)
+        self.assertIn("git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z", output)
         run.assert_not_called()
 
     def test_configuration_preserves_profile_and_keeps_each_transport_local(self):
@@ -158,6 +343,19 @@ class LocalInstallerTest(unittest.TestCase):
                     (self.data_dir / "runtime" / "server.json").read_text(encoding="utf-8")
                 )
                 self.assertEqual(configuration, expected)
+
+    def test_configuration_creates_the_runtime_directory_private(self):
+        actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
+        previous = os.umask(0o022)
+        try:
+            actions.apply("configure")
+        finally:
+            os.umask(previous)
+
+        self.assertEqual(self.data_dir.joinpath("runtime").stat().st_mode & 0o777, 0o700)
+
+        self.data_dir.joinpath("runtime").chmod(0o755)
+        self.assertFalse(actions.verify("configure"))
 
     def test_state_identity_includes_transport_and_profile(self):
         state = cast("Any", installer_state.InstallationState)(
@@ -284,17 +482,16 @@ class LocalInstallerTest(unittest.TestCase):
             self.assertEqual((code, output), (2, ""))
             self.assertIn("incomplete", error)
 
-    def test_release_version_is_anchored_and_revision_must_match(self):
+    def test_installed_version_and_commit_must_match_the_bootstrap_identity(self):
         self.assertTrue(installer.RELEASE_VERSION.pattern.endswith(r"\Z"))
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
-        for version, revision in (("0.21.0.dev1", "v0.21.0"), ("0.21.0", "v0.20.0")):
-            with self.subTest(version=version, revision=revision):
-                self.write_distribution(version, revision)
-                with patch.object(installer, "__version__", "0.21.0"):
-                    self.assertFalse(actions.verify("install"))
+        for version, commit in (("0.21.0.dev1", "a" * 40), ("0.21.0", "b" * 40)):
+            with self.subTest(version=version, commit=commit):
+                self.write_distribution(version, revision="any-tag", commit=commit)
+                self.assertFalse(actions.verify("install"))
                 shutil.rmtree(self.data_dir / "venv")
 
-    def test_release_metadata_requires_one_distribution_and_a_requested_revision(self):
+    def test_release_metadata_requires_one_distribution_and_a_commit_id(self):
         actions = installer.LocalActions(self.data_dir, transport="stdio", profile="unified")
         self.write_distribution()
         direct = next((self.data_dir / "venv").glob("lib/python*/site-packages/*/direct_url.json"))
