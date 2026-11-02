@@ -85,6 +85,8 @@ steps:
     run: |
       set -euo pipefail
       recorder=""
+      original_tag=""
+      lock=""
       cleanup() {
         status=$?
         cleanup_status=0
@@ -95,6 +97,12 @@ steps:
         if [ -f "$HTTP_ROOT/installer-state.json" ]; then
           "$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT" || cleanup_status=$?
           "$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT" || cleanup_status=$?
+        fi
+        if [ -n "$original_tag" ]; then
+          git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag" || cleanup_status=$?
+        fi
+        if [ -n "$lock" ] && [ -f "$RUNNER_TEMP/server-requirements.txt" ]; then
+          cp "$RUNNER_TEMP/server-requirements.txt" "$lock" || cleanup_status=$?
         fi
         if [ -n "$recorder" ]; then
           kill "$recorder" 2>/dev/null || true
@@ -204,6 +212,7 @@ steps:
       git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag^"
       if "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$MOVED_TAG_ROOT" --non-interactive > "$RUNNER_TEMP/moved-tag.json" 2> "$RUNNER_TEMP/moved-tag.err"; then moved_status=0; else moved_status=$?; fi
       git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag"
+      original_tag=""
       [ "$moved_status" -eq 1 ] || { echo "::error::moved-tag run exited $moved_status, not 1."; exit 1; }
       python3 - "$RUNNER_TEMP/moved-tag.json" "$RUNNER_TEMP/moved-tag.err" "$original_tag" <<'PY'
       import json, sys
@@ -224,6 +233,7 @@ steps:
       PY
       if "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$TAMPERED_HASH_ROOT" --non-interactive > "$RUNNER_TEMP/tampered-hash.json"; then hash_status=0; else hash_status=$?; fi
       cp "$RUNNER_TEMP/server-requirements.txt" "$lock"
+      lock=""
       [ "$hash_status" -eq 1 ] || { echo "::error::tampered-hash run exited $hash_status, not 1."; exit 1; }
       python3 - "$RUNNER_TEMP/tampered-hash.json" "$TAMPERED_HASH_ROOT/venv/bin/python" <<'PY'
       import json, subprocess, sys
