@@ -64,6 +64,11 @@ class CiCostTest(unittest.TestCase):
                     "coverage-badges": "ubuntu-24.04",
                     "mutation": "ubuntu-24.04",
                 },
+                "installer-containment.yml": {
+                    "contained": "ubuntu-24.04",
+                    "local-installer": None,
+                    "local-run": None,
+                },
                 "local-run.yml": {
                     "prepare-containers": "ubuntu-24.04",
                     "local-run": "${{ matrix.os }}",
