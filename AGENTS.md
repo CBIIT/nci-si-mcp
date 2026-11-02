@@ -318,6 +318,16 @@ and the reviewer acts for the coordinator.
     wait loop you started. Verify that no merged issue branches or the milestone branch remain
     on origin; check the branch-cleanup run and remove any leftovers yourself.
 
+The context that creates a temporary file or directory, branch, worktree, process or watcher owns
+its cleanup through the artifact's full lifecycle, not merely the current session. A handoff names
+the owner and purpose, exact path or ref, retained-evidence location and cleanup condition; the
+successor inherits that duty. Before deleting, verify project ownership, no active work/open
+pull request/current dependency, a clean worktree or preserved changes, merge or supersession
+status, and evidence-retention obligations. Remove only known-obsolete project artifacts. Preserve
+retained evidence outside deleted worktrees, and retain unknown-owner items; never glob-delete,
+reset another session's tree or remove another project's scratch. At milestone closure or session
+handoff, record exact paths and refs removed and those retained with their reason and next owner.
+
 The `milestone branches` ruleset forbids force pushes to `milestone/*` and requires no status
 checks, because the milestone pull request into `main` runs the full CI on the milestone head and
 `main` accepts nothing else. Issue work reaches the milestone branch by a merge of its issue

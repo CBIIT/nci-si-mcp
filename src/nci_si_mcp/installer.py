@@ -96,8 +96,8 @@ STEP_HELP = {
         "Step: install\n"
         "Purpose: Create the owned virtual environment and install this exact release.\n"
         "Why: A local installation must not drift to another tag or source.\n"
-        "Action: Run with a released X.Y.Z installer and working Git access.\n"
-        "Verification: Installed metadata names X.Y.Z and requested revision vX.Y.Z.\n"
+        "Action: Run a released Git installer with its package-shipped hash lock.\n"
+        "Verification: Installed metadata names the installer's X.Y.Z and exact Git commit.\n"
         "Common failures: development installer version, Git access, or package installation.\n"
         "Guide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"
     ),
