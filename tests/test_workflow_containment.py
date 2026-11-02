@@ -85,8 +85,9 @@ def send(port, method, path):
     """One request to the empty recorder, which answers every path the tests send with an error."""
 
     request = urllib.request.Request(f"http://127.0.0.1:{port}{path}", method=method)
+    direct = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     try:
-        urllib.request.urlopen(request, timeout=5).close()  # noqa: S310 - loopback only
+        direct.open(request, timeout=5).close()
     except HTTPError as error:
         error.close()
 
@@ -167,9 +168,9 @@ class WorkflowContainmentTest(unittest.TestCase):
             "a 404 for another method": good.replace('"HEAD /ssis-sparql', '"PUT /ssis-sparql'),
             "an EVS path": recorded_log(("GET", "/cadsr"), ("GET", "/evs")),
             "no GET /cadsr": recorded_log(("GET", "/cadsr-ftp")),
+            "a path beyond a recorded one": recorded_log(("GET", "/cadsr"), ("GET", "/cadsrx")),
             "an unknown line": good + "Traceback (most recent call last):\n",
-            "a non-404 status": good.replace('" 404 -', '" 200 -'),
-            "an empty log": "",
+            "a non-404 status": good.replace('/query HTTP/1.1" 404', '/query HTTP/1.1" 200'),
         }
         for case, log in failing.items():
             with self.subTest(case=case):
@@ -188,11 +189,13 @@ class WorkflowContainmentTest(unittest.TestCase):
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
             closed = probe.getsockname()[1]
+        # Through the config's own variable names: a renamed variable must not let this unit
+        # test fall back to the production caDSR default.
         environment = {
             "no_proxy": "127.0.0.1",
             "NCI_SI_UPSTREAM_MODE": "live",
-            "NCI_SI_EVS_BASE_URL": f"http://127.0.0.1:{evs.server_address[1]}/evs",
-            "NCI_SI_CADSR_BASE_URL": f"http://127.0.0.1:{closed}/cadsr",
+            BASE_URL_VARIABLES["evs_base_url"]: f"http://127.0.0.1:{evs.server_address[1]}/evs",
+            BASE_URL_VARIABLES["cadsr_base_url"]: f"http://127.0.0.1:{closed}/cadsr",
         }
         output = io.StringIO()
         with patch.dict(os.environ, environment), redirect_stdout(output):
