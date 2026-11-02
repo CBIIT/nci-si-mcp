@@ -452,8 +452,6 @@ TRIGGERS = {
     "push": {"branches": ["main"]},
     "schedule": [{"cron": "17 7 * * 1"}],
     "workflow_dispatch": None,
-    # Currently called only by the temporary pre-merge verifier of #434 (installer-containment.yml).
-    "workflow_call": None,
     "pull_request": {
         "paths": [
             "src/**",
@@ -709,7 +707,6 @@ class LocalRunWorkflowTest(unittest.TestCase):
                 "audit.yml",
                 "branch-cleanup.yml",
                 "ci.yml",
-                "installer-containment.yml",
                 "local-installer.yml",
                 "local-run.yml",
                 "pr-title.yml",
