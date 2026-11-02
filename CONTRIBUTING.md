@@ -59,7 +59,10 @@ The gate's nested self-tests require the larger timeout; current timing evidence
 the issue and pull request, not a standing runtime promise.
 
 CI's existing unit, harness self-test and prepared-fixture jobs collect per-test and child-phase
-coverage once. They export one-day fragments bound to the checked-out merge commit and tracked
+coverage once. Each job's generated config (`mutation_coverage configure`) names that job's own
+absolute data file (`.coverage` at the root for unit, `acceptance/.coverage` for the harness
+domains), so a child started from another working directory writes beside it and is combined.
+They export one-day fragments bound to the checked-out merge commit and tracked
 input bytes; mutation shards wait for those producers and the coverage floors, download their
 same-run fragments and pass `--coverage-dir`. A missing, incomplete, malformed or mismatched
 import fails as `INFRA`, even for an empty catalogue; it never silently reruns a baseline.

@@ -530,18 +530,29 @@ def run_domain(
     return result, work / ".coverage"
 
 
-def coverage_args(scratch: Path, work: Path, baseline: bool, env: dict[str, str]) -> list[str]:
+def coverage_args(
+    scratch: Path,
+    work: Path,
+    baseline: bool,
+    env: dict[str, str],
+    *,
+    data_file: Path | None = None,
+) -> list[str]:
     if not baseline:
         return ["--no-cov"]
     config = work / ".coveragerc"
     env["COVERAGE_PROCESS_START"] = str(config)
     sources = [str(scratch / name) for name in ("src", "scripts", "acceptance/src")]
+    # Children reread this file and resolve a relative data file against their own working
+    # directory; an absolute one keeps the data of children started elsewhere.
+    destination = f"data_file = {data_file}\n" if data_file else ""
     config.write_text(
         "[run]\nbranch = True\ncore = ctrace\npatch = subprocess\n"
         "context = ${MUTATION_COVERAGE_CONTEXT-}\n"
         + "source =\n    "
         + "\n    ".join(sources)
         + "\n"
+        + destination
     )
     return [
         f"--cov-config={config}",
