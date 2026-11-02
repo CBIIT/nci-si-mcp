@@ -218,6 +218,14 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertTrue((self.data_dir / "venv/.installer-owned").is_file())
 
+    def test_install_command_keeps_child_diagnostics_out_of_json_stdout(self):
+        completed = subprocess.CompletedProcess(["python"], 7)
+        with patch.object(installer.subprocess, "run", return_value=completed) as run:
+            result = installer._run_command(["python", "-m", "pip"])
+
+        self.assertEqual(result, 7)
+        self.assertIs(run.call_args.kwargs.get("stdout"), sys.stderr)
+
     def test_install_refuses_a_running_owned_server_before_deleting_the_venv(self):
         venv = self.data_dir / "venv"
         venv.mkdir()
