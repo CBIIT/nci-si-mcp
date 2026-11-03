@@ -189,18 +189,50 @@ class LocalInstallerTest(unittest.TestCase):
             transport="stdio",
             profile="unified",
             release=self.release,
+            run_command=lambda _command: self.fail("a current install must be reused"),
         )
 
         self.assertTrue(actions.verify("install"))
 
     def test_failed_install_survives_status_until_a_successful_retry(self):
-        failing = True
+        injected_calls = []
+        default_calls = []
+        protected = self.data_dir / "protected"
+        protected.write_text("keep", encoding="utf-8")
 
-        def command(argv, **_kwargs):
-            nonlocal failing
-            if argv[1:3] == ["-m", "venv"] and failing:
+        def fail_install(argv):
+            injected_calls.append(list(argv))
+            if argv[1:3] == ["-m", "venv"]:
                 self.write_distribution()
-                return subprocess.CompletedProcess(argv, 1)
+            return 1
+
+        def default_command(argv):
+            default_calls.append(list(argv))
+            return 1
+
+        with (
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(installer, "_run_command", side_effect=default_command),
+        ):
+            actions = installer.LocalActions(
+                self.data_dir,
+                transport="stdio",
+                profile="unified",
+                release=self.release,
+                run_command=fail_install,
+            )
+            failed = installer_state.reconcile(
+                self.data_dir,
+                "local",
+                ("server",),
+                actions,
+            )
+            after_failure = self.run_main(
+                "status", "--target", "local", "--data-dir", str(self.data_dir)
+            )
+        incomplete_after_failure = (self.data_dir / "venv/.installer-incomplete").is_file()
+
+        def succeed(argv, **_kwargs):
             if argv[-1].endswith(f"@{'a' * 40}"):
                 self.write_distribution()
             return subprocess.CompletedProcess(argv, 0)
@@ -208,20 +240,21 @@ class LocalInstallerTest(unittest.TestCase):
         arguments = ("--target", "local", "--data-dir", str(self.data_dir))
         with (
             patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
-            patch.object(installer.subprocess, "run", side_effect=command),
+            patch.object(installer.subprocess, "run", side_effect=succeed),
             patch.object(installer, "_verify_stdio"),
         ):
-            failed = self.run_main("run", *arguments, "--non-interactive")
-            after_failure = self.run_main("status", *arguments)
-            incomplete_after_failure = (self.data_dir / "venv/.installer-incomplete").is_file()
-            failing = False
             retried = self.run_main("run", *arguments, "--non-interactive")
             after_retry = self.run_main("status", *arguments)
 
-        self.assertEqual((failed[0], failed[2]), (1, ""))
-        self.assertEqual(json.loads(failed[1])["failed"], ["install"])
+        self.assertEqual(failed.outcomes[-1], installer_state.StepOutcome("install", "failed"))
         self.assertEqual(json.loads(after_failure[1])["failed"], ["install"])
         self.assertTrue(incomplete_after_failure)
+        self.assertEqual(
+            injected_calls,
+            [[sys.executable, "-m", "venv", str(self.data_dir / "venv")]],
+        )
+        self.assertEqual(default_calls, [])
+        self.assertEqual(protected.read_text(encoding="utf-8"), "keep")
         self.assertEqual((retried[0], retried[2]), (0, ""))
         self.assertEqual(
             json.loads(after_retry[1])["completed"],
