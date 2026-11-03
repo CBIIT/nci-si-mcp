@@ -260,6 +260,7 @@ def test_current_base_approval_without_its_exact_regression_is_stale(historical_
             "root must contain exactly version and approvals",
         ),
         ({"version": True, "approvals": []}, "version must be integer 1"),
+        ({"version": 1.0, "approvals": []}, "version must be integer 1"),
         ({"version": 2, "approvals": []}, "version must be integer 1"),
         ({"version": 1, "approvals": {}}, "approvals must be a list"),
         ({"version": 1, "approvals": [[]]}, "each approval must be an object"),
