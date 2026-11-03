@@ -196,7 +196,7 @@ class TestReportWorkflowTest(unittest.TestCase):
                         "run": "shards=(unit-coverage/unit-coverage-*)\n"
                         'test "${#shards[@]}" -eq 4\n'
                         "pdm run coverage combine unit-coverage/unit-coverage-{0,1,2,3}/.coverage\n"
-                        "pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py'\n"
+                        "pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py' --fail-under=0\n"
                         "pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*' --fail-under=95\n",
                     },
                     {

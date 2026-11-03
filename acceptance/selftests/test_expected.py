@@ -295,10 +295,10 @@ def test_duplicate_conflicting_and_malformed_approvals_fail(historical_files, do
 
 
 @pytest.mark.parametrize(
-    ("document", "key"),
+    ("document", "message"),
     [
-        ("version: 1\nversion: 1\napprovals: []\n", "version"),
-        ("version: 1\napprovals: []\napprovals: []\n", "approvals"),
+        ("version: 1\nversion: 1\napprovals: []\n", "duplicate mapping key: version"),
+        ("version: 1\napprovals: []\napprovals: []\n", "duplicate mapping key: approvals"),
         (
             f"""version: 1
 approvals:
@@ -310,11 +310,25 @@ approvals:
     reason: second
     reference: issue
 """,
-            "reason",
+            "duplicate mapping key: reason",
+        ),
+        (
+            f"""version: 1
+approvals:
+  - <<: &approval
+      base_sha: {BASE_SHA}
+      test: t.py::a
+      before: passed
+      after: failed
+      reason: first
+      reference: issue
+    reason: second
+""",
+            "YAML merge keys are not allowed",
         ),
     ],
 )
-def test_duplicate_approval_yaml_keys_fail(historical_files, document, key):
+def test_ambiguous_approval_yaml_keys_fail(historical_files, document, message):
     arguments = historical_files(
         {"t.py::a": "passed"}, {"t.py::a": "failed"}, {"t.py::a": "failed"}, []
     )
@@ -323,7 +337,7 @@ def test_duplicate_approval_yaml_keys_fail(historical_files, document, key):
 
     with pytest.raises(SystemExit) as error:
         main(arguments)
-    assert str(error.value) == f"Invalid regression approvals: duplicate mapping key: {key}"
+    assert str(error.value) == f"Invalid regression approvals: {message}"
 
 
 def test_only_base_passes_that_changed_need_approval(historical_files, capsys):
