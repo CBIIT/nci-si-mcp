@@ -108,7 +108,7 @@ def _approval_rows(value: object) -> list[object]:
         raise ValueError("root must be an object")
     if set(value) != {"version", "approvals"}:
         raise ValueError("root must contain exactly version and approvals")
-    if value["version"] != 1 or isinstance(value["version"], bool):
+    if type(value["version"]) is not int or value["version"] != 1:
         raise ValueError("version must be integer 1")
     rows = value["approvals"]
     if not isinstance(rows, list):
