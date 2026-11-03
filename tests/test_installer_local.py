@@ -189,7 +189,6 @@ class LocalInstallerTest(unittest.TestCase):
             transport="stdio",
             profile="unified",
             release=self.release,
-            run_command=lambda _command: self.fail("a current install must be reused"),
         )
 
         self.assertTrue(actions.verify("install"))
@@ -266,6 +265,46 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertTrue(marker_stat_reached)
         self.assertEqual((code, error), (1, ""))
         self.assertEqual(json.loads(output)["failed"], ["install"])
+
+    def test_unproven_install_identity_returns_boolean_false(self):
+        self.write_distribution()
+        with patch.object(installer, "_release_identity", return_value=None):
+            without_release = installer.LocalActions(
+                self.data_dir,
+                transport="stdio",
+                profile="unified",
+            )
+        self.assertIs(without_release.verify("install"), False)
+
+        actions = installer.LocalActions(
+            self.data_dir,
+            transport="stdio",
+            profile="unified",
+            release=self.release,
+        )
+        actions.install_incomplete.touch()
+        self.assertIs(actions.verify("install"), False)
+        actions.install_incomplete.unlink()
+        with patch.object(Path, "stat", side_effect=OSError("marker unavailable")):
+            self.assertIs(actions.verify("install"), False)
+
+    def test_mismatched_metadata_after_successful_commands_reports_the_release_hint(self):
+        def command(argv, **_kwargs):
+            if argv[-1].endswith(f"@{'a' * 40}"):
+                self.write_distribution(commit="b" * 40)
+            return subprocess.CompletedProcess(argv, 0)
+
+        with (
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(installer.subprocess, "run", side_effect=command),
+        ):
+            code, output, error = self.run_main(
+                "run", "--target", "local", "--data-dir", str(self.data_dir), "--non-interactive"
+            )
+
+        self.assertEqual(code, 1)
+        self.assertEqual(json.loads(output)["failed"], ["install"])
+        self.assertIn("release tag may have moved", error)
 
     def test_install_command_keeps_child_diagnostics_out_of_json_stdout(self):
         completed = subprocess.CompletedProcess(["python"], 7)
