@@ -151,6 +151,8 @@ def _reject_duplicate_keys(node: Node | None) -> None:
     if isinstance(node, MappingNode):
         keys: set[str] = set()
         for key, value in node.value:
+            if key.value == "<<":
+                raise ValueError("YAML merge keys are not allowed")
             if key.value in keys:
                 raise ValueError(f"duplicate mapping key: {key.value}")
             keys.add(key.value)

@@ -1,4 +1,4 @@
-"""Ratchet syntactic imports whose module name ends in a `test_` segment in tracked root tests."""
+"""Ratchet imports ending in a segment starting `test_` across tracked root-test Python files."""
 
 import ast
 import subprocess

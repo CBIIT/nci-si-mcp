@@ -52,7 +52,7 @@ def suite_line(workflow, job, name):
 
 
 class AcceptanceGateWorkflowTest(unittest.TestCase):
-    def test_fixture_ratchet_uses_the_immutable_event_or_dispatch_base(self):
+    def test_fixture_ratchet_uses_the_event_or_ancestry_checked_dispatch_base(self):
         compare = step("ci.yml", "acceptance", "Compare the outcomes with the expected ones")
         self.assertEqual(
             compare,
