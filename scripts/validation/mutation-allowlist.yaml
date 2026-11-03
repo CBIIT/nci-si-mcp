@@ -329,7 +329,7 @@
   context: "9e251df93c31dfb8723dc91b450e0aeb41bd7123a7ed9ce171e88e3c148dc914"
   original: "b2bbc444950f9b0b0b967dc529eb889a7cf0d4003be033124fc090f4e1571b48"
   mutated: "f5536f3bcd07de6521df23e5ac1e0ad1b443ac79485b5f4ed71373fd170b3670"
-  reason: "The private update result is used only as the process exit status. False and 0 both exit successfully after identical file and stdout effects."
+  reason: "Production passes the private update result to sys.exit, while direct callers compare it with zero. False and 0 are equal, both exit successfully, and follow identical file and stdout effects."
 # Approved: #403 comment 6589430951; original SURVIVED in run-hp79p0_j JSONL line 210.
 - file: "src/nci_si_mcp/installer.py"
   qualname: "ReleaseIdentity"

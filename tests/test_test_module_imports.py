@@ -1,4 +1,4 @@
-"""Ratchet imports ending in a segment starting `test_` across tracked root-test Python files."""
+"""Aggregate-ratchet syntactic imports of `test_*` modules and aliases under root `tests`."""
 
 import ast
 import subprocess
@@ -63,7 +63,7 @@ from helper import test_value
 
         self.assertEqual(cross_import_targets(source), 7)
 
-    def test_tracked_test_modules_do_not_gain_cross_import_targets(self):
+    def test_tracked_test_files_keep_the_aggregate_cross_import_target_count(self):
         found = sum(
             cross_import_targets(path.read_text(encoding="utf-8"))
             for path in tracked_test_sources()
