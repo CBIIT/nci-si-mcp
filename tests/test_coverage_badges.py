@@ -39,6 +39,7 @@ class CoverageBadgeTest(unittest.TestCase):
     def test_badge_counts_branches_and_preserves_tiny_gaps(self):
         cases = [
             (report(100, 100), "100.00%", "brightgreen"),
+            (report(100, 96), "98.00%", "yellow"),
             (report(100, 92), "96.00%", "yellow"),
             (report(100, 90), "95.00%", "yellow"),
             (report(100, 88), "94.00%", "red"),

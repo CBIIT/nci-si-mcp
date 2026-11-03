@@ -351,6 +351,18 @@ approvals:
             "version: 1\napprovals: &rows\n  - *rows\n",
             "YAML aliases are not allowed",
         ),
+        (
+            f"""version: 1
+approvals:
+  - base_sha: {BASE_SHA}
+    test: t.py::a
+    before: passed
+    after: failed
+    reason: &text reviewed
+    reference: *text
+""",
+            "YAML aliases are not allowed",
+        ),
     ],
 )
 def test_ambiguous_approval_yaml_keys_fail(historical_files, document, message):
