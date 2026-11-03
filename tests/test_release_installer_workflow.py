@@ -52,7 +52,7 @@ steps:
     id: python
     uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
     with: {python-version: '3.14'}
-  - name: Prepare pull request source (CI only)
+  - name: Prepare unreleased source (CI only)
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     env:
       INSTALL_REF: ${{ needs.prepare.outputs.ref }}

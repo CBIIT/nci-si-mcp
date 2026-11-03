@@ -95,17 +95,18 @@ STEP_HELP = {
     "install": (
         "Step: install\n"
         "Purpose: Create the owned virtual environment and install this exact release.\n"
-        "Why: A local installation must not drift to another tag or source.\n"
+        "Why: A local installation must not drift to another commit or source.\n"
         "Action: Run a released Git installer with its package-shipped hash lock.\n"
         "Verification: Installed metadata names the installer's X.Y.Z and exact Git commit.\n"
         "Common failures: development installer version, Git access, or package installation.\n"
         "Guide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"
     ),
     "configure": (
-        "Step: configure\nPurpose: Write the owned local server configuration.\n"
+        "Step: configure\n"
+        "Purpose: Create the owned server data and private runtime configuration.\n"
         "Why: The transport, profile and data path must remain bound to this installation.\n"
         "Action: Select stdio or loopback HTTP and an EVS/caDSR profile.\n"
-        "Verification: The recorded configuration exactly matches the selected values.\n"
+        "Verification: The recorded values match and the runtime directory mode is 0700.\n"
         "Common failures: inaccessible installation paths.\n"
         "Guide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"
     ),
@@ -234,7 +235,9 @@ def _port_available(port: int) -> bool:
 def local_prerequisites() -> tuple[Prerequisite, ...]:
     checks = [
         Prerequisite("supported_os", "Run the local installer on macOS or Linux.", _supported_os),
-        executable_prerequisite("git", "Install Git so pip can install the released source tag."),
+        executable_prerequisite(
+            "git", "Install Git so pip can install the recorded source commit."
+        ),
         Prerequisite(
             "python",
             "Run the installer with Python 3.14 or newer.",

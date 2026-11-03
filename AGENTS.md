@@ -112,8 +112,10 @@ pdm run quickstart-tools                  # regenerate the tool table of QUICKST
   basedpyright (`src`, `scripts` and `acceptance/src`), the hooks run `scripts/validation/check_complexity.py`
   (every function below 8, nested ones and the tests included), `check_test_quality.py` (no test
   without a behaviour assertion; an assertion in a nested function or class that the test never
-  uses does not count), vulture, gitleaks, zizmor and `scripts/upstream_requirements.py --check`
-  (the upstream requirement packages are the current render of their catalogue). All Python tools run from the PDM
+  uses does not count), vulture, gitleaks, zizmor, `scripts/upstream_requirements.py --check`
+  (the upstream requirement packages are the current render of their catalogue), and the package-shipped
+  installer lock exported from the `server` and `build` groups with
+  `pdm export -G server -G build --no-default -o src/nci_si_mcp/server-requirements.txt`. All Python tools run from the PDM
   environment, so `pdm.lock` decides their versions.
 - `tests/test_docs.py`, `tests/test_server.py` and `tests/test_release_config.py` compare
   QUICKSTART.md, ARCHITECTURE.md and the title check with the code (settings and defaults, error
