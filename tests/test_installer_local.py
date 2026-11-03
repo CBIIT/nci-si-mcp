@@ -332,8 +332,13 @@ class LocalInstallerTest(unittest.TestCase):
 
         with patch.object(installer, "__version__", "0.21.1.dev1"):
             self.assertIsNone(installer._release_identity())
-        with patch.object(
-            installer.importlib.metadata, "distribution", return_value=Distribution(valid, "0.20.0")
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(
+                installer.importlib.metadata,
+                "distribution",
+                return_value=Distribution(valid, "0.20.0"),
+            ),
         ):
             self.assertIsNone(installer._release_identity())
 
@@ -342,7 +347,10 @@ class LocalInstallerTest(unittest.TestCase):
                 return "{" if name == "direct_url.json" else None
 
         malformed = MalformedDistribution(valid)
-        with patch.object(installer.importlib.metadata, "distribution", return_value=malformed):
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer.importlib.metadata, "distribution", return_value=malformed),
+        ):
             self.assertIsNone(installer._release_identity())
 
         requirements.write_text("demo==1\n")
