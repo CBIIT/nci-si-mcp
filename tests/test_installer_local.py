@@ -1,3 +1,4 @@
+import errno
 import io
 import json
 import os
@@ -229,6 +230,43 @@ class LocalInstallerTest(unittest.TestCase):
         )
         self.assertFalse((self.data_dir / "venv/.installer-incomplete").exists())
 
+    def test_marker_inspection_error_keeps_a_failed_install_failed(self):
+        self.write_distribution()
+        installer_state.write_state(
+            self.data_dir,
+            installer_state.InstallationState(
+                2,
+                "local",
+                ("server",),
+                (
+                    installer_state.StepOutcome("check_prerequisites", "completed"),
+                    installer_state.StepOutcome("install", "failed"),
+                ),
+            ),
+        )
+        marker = self.data_dir / "venv/.installer-incomplete"
+        original_stat = os.stat
+        marker_stat_reached = False
+
+        def stat(path, *args, **kwargs):
+            nonlocal marker_stat_reached
+            if Path(path) == marker:
+                marker_stat_reached = True
+                raise OSError(errno.EIO, "marker storage unavailable")
+            return original_stat(path, *args, **kwargs)
+
+        with (
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(installer.os, "stat", side_effect=stat),
+        ):
+            code, output, error = self.run_main(
+                "status", "--target", "local", "--data-dir", str(self.data_dir)
+            )
+
+        self.assertTrue(marker_stat_reached)
+        self.assertEqual((code, error), (1, ""))
+        self.assertEqual(json.loads(output)["failed"], ["install"])
+
     def test_install_command_keeps_child_diagnostics_out_of_json_stdout(self):
         completed = subprocess.CompletedProcess(["python"], 7)
         with patch.object(installer.subprocess, "run", return_value=completed) as run:
@@ -287,6 +325,44 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(json.loads(output)["blocked"][0]["step"], "install")
         run.assert_not_called()
 
+    def test_abbreviated_hex_bootstrap_commit_blocks_before_installation(self):
+        self.identity.stop()
+        self.addCleanup(self.identity.start)
+
+        class Distribution:
+            version = "0.21.0"
+
+            @staticmethod
+            def read_text(name):
+                if name != "direct_url.json":
+                    return None
+                return json.dumps(
+                    {
+                        "url": installer.REPOSITORY_URL,
+                        "vcs_info": {"vcs": "git", "commit_id": "abcdef1"},
+                    }
+                )
+
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(
+                installer.importlib.metadata,
+                "distribution",
+                return_value=Distribution(),
+            ),
+            patch.object(installer, "SERVER_REQUIREMENTS", self.release.requirements),
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(installer.subprocess, "run") as run,
+        ):
+            code, output, error = self.run_main(
+                "run", "--target", "local", "--data-dir", str(self.data_dir), "--non-interactive"
+            )
+
+        self.assertEqual((code, error), (1, ""))
+        self.assertEqual(json.loads(output)["blocked"][0]["step"], "install")
+        self.assertFalse((self.data_dir / "venv").exists())
+        run.assert_not_called()
+
     def test_bootstrap_identity_requires_canonical_git_commit_and_a_hashed_lock(self):
         requirements = self.data_dir / "server-requirements.txt"
         self.identity.stop()
@@ -308,7 +384,6 @@ class LocalInstallerTest(unittest.TestCase):
             None,
             {**valid, "url": "https://example.org/fork"},
             {**valid, "vcs_info": {"vcs": "hg", "commit_id": "a" * 40}},
-            {**valid, "vcs_info": {"vcs": "git", "commit_id": "short"}},
             {**valid, "vcs_info": []},
             {**valid, "vcs_info": {"vcs": "git", "commit_id": 1}},
         )
