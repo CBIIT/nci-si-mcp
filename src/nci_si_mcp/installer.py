@@ -369,7 +369,15 @@ class LocalActions:
         return False
 
     def _verify_install(self) -> bool:
-        if self.release is None or self.install_incomplete.exists():
+        if self.release is None:
+            return False
+        try:
+            self.install_incomplete.stat()
+        except FileNotFoundError:
+            pass
+        except OSError:
+            return False
+        else:
             return False
         return _installed_release(self.venv) == (
             self.release.version,
