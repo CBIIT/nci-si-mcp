@@ -20,7 +20,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from email.parser import Parser
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, NewType, cast
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
@@ -47,11 +47,14 @@ RELEASE_VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+\Z")
 COMMIT_ID = re.compile(r"[0-9a-f]{40}\Z")
 OWNED_CHILDREN = ("venv", "server-data", "runtime")
 OWNED_MARKER = ".installer-owned"
+INSTALL_INCOMPLETE = ".installer-incomplete"
 REPOSITORY_URL = "https://github.com/CBIIT/nci-si-mcp"
 SERVER_REQUIREMENTS = Path(__file__).with_name("server-requirements.txt")
 PRIVATE_DIRECTORY_MODE = 0o700
 
 type RunCommand = Callable[[Sequence[str]], int]
+ReleaseVersion = NewType("ReleaseVersion", str)
+CommitId = NewType("CommitId", str)
 
 
 @dataclass(frozen=True)
@@ -77,8 +80,8 @@ class CheckResult:
 
 @dataclass(frozen=True, slots=True)
 class ReleaseIdentity:
-    version: str
-    commit: str
+    version: ReleaseVersion
+    commit: CommitId
     requirements: Path
 
 
@@ -292,7 +295,6 @@ class LocalActions:
         self.profile = profile
         self.release = release if release is not None else _release_identity()
         self.run_command = run_command or _run_command
-        self._install_failed = False
 
     @property
     def venv(self) -> Path:
@@ -305,6 +307,10 @@ class LocalActions:
     @property
     def runtime(self) -> Path:
         return self.data_dir / "runtime"
+
+    @property
+    def install_incomplete(self) -> Path:
+        return self.venv / INSTALL_INCOMPLETE
 
     def _checks(self) -> tuple[CheckResult, ...]:
         return run_prerequisites(local_prerequisites())
@@ -363,7 +369,7 @@ class LocalActions:
         return False
 
     def _verify_install(self) -> bool:
-        if self.release is None or self._install_failed:
+        if self.release is None or self.install_incomplete.exists():
             return False
         return _installed_release(self.venv) == (
             self.release.version,
@@ -381,6 +387,7 @@ class LocalActions:
         _claim_child(self.venv)
         shutil.rmtree(self.venv)
         _claim_child(self.venv)
+        self.install_incomplete.touch()
         commands = (
             [sys.executable, "-m", "venv", str(self.venv)],
             [
@@ -407,16 +414,16 @@ class LocalActions:
         )
         for command in commands:
             if self.run_command(command):
-                self._install_failed = True
                 return
         installed = _installed_release(self.venv)
         expected = (self.release.version, self.release.commit)
         if installed != expected:
-            self._install_failed = True
             sys.stderr.write(
                 f"Installed nci-si-mcp {installed!r} does not match the installer's "
                 f"{expected!r}; the release tag may have moved.\n"
             )
+            return
+        self.install_incomplete.unlink()
 
     def environment(self) -> dict[str, str]:
         environment = {
@@ -471,17 +478,17 @@ def _release_identity() -> ReleaseIdentity | None:
         direct_text = distribution.read_text("direct_url.json")
         direct = json.loads(direct_text) if direct_text is not None else None
         requirements = SERVER_REQUIREMENTS.read_text(encoding="utf-8")
-    except OSError, json.JSONDecodeError, TypeError:
+    except OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError:
         return None
     commit = _commit_from_direct_url(direct)
     if distribution.version != __version__ or commit is None:
         return None
     if "--hash=sha256:" not in requirements:
         return None
-    return ReleaseIdentity(__version__, commit, SERVER_REQUIREMENTS)
+    return ReleaseIdentity(ReleaseVersion(__version__), commit, SERVER_REQUIREMENTS)
 
 
-def _commit_from_direct_url(direct: object) -> str | None:
+def _commit_from_direct_url(direct: object) -> CommitId | None:
     if not isinstance(direct, dict) or direct.get("url") != REPOSITORY_URL:
         return None
     vcs = direct.get("vcs_info")
@@ -490,7 +497,7 @@ def _commit_from_direct_url(direct: object) -> str | None:
     commit = vcs.get("commit_id")
     if not isinstance(commit, str) or not COMMIT_ID.fullmatch(commit):
         return None
-    return commit
+    return CommitId(commit)
 
 
 def _run_command(command: Sequence[str]) -> int:
