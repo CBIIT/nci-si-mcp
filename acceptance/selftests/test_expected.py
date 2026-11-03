@@ -276,6 +276,10 @@ def test_current_base_approval_without_its_exact_regression_is_stale(historical_
             {"version": 1, "approvals": [approval("t.py::a", "failed", before="failed")]},
             "approval transition has an unknown outcome",
         ),
+        (
+            {"version": 1, "approvals": [approval("t.py::a", "passed")]},
+            "approval transition has an unknown outcome",
+        ),
     ],
 )
 def test_duplicate_conflicting_and_malformed_approvals_fail(historical_files, document, message):
@@ -288,6 +292,38 @@ def test_duplicate_conflicting_and_malformed_approvals_fail(historical_files, do
     with pytest.raises(SystemExit) as error:
         main(arguments)
     assert str(error.value) == f"Invalid regression approvals: {message}"
+
+
+@pytest.mark.parametrize(
+    ("document", "key"),
+    [
+        ("version: 1\nversion: 1\napprovals: []\n", "version"),
+        ("version: 1\napprovals: []\napprovals: []\n", "approvals"),
+        (
+            f"""version: 1
+approvals:
+  - base_sha: {BASE_SHA}
+    test: t.py::a
+    before: passed
+    after: failed
+    reason: first
+    reason: second
+    reference: issue
+""",
+            "reason",
+        ),
+    ],
+)
+def test_duplicate_approval_yaml_keys_fail(historical_files, document, key):
+    arguments = historical_files(
+        {"t.py::a": "passed"}, {"t.py::a": "failed"}, {"t.py::a": "failed"}, []
+    )
+    with open(arguments[-1], "w", encoding="utf-8") as approvals_file:
+        approvals_file.write(document)
+
+    with pytest.raises(SystemExit) as error:
+        main(arguments)
+    assert str(error.value) == f"Invalid regression approvals: duplicate mapping key: {key}"
 
 
 def test_only_base_passes_that_changed_need_approval(historical_files, capsys):
