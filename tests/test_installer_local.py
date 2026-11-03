@@ -586,6 +586,20 @@ class LocalInstallerTest(unittest.TestCase):
         )
         (record / "direct_url.json").write_text('{"vcs_info":{"commit_id":1}}')
         self.assertIsNone(installer._installed_release(self.data_dir / "venv"))
+        invalid_sources = (
+            {
+                "url": "https://example.org/fork",
+                "vcs_info": {"vcs": "git", "commit_id": "a" * 40},
+            },
+            {
+                "url": installer.REPOSITORY_URL,
+                "vcs_info": {"vcs": "hg", "commit_id": "a" * 40},
+            },
+        )
+        for source in invalid_sources:
+            with self.subTest(source=source):
+                (record / "direct_url.json").write_text(json.dumps(source))
+                self.assertIsNone(installer._installed_release(self.data_dir / "venv"))
         shutil.rmtree(self.data_dir / "venv")
 
         self.write_distribution()
