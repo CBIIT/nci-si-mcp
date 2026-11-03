@@ -52,8 +52,6 @@ REPOSITORY_URL = "https://github.com/CBIIT/nci-si-mcp"
 SERVER_REQUIREMENTS = Path(__file__).with_name("server-requirements.txt")
 PRIVATE_DIRECTORY_MODE = 0o700
 
-type RunCommand = Callable[[Sequence[str]], int]
-
 
 @dataclass(frozen=True)
 class InstallationPlan:
@@ -286,13 +284,11 @@ class LocalActions:
         transport: str,
         profile: str,
         release: ReleaseIdentity | None = None,
-        run_command: RunCommand | None = None,
     ) -> None:
         self.data_dir = data_dir
         self.transport = transport
         self.profile = profile
         self.release = release if release is not None else _release_identity()
-        self.run_command = run_command or _run_command
 
     @property
     def venv(self) -> Path:
@@ -421,7 +417,7 @@ class LocalActions:
             ],
         )
         for command in commands:
-            if self.run_command(command):
+            if _run_command(command):
                 return
         installed = _installed_release(self.venv)
         expected = (self.release.version, self.release.commit)
