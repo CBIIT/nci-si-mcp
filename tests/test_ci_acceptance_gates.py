@@ -70,9 +70,21 @@ class AcceptanceGateWorkflowTest(unittest.TestCase):
                 '[ "$EVENT_NAME" = "workflow_dispatch" ]; then\n'
                 '  if [ "$EVENT_NAME" = "pull_request" ]; then '
                 'BASE_SHA="$PR_BASE_SHA"; else BASE_SHA="$DISPATCH_BASE_SHA"; fi\n'
-                '  [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]\n'
-                '  git cat-file -e "$BASE_SHA^{commit}"\n'
-                '  git merge-base --is-ancestor "$BASE_SHA" HEAD\n'
+                '  if ! [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then\n'
+                '    echo "::error title=Invalid base SHA::Supply a full lowercase '
+                '40-character commit SHA."\n'
+                "    exit 1\n"
+                "  fi\n"
+                '  if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then\n'
+                '    echo "::error title=Unknown base commit::$BASE_SHA is not available '
+                'in this checkout."\n'
+                "    exit 1\n"
+                "  fi\n"
+                '  if ! git merge-base --is-ancestor "$BASE_SHA" HEAD; then\n'
+                '    echo "::error title=Base is not an ancestor::$BASE_SHA must be an '
+                'ancestor of HEAD."\n'
+                "    exit 1\n"
+                "  fi\n"
                 '  git show "$BASE_SHA:acceptance/expected/fixture.json" > tmp/base-fixture.json\n'
                 "  arguments=(--base tmp/base-fixture.json "
                 '--base-sha "$BASE_SHA" '
