@@ -336,9 +336,10 @@ pytest's original report. Local report files live under ignored `tmp/` directori
 | gitleaks, zizmor | No secrets; safe GitHub Actions workflows |
 | actionlint, shellcheck | Workflow syntax, expressions and shell scripts; both binaries are pinned in the PDM lint group. Only the unsupported `$/` self-repository diagnostics are ignored in `.github/actionlint.yaml`; local target existence is tested separately. |
 | Upstream requirement packages | `docs/upstream/*.md` are the current render of `docs/upstream/catalogue.yaml` (`scripts/upstream_requirements.py --check`) |
+| Installer requirements | The package-shipped server lock is the current PDM export of the `server` and `build` groups: `pdm export -G server -G build --no-default -o src/nci_si_mcp/server-requirements.txt` |
 | Acceptance ratchet (CI) | Every test of the acceptance suite, in fixture mode, has the outcome in `acceptance/expected/fixture.json`. A change that moves an outcome on purpose updates that file in the same pull request, and the diff of the file is what the review reads: `pdm run acceptance-expected update acceptance/fixture.json` writes it from a fresh report, and `pdm run acceptance-status` the README table that follows |
 | Tests and coverage | The suite passes before each push and in CI; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
-| Local run (CI only) | Disabled until #434's containment is on `main` (see [Verification before merge](#verification-before-merge)). The documented setup, walked literally on `macos-latest` and `ubuntu-24.04` (`.github/workflows/local-run.yml`, on pushes to `main`, weekly, by hand, and on pull requests that touch the install paths). Every command is copied from the document that gives it; the test of the workflow compares the two, so change a documented command and its workflow line together. Not a required check: it uses live EVS |
+| Local run (CI only) | The documented setup, walked literally on `macos-latest` and `ubuntu-24.04` (`.github/workflows/local-run.yml`, on pushes to `main`, weekly, by hand, and on pull requests that touch the install paths). Every command is copied from the document that gives it; the test of the workflow compares the two, so change a documented command and its workflow line together. Not a required check: it uses live EVS |
 | Dependency audit (CI only) | Every Python and npm package in the committed locks is at least five days old; no runtime dependency has a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request brings one in at high severity (dependency review). Dependabot groups weekly updates for Actions, both Dockerfile directories and the documentation npm tree after a seven-day cooldown. Dependabot cannot update `pdm.lock`, so `pdm run lock` is the only Python lock command. [SECURITY.md](SECURITY.md) says how to report a vulnerability |
 
 A dependency security fix inside the five-day window is an exception only when the owner records
@@ -393,15 +394,6 @@ Fixture checks never establish live-service assurance.
 | `release/local-installer` | local-installer/prepare and local-installer/local-installer use the same reusable verification; actual release tag identity is checked after tagging. |
 | `acceptance-live/acceptance-live` | Live drift exemption: measures real services, not fixture behavior; operationally disabled, no PR live run. |
 | `scorecard/analysis` | ci/test exact offline workflow contract; first run after the milestone merge, reported in step 9. |
-
-Temporary verification route until #434's containment is on `main`: the standalone Local
-installer and Local run workflows are disabled. `installer-containment.yml` runs both through
-same-revision reusable calls, only on pull requests that change their workflow files or
-containment tests, and only after those tests pass at the merge commit. The route verifies that
-containment change only; it is not a waiver for other changes. Until both are re-enabled on a
-contained `main`, no other change to their inputs and no release-triggering change merges.
-Disabling a workflow does not stop calls to it, so `release.yml`'s call to Local installer is
-held back by that restriction, not by the toggle. The route is removed once both are re-enabled.
 
 ## Workflow credentials
 
