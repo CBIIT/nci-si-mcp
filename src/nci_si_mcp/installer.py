@@ -519,11 +519,11 @@ def _installed_release(venv: Path) -> tuple[str, str] | None:
     try:
         metadata = Parser().parsestr((records[0] / "METADATA").read_text(encoding="utf-8"))
         direct = json.loads((records[0] / "direct_url.json").read_text(encoding="utf-8"))
-        commit = direct["vcs_info"]["commit_id"]
-    except OSError, json.JSONDecodeError, KeyError, TypeError:
+        commit = _commit_from_direct_url(direct)
+    except OSError, json.JSONDecodeError:
         return None
     version = metadata.get("Version")
-    return (version, commit) if isinstance(version, str) and isinstance(commit, str) else None
+    return (version, commit) if isinstance(version, str) and commit is not None else None
 
 
 def _process_path(runtime: Path) -> Path:
