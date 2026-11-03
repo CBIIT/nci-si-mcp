@@ -53,10 +53,11 @@ from test_three import (
 from package.test_four import helper
 from . import test_five, helper
 from tests import test_six, helper
+from tests.package import test_seven, helper
 from helper import test_value
 """
 
-        self.assertEqual(cross_import_targets(source), 6)
+        self.assertEqual(cross_import_targets(source), 7)
 
     def test_tracked_test_modules_do_not_gain_cross_import_targets(self):
         found = sum(

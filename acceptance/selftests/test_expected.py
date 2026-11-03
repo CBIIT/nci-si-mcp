@@ -326,6 +326,24 @@ approvals:
 """,
             "YAML merge keys are not allowed",
         ),
+        (
+            f"""version: 1
+approvals:
+  - !!merge inherited: &approval
+      base_sha: {BASE_SHA}
+      test: t.py::a
+      before: passed
+      after: failed
+      reason: first
+      reference: issue
+    reason: second
+""",
+            "YAML merge keys are not allowed",
+        ),
+        (
+            "version: 1\napprovals:\n  ? [not, scalar]\n  : value\n",
+            "mapping keys must be scalars",
+        ),
     ],
 )
 def test_ambiguous_approval_yaml_keys_fail(historical_files, document, message):
