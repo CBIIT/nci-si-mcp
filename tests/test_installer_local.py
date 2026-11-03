@@ -223,6 +223,16 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertTrue((self.data_dir / "venv/.installer-owned").is_file())
 
+        fresh_actions = installer.LocalActions(
+            self.data_dir,
+            transport="stdio",
+            profile="unified",
+            release=self.release,
+        )
+        with patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite):
+            refreshed = installer_state.reverify(state, fresh_actions)
+        self.assertEqual(refreshed.outcomes[-1], installer_state.StepOutcome("install", "failed"))
+
         def mismatched(_argv):
             self.write_distribution(commit="b" * 40)
             return 0
@@ -350,6 +360,18 @@ class LocalInstallerTest(unittest.TestCase):
         with (
             patch.object(installer, "__version__", "0.21.0"),
             patch.object(installer.importlib.metadata, "distribution", return_value=malformed),
+        ):
+            self.assertIsNone(installer._release_identity())
+
+        requirements.write_bytes(b"\xff")
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "SERVER_REQUIREMENTS", requirements),
+            patch.object(
+                installer.importlib.metadata,
+                "distribution",
+                return_value=Distribution(valid),
+            ),
         ):
             self.assertIsNone(installer._release_identity())
 
