@@ -343,9 +343,18 @@ jobs:
           arguments=()
           if [ "$EVENT_NAME" = "pull_request" ] || [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             if [ "$EVENT_NAME" = "pull_request" ]; then BASE_SHA="$PR_BASE_SHA"; else BASE_SHA="$DISPATCH_BASE_SHA"; fi
-            [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
-            git cat-file -e "$BASE_SHA^{commit}"
-            git merge-base --is-ancestor "$BASE_SHA" HEAD
+            if ! [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error title=Invalid base SHA::Supply a full lowercase 40-character commit SHA."
+              exit 1
+            fi
+            if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+              echo "::error title=Unknown base commit::$BASE_SHA is not available in this checkout."
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$BASE_SHA" HEAD; then
+              echo "::error title=Base is not an ancestor::$BASE_SHA must be an ancestor of HEAD."
+              exit 1
+            fi
             git show "$BASE_SHA:acceptance/expected/fixture.json" > tmp/base-fixture.json
             arguments=(--base tmp/base-fixture.json --base-sha "$BASE_SHA" --approvals acceptance/expected/regressions.yaml)
           fi
