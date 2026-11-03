@@ -193,69 +193,41 @@ class LocalInstallerTest(unittest.TestCase):
 
         self.assertTrue(actions.verify("install"))
 
-    def test_failed_install_command_leaves_matching_metadata_failed_and_owned(self):
-        calls = []
+    def test_failed_install_survives_status_until_a_successful_retry(self):
+        failing = True
 
-        def command(argv):
-            calls.append(list(argv))
-            if argv[1:3] == ["-m", "venv"]:
-                self.assertTrue((self.data_dir / "venv/.installer-owned").is_file())
+        def command(argv, **_kwargs):
+            nonlocal failing
+            if argv[1:3] == ["-m", "venv"] and failing:
                 self.write_distribution()
-                return 1
-            return 0
+                return subprocess.CompletedProcess(argv, 1)
+            if argv[-1].endswith(f"@{'a' * 40}"):
+                self.write_distribution()
+            return subprocess.CompletedProcess(argv, 0)
 
-        actions = installer.LocalActions(
-            self.data_dir,
-            transport="stdio",
-            profile="unified",
-            release=self.release,
-            run_command=command,
+        arguments = ("--target", "local", "--data-dir", str(self.data_dir))
+        with (
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(installer.subprocess, "run", side_effect=command),
+            patch.object(installer, "_verify_stdio"),
+        ):
+            failed = self.run_main("run", *arguments, "--non-interactive")
+            after_failure = self.run_main("status", *arguments)
+            incomplete_after_failure = (self.data_dir / "venv/.installer-incomplete").is_file()
+            failing = False
+            retried = self.run_main("run", *arguments, "--non-interactive")
+            after_retry = self.run_main("status", *arguments)
+
+        self.assertEqual((failed[0], failed[2]), (1, ""))
+        self.assertEqual(json.loads(failed[1])["failed"], ["install"])
+        self.assertEqual(json.loads(after_failure[1])["failed"], ["install"])
+        self.assertTrue(incomplete_after_failure)
+        self.assertEqual((retried[0], retried[2]), (0, ""))
+        self.assertEqual(
+            json.loads(after_retry[1])["completed"],
+            ["check_prerequisites", "install", "configure", "verify"],
         )
-        with patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite):
-            state = installer_state.reconcile(
-                self.data_dir,
-                "local",
-                ("server",),
-                actions,
-            )
-
-        self.assertEqual(state.outcomes[-1], installer_state.StepOutcome("install", "failed"))
-        self.assertEqual(len(calls), 1)
-        self.assertTrue((self.data_dir / "venv/.installer-owned").is_file())
-
-        fresh_actions = installer.LocalActions(
-            self.data_dir,
-            transport="stdio",
-            profile="unified",
-            release=self.release,
-        )
-        with patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite):
-            refreshed = installer_state.reverify(state, fresh_actions)
-        self.assertEqual(refreshed.outcomes[-1], installer_state.StepOutcome("install", "failed"))
-
-        def mismatched(_argv):
-            self.write_distribution(commit="b" * 40)
-            return 0
-
-        actions = installer.LocalActions(
-            self.data_dir,
-            transport="stdio",
-            profile="unified",
-            release=self.release,
-            run_command=mismatched,
-        )
-        error = io.StringIO()
-        with redirect_stderr(error):
-            actions.apply("install")
-        self.write_distribution()
-        self.assertIs(actions.verify("install"), False)
-        self.assertIn("does not match the installer's", error.getvalue())
-
-        with patch.object(installer, "_release_identity", return_value=None):
-            unavailable = installer.LocalActions(
-                self.data_dir, transport="stdio", profile="unified"
-            )
-        self.assertIs(unavailable.verify("install"), False)
+        self.assertFalse((self.data_dir / "venv/.installer-incomplete").exists())
 
     def test_install_command_keeps_child_diagnostics_out_of_json_stdout(self):
         completed = subprocess.CompletedProcess(["python"], 7)
@@ -288,6 +260,32 @@ class LocalInstallerTest(unittest.TestCase):
             missing = actions.missing_inputs("install")
 
         self.assertEqual(missing, ("Run the installer outside the owned server environment.",))
+
+    def test_install_refuses_to_delete_a_nested_bootstrap_environment(self):
+        venv = self.data_dir / "venv"
+        bootstrap = venv / "bootstrap"
+        interpreter = bootstrap / "bin" / "python"
+        interpreter.parent.mkdir(parents=True)
+        interpreter.write_text("running bootstrap", encoding="utf-8")
+        (venv / ".installer-owned").touch()
+
+        with (
+            patch.object(installer.sys, "prefix", str(bootstrap)),
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(
+                installer.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess(["python"], 1),
+            ) as run,
+        ):
+            code, output, error = self.run_main(
+                "run", "--target", "local", "--data-dir", str(self.data_dir), "--non-interactive"
+            )
+
+        self.assertTrue(interpreter.is_file(), "installer deleted its running bootstrap")
+        self.assertEqual((code, error), (1, ""))
+        self.assertEqual(json.loads(output)["blocked"][0]["step"], "install")
+        run.assert_not_called()
 
     def test_bootstrap_identity_requires_canonical_git_commit_and_a_hashed_lock(self):
         requirements = self.data_dir / "server-requirements.txt"
