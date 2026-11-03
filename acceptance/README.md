@@ -251,15 +251,29 @@ the expected outcomes in the same pull request: run the suite as the job does, t
 the README's table, which is generated from the expected outcomes and kept current by a
 self-test. The diff of `expected/fixture.json` is what the review reads.
 
-On a pull request, current expected/report equality remains mandatory. CI then extracts the
-expected outcomes at the event's immutable base commit. A base `passed` test that no longer
-passes, including a removed test omitted by both current expected outcomes and the report,
-requires an exact `expected/regressions.yaml` record for the base SHA, test and before/after
-transition, with a reason and review reference. A record for the current base that matches no
-regression fails as stale; a record for an older base is inert. The reference records review but
-does not authenticate it. Manual CI dispatch requires a full base commit that is an ancestor of
-the dispatched head; pushes to `main` retain the current equality check after the pull request
-has run the base comparison.
+On a pull request, the generated report must first equal the expected map in the checkout. CI then
+extracts the base expected map from the event's immutable base commit. A test that is `passed` in
+that base map but is non-passing in the current map, including a removed test omitted by both the
+current map and report, requires an exact `expected/regressions.yaml` record:
+
+```yaml
+version: 1
+approvals:
+  - base_sha: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    test: acceptance/tests/test_example.py::test_example
+    before: passed
+    after: failed
+    reason: The reviewed reason for accepting this regression.
+    reference: https://github.com/CBIIT/nci-si-mcp/issues/123#issuecomment-456
+```
+
+The root has exactly `version` and `approvals`; each approval has exactly the six keys above.
+`version` is integer `1`, `before` is `passed`, and `after` is a non-passing report outcome or
+`absent` for a removed test. Duplicate YAML keys are invalid. A record for the current base that
+matches no regression fails as stale; a record for an older base is inert. The reference records
+review but does not authenticate it. Manual CI dispatch requires a full base commit that is an
+ancestor of the dispatched head; pushes to `main` retain the current equality check after the
+pull request has run the base comparison.
 
 The job's summary holds the run's duration (a warning at 7 minutes of the 10 allowed: shard the
 run before it grows into the limit) and the per-tool report; the artifact `acceptance-fixture`

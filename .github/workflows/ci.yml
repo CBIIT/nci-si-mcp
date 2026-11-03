@@ -287,7 +287,9 @@ jobs:
   # upstream answers: a ratchet over individual tests. Every test must have the outcome in
   # acceptance/expected/fixture.json, so the job stays green while tools are NOT IMPLEMENTED or
   # FAIL and fails when a test changes its outcome; a change that moves outcomes on purpose
-  # updates that file in the same pull request. It depends on no other job.
+  # updates that file in the same pull request. A base pass that regresses or is removed also
+  # requires its exact base-bound transition in expected/regressions.yaml. It depends on no other
+  # job.
   acceptance:
     name: acceptance (fixture)
     runs-on: ubuntu-24.04

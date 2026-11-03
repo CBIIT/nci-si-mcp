@@ -51,10 +51,12 @@ These are the owner's rules. They apply to every change.
   could observe and must be able to fail on a regression. A test of a workflow or other
   configuration file asserts the exact value of each property it protects (a job's condition,
   permissions, dependencies, environment and commands), never a substring or one member of a list.
-- **Coverage: the checked minimum is 95%, the aim is above 98%.** The gap exists so that nobody
-  pads coverage to pass a threshold. Take every real opportunity to cover untested behaviour;
-  never write a test whose purpose is the number (no assertion-free tests, no tests that only
-  check that a mock was called). CI fails below 95% and warns at or below 98%.
+- **Coverage: the checked minimum is 95%, the aim is above 98%.** Local `pdm run test` checks the
+  core and scripts together. CI checks the core minimum and warns on the combined core-and-scripts
+  aim; the acceptance harness checks its own minimum and aim. The gaps exist so that nobody pads
+  coverage to pass a threshold. Take every real opportunity to cover untested behaviour; never
+  write a test whose purpose is the number (no assertion-free tests, no tests that only check that
+  a mock was called).
 - **Design: KISS and DRY.** The simplest structure that does the job, one place for each fact,
   and the established architecture (thin adapters over the registry, one error path, closed value
   sets in `validation.py`). No abstraction for a single use.
@@ -169,7 +171,9 @@ it.
 and fails when an outcome differs from the expected one. A change that moves an outcome on purpose
 updates that file in the same pull request, written with `pdm run acceptance-expected update` from
 a fresh report, and `pdm run acceptance-status` updates the README table that follows from it; the
-diff of `expected/fixture.json` is what the review reads. The `Acceptance (live)` workflow runs the
+diff of `expected/fixture.json` is what the review reads. A base `passed` outcome that regresses or
+is removed also needs its exact base-bound transition in `acceptance/expected/regressions.yaml`.
+The `Acceptance (live)` workflow runs the
 suite against the live services by hand and every Monday; its outcomes are not ratcheted, but
 the weekly run fails when a test that passes on the fixtures fails live (upstream drift).
 The `Local run` workflow (`local-run.yml`) walks the documented setup on `macos-latest` and
@@ -254,7 +258,8 @@ adding exclusion pathspecs for generated files.
    `pdm run test`, `pdm run acceptance-selftest`, `pdm run pre-commit run --all-files`, then the
    fixture run and, where outcomes moved on purpose,
    `pdm run acceptance-expected update acceptance/fixture.json` and `pdm run acceptance-status`,
-   so the ratchet file moves in the same pull request.
+   so the ratchet file moves in the same pull request. A base `passed` outcome that regresses or is
+   removed also adds its exact base-bound transition to `acceptance/expected/regressions.yaml`.
    An issue that changes a workflow dispatches that workflow on the issue branch before the
    `--no-ff` merge and links the green run in its completion comment. A red run blocks the merge.
 4. **Merge the issue branch into the milestone branch yourself** once the gates pass and the

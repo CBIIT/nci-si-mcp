@@ -8,7 +8,8 @@ vocabulary (report.py), and holds nothing else, so a reworded failure is not a c
 compares a report with it and exits with 1 on any difference: a test with another outcome, a
 test the report lacks, a test the expected outcomes lack. `update` rewrites the file from a
 report, for a change that moves outcomes on purpose; the diff of the file is then what the
-review reads.
+review reads. When a supplied base outcome map contains passes that the current expected map no
+longer contains as passes, `check` also requires exact base-SHA-bound transition declarations.
 """
 
 from __future__ import annotations
@@ -19,9 +20,10 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import yaml
+from yaml.nodes import MappingNode, Node, SequenceNode
 
 from nci_si_acceptance.record import FIXTURES
 from nci_si_acceptance.report import RANK, load_report
@@ -40,15 +42,19 @@ HINT = (
     "`acceptance/expected/fixture.json`."
 )
 
+type ApprovalAfter = Literal[
+    "skipped", "not_implemented", "not_live", "failed", "no_fixture", "absent"
+]
+
 
 @dataclass(frozen=True, slots=True)
 class Approval:
-    """One reviewed base/test/transition record."""
+    """One declared base/test/transition record."""
 
     base_sha: str
     test: str
-    before: str
-    after: str
+    before: Literal["passed"]
+    after: ApprovalAfter
     reason: str
     reference: str
 
@@ -96,11 +102,23 @@ def _approval(row: object) -> Approval:
     fields = _string_fields(row, keys)
     if SHA.fullmatch(fields["base_sha"]) is None:
         raise ValueError("base_sha must be 40 lowercase hexadecimal characters")
-    if fields["before"] != "passed" or fields["after"] not in {*RANK, ABSENT}:
+    before = fields["before"]
+    if before != "passed":
         raise ValueError("approval transition has an unknown outcome")
+    after = _approval_after(fields["after"])
     if not all(fields[key].strip() for key in ("test", "reason", "reference")):
         raise ValueError("test, reason and reference must be nonempty")
-    return Approval(**fields)
+    return Approval(
+        fields["base_sha"], fields["test"], before, after, fields["reason"], fields["reference"]
+    )
+
+
+def _approval_after(value: str) -> ApprovalAfter:
+    match value:
+        case "skipped" | "not_implemented" | "not_live" | "failed" | "no_fixture" | "absent":
+            return value
+        case _:
+            raise ValueError("approval transition has an unknown outcome")
 
 
 def _approval_rows(value: object) -> list[object]:
@@ -119,12 +137,27 @@ def _approval_rows(value: object) -> list[object]:
 def read_approvals(path: Path) -> list[Approval]:
     """Read exact approval records, rejecting ambiguity for one base and test."""
 
-    value: object = yaml.safe_load(path.read_text(encoding="utf-8"))
+    text = path.read_text(encoding="utf-8")
+    _reject_duplicate_keys(yaml.compose(text, Loader=yaml.SafeLoader))
+    value: object = yaml.safe_load(text)
     approvals = [_approval(row) for row in _approval_rows(value)]
     identities = [(row.base_sha, row.test) for row in approvals]
     if len(identities) != len(set(identities)):
         raise ValueError("a base and test may have only one approval")
     return approvals
+
+
+def _reject_duplicate_keys(node: Node | None) -> None:
+    if isinstance(node, MappingNode):
+        keys: set[str] = set()
+        for key, value in node.value:
+            if key.value in keys:
+                raise ValueError(f"duplicate mapping key: {key.value}")
+            keys.add(key.value)
+            _reject_duplicate_keys(value)
+    elif isinstance(node, SequenceNode):
+        for value in node.value:
+            _reject_duplicate_keys(value)
 
 
 def regressions(base: dict[str, str], current: dict[str, str]) -> list[tuple[str, str]]:
@@ -140,7 +173,7 @@ def regressions(base: dict[str, str], current: dict[str, str]) -> list[tuple[str
 def historical_check(
     base: dict[str, str], current: dict[str, str], approvals: list[Approval], base_sha: str
 ) -> tuple[int, str]:
-    """Require exact approvals for regressions from one immutable base."""
+    """Require exact declarations for regressions from one supplied base outcome map and SHA."""
 
     changed = regressions(base, current)
     required = _required_transitions(changed)
@@ -279,9 +312,9 @@ def main(arguments: list[str] | None = None) -> int:
     parser.add_argument("command", choices=["check", "update"])
     parser.add_argument("report", type=Path, help="the report of a fixture-mode run")
     parser.add_argument("--expected", type=Path, default=EXPECTED, help="the expected outcomes")
-    parser.add_argument("--base", type=Path, help="the expected outcomes at the immutable base")
-    parser.add_argument("--base-sha", help="the immutable base commit")
-    parser.add_argument("--approvals", type=Path, help="the reviewed regression approvals")
+    parser.add_argument("--base", type=Path, help="the supplied base expected outcomes")
+    parser.add_argument("--base-sha", help="the commit identifying the supplied base")
+    parser.add_argument("--approvals", type=Path, help="the declared regression approvals")
     options = parser.parse_args(arguments)
     historical = _historical_options(options)
     if options.command == "update":

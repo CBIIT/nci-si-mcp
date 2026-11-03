@@ -1,4 +1,4 @@
-"""Ratchet dependencies from one test module onto another test module."""
+"""Ratchet syntactic imports whose module name ends in a `test_` segment in tracked root tests."""
 
 import ast
 import subprocess

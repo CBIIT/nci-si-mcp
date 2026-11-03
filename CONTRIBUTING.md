@@ -235,9 +235,10 @@ never counts as a kill or verified scratch restoration. Retained runs are never 
 CI runs the unit suite in four sorted round-robin partitions, each serial with a 10-minute
 budget. `--unit-shard K/N` selects a partition without affecting nested pytest child runs.
 Each partition retains JUnit evidence and one-day coverage data. The `unit-coverage` job
-requires all four files, combines them, and enforces the same coverage floor and aim warning;
-individual partitions do not enforce a partial coverage floor. The local `pdm run test` remains
-the complete suite. The mutation gate's local unit baseline also remains serial and unsharded.
+requires all four files, combines them, enforces the 95% floor over `src/nci_si_mcp` and
+`src/ncit_index`, and reports the above-98% aim over those packages plus `scripts/`; individual
+partitions do not enforce a partial coverage floor. Local `pdm run test` checks the complete
+core-and-scripts suite. The mutation gate's local unit baseline also remains serial and unsharded.
 
 CI exports separate JSON coverage reports for the combined unit suite and the combined harness
 self-tests. The harness runs in eight sorted round-robin shards, each with four workers;
@@ -264,9 +265,11 @@ during feature-branch cleanup; it is generated publication data.
    observe, and can fail when that behaviour breaks.
 3. **Coverage: 95% is the checked minimum, above 98% is the aim.** The gap is deliberate: it
    keeps anyone from writing tests for the number. Cover untested behaviour whenever you can.
-   Never add a test that asserts nothing, or only that a mock was called.
-   The figure covers `src/` and every script in `scripts/` except those `omit`ted in
-   `pyproject.toml`, each with its reason there; omit nothing to raise the number.
+   Never add a test that asserts nothing, or only that a mock was called. Local `pdm run test`
+   checks the minimum over `src/nci_si_mcp`, `src/ncit_index` and every script in `scripts/`
+   except those `omit`ted in `pyproject.toml`. CI checks the minimum over the two core packages
+   and reports the aim over those packages plus scripts. Harness self-tests check their own 95%
+   minimum and above-98% aim. Omit nothing to raise a number.
 4. **Keep it simple, and say each thing once.** Follow the structure in ARCHITECTURE.md: thin
    adapters over the service, one error path, closed value sets in `validation.py`. No
    abstraction for a single use.
@@ -337,7 +340,7 @@ pytest's original report. Local report files live under ignored `tmp/` directori
 | actionlint, shellcheck | Workflow syntax, expressions and shell scripts; both binaries are pinned in the PDM lint group. Only the unsupported `$/` self-repository diagnostics are ignored in `.github/actionlint.yaml`; local target existence is tested separately. |
 | Upstream requirement packages | `docs/upstream/*.md` are the current render of `docs/upstream/catalogue.yaml` (`scripts/upstream_requirements.py --check`) |
 | Installer requirements | The package-shipped server lock is the current PDM export of the `server` and `build` groups: `pdm export -G server -G build --no-default -o src/nci_si_mcp/server-requirements.txt` |
-| Acceptance ratchet (CI) | Every test of the acceptance suite, in fixture mode, has the outcome in `acceptance/expected/fixture.json`. A change that moves an outcome on purpose updates that file in the same pull request, and the diff of the file is what the review reads: `pdm run acceptance-expected update acceptance/fixture.json` writes it from a fresh report, and `pdm run acceptance-status` the README table that follows |
+| Acceptance ratchet (CI) | Every fixture-mode test has the outcome in `acceptance/expected/fixture.json`. An intentional move updates that file in the same pull request; a base `passed` outcome that regresses or is removed also needs its exact base-bound transition in `acceptance/expected/regressions.yaml`. `pdm run acceptance-expected update acceptance/fixture.json` writes current outcomes from a fresh report, and `pdm run acceptance-status` updates the README table. |
 | Tests and coverage | The suite passes before each push and in CI; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
 | Local run (CI only) | The documented setup, walked literally on `macos-latest` and `ubuntu-24.04` (`.github/workflows/local-run.yml`, on pushes to `main`, weekly, by hand, and on pull requests that touch the install paths). Every command is copied from the document that gives it; the test of the workflow compares the two, so change a documented command and its workflow line together. Not a required check: it uses live EVS |
 | Dependency audit (CI only) | Every Python and npm package in the committed locks is at least five days old; no runtime dependency has a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request brings one in at high severity (dependency review). Dependabot groups weekly updates for Actions, both Dockerfile directories and the documentation npm tree after a seven-day cooldown. Dependabot cannot update `pdm.lock`, so `pdm run lock` is the only Python lock command. [SECURITY.md](SECURITY.md) says how to report a vulnerability |
