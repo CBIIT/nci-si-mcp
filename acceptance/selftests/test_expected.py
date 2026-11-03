@@ -239,7 +239,10 @@ def test_current_base_approval_without_its_exact_regression_is_stale(historical_
     ("document", "message"),
     [
         (
-            {"version": 1, "approvals": [approval("t.py::a", "failed")] * 2},
+            {
+                "version": 1,
+                "approvals": [approval("t.py::a", "failed"), approval("t.py::a", "failed")],
+            },
             "a base and test may have only one approval",
         ),
         (

@@ -20,7 +20,7 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypeIs, get_args
 
 import yaml
 from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
@@ -114,11 +114,13 @@ def _approval(row: object) -> Approval:
 
 
 def _approval_after(value: str) -> ApprovalAfter:
-    match value:
-        case "skipped" | "not_implemented" | "not_live" | "failed" | "no_fixture" | "absent":
-            return value
-        case _:
-            raise ValueError("approval transition has an unknown outcome")
+    if not _is_approval_after(value):
+        raise ValueError("approval transition has an unknown outcome")
+    return value
+
+
+def _is_approval_after(value: str) -> TypeIs[ApprovalAfter]:
+    return value in get_args(ApprovalAfter.__value__)
 
 
 def _approval_rows(value: object) -> list[object]:
@@ -148,17 +150,32 @@ def read_approvals(path: Path) -> list[Approval]:
 
 
 def _reject_duplicate_keys(node: Node | None) -> None:
+    _visit_yaml_node(node, set())
+
+
+def _visit_yaml_node(node: Node | None, visited: set[int]) -> None:
+    if node is None:
+        return
+    identity = id(node)
+    if identity in visited:
+        raise ValueError("YAML aliases are not allowed")
+    visited.add(identity)
     if isinstance(node, MappingNode):
-        keys: set[str] = set()
-        for key, value in node.value:
-            key_text = _mapping_key_text(key)
-            if key_text in keys:
-                raise ValueError(f"duplicate mapping key: {key_text}")
-            keys.add(key_text)
-            _reject_duplicate_keys(value)
+        _check_mapping(node, visited)
     elif isinstance(node, SequenceNode):
         for value in node.value:
-            _reject_duplicate_keys(value)
+            _visit_yaml_node(value, visited)
+
+
+def _check_mapping(node: MappingNode, visited: set[int]) -> None:
+    keys: set[str] = set()
+    for key, value in node.value:
+        _visit_yaml_node(key, visited)
+        key_text = _mapping_key_text(key)
+        if key_text in keys:
+            raise ValueError(f"duplicate mapping key: {key_text}")
+        keys.add(key_text)
+        _visit_yaml_node(value, visited)
 
 
 def _mapping_key_text(key: Node) -> str:
