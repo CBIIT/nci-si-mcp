@@ -294,21 +294,21 @@
   original: "773412cc3dbeacb25b2c0fd071c17c08962a2023cc5d2d64841d48b07313d3ac"
   mutated: "e982e1646ac11e074c7dffd12765e2e0f9985e851cd588ef98b42b816c2a51b9"
   reason: "A missing exception defaults to text that does not start with SystemExit, before and after the mutation; the conjunct is True either way, so classification is identical for every row."
-# Approved: #403 comment 6589430951; original SURVIVED in run-hp79p0_j JSONL line 35.
+# Approved: #403 comment 6589430951; original SURVIVED in run-hp79p0_j JSONL line 35. Statically re-identified at e61a25a after adjacent approval validation changed only the context hash; file, qualname, operator, site and source digests still match exactly.
 - file: "acceptance/src/nci_si_acceptance/expected.py"
   qualname: "Approval"
   operator: "boolean:literal"
   site: "/decorator_list/0/keywords/0/value/0"
-  context: "27607da4bdf00574ba89949012480334ab3220ee9fe5f3705033838bd6411ac3"
+  context: "88a3fc56719838213d387952b02aeeda65e72c4b94acdfb384064f6ac79821c1"
   original: "fc49e3ff31db631b11fdae65c1243eea50afe64ff7f1cddca82c434c55e40498"
   mutated: "4ea452198b8a9e3a518725a04c0294ecccdcfe575822eeaacf94532a6a03055f"
   reason: "Approval records are constructed during strict YAML validation and only read afterward. No caller mutates or hashes them, so removing frozen assignment protection changes no approval decision or diagnostic."
-# Approved: #403 comment 6589430951; original SURVIVED in run-hp79p0_j JSONL line 36.
+# Approved: #403 comment 6589430951; original SURVIVED in run-hp79p0_j JSONL line 36. Statically re-identified at e61a25a after adjacent approval validation changed only the context hash; file, qualname, operator, site and source digests still match exactly.
 - file: "acceptance/src/nci_si_acceptance/expected.py"
   qualname: "Approval"
   operator: "boolean:literal"
   site: "/decorator_list/0/keywords/1/value/0"
-  context: "27607da4bdf00574ba89949012480334ab3220ee9fe5f3705033838bd6411ac3"
+  context: "88a3fc56719838213d387952b02aeeda65e72c4b94acdfb384064f6ac79821c1"
   original: "fc49e3ff31db631b11fdae65c1243eea50afe64ff7f1cddca82c434c55e40498"
   mutated: "4ea452198b8a9e3a518725a04c0294ecccdcfe575822eeaacf94532a6a03055f"
   reason: "Approval consumers read named fields and do not inspect record layout, serialize __dict__, add attributes or use weak references. Removing slots changes storage only."
