@@ -20,7 +20,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from email.parser import Parser
 from pathlib import Path
-from typing import Any, NewType, cast
+from typing import Any, cast
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
@@ -53,8 +53,6 @@ SERVER_REQUIREMENTS = Path(__file__).with_name("server-requirements.txt")
 PRIVATE_DIRECTORY_MODE = 0o700
 
 type RunCommand = Callable[[Sequence[str]], int]
-ReleaseVersion = NewType("ReleaseVersion", str)
-CommitId = NewType("CommitId", str)
 
 
 @dataclass(frozen=True)
@@ -80,8 +78,8 @@ class CheckResult:
 
 @dataclass(frozen=True, slots=True)
 class ReleaseIdentity:
-    version: ReleaseVersion
-    commit: CommitId
+    version: str
+    commit: str
     requirements: Path
 
 
@@ -329,7 +327,9 @@ class LocalActions:
     def _missing_release(self) -> tuple[str, ...]:
         if self.release is None:
             return (f"Reinstall the installer from `git+{REPOSITORY_URL}@vX.Y.Z` before retrying.",)
-        if Path(sys.prefix).resolve() == self.venv.resolve():
+        running_prefix = Path(sys.prefix).resolve()
+        owned_venv = self.venv.resolve()
+        if running_prefix == owned_venv or owned_venv in running_prefix.parents:
             return ("Run the installer outside the owned server environment.",)
         if _owned_process(self.runtime):
             return ("Stop the owned HTTP server before reinstalling.",)
@@ -485,10 +485,10 @@ def _release_identity() -> ReleaseIdentity | None:
         return None
     if "--hash=sha256:" not in requirements:
         return None
-    return ReleaseIdentity(ReleaseVersion(__version__), commit, SERVER_REQUIREMENTS)
+    return ReleaseIdentity(__version__, commit, SERVER_REQUIREMENTS)
 
 
-def _commit_from_direct_url(direct: object) -> CommitId | None:
+def _commit_from_direct_url(direct: object) -> str | None:
     if not isinstance(direct, dict) or direct.get("url") != REPOSITORY_URL:
         return None
     vcs = direct.get("vcs_info")
@@ -497,7 +497,7 @@ def _commit_from_direct_url(direct: object) -> CommitId | None:
     commit = vcs.get("commit_id")
     if not isinstance(commit, str) or not COMMIT_ID.fullmatch(commit):
         return None
-    return CommitId(commit)
+    return commit
 
 
 def _run_command(command: Sequence[str]) -> int:
