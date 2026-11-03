@@ -344,6 +344,10 @@ approvals:
             "version: 1\napprovals:\n  ? [not, scalar]\n  : value\n",
             "mapping keys must be scalars",
         ),
+        (
+            "version: 1\napprovals: &rows\n  - *rows\n",
+            "YAML aliases are not allowed",
+        ),
     ],
 )
 def test_ambiguous_approval_yaml_keys_fail(historical_files, document, message):
