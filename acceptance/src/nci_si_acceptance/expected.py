@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 import yaml
-from yaml.nodes import MappingNode, Node, SequenceNode
+from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
 
 from nci_si_acceptance.record import FIXTURES
 from nci_si_acceptance.report import RANK, load_report
@@ -151,15 +151,22 @@ def _reject_duplicate_keys(node: Node | None) -> None:
     if isinstance(node, MappingNode):
         keys: set[str] = set()
         for key, value in node.value:
-            if key.value == "<<":
-                raise ValueError("YAML merge keys are not allowed")
-            if key.value in keys:
-                raise ValueError(f"duplicate mapping key: {key.value}")
-            keys.add(key.value)
+            key_text = _mapping_key_text(key)
+            if key_text in keys:
+                raise ValueError(f"duplicate mapping key: {key_text}")
+            keys.add(key_text)
             _reject_duplicate_keys(value)
     elif isinstance(node, SequenceNode):
         for value in node.value:
             _reject_duplicate_keys(value)
+
+
+def _mapping_key_text(key: Node) -> str:
+    if not isinstance(key, ScalarNode):
+        raise ValueError("mapping keys must be scalars")
+    if key.tag == "tag:yaml.org,2002:merge":
+        raise ValueError("YAML merge keys are not allowed")
+    return key.value
 
 
 def regressions(base: dict[str, str], current: dict[str, str]) -> list[tuple[str, str]]:

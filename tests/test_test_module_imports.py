@@ -13,6 +13,10 @@ def is_test_module(name: str) -> bool:
     return name.rsplit(".", maxsplit=1)[-1].startswith("test_")
 
 
+def is_tests_package(name: str | None) -> bool:
+    return name == "tests" or (name is not None and name.startswith("tests."))
+
+
 def import_targets(node: ast.AST) -> int:
     if isinstance(node, ast.Import):
         return sum(is_test_module(alias.name) for alias in node.names)
@@ -24,7 +28,7 @@ def import_from_targets(node: ast.ImportFrom) -> int:
         return 1
     if node.level > 0:
         return sum(is_test_module(alias.name) for alias in node.names)
-    if node.module == "tests":
+    if is_tests_package(node.module):
         return sum(is_test_module(alias.name) for alias in node.names)
     return 0
 
