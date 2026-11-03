@@ -1,3 +1,4 @@
+import errno
 import io
 import json
 import os
@@ -193,59 +194,150 @@ class LocalInstallerTest(unittest.TestCase):
 
         self.assertTrue(actions.verify("install"))
 
-    def test_failed_install_command_leaves_matching_metadata_failed_and_owned(self):
-        calls = []
+    def test_failed_install_survives_status_until_a_successful_retry(self):
+        injected_calls = []
+        default_calls = []
+        protected = self.data_dir / "protected"
+        protected.write_text("keep", encoding="utf-8")
 
-        def command(argv):
-            calls.append(list(argv))
+        def fail_install(argv):
+            injected_calls.append(list(argv))
             if argv[1:3] == ["-m", "venv"]:
-                self.assertTrue((self.data_dir / "venv/.installer-owned").is_file())
                 self.write_distribution()
-                return 1
-            return 0
+            return 1
 
-        actions = installer.LocalActions(
-            self.data_dir,
-            transport="stdio",
-            profile="unified",
-            release=self.release,
-            run_command=command,
-        )
-        with patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite):
-            state = installer_state.reconcile(
+        def default_command(argv):
+            default_calls.append(list(argv))
+            return 1
+
+        with (
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(installer, "_run_command", side_effect=default_command),
+        ):
+            actions = installer.LocalActions(
+                self.data_dir,
+                transport="stdio",
+                profile="unified",
+                release=self.release,
+                run_command=fail_install,
+            )
+            failed = installer_state.reconcile(
                 self.data_dir,
                 "local",
                 ("server",),
                 actions,
             )
+            after_failure = self.run_main(
+                "status", "--target", "local", "--data-dir", str(self.data_dir)
+            )
+        incomplete_after_failure = (self.data_dir / "venv/.installer-incomplete").is_file()
 
-        self.assertEqual(state.outcomes[-1], installer_state.StepOutcome("install", "failed"))
-        self.assertEqual(len(calls), 1)
-        self.assertTrue((self.data_dir / "venv/.installer-owned").is_file())
+        def succeed(argv, **_kwargs):
+            if argv[-1].endswith(f"@{'a' * 40}"):
+                self.write_distribution()
+            return subprocess.CompletedProcess(argv, 0)
 
-        def mismatched(_argv):
-            self.write_distribution(commit="b" * 40)
-            return 0
+        arguments = ("--target", "local", "--data-dir", str(self.data_dir))
+        with (
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(installer.subprocess, "run", side_effect=succeed),
+            patch.object(installer, "_verify_stdio"),
+        ):
+            retried = self.run_main("run", *arguments, "--non-interactive")
+            after_retry = self.run_main("status", *arguments)
+
+        self.assertEqual(failed.outcomes[-1], installer_state.StepOutcome("install", "failed"))
+        self.assertEqual(json.loads(after_failure[1])["failed"], ["install"])
+        self.assertTrue(incomplete_after_failure)
+        self.assertEqual(
+            injected_calls,
+            [[sys.executable, "-m", "venv", str(self.data_dir / "venv")]],
+        )
+        self.assertEqual(default_calls, [])
+        self.assertEqual(protected.read_text(encoding="utf-8"), "keep")
+        self.assertEqual((retried[0], retried[2]), (0, ""))
+        self.assertEqual(
+            json.loads(after_retry[1])["completed"],
+            ["check_prerequisites", "install", "configure", "verify"],
+        )
+        self.assertFalse((self.data_dir / "venv/.installer-incomplete").exists())
+
+    def test_marker_inspection_error_keeps_a_failed_install_failed(self):
+        self.write_distribution()
+        installer_state.write_state(
+            self.data_dir,
+            installer_state.InstallationState(
+                2,
+                "local",
+                ("server",),
+                (
+                    installer_state.StepOutcome("check_prerequisites", "completed"),
+                    installer_state.StepOutcome("install", "failed"),
+                ),
+            ),
+        )
+        marker = self.data_dir / "venv/.installer-incomplete"
+        original_stat = os.stat
+        marker_stat_reached = False
+
+        def stat(path, *args, **kwargs):
+            nonlocal marker_stat_reached
+            if Path(path) == marker:
+                marker_stat_reached = True
+                raise OSError(errno.EIO, "marker storage unavailable")
+            return original_stat(path, *args, **kwargs)
+
+        with (
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(installer.os, "stat", side_effect=stat),
+        ):
+            code, output, error = self.run_main(
+                "status", "--target", "local", "--data-dir", str(self.data_dir)
+            )
+
+        self.assertTrue(marker_stat_reached)
+        self.assertEqual((code, error), (1, ""))
+        self.assertEqual(json.loads(output)["failed"], ["install"])
+
+    def test_unproven_install_identity_returns_boolean_false(self):
+        self.write_distribution()
+        with patch.object(installer, "_release_identity", return_value=None):
+            without_release = installer.LocalActions(
+                self.data_dir,
+                transport="stdio",
+                profile="unified",
+            )
+        self.assertIs(without_release.verify("install"), False)
 
         actions = installer.LocalActions(
             self.data_dir,
             transport="stdio",
             profile="unified",
             release=self.release,
-            run_command=mismatched,
         )
-        error = io.StringIO()
-        with redirect_stderr(error):
-            actions.apply("install")
-        self.write_distribution()
+        actions.install_incomplete.touch()
         self.assertIs(actions.verify("install"), False)
-        self.assertIn("does not match the installer's", error.getvalue())
+        actions.install_incomplete.unlink()
+        with patch.object(Path, "stat", side_effect=OSError("marker unavailable")):
+            self.assertIs(actions.verify("install"), False)
 
-        with patch.object(installer, "_release_identity", return_value=None):
-            unavailable = installer.LocalActions(
-                self.data_dir, transport="stdio", profile="unified"
+    def test_mismatched_metadata_after_successful_commands_reports_the_release_hint(self):
+        def command(argv, **_kwargs):
+            if argv[-1].endswith(f"@{'a' * 40}"):
+                self.write_distribution(commit="b" * 40)
+            return subprocess.CompletedProcess(argv, 0)
+
+        with (
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(installer.subprocess, "run", side_effect=command),
+        ):
+            code, output, error = self.run_main(
+                "run", "--target", "local", "--data-dir", str(self.data_dir), "--non-interactive"
             )
-        self.assertIs(unavailable.verify("install"), False)
+
+        self.assertEqual(code, 1)
+        self.assertEqual(json.loads(output)["failed"], ["install"])
+        self.assertIn("release tag may have moved", error)
 
     def test_install_command_keeps_child_diagnostics_out_of_json_stdout(self):
         completed = subprocess.CompletedProcess(["python"], 7)
@@ -279,6 +371,70 @@ class LocalInstallerTest(unittest.TestCase):
 
         self.assertEqual(missing, ("Run the installer outside the owned server environment.",))
 
+    def test_install_refuses_to_delete_a_nested_bootstrap_environment(self):
+        venv = self.data_dir / "venv"
+        bootstrap = venv / "bootstrap"
+        interpreter = bootstrap / "bin" / "python"
+        interpreter.parent.mkdir(parents=True)
+        interpreter.write_text("running bootstrap", encoding="utf-8")
+        (venv / ".installer-owned").touch()
+
+        with (
+            patch.object(installer.sys, "prefix", str(bootstrap)),
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(
+                installer.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess(["python"], 1),
+            ) as run,
+        ):
+            code, output, error = self.run_main(
+                "run", "--target", "local", "--data-dir", str(self.data_dir), "--non-interactive"
+            )
+
+        self.assertTrue(interpreter.is_file(), "installer deleted its running bootstrap")
+        self.assertEqual((code, error), (1, ""))
+        self.assertEqual(json.loads(output)["blocked"][0]["step"], "install")
+        run.assert_not_called()
+
+    def test_abbreviated_hex_bootstrap_commit_blocks_before_installation(self):
+        self.identity.stop()
+        self.addCleanup(self.identity.start)
+
+        class Distribution:
+            version = "0.21.0"
+
+            @staticmethod
+            def read_text(name):
+                if name != "direct_url.json":
+                    return None
+                return json.dumps(
+                    {
+                        "url": installer.REPOSITORY_URL,
+                        "vcs_info": {"vcs": "git", "commit_id": "abcdef1"},
+                    }
+                )
+
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(
+                installer.importlib.metadata,
+                "distribution",
+                return_value=Distribution(),
+            ),
+            patch.object(installer, "SERVER_REQUIREMENTS", self.release.requirements),
+            patch.object(installer, "local_prerequisites", side_effect=self.passed_prerequisite),
+            patch.object(installer.subprocess, "run") as run,
+        ):
+            code, output, error = self.run_main(
+                "run", "--target", "local", "--data-dir", str(self.data_dir), "--non-interactive"
+            )
+
+        self.assertEqual((code, error), (1, ""))
+        self.assertFalse((self.data_dir / "venv").exists())
+        self.assertEqual(json.loads(output)["blocked"][0]["step"], "install")
+        run.assert_not_called()
+
     def test_bootstrap_identity_requires_canonical_git_commit_and_a_hashed_lock(self):
         requirements = self.data_dir / "server-requirements.txt"
         self.identity.stop()
@@ -300,7 +456,6 @@ class LocalInstallerTest(unittest.TestCase):
             None,
             {**valid, "url": "https://example.org/fork"},
             {**valid, "vcs_info": {"vcs": "hg", "commit_id": "a" * 40}},
-            {**valid, "vcs_info": {"vcs": "git", "commit_id": "short"}},
             {**valid, "vcs_info": []},
             {**valid, "vcs_info": {"vcs": "git", "commit_id": 1}},
         )
@@ -332,8 +487,13 @@ class LocalInstallerTest(unittest.TestCase):
 
         with patch.object(installer, "__version__", "0.21.1.dev1"):
             self.assertIsNone(installer._release_identity())
-        with patch.object(
-            installer.importlib.metadata, "distribution", return_value=Distribution(valid, "0.20.0")
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(
+                installer.importlib.metadata,
+                "distribution",
+                return_value=Distribution(valid, "0.20.0"),
+            ),
         ):
             self.assertIsNone(installer._release_identity())
 
@@ -342,7 +502,22 @@ class LocalInstallerTest(unittest.TestCase):
                 return "{" if name == "direct_url.json" else None
 
         malformed = MalformedDistribution(valid)
-        with patch.object(installer.importlib.metadata, "distribution", return_value=malformed):
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer.importlib.metadata, "distribution", return_value=malformed),
+        ):
+            self.assertIsNone(installer._release_identity())
+
+        requirements.write_bytes(b"\xff")
+        with (
+            patch.object(installer, "__version__", "0.21.0"),
+            patch.object(installer, "SERVER_REQUIREMENTS", requirements),
+            patch.object(
+                installer.importlib.metadata,
+                "distribution",
+                return_value=Distribution(valid),
+            ),
+        ):
             self.assertIsNone(installer._release_identity())
 
         requirements.write_text("demo==1\n")
@@ -586,6 +761,20 @@ class LocalInstallerTest(unittest.TestCase):
         )
         (record / "direct_url.json").write_text('{"vcs_info":{"commit_id":1}}')
         self.assertIsNone(installer._installed_release(self.data_dir / "venv"))
+        invalid_sources = (
+            {
+                "url": "https://example.org/fork",
+                "vcs_info": {"vcs": "git", "commit_id": "a" * 40},
+            },
+            {
+                "url": installer.REPOSITORY_URL,
+                "vcs_info": {"vcs": "hg", "commit_id": "a" * 40},
+            },
+        )
+        for source in invalid_sources:
+            with self.subTest(source=source):
+                (record / "direct_url.json").write_text(json.dumps(source))
+                self.assertIsNone(installer._installed_release(self.data_dir / "venv"))
         shutil.rmtree(self.data_dir / "venv")
 
         self.write_distribution()

@@ -47,6 +47,7 @@ RELEASE_VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+\Z")
 COMMIT_ID = re.compile(r"[0-9a-f]{40}\Z")
 OWNED_CHILDREN = ("venv", "server-data", "runtime")
 OWNED_MARKER = ".installer-owned"
+INSTALL_INCOMPLETE = ".installer-incomplete"
 REPOSITORY_URL = "https://github.com/CBIIT/nci-si-mcp"
 SERVER_REQUIREMENTS = Path(__file__).with_name("server-requirements.txt")
 PRIVATE_DIRECTORY_MODE = 0o700
@@ -95,17 +96,18 @@ STEP_HELP = {
     "install": (
         "Step: install\n"
         "Purpose: Create the owned virtual environment and install this exact release.\n"
-        "Why: A local installation must not drift to another tag or source.\n"
+        "Why: A local installation must not drift to another commit or source.\n"
         "Action: Run a released Git installer with its package-shipped hash lock.\n"
         "Verification: Installed metadata names the installer's X.Y.Z and exact Git commit.\n"
         "Common failures: development installer version, Git access, or package installation.\n"
         "Guide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"
     ),
     "configure": (
-        "Step: configure\nPurpose: Write the owned local server configuration.\n"
+        "Step: configure\n"
+        "Purpose: Create the owned server data and private runtime configuration.\n"
         "Why: The transport, profile and data path must remain bound to this installation.\n"
         "Action: Select stdio or loopback HTTP and an EVS/caDSR profile.\n"
-        "Verification: The recorded configuration exactly matches the selected values.\n"
+        "Verification: The recorded values match and the runtime directory mode is 0700.\n"
         "Common failures: inaccessible installation paths.\n"
         "Guide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"
     ),
@@ -234,7 +236,9 @@ def _port_available(port: int) -> bool:
 def local_prerequisites() -> tuple[Prerequisite, ...]:
     checks = [
         Prerequisite("supported_os", "Run the local installer on macOS or Linux.", _supported_os),
-        executable_prerequisite("git", "Install Git so pip can install the released source tag."),
+        executable_prerequisite(
+            "git", "Install Git so pip can install the recorded source commit."
+        ),
         Prerequisite(
             "python",
             "Run the installer with Python 3.14 or newer.",
@@ -289,7 +293,6 @@ class LocalActions:
         self.profile = profile
         self.release = release if release is not None else _release_identity()
         self.run_command = run_command or _run_command
-        self._install_failed = False
 
     @property
     def venv(self) -> Path:
@@ -302,6 +305,10 @@ class LocalActions:
     @property
     def runtime(self) -> Path:
         return self.data_dir / "runtime"
+
+    @property
+    def install_incomplete(self) -> Path:
+        return self.venv / INSTALL_INCOMPLETE
 
     def _checks(self) -> tuple[CheckResult, ...]:
         return run_prerequisites(local_prerequisites())
@@ -320,7 +327,9 @@ class LocalActions:
     def _missing_release(self) -> tuple[str, ...]:
         if self.release is None:
             return (f"Reinstall the installer from `git+{REPOSITORY_URL}@vX.Y.Z` before retrying.",)
-        if Path(sys.prefix).resolve() == self.venv.resolve():
+        running_prefix = Path(sys.prefix).resolve()
+        owned_venv = self.venv.resolve()
+        if running_prefix == owned_venv or owned_venv in running_prefix.parents:
             return ("Run the installer outside the owned server environment.",)
         if _owned_process(self.runtime):
             return ("Stop the owned HTTP server before reinstalling.",)
@@ -360,7 +369,15 @@ class LocalActions:
         return False
 
     def _verify_install(self) -> bool:
-        if self.release is None or self._install_failed:
+        if self.release is None:
+            return False
+        try:
+            self.install_incomplete.stat()
+        except FileNotFoundError:
+            pass
+        except OSError:
+            return False
+        else:
             return False
         return _installed_release(self.venv) == (
             self.release.version,
@@ -378,6 +395,7 @@ class LocalActions:
         _claim_child(self.venv)
         shutil.rmtree(self.venv)
         _claim_child(self.venv)
+        self.install_incomplete.touch()
         commands = (
             [sys.executable, "-m", "venv", str(self.venv)],
             [
@@ -404,16 +422,16 @@ class LocalActions:
         )
         for command in commands:
             if self.run_command(command):
-                self._install_failed = True
                 return
         installed = _installed_release(self.venv)
         expected = (self.release.version, self.release.commit)
         if installed != expected:
-            self._install_failed = True
             sys.stderr.write(
                 f"Installed nci-si-mcp {installed!r} does not match the installer's "
                 f"{expected!r}; the release tag may have moved.\n"
             )
+            return
+        self.install_incomplete.unlink()
 
     def environment(self) -> dict[str, str]:
         environment = {
@@ -468,7 +486,7 @@ def _release_identity() -> ReleaseIdentity | None:
         direct_text = distribution.read_text("direct_url.json")
         direct = json.loads(direct_text) if direct_text is not None else None
         requirements = SERVER_REQUIREMENTS.read_text(encoding="utf-8")
-    except OSError, json.JSONDecodeError, TypeError:
+    except OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError:
         return None
     commit = _commit_from_direct_url(direct)
     if distribution.version != __version__ or commit is None:
@@ -519,11 +537,11 @@ def _installed_release(venv: Path) -> tuple[str, str] | None:
     try:
         metadata = Parser().parsestr((records[0] / "METADATA").read_text(encoding="utf-8"))
         direct = json.loads((records[0] / "direct_url.json").read_text(encoding="utf-8"))
-        commit = direct["vcs_info"]["commit_id"]
-    except OSError, json.JSONDecodeError, KeyError, TypeError:
+        commit = _commit_from_direct_url(direct)
+    except OSError, json.JSONDecodeError:
         return None
     version = metadata.get("Version")
-    return (version, commit) if isinstance(version, str) and isinstance(commit, str) else None
+    return (version, commit) if isinstance(version, str) and commit is not None else None
 
 
 def _process_path(runtime: Path) -> Path:
