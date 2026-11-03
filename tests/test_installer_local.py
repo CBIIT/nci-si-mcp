@@ -359,8 +359,8 @@ class LocalInstallerTest(unittest.TestCase):
             )
 
         self.assertEqual((code, error), (1, ""))
-        self.assertEqual(json.loads(output)["blocked"][0]["step"], "install")
         self.assertFalse((self.data_dir / "venv").exists())
+        self.assertEqual(json.loads(output)["blocked"][0]["step"], "install")
         run.assert_not_called()
 
     def test_bootstrap_identity_requires_canonical_git_commit_and_a_hashed_lock(self):
