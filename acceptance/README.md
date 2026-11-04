@@ -269,11 +269,11 @@ approvals:
 
 The root has exactly `version` and `approvals`; each approval has exactly the six keys above.
 `version` is integer `1`, `before` is `passed`, and `after` is a non-passing report outcome or
-`absent` for a removed test. Duplicate YAML keys are invalid. A record for the current base that
-matches no regression fails as stale; a record for an older base is inert. The reference records
-review but does not authenticate it. Manual CI dispatch requires a full base commit that is an
-ancestor of the dispatched head; pushes to `main` retain the current equality check after the
-pull request has run the base comparison.
+`absent` for a removed test. Duplicate YAML keys, aliases and merge keys are invalid. A record for
+the current base that matches no regression fails as stale; a record for an older base is inert.
+The reference records review but does not authenticate it. Manual CI dispatch requires a full
+base commit that is an ancestor of the dispatched head; pushes to `main` retain the current
+equality check after the pull request has run the base comparison.
 
 The job's summary holds the run's duration (a warning at 7 minutes of the 10 allowed: shard the
 run before it grows into the limit) and the per-tool report; the artifact `acceptance-fixture`
