@@ -197,6 +197,45 @@ def test_exact_approvals_admit_failed_and_removed_base_passes(historical_files, 
     assert capsys.readouterr().out.endswith("Approved 2 regressions from passed outcomes.\n")
 
 
+@pytest.mark.parametrize("after", [outcome for outcome in RANK if outcome != "passed"])
+def test_each_nonpass_outcome_requires_its_exact_approval(historical_files, capsys, after):
+    arguments = historical_files(
+        {"t.py::a": "passed"},
+        {"t.py::a": after},
+        {"t.py::a": after},
+        [approval("t.py::a", after)],
+    )
+
+    assert main(arguments) == 0
+    assert capsys.readouterr().out.endswith("Approved 1 regressions from passed outcomes.\n")
+
+
+@pytest.mark.parametrize(
+    ("after", "approved_after"),
+    [
+        ("skipped", "failed"),
+        ("not_implemented", "skipped"),
+        ("not_live", "not_implemented"),
+        ("failed", "no_fixture"),
+        ("no_fixture", "failed"),
+    ],
+)
+def test_approval_for_another_nonpass_outcome_does_not_match(
+    historical_files, capsys, after, approved_after
+):
+    arguments = historical_files(
+        {"t.py::a": "passed"},
+        {"t.py::a": after},
+        {"t.py::a": after},
+        [approval("t.py::a", approved_after)],
+    )
+
+    assert main(arguments) == 1
+    output = capsys.readouterr().out
+    assert "1 regression from passed needs approval: t.py::a" in output
+    assert "Remove 1 stale approval for this base: t.py::a" in output
+
+
 def test_approval_never_excuses_current_expected_report_difference(historical_files, capsys):
     arguments = historical_files(
         {"t.py::a": "passed"},
@@ -223,6 +262,21 @@ def test_wrong_base_does_not_approve_and_older_records_are_inert(historical_file
     assert "t.py::a" in output
 
 
+def test_same_test_can_have_approvals_for_different_bases(historical_files, capsys):
+    arguments = historical_files(
+        {"t.py::a": "passed"},
+        {"t.py::a": "failed"},
+        {"t.py::a": "failed"},
+        [
+            approval("t.py::a", "failed"),
+            approval("t.py::a", "no_fixture", base_sha=OLD_SHA),
+        ],
+    )
+
+    assert main(arguments) == 0
+    assert capsys.readouterr().out.endswith("Approved 1 regressions from passed outcomes.\n")
+
+
 def test_current_base_approval_without_its_exact_regression_is_stale(historical_files, capsys):
     arguments = historical_files(
         {"t.py::a": "passed"},
@@ -246,6 +300,16 @@ def test_current_base_approval_without_its_exact_regression_is_stale(historical_
             "a base and test may have only one approval",
         ),
         (
+            {
+                "version": 1,
+                "approvals": [
+                    approval("t.py::a", "failed"),
+                    approval("t.py::a", "no_fixture"),
+                ],
+            },
+            "a base and test may have only one approval",
+        ),
+        (
             {"version": 1, "approvals": [approval("t.py::a", "unknown")]},
             "approval transition has an unknown outcome",
         ),
@@ -255,6 +319,21 @@ def test_current_base_approval_without_its_exact_regression_is_stale(historical_
         ),
         (
             {"version": 1, "approvals": [{**approval("t.py::a", "failed"), "reason": ""}]},
+            "test, reason and reference must be nonempty",
+        ),
+        (
+            {"version": 1, "approvals": [{**approval("t.py::a", "failed"), "test": " \t"}]},
+            "test, reason and reference must be nonempty",
+        ),
+        (
+            {"version": 1, "approvals": [{**approval("t.py::a", "failed"), "reason": " \n"}]},
+            "test, reason and reference must be nonempty",
+        ),
+        (
+            {
+                "version": 1,
+                "approvals": [{**approval("t.py::a", "failed"), "reference": "  "}],
+            },
             "test, reason and reference must be nonempty",
         ),
         ([], "root must be an object"),
@@ -273,6 +352,20 @@ def test_current_base_approval_without_its_exact_regression_is_stale(historical_
         ),
         (
             {"version": 1, "approvals": [approval("t.py::a", "failed", base_sha="bad")]},
+            "base_sha must be 40 lowercase hexadecimal characters",
+        ),
+        (
+            {
+                "version": 1,
+                "approvals": [approval("t.py::a", "failed", base_sha=BASE_SHA + "a")],
+            },
+            "base_sha must be 40 lowercase hexadecimal characters",
+        ),
+        (
+            {
+                "version": 1,
+                "approvals": [approval("t.py::a", "failed", base_sha=BASE_SHA + "\n")],
+            },
             "base_sha must be 40 lowercase hexadecimal characters",
         ),
         (
@@ -401,6 +494,14 @@ def test_only_base_passes_that_changed_need_approval(historical_files, capsys):
     assert capsys.readouterr().out.endswith("Approved 0 regressions from passed outcomes.\n")
 
 
+@pytest.mark.parametrize("base_outcome", [outcome for outcome in RANK if outcome != "passed"])
+def test_removing_a_nonpassing_base_test_needs_no_approval(historical_files, capsys, base_outcome):
+    arguments = historical_files({"t.py::gone": base_outcome}, {}, {}, [])
+
+    assert main(arguments) == 0
+    assert capsys.readouterr().out.endswith("Approved 0 regressions from passed outcomes.\n")
+
+
 @pytest.mark.parametrize(
     "flags",
     [
@@ -441,6 +542,45 @@ def test_malformed_historical_inputs_are_refused(historical_files, tmp_path):
         main(arguments)
     with pytest.raises(SystemExit, match="historical arguments apply only to check"):
         main(["update", *arguments[1:]])
+
+
+@pytest.mark.parametrize("base_sha", [BASE_SHA + "a", BASE_SHA + "\n"])
+def test_base_sha_requires_an_exact_full_string(historical_files, base_sha):
+    arguments = historical_files(
+        {"t.py::a": "passed"}, {"t.py::a": "passed"}, {"t.py::a": "passed"}, []
+    )
+    arguments[arguments.index("--base-sha") + 1] = base_sha
+
+    with pytest.raises(SystemExit, match="--base-sha must be 40 lowercase hexadecimal"):
+        main(arguments)
+
+
+def test_missing_approval_file_has_an_actionable_diagnostic(historical_files, tmp_path, capsys):
+    arguments = historical_files(
+        {"t.py::a": "passed"}, {"t.py::a": "passed"}, {"t.py::a": "passed"}, []
+    )
+    (tmp_path / "regressions.yaml").unlink()
+
+    with pytest.raises(SystemExit) as error:
+        main(arguments)
+    output = capsys.readouterr()
+    assert str(error.value).startswith("Invalid regression approvals:")
+    assert output.out == ""
+    assert "Traceback" not in output.err
+
+
+def test_malformed_approval_yaml_has_an_actionable_diagnostic(historical_files, tmp_path, capsys):
+    arguments = historical_files(
+        {"t.py::a": "passed"}, {"t.py::a": "passed"}, {"t.py::a": "passed"}, []
+    )
+    (tmp_path / "regressions.yaml").write_text("version: 1\napprovals: [\n", encoding="utf-8")
+
+    with pytest.raises(SystemExit) as error:
+        main(arguments)
+    output = capsys.readouterr()
+    assert str(error.value).startswith("Invalid regression approvals:")
+    assert output.out == ""
+    assert "Traceback" not in output.err
 
 
 def test_the_committed_outcomes_are_in_the_reports_vocabulary_and_in_test_order():

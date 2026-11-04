@@ -52,8 +52,9 @@ These are the owner's rules. They apply to every change.
   configuration file asserts the exact value of each property it protects (a job's condition,
   permissions, dependencies, environment and commands), never a substring or one member of a list.
 - **Coverage: the checked minimum is 95%, the aim is above 98%.** Local `pdm run test` checks the
-  core and scripts together. CI checks the core minimum and warns on the combined core-and-scripts
-  aim; the acceptance harness checks its own minimum and aim. The gaps exist so that nobody pads
+  core and scripts together. CI checks both the combined core-and-scripts and core-only minimums,
+  and warns on the combined core-and-scripts aim; the acceptance harness checks its own minimum
+  and aim. The gaps exist so that nobody pads
   coverage to pass a threshold. Take every real opportunity to cover untested behaviour; never
   write a test whose purpose is the number (no assertion-free tests, no tests that only check that
   a mock was called).

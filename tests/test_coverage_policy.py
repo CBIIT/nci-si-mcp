@@ -119,9 +119,19 @@ class CoveragePolicyTest(unittest.TestCase):
             "AGENTS.md": f"**Coverage: the checked minimum is {minimum}%, the aim is above 98%.**",
             "CONTRIBUTING.md": f"**Coverage: {minimum}% is the checked minimum, above 98% is the aim.**",
             "docs/evidence-contract.md": (
-                f"CI's enforced {minimum}% floor covers the two core packages"
+                f"CI's enforced {minimum}% floors cover both the combined core-and-scripts "
+                "measurement and the two core packages separately"
             ),
         }
         for name, statement in expected.items():
             with self.subTest(name=name):
-                self.assertIn(statement, (ROOT / name).read_text())
+                document = " ".join((ROOT / name).read_text().split())
+                self.assertIn(statement, document)
+
+        for name in ("AGENTS.md", "CONTRIBUTING.md"):
+            with self.subTest(name=name):
+                document = " ".join((ROOT / name).read_text().split())
+                self.assertIn(
+                    "CI checks both the combined core-and-scripts and core-only minimums",
+                    document,
+                )

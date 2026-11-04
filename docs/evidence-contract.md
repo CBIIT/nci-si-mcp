@@ -172,9 +172,10 @@ documentation never consumes operational result records. The wrapper, validators
 dashboard are implemented; deployed platform integration remains deferred.
 
 The standard `pdm run test` includes these evidence modules with the core server under its 95%
-floor and above-98% aim. CI's combined core-and-scripts measurement includes them in the
-above-98% aim warning; CI's enforced 95% floor covers the two core packages. These remain
-regression tests for observable validation and projection behavior, not a separate portal floor.
+floor and above-98% aim. CI's enforced 95% floors cover both the combined core-and-scripts
+measurement and the two core packages separately; the combined measurement also supplies the
+above-98% aim warning. These remain regression tests for observable validation and projection
+behavior, not a separate portal floor.
 
 The public documentation build excludes operational UAT/PROD records from pages, search indexes
 and downloads. Local result browsing has no login requirement. A shared UAT/PROD deployment must

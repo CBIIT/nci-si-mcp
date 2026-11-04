@@ -235,10 +235,11 @@ never counts as a kill or verified scratch restoration. Retained runs are never 
 CI runs the unit suite in four sorted round-robin partitions, each serial with a 10-minute
 budget. `--unit-shard K/N` selects a partition without affecting nested pytest child runs.
 Each partition retains JUnit evidence and one-day coverage data. The `unit-coverage` job
-requires all four files, combines them, enforces the 95% floor over `src/nci_si_mcp` and
-`src/ncit_index`, and reports the above-98% aim over those packages plus `scripts/`; individual
-partitions do not enforce a partial coverage floor. Local `pdm run test` checks the complete
-core-and-scripts suite. The mutation gate's local unit baseline also remains serial and unsharded.
+requires all four files, combines them, enforces 95% floors over the core-and-scripts measurement
+and separately over `src/nci_si_mcp` plus `src/ncit_index`, and reports the above-98% aim over
+the combined measurement; individual partitions do not enforce a partial coverage floor. Local
+`pdm run test` checks the complete core-and-scripts suite. The mutation gate's local unit baseline
+also remains serial and unsharded.
 
 CI exports separate JSON coverage reports for the combined unit suite and the combined harness
 self-tests. The harness runs in eight sorted round-robin shards, each with four workers;
@@ -267,9 +268,9 @@ during feature-branch cleanup; it is generated publication data.
    keeps anyone from writing tests for the number. Cover untested behaviour whenever you can.
    Never add a test that asserts nothing, or only that a mock was called. Local `pdm run test`
    checks the minimum over `src/nci_si_mcp`, `src/ncit_index` and every script in `scripts/`
-   except those `omit`ted in `pyproject.toml`. CI checks the minimum over the two core packages
-   and reports the aim over those packages plus scripts. Harness self-tests check their own 95%
-   minimum and above-98% aim. Omit nothing to raise a number.
+   except those `omit`ted in `pyproject.toml`. CI checks both the combined core-and-scripts and
+   core-only minimums, and reports the aim over the combined measurement. Harness self-tests
+   check their own 95% minimum and above-98% aim. Omit nothing to raise a number.
 4. **Keep it simple, and say each thing once.** Follow the structure in ARCHITECTURE.md: thin
    adapters over the service, one error path, closed value sets in `validation.py`. No
    abstraction for a single use.
