@@ -66,8 +66,8 @@ def outcomes_of(report: dict[str, Any]) -> dict[str, str]:
         raise ValueError("fixture report tests must be an object")
     outcomes = {}
     for nodeid, test in sorted(tests.items()):
-        if not isinstance(nodeid, str) or not isinstance(test, dict):
-            raise ValueError("fixture report tests must map test strings to result objects")
+        if not isinstance(test, dict):
+            raise ValueError("fixture report tests must map test IDs to result objects")
         outcome = test.get("outcome")
         if not isinstance(outcome, str) or not is_outcome(outcome):
             raise ValueError("fixture report test has an unknown outcome")

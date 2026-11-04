@@ -676,6 +676,28 @@ def test_unknown_report_outcome_has_an_actionable_diagnostic(files, tmp_path):
     assert_invalid_primary_input(run_expected(arguments))
 
 
+@pytest.mark.parametrize("operation", ["check", "update"])
+@pytest.mark.parametrize("outcome", [[], {}])
+def test_nonstring_report_outcome_has_the_exact_input_diagnostic(
+    files, tmp_path, operation, outcome
+):
+    arguments = files({"t.py::a": "passed"}, {"t.py::a": "passed"})
+    malformed = report({"t.py::a": "passed"}, "fixture")
+    malformed["tests"]["t.py::a"]["outcome"] = outcome
+    (tmp_path / "report.json").write_text(json.dumps(malformed), encoding="utf-8")
+
+    ran = run_expected([operation, *arguments[1:]])
+
+    assert ran.returncode != 0
+    assert ran.stderr == (
+        "Invalid expected outcomes or fixture report: fixture report test has an unknown outcome\n"
+    )
+    assert ran.stdout == ""
+    assert json.loads((tmp_path / "expected.json").read_text(encoding="utf-8")) == {
+        "t.py::a": "passed"
+    }
+
+
 def test_update_refuses_an_unknown_report_outcome(files, tmp_path):
     arguments = files({"t.py::a": "passed"}, {"t.py::a": "unknown"})
 

@@ -90,9 +90,6 @@ RANK: dict[Outcome, int] = {
 }
 FAILED: tuple[FailureOutcome, ...] = get_args(FailureOutcome.__value__)
 UNRUN: tuple[UnrunOutcome, ...] = get_args(UnrunOutcome.__value__)
-_OUTCOMES: tuple[Outcome, ...] = ("passed", *UNRUN, *FAILED)
-if set(RANK) != set(_OUTCOMES):
-    raise RuntimeError("RANK must contain every declared acceptance outcome exactly once")
 # Those of the unrun outcomes that could not run. A live run's fixture-only tests and gates do
 # not run there by design (not_live), so they keep no tool from passing.
 CANNOT_RUN = ("skipped", "not_implemented")
