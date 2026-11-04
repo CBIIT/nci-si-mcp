@@ -61,7 +61,18 @@ class Approval:
 def outcomes_of(report: dict[str, Any]) -> dict[str, str]:
     """The outcome of every test of a fixture-mode report, by test id."""
 
-    return {nodeid: test["outcome"] for nodeid, test in sorted(report["tests"].items())}
+    tests = report.get("tests")
+    if not isinstance(tests, dict):
+        raise ValueError("fixture report tests must be an object")
+    outcomes = {}
+    for nodeid, test in sorted(tests.items()):
+        if not isinstance(nodeid, str) or not isinstance(test, dict):
+            raise ValueError("fixture report tests must map test strings to result objects")
+        outcome = test.get("outcome")
+        if not isinstance(outcome, str) or not is_outcome(outcome):
+            raise ValueError("fixture report test has an unknown outcome")
+        outcomes[nodeid] = outcome
+    return outcomes
 
 
 def read_outcomes(path: Path, label: str) -> dict[str, str]:
@@ -338,7 +349,10 @@ def _run_check(options: argparse.Namespace, historical: tuple[Path, str, Path] |
 def _run_update(options: argparse.Namespace, historical: tuple[Path, str, Path] | None) -> int:
     if historical is not None:
         raise SystemExit("historical arguments apply only to check")
-    count = update(options.expected, options.report)
+    try:
+        count = update(options.expected, options.report)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise SystemExit(f"Invalid expected outcomes or fixture report: {error}") from error
     sys.stdout.write(f"Wrote the outcomes of {count} tests to {options.expected}.\n")
     return 0
 

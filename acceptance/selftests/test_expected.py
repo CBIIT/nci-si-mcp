@@ -646,6 +646,34 @@ def test_malformed_report_row_has_an_actionable_diagnostic(files, tmp_path):
     assert_invalid_primary_input(run_expected(arguments))
 
 
+def test_nonmapping_report_tests_have_an_actionable_diagnostic(files, tmp_path):
+    arguments = files({}, {})
+    malformed = report({}, "fixture")
+    malformed["tests"] = []
+    (tmp_path / "report.json").write_text(json.dumps(malformed), encoding="utf-8")
+
+    assert_invalid_primary_input(run_expected(arguments))
+
+
+def test_unknown_report_outcome_has_an_actionable_diagnostic(files, tmp_path):
+    arguments = files({"t.py::a": "passed"}, {"t.py::a": "passed"})
+    malformed = report({"t.py::a": "unknown"}, "fixture")
+    (tmp_path / "report.json").write_text(json.dumps(malformed), encoding="utf-8")
+
+    assert_invalid_primary_input(run_expected(arguments))
+
+
+def test_update_refuses_an_unknown_report_outcome(files, tmp_path):
+    arguments = files({"t.py::a": "passed"}, {"t.py::a": "unknown"})
+
+    ran = run_expected(["update", *arguments[1:]])
+
+    assert_invalid_primary_input(ran)
+    assert json.loads((tmp_path / "expected.json").read_text(encoding="utf-8")) == {
+        "t.py::a": "passed"
+    }
+
+
 def test_the_committed_outcomes_are_in_the_reports_vocabulary_and_in_test_order():
     committed = json.loads(EXPECTED.read_text(encoding="utf-8"))
 
