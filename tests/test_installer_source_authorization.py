@@ -114,6 +114,8 @@ class InstallerSourceAuthorizationTest(unittest.TestCase):
     def test_scheduled_release_rejects_invalid_missing_and_noncommit_tags(self):
         blob = self.git(self.origin, "hash-object", "-w", "--stdin", stdin="not a commit")
         self.git(self.origin, "update-ref", "refs/tags/v1.2.9", blob)
+        # A real non-version tag must be rejected, not merely an absent tag lookup.
+        self.git(self.origin, "tag", "main", self.approved)
         self.git(self.checkout, "fetch", "origin", "--tags")
         for tag, exit_code in (
             ("main", 1),
@@ -145,11 +147,12 @@ class InstallerSourceAuthorizationTest(unittest.TestCase):
         self.assertEqual(self.select(tag), (1, {}))
 
     def test_pr_and_manual_selection_do_not_require_a_released_main_commit(self):
+        selected, _ = self.unmerged()
         self.git(self.checkout, "remote", "set-url", "origin", str(self.root / "absent"))
-        for event, pr_ref in (("pull_request", self.approved), ("workflow_dispatch", "")):
+        for event, pr_ref in (("pull_request", selected), ("workflow_dispatch", "")):
             with self.subTest(event=event):
-                result = self.select(EVENT_NAME=event, PR_REF=pr_ref, DISPATCH_REF=self.approved)
-                self.assertEqual(result, (0, {"ref": self.approved, "tag": "v0.0.0"}))
+                result = self.select(EVENT_NAME=event, PR_REF=pr_ref, DISPATCH_REF=selected)
+                self.assertEqual(result, (0, {"ref": selected, "tag": "v0.0.0"}))
 
     def test_reusable_call_requires_its_exact_tag_and_commit_pair(self):
         matching = self.select(
