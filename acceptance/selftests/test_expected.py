@@ -2,6 +2,9 @@
 from a report on request."""
 
 import json
+import shutil
+import subprocess
+from pathlib import Path
 
 import pytest
 import yaml
@@ -17,6 +20,17 @@ from nci_si_acceptance.report import RANK
 
 BASE_SHA = "a" * 40
 OLD_SHA = "b" * 40
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def pdm_path():
+    path = shutil.which("pdm")
+    if path is None:
+        raise RuntimeError("pdm is required to test the acceptance-expected entry point")
+    return path
+
+
+PDM = pdm_path()
 
 
 def report(tests, mode):
@@ -59,6 +73,16 @@ def approval(test, after, *, base_sha=BASE_SHA, before="passed"):
         "reason": "Reviewed regression",
         "reference": "#403",
     }
+
+
+def run_expected(arguments):
+    return subprocess.run(  # noqa: S603 - fixed PDM entry point and test-owned paths
+        [PDM, "run", "acceptance-expected", *arguments],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
 
 
 @pytest.fixture
@@ -555,32 +579,32 @@ def test_base_sha_requires_an_exact_full_string(historical_files, base_sha):
         main(arguments)
 
 
-def test_missing_approval_file_has_an_actionable_diagnostic(historical_files, tmp_path, capsys):
+def test_missing_approval_file_has_an_actionable_diagnostic(historical_files, tmp_path):
     arguments = historical_files(
         {"t.py::a": "passed"}, {"t.py::a": "passed"}, {"t.py::a": "passed"}, []
     )
     (tmp_path / "regressions.yaml").unlink()
 
-    with pytest.raises(SystemExit) as error:
-        main(arguments)
-    output = capsys.readouterr()
-    assert str(error.value).startswith("Invalid regression approvals:")
-    assert output.out == ""
-    assert "Traceback" not in output.err
+    ran = run_expected(arguments)
+
+    assert ran.returncode != 0
+    assert ran.stderr.startswith("Invalid regression approvals:")
+    assert ran.stdout == ""
+    assert "Traceback" not in ran.stderr
 
 
-def test_malformed_approval_yaml_has_an_actionable_diagnostic(historical_files, tmp_path, capsys):
+def test_malformed_approval_yaml_has_an_actionable_diagnostic(historical_files, tmp_path):
     arguments = historical_files(
         {"t.py::a": "passed"}, {"t.py::a": "passed"}, {"t.py::a": "passed"}, []
     )
     (tmp_path / "regressions.yaml").write_text("version: 1\napprovals: [\n", encoding="utf-8")
 
-    with pytest.raises(SystemExit) as error:
-        main(arguments)
-    output = capsys.readouterr()
-    assert str(error.value).startswith("Invalid regression approvals:")
-    assert output.out == ""
-    assert "Traceback" not in output.err
+    ran = run_expected(arguments)
+
+    assert ran.returncode != 0
+    assert ran.stderr.startswith("Invalid regression approvals:")
+    assert ran.stdout == ""
+    assert "Traceback" not in ran.stderr
 
 
 def test_the_committed_outcomes_are_in_the_reports_vocabulary_and_in_test_order():
