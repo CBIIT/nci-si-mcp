@@ -2,6 +2,11 @@ name: CI
 
 on:
   workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Full ancestor commit for acceptance regression comparison
+        required: true
+        type: string
   push:
     branches: [main]
   pull_request:
@@ -259,17 +264,18 @@ jobs:
           shards=(unit-coverage/unit-coverage-*)
           test "${#shards[@]}" -eq 4
           pdm run coverage combine unit-coverage/unit-coverage-{0,1,2,3}/.coverage
-          pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py'
+          pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py' --fail-under=95
+          pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*' --fail-under=95
       # Falling short of the aim is reported, not enforced (CONTRIBUTING.md, standard 3).
       - name: Report coverage against the aim
         run: |
-          total="$(pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py' --format=total)"
-          echo "Coverage ${total}% (the aim is above 97%)" >> "$GITHUB_STEP_SUMMARY"
-          if awk -v total="$total" 'BEGIN { exit !(total <= 97) }'; then
-            echo "::warning title=Coverage is not above 97%::${total}%. Cover the untested behaviour; do not pad."
+          total="$(pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py' --fail-under=0 --format=total)"
+          echo "Coverage ${total}% (the aim is above 98%)" >> "$GITHUB_STEP_SUMMARY"
+          if awk -v total="$total" 'BEGIN { exit !(total <= 98) }'; then
+            echo "::warning title=Coverage is not above 98%::${total}%. Cover the untested behaviour; do not pad."
           fi
       - name: Export measured server coverage
-        run: pdm run coverage json --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py' -o tmp/coverage/server.json
+        run: pdm run coverage json --include='*/src/nci_si_mcp/*,*/src/ncit_index/*' -o tmp/coverage/server.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: badge-coverage-server
@@ -281,7 +287,9 @@ jobs:
   # upstream answers: a ratchet over individual tests. Every test must have the outcome in
   # acceptance/expected/fixture.json, so the job stays green while tools are NOT IMPLEMENTED or
   # FAIL and fails when a test changes its outcome; a change that moves outcomes on purpose
-  # updates that file in the same pull request. It depends on no other job.
+  # updates that file in the same pull request. A base pass that regresses or is removed also
+  # requires its exact base-bound transition in expected/regressions.yaml. It depends on no other
+  # job.
   acceptance:
     name: acceptance (fixture)
     runs-on: ubuntu-24.04
@@ -326,9 +334,35 @@ jobs:
           fi
       - name: Compare the outcomes with the expected ones
         if: ${{ always() && hashFiles('acceptance/fixture.json') != '' }}
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          DISPATCH_BASE_SHA: ${{ inputs.base_sha }}
         run: |
           status=0
-          pdm run acceptance-expected check acceptance/fixture.json > acceptance/difference.md || status=$?
+          arguments=()
+          if [ "$EVENT_NAME" = "pull_request" ] || [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$EVENT_NAME" = "pull_request" ]; then BASE_SHA="$PR_BASE_SHA"; else BASE_SHA="$DISPATCH_BASE_SHA"; fi
+            if ! [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "::error title=Invalid base SHA::Supply a full lowercase 40-character commit SHA."
+              exit 1
+            fi
+            if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+              echo "::error title=Unknown base commit::$BASE_SHA is not available in this checkout."
+              exit 1
+            fi
+            if [ "$(git cat-file -t "$BASE_SHA")" != "commit" ]; then
+              echo "::error title=Base is not a commit object::$BASE_SHA must identify a commit object directly."
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$BASE_SHA" HEAD; then
+              echo "::error title=Base is not an ancestor::$BASE_SHA must be an ancestor of HEAD."
+              exit 1
+            fi
+            git show "$BASE_SHA:acceptance/expected/fixture.json" > tmp/base-fixture.json
+            arguments=(--base tmp/base-fixture.json --base-sha "$BASE_SHA" --approvals acceptance/expected/regressions.yaml)
+          fi
+          pdm run acceptance-expected check acceptance/fixture.json "${arguments[@]}" > acceptance/difference.md || status=$?
           { echo "### Outcomes against acceptance/expected/fixture.json"; echo; cat acceptance/difference.md; } >> "$GITHUB_STEP_SUMMARY"
           cat acceptance/difference.md
           exit "$status"
@@ -459,9 +493,9 @@ jobs:
           pdm run coverage combine --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest selftest-coverage/*/.coverage
           pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --include='*/acceptance/src/*'
           total="$(pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --include='*/acceptance/src/*' --format=total)"
-          echo "Self-test coverage ${total}% (the aim is above 97%)" >> "$GITHUB_STEP_SUMMARY"
-          if awk -v total="$total" 'BEGIN { exit !(total <= 97) }'; then
-            echo "::warning title=Self-test coverage is not above 97%::${total}%. Cover the untested behaviour; do not pad."
+          echo "Self-test coverage ${total}% (the aim is above 98%)" >> "$GITHUB_STEP_SUMMARY"
+          if awk -v total="$total" 'BEGIN { exit !(total <= 98) }'; then
+            echo "::warning title=Self-test coverage is not above 98%::${total}%. Cover the untested behaviour; do not pad."
           fi
       - name: Export measured harness coverage
         run: pdm run coverage json --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --include='*/acceptance/src/*' -o tmp/coverage/harness.json

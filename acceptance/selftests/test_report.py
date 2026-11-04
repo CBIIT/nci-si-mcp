@@ -112,6 +112,12 @@ def test_recorded_skip_reason_roundtrips_and_historical_absence_stays_absent(rea
     assert NativeReport.from_dict(old).to_dict() == old
 
 
+@pytest.mark.parametrize("skip", ["passed", "failed", "no_fixture", "unknown"])
+def test_skip_marker_cannot_claim_a_test_verdict(skip):
+    with pytest.raises(ValueError, match="unknown skip outcome"):
+        collected((phase("call", "skipped", skip=skip), "get_form", False))
+
+
 @pytest.mark.parametrize("reason", [None, "unknown", 1, [], {}])
 def test_present_invalid_skip_reason_is_rejected(reason):
     row = {"tool": None, "gate": True, "outcome": LIVE, "unmatched": [], "not_live_reason": reason}
