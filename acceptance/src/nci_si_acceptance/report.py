@@ -76,7 +76,9 @@ ATTRIBUTION = "acceptance_attribution"
 WORKER_TOOLS = "acceptance_tools"
 # A later phase of a test (setup, call, teardown) overrides an earlier outcome only
 # when it ranks higher or equally; the later outcome wins a tie.
-type NonPassingOutcome = Literal["skipped", "not_implemented", "not_live", "failed", "no_fixture"]
+type UnrunOutcome = Literal["skipped", "not_implemented", "not_live"]
+type FailureOutcome = Literal["failed", "no_fixture"]
+type NonPassingOutcome = UnrunOutcome | FailureOutcome
 type Outcome = Literal["passed"] | NonPassingOutcome
 RANK: dict[Outcome, int] = {
     "passed": 0,
@@ -92,6 +94,12 @@ def is_outcome(value: str) -> TypeIs[Outcome]:
     """Whether a string is in the report's one closed outcome vocabulary."""
 
     return value in RANK
+
+
+def is_unrun_outcome(value: str) -> TypeIs[UnrunOutcome]:
+    """Whether a string is an outcome that says the test did not run to a verdict."""
+
+    return is_outcome(value) and RANK[value] == 1
 
 
 FAILED = ("failed", "no_fixture")
@@ -301,10 +309,10 @@ def own_unrun(counts: Counter[str]) -> int:
     return sum(counts[outcome] for outcome in CANNOT_RUN)
 
 
-def _skip_outcome(report: pytest.TestReport) -> Outcome:
+def _skip_outcome(report: pytest.TestReport) -> UnrunOutcome:
     # The site of the skip says why (suite.SKIP); its reason text is for people.
     outcome = str(dict(report.user_properties).get(SKIP, "skipped"))
-    if not is_outcome(outcome):
+    if not is_unrun_outcome(outcome):
         raise ValueError(f"unknown skip outcome: {outcome}")
     return outcome
 
