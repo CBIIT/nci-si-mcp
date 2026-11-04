@@ -351,6 +351,10 @@ jobs:
               echo "::error title=Unknown base commit::$BASE_SHA is not available in this checkout."
               exit 1
             fi
+            if [ "$(git cat-file -t "$BASE_SHA")" != "commit" ]; then
+              echo "::error title=Base is not a commit object::$BASE_SHA must identify a commit object directly."
+              exit 1
+            fi
             if ! git merge-base --is-ancestor "$BASE_SHA" HEAD; then
               echo "::error title=Base is not an ancestor::$BASE_SHA must be an ancestor of HEAD."
               exit 1

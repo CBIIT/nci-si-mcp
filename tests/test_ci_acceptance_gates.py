@@ -80,6 +80,11 @@ class AcceptanceGateWorkflowTest(unittest.TestCase):
                 'in this checkout."\n'
                 "    exit 1\n"
                 "  fi\n"
+                '  if [ "$(git cat-file -t "$BASE_SHA")" != "commit" ]; then\n'
+                '    echo "::error title=Base is not a commit object::$BASE_SHA must identify '
+                'a commit object directly."\n'
+                "    exit 1\n"
+                "  fi\n"
                 '  if ! git merge-base --is-ancestor "$BASE_SHA" HEAD; then\n'
                 '    echo "::error title=Base is not an ancestor::$BASE_SHA must be an '
                 'ancestor of HEAD."\n'
