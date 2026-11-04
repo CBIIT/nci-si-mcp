@@ -655,6 +655,19 @@ def test_nonmapping_report_tests_have_an_actionable_diagnostic(files, tmp_path):
     assert_invalid_primary_input(run_expected(arguments))
 
 
+@pytest.mark.parametrize("operation", ["check", "update"])
+def test_nonobject_report_result_has_an_actionable_diagnostic(files, tmp_path, operation):
+    arguments = files({"t.py::a": "passed"}, {"t.py::a": "passed"})
+    malformed = report({"t.py::a": "passed"}, "fixture")
+    malformed["tests"]["t.py::a"] = 7
+    (tmp_path / "report.json").write_text(json.dumps(malformed), encoding="utf-8")
+
+    assert_invalid_primary_input(run_expected([operation, *arguments[1:]]))
+    assert json.loads((tmp_path / "expected.json").read_text(encoding="utf-8")) == {
+        "t.py::a": "passed"
+    }
+
+
 def test_unknown_report_outcome_has_an_actionable_diagnostic(files, tmp_path):
     arguments = files({"t.py::a": "passed"}, {"t.py::a": "passed"})
     malformed = report({"t.py::a": "unknown"}, "fixture")
