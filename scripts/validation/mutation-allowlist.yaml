@@ -312,6 +312,15 @@
   original: "fc49e3ff31db631b11fdae65c1243eea50afe64ff7f1cddca82c434c55e40498"
   mutated: "4ea452198b8a9e3a518725a04c0294ecccdcfe575822eeaacf94532a6a03055f"
   reason: "Approval consumers read named fields and do not inspect record layout, serialize __dict__, add attributes or use weak references. Removing slots changes storage only."
+# Approved: #403 comment 6619698122; raw SURVIVED in run-2gw4joa9, retained output line 10.
+- file: "acceptance/src/nci_si_acceptance/expected.py"
+  qualname: "Approval"
+  operator: "string:key-mode-setting"
+  site: "/body/3/annotation/0/slice/0"
+  context: "88a3fc56719838213d387952b02aeeda65e72c4b94acdfb384064f6ac79821c1"
+  original: "1b50d220ab55168c8df7eb2f46f8b2e27610f7e686dbe96d31c91dda7e98c079"
+  mutated: "c32de60e8a048f7ce1806471608538d6762b3a0e231aa0862210b9b07e7b083e"
+  reason: "The mutation changes only the static Approval.before annotation. The production _approval parser rejects every before value except passed; no production caller constructs Approval directly or reflects its annotations. Equivalence is limited to runtime behavior; the mutation would change static type checking."
 # Approved: #403 comment 6589430951; original SURVIVED in run-hp79p0_j JSONL line 135.
 - file: "acceptance/src/nci_si_acceptance/expected.py"
   qualname: "_difference_line"
