@@ -284,13 +284,6 @@ def _check_with_current(expected_path: Path, report_path: Path) -> tuple[int, st
     return 1, f"{heading}\n{render(found)}\n{HINT}\n", expected
 
 
-def check(expected_path: Path, report_path: Path) -> tuple[int, str]:
-    """The exit status and the Markdown that compare a report with the expected outcomes."""
-
-    status, text, _ = _check_with_current(expected_path, report_path)
-    return status, text
-
-
 def update(expected_path: Path, report_path: Path) -> int:
     """Rewrite the expected outcomes from a report; the number of tests written."""
 
