@@ -20,7 +20,7 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeIs
+from typing import TYPE_CHECKING, Any, Literal, TypeIs, get_args
 
 import yaml
 from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
@@ -34,7 +34,8 @@ if TYPE_CHECKING:
 EXPECTED = FIXTURES.parent / "expected" / "fixture.json"
 ABSENT_FROM_REPORT = "(not in the report)"
 ABSENT_FROM_EXPECTED = "(not in the expected outcomes)"
-ABSENT = "absent"
+type AbsenceOutcome = Literal["absent"]
+ABSENT: AbsenceOutcome = get_args(AbsenceOutcome.__value__)[0]
 SHA = re.compile(r"[0-9a-f]{40}")
 HINT = (
     "If the change is on purpose, run `pdm run acceptance-expected update "
@@ -42,7 +43,7 @@ HINT = (
     "`acceptance/expected/fixture.json`."
 )
 
-type ApprovalAfter = NonPassingOutcome | Literal["absent"]
+type ApprovalAfter = NonPassingOutcome | AbsenceOutcome
 
 
 @dataclass(frozen=True, slots=True)
