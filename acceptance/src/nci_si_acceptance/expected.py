@@ -263,16 +263,21 @@ def render(rows: Iterable[tuple[str, str, str]]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def check(expected_path: Path, report_path: Path) -> tuple[int, str]:
-    """The exit status and the Markdown that compare a report with the expected outcomes."""
-
+def _check_with_current(expected_path: Path, report_path: Path) -> tuple[int, str, dict[str, str]]:
     expected = read_outcomes(expected_path, "expected outcomes")
     actual = outcomes_of(load_report(report_path, "fixture"))
     found = differences(expected, actual)
     if not found:
-        return 0, f"All {len(actual)} tests have the outcome expected.\n"
+        return 0, f"All {len(actual)} tests have the outcome expected.\n", expected
     heading = f"{len(found)} of {len(actual | expected)} tests differ from the expected outcomes.\n"
-    return 1, f"{heading}\n{render(found)}\n{HINT}\n"
+    return 1, f"{heading}\n{render(found)}\n{HINT}\n", expected
+
+
+def check(expected_path: Path, report_path: Path) -> tuple[int, str]:
+    """The exit status and the Markdown that compare a report with the expected outcomes."""
+
+    status, text, _ = _check_with_current(expected_path, report_path)
+    return status, text
 
 
 def update(expected_path: Path, report_path: Path) -> int:
@@ -308,29 +313,21 @@ def _valid_approvals(path: Path) -> list[Approval]:
         raise SystemExit(f"Invalid regression approvals: {error}") from error
 
 
-def _valid_check(expected_path: Path, report_path: Path) -> tuple[int, str]:
+def _valid_check(expected_path: Path, report_path: Path) -> tuple[int, str, dict[str, str]]:
     try:
-        return check(expected_path, report_path)
+        return _check_with_current(expected_path, report_path)
     except (OSError, ValueError, KeyError, TypeError) as error:
         raise SystemExit(f"Invalid expected outcomes or fixture report: {error}") from error
 
 
-def _valid_current(path: Path) -> dict[str, str]:
-    try:
-        return read_outcomes(path, "expected outcomes")
-    except (OSError, ValueError) as error:
-        raise SystemExit(f"Invalid expected outcomes or fixture report: {error}") from error
-
-
 def _run_check(options: argparse.Namespace, historical: tuple[Path, str, Path] | None) -> int:
-    status, text = _valid_check(options.expected, options.report)
+    status, text, current = _valid_check(options.expected, options.report)
     if status or historical is None:
         sys.stdout.write(text)
         return status
     base_path, base_sha, approvals_path = historical
     if SHA.fullmatch(base_sha) is None:
         raise SystemExit("--base-sha must be 40 lowercase hexadecimal characters")
-    current = _valid_current(options.expected)
     status, historical_text = historical_check(
         _valid_base(base_path), current, _valid_approvals(approvals_path), base_sha
     )
