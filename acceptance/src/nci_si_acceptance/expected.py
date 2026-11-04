@@ -307,15 +307,29 @@ def _valid_approvals(path: Path) -> list[Approval]:
         raise SystemExit(f"Invalid regression approvals: {error}") from error
 
 
+def _valid_check(expected_path: Path, report_path: Path) -> tuple[int, str]:
+    try:
+        return check(expected_path, report_path)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise SystemExit(f"Invalid expected outcomes or fixture report: {error}") from error
+
+
+def _valid_current(path: Path) -> dict[str, str]:
+    try:
+        return read_outcomes(path, "expected outcomes")
+    except (OSError, ValueError) as error:
+        raise SystemExit(f"Invalid expected outcomes or fixture report: {error}") from error
+
+
 def _run_check(options: argparse.Namespace, historical: tuple[Path, str, Path] | None) -> int:
-    status, text = check(options.expected, options.report)
+    status, text = _valid_check(options.expected, options.report)
     if status or historical is None:
         sys.stdout.write(text)
         return status
     base_path, base_sha, approvals_path = historical
     if SHA.fullmatch(base_sha) is None:
         raise SystemExit("--base-sha must be 40 lowercase hexadecimal characters")
-    current = read_outcomes(options.expected, "expected outcomes")
+    current = _valid_current(options.expected)
     status, historical_text = historical_check(
         _valid_base(base_path), current, _valid_approvals(approvals_path), base_sha
     )

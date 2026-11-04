@@ -42,7 +42,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass, fields
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeIs
+from typing import TYPE_CHECKING, Any, Literal, TypeIs, get_args
 
 import pytest
 import yaml
@@ -88,6 +88,14 @@ RANK: dict[Outcome, int] = {
     "failed": 2,
     "no_fixture": 3,
 }
+FAILED: tuple[FailureOutcome, ...] = get_args(FailureOutcome.__value__)
+UNRUN: tuple[UnrunOutcome, ...] = get_args(UnrunOutcome.__value__)
+_OUTCOMES: tuple[Outcome, ...] = ("passed", *UNRUN, *FAILED)
+if set(RANK) != set(_OUTCOMES):
+    raise RuntimeError("RANK must contain every declared acceptance outcome exactly once")
+# Those of the unrun outcomes that could not run. A live run's fixture-only tests and gates do
+# not run there by design (not_live), so they keep no tool from passing.
+CANNOT_RUN = ("skipped", "not_implemented")
 
 
 def is_outcome(value: str) -> TypeIs[Outcome]:
@@ -99,15 +107,7 @@ def is_outcome(value: str) -> TypeIs[Outcome]:
 def is_unrun_outcome(value: str) -> TypeIs[UnrunOutcome]:
     """Whether a string is an outcome that says the test did not run to a verdict."""
 
-    return is_outcome(value) and RANK[value] == 1
-
-
-FAILED = ("failed", "no_fixture")
-# The final outcomes of a test that did not run to a verdict.
-UNRUN = ("skipped", "not_implemented", "not_live")
-# Those of them that could not run. A live run's fixture-only tests and gates do not run there
-# by design (not_live), so they keep no tool from passing.
-CANNOT_RUN = ("skipped", "not_implemented")
+    return value in UNRUN
 
 
 class ReportFieldError(ValueError):

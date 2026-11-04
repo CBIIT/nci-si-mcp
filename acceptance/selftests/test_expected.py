@@ -85,6 +85,13 @@ def run_expected(arguments):
     )
 
 
+def assert_invalid_primary_input(ran):
+    assert ran.returncode != 0
+    assert ran.stderr.startswith("Invalid expected outcomes or fixture report:")
+    assert ran.stdout == ""
+    assert "Traceback" not in ran.stderr
+
+
 @pytest.fixture
 def historical_files(files, tmp_path):
     """Write current, base and approval inputs for the historical check mode."""
@@ -205,8 +212,9 @@ def test_malformed_expected_outcomes_are_refused(files, tmp_path, value, message
     arguments = files({}, {})
     (tmp_path / "expected.json").write_text(json.dumps(value), encoding="utf-8")
 
-    with pytest.raises(ValueError, match=message):
+    with pytest.raises(SystemExit) as error:
         main(arguments)
+    assert str(error.value) == f"Invalid expected outcomes or fixture report: {message}"
 
 
 def test_exact_approvals_admit_failed_and_removed_base_passes(historical_files, capsys):
@@ -605,6 +613,37 @@ def test_malformed_approval_yaml_has_an_actionable_diagnostic(historical_files, 
     assert ran.stderr.startswith("Invalid regression approvals:")
     assert ran.stdout == ""
     assert "Traceback" not in ran.stderr
+
+
+@pytest.mark.parametrize(
+    ("name", "contents"),
+    [
+        ("expected.json", None),
+        ("expected.json", "["),
+        ("report.json", None),
+        ("report.json", "["),
+    ],
+)
+def test_missing_or_malformed_primary_input_has_an_actionable_diagnostic(
+    files, tmp_path, name, contents
+):
+    arguments = files({"t.py::a": "passed"}, {"t.py::a": "passed"})
+    path = tmp_path / name
+    if contents is None:
+        path.unlink()
+    else:
+        path.write_text(contents, encoding="utf-8")
+
+    assert_invalid_primary_input(run_expected(arguments))
+
+
+def test_malformed_report_row_has_an_actionable_diagnostic(files, tmp_path):
+    arguments = files({"t.py::a": "passed"}, {"t.py::a": "passed"})
+    malformed = report({"t.py::a": "passed"}, "fixture")
+    del malformed["tests"]["t.py::a"]["outcome"]
+    (tmp_path / "report.json").write_text(json.dumps(malformed), encoding="utf-8")
+
+    assert_invalid_primary_input(run_expected(arguments))
 
 
 def test_the_committed_outcomes_are_in_the_reports_vocabulary_and_in_test_order():
