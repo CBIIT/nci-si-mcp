@@ -186,7 +186,18 @@ Release with `retry_image_tag` naming that release at the current main commit. S
 reports are attached before the public-access check; a successful run adds the digest and
 evidence references to the release notes. Use the digest to deploy, not a floating tag.
 
-After the image job succeeds, verify its digest-bound provenance with
+The renamed repository's next image destination is `ghcr.io/cbiit/nci-sip-mcp`.
+Before merge clearance for a change that triggers release, the owner must confirm that
+namespace, repository association, publication access and public visibility arrangement.
+Repository visibility alone does not establish package access. A missing or inaccessible
+package is not proof that publication will work. This transition authorizes no package
+creation, transfer, deletion, visibility change or Release dispatch.
+
+After an authorized image publication succeeds at the new destination, verify its
+digest-bound provenance with
+`gh attestation verify oci://ghcr.io/cbiit/nci-sip-mcp@sha256:<digest> --repo CBIIT/nci-sip-mcp --signer-workflow CBIIT/nci-sip-mcp/.github/workflows/release.yml`.
+Historical images keep their original digest, release assets and attestation identities;
+for an image published under the old identity, the corresponding verification is
 `gh attestation verify oci://ghcr.io/cbiit/nci-si-mcp@sha256:<digest> --repo CBIIT/nci-si-mcp --signer-workflow CBIIT/nci-si-mcp/.github/workflows/release.yml`.
 Verify the SBOM attestation with the same command plus
 `--predicate-type https://cyclonedx.org/bom`. Both attestations are stored in GitHub and GHCR;

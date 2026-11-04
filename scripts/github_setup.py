@@ -4,7 +4,7 @@ import json
 import subprocess
 import sys
 
-REPOSITORY = "CBIIT/nci-si-mcp"
+REPOSITORY = "CBIIT/nci-sip-mcp"
 PLACEHOLDER = "NCI_SI_CONFIGURE_ME"
 SECRETS = {
     "NCI_SI_CADSR_CREDENTIAL": "Issued caDSR user:password for protected live checks",

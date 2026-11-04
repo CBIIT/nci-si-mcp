@@ -206,7 +206,8 @@ jobs:
           if [ "$EVENT_NAME" = "pull_request" ]; then
             RELEASE_TAG=v0.0.0
             git tag "$RELEASE_TAG" HEAD
-            git config --global url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
+            git config --global --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
+            git config --global --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-sip-mcp
           else
             RELEASE_TAG="$(git describe --tags --abbrev=0)"
           fi

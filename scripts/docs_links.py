@@ -7,7 +7,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import quote, unquote, urlsplit
 
-REPOSITORY_URL = "https://github.com/CBIIT/nci-si-mcp"
+REPOSITORY_URL = "https://github.com/CBIIT/nci-sip-mcp"
 
 
 class _Identifiers(HTMLParser):
