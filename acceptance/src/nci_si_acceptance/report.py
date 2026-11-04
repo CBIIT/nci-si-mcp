@@ -42,7 +42,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass, fields
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypeIs
 
 import pytest
 import yaml
@@ -76,7 +76,9 @@ ATTRIBUTION = "acceptance_attribution"
 WORKER_TOOLS = "acceptance_tools"
 # A later phase of a test (setup, call, teardown) overrides an earlier outcome only
 # when it ranks higher or equally; the later outcome wins a tie.
-RANK = {
+type NonPassingOutcome = Literal["skipped", "not_implemented", "not_live", "failed", "no_fixture"]
+type Outcome = Literal["passed"] | NonPassingOutcome
+RANK: dict[Outcome, int] = {
     "passed": 0,
     "skipped": 1,
     "not_implemented": 1,
@@ -84,6 +86,14 @@ RANK = {
     "failed": 2,
     "no_fixture": 3,
 }
+
+
+def is_outcome(value: str) -> TypeIs[Outcome]:
+    """Whether a string is in the report's one closed outcome vocabulary."""
+
+    return value in RANK
+
+
 FAILED = ("failed", "no_fixture")
 # The final outcomes of a test that did not run to a verdict.
 UNRUN = ("skipped", "not_implemented", "not_live")
@@ -122,7 +132,7 @@ class Attribution:
 
 @dataclass(frozen=True)
 class TestResult(Attribution):
-    outcome: str
+    outcome: Outcome
     unmatched: list[str]
     not_live_reason: Literal["scenario", "not_live_capable"] | Absent = Absent.FIELD
 
@@ -291,12 +301,15 @@ def own_unrun(counts: Counter[str]) -> int:
     return sum(counts[outcome] for outcome in CANNOT_RUN)
 
 
-def _skip_outcome(report: pytest.TestReport) -> str:
+def _skip_outcome(report: pytest.TestReport) -> Outcome:
     # The site of the skip says why (suite.SKIP); its reason text is for people.
-    return str(dict(report.user_properties).get(SKIP, "skipped"))
+    outcome = str(dict(report.user_properties).get(SKIP, "skipped"))
+    if not is_outcome(outcome):
+        raise ValueError(f"unknown skip outcome: {outcome}")
+    return outcome
 
 
-def _phase_outcome(report: pytest.TestReport) -> str | None:
+def _phase_outcome(report: pytest.TestReport) -> Outcome | None:
     if report.failed:
         return "no_fixture" if dict(report.user_properties).get(UNMATCHED) else "failed"
     if report.skipped:

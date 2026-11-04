@@ -20,13 +20,13 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeIs, get_args
+from typing import TYPE_CHECKING, Any, Literal, TypeIs
 
 import yaml
 from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
 
 from nci_si_acceptance.record import FIXTURES
-from nci_si_acceptance.report import RANK, load_report
+from nci_si_acceptance.report import NonPassingOutcome, is_outcome, load_report
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -42,9 +42,7 @@ HINT = (
     "`acceptance/expected/fixture.json`."
 )
 
-type ApprovalAfter = Literal[
-    "skipped", "not_implemented", "not_live", "failed", "no_fixture", "absent"
-]
+type ApprovalAfter = NonPassingOutcome | Literal["absent"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,7 +76,7 @@ def _outcome(item: tuple[str, object], label: str) -> tuple[str, str]:
     test, outcome = item
     if not isinstance(outcome, str):
         raise ValueError(f"{label} must map test strings to outcome strings")
-    if outcome not in RANK:
+    if not is_outcome(outcome):
         raise ValueError(f"{label} has an unknown outcome: {outcome}")
     return test, outcome
 
@@ -120,7 +118,7 @@ def _approval_after(value: str) -> ApprovalAfter:
 
 
 def _is_approval_after(value: str) -> TypeIs[ApprovalAfter]:
-    return value in get_args(ApprovalAfter.__value__)
+    return value == ABSENT or (is_outcome(value) and value != "passed")
 
 
 def _approval_rows(value: object) -> list[object]:
