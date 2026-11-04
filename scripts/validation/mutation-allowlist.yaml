@@ -335,7 +335,7 @@
   qualname: "_run_update"
   operator: "return:False"
   site: "/body/3"
-  context: "9e251df93c31dfb8723dc91b450e0aeb41bd7123a7ed9ce171e88e3c148dc914"
+  context: "5ab9587aa8540be37d24ca857049cd5755052d2218cb686eca641ae2ae491032"
   original: "b2bbc444950f9b0b0b967dc529eb889a7cf0d4003be033124fc090f4e1571b48"
   mutated: "f5536f3bcd07de6521df23e5ac1e0ad1b443ac79485b5f4ed71373fd170b3670"
   reason: "main() returns the private update result unchanged. Direct callers compare main() with zero, while the CLI passes it to sys.exit; False and 0 behave identically in both paths and preserve file and stdout effects."
