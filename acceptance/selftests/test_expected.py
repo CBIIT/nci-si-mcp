@@ -601,6 +601,20 @@ def test_missing_approval_file_has_an_actionable_diagnostic(historical_files, tm
     assert "Traceback" not in ran.stderr
 
 
+def test_missing_base_file_has_an_actionable_diagnostic(historical_files, tmp_path):
+    arguments = historical_files(
+        {"t.py::a": "passed"}, {"t.py::a": "passed"}, {"t.py::a": "passed"}, []
+    )
+    (tmp_path / "base.json").unlink()
+
+    ran = run_expected(arguments)
+
+    assert ran.returncode != 0
+    assert ran.stderr.startswith("Invalid base expected outcomes:")
+    assert ran.stdout == ""
+    assert "Traceback" not in ran.stderr
+
+
 def test_malformed_approval_yaml_has_an_actionable_diagnostic(historical_files, tmp_path):
     arguments = historical_files(
         {"t.py::a": "passed"}, {"t.py::a": "passed"}, {"t.py::a": "passed"}, []
