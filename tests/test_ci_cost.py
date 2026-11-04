@@ -16,7 +16,21 @@ class CiCostTest(unittest.TestCase):
     def test_ci_starts_on_the_same_events(self):
         self.assertEqual(
             CI[True],
-            {"push": {"branches": ["main"]}, "pull_request": None, "workflow_dispatch": None},
+            {
+                "push": {"branches": ["main"]},
+                "pull_request": None,
+                "workflow_dispatch": {
+                    "inputs": {
+                        "base_sha": {
+                            "description": (
+                                "Full ancestor commit for acceptance regression comparison"
+                            ),
+                            "required": True,
+                            "type": "string",
+                        }
+                    }
+                },
+            },
         )
 
     def test_only_pull_request_runs_can_be_cancelled_by_newer_runs(self):

@@ -5,7 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from fakes import data_element
+from fakes import cde_response, cde_row, vm_response, vm_row
 from nci_si_mcp.caching import cache_call
 from nci_si_mcp.cadsr import CDE_MATCH, VM_MATCH
 from nci_si_mcp.config import Settings
@@ -13,36 +13,6 @@ from nci_si_mcp.context import Context
 from nci_si_mcp.registry import invoke
 from test_cadsr_client import reply
 from test_http_client import Reply, ServerTestCase
-
-
-def cde_row(identifier="123", **extra):
-    return data_element(identifier, score=0.75, ruleDescription="Exact", matchedText="Q") | extra
-
-
-def cde_response(name="Q", matches=None):
-    return {"matchResults": {"entity": name, "matches": [] if matches is None else matches}}
-
-
-def vm_row(**extra):
-    return {
-        "itemType": "Concept",
-        "itemId": "123",
-        "version": "2",
-        "matchedName": "Value",
-        "ruleDescription": "Exact",
-        "concept": "C123",
-        "evsSource": "NCI_CONCEPT_CODE",
-        "context": "TEST",
-        "workflowStatus": "RETIRED ARCHIVED",
-        "registrationStatus": None,
-        "crosswalkCode": "NA",
-        "crosswalkDescription": "NA",
-        **extra,
-    }
-
-
-def vm_response(name="Q", matches=None):
-    return {"matchResults": [{"name": name, "matches": [] if matches is None else matches}]}
 
 
 class MatchingTest(ServerTestCase):

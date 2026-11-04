@@ -234,8 +234,10 @@ class MutationCliContractsTest(unittest.TestCase):
                 "fixture": {"src/example.py": {2: [""]}},
             }
 
-            def launch(command, cwd, env, timeout, log):
-                return runner.program([*command, "-p", "broken_job"], cwd, env, timeout, log)
+            def launch(command, cwd, env, timeout, log, **options):
+                return runner.program(
+                    [*command, "-p", "broken_job"], cwd, env, timeout, log, **options
+                )
 
             with (
                 patch.object(gate, "program", side_effect=launch),
@@ -542,7 +544,7 @@ class MutationCliContractsTest(unittest.TestCase):
                     )
 
     def test_scheduler_crash_raises_instead_of_returning_partial_results(self):
-        def crash(command, cwd, env, timeout, log):
+        def crash(command, cwd, env, timeout, log, **options):
             log.write_text("worker exited 9")
             return 9
 
@@ -568,7 +570,7 @@ class MutationCliContractsTest(unittest.TestCase):
             completed = {**asdict(mutants[0]), "outcome": "KILLED", "restored": True}
             error = OSError("scheduler wait denied")
 
-            def interrupted(command, cwd, env, timeout, log):
+            def interrupted(command, cwd, env, timeout, log, **options):
                 (cwd / "result-0.json").write_text(json.dumps(completed))
                 raise error
 
@@ -609,7 +611,9 @@ class MutationCliContractsTest(unittest.TestCase):
                 with self.subTest(status=status, restored=restored):
                     row = {**asdict(mutants[0]), "outcome": "KILLED", "restored": restored}
 
-                    def completed(command, cwd, env, timeout, log, row=row, status=status):
+                    def completed(
+                        command, cwd, env, timeout, log, row=row, status=status, **options
+                    ):
                         (cwd / "result-0.json").write_text(json.dumps(row))
                         log.write_text("controller verdict")
                         return status
@@ -640,7 +644,7 @@ class MutationCliContractsTest(unittest.TestCase):
                 "import sys\nfrom pathlib import Path\nfrom unittest.mock import patch\n"
                 f"sys.path.insert(0, {str(package)!r})\n"
                 "from scripts.validation import mutation_gate as gate\n"
-                "def controller(command, cwd, env, timeout, log):\n"
+                "def controller(command, cwd, env, timeout, log, **options):\n"
                 "    gate.execute_job(Path(command[-1]), 1)\n"
                 "    gate.execute_job(Path(command[-1]), 2)\n"
                 "    log.write_text('controller lost job')\n    return 9\n"
@@ -1771,6 +1775,19 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                 },
             )
 
+    def test_collection_row_records_the_stop_marker_only_when_the_report_carries_it(self):
+        # The real-run tests reach this hook only in a child pytest, which loads a copy of the
+        # probe; the recording contract is therefore also checked in process.
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            with patch.object(probe, "DESTINATION", str(path)):
+                for marker in (True, False):
+                    report = SimpleNamespace(failed=True, nodeid="", mutation_stop_notice=marker)
+                    probe.pytest_collectreport(report)
+            rows = [json.loads(line) for line in path.read_text().splitlines()]
+        row = {"node": "", "phase": "collection", "outcome": "failed", "assertion": False}
+        self.assertEqual(rows, [row | {"stop_notice": True}, row])
+
     def test_system_exit_and_internal_errors_never_become_import_kills(self):
         target = Path("src/example.py").resolve()
         failure = {
@@ -1853,6 +1870,159 @@ class MutationEvidenceContractsTest(unittest.TestCase):
                                 "node": "tests/test_example.py",
                             },
                         )
+
+    def two_file_import_run(self, root, text, first_test):
+        """A clean baseline, then the flag-flipping mutant with owners selected in two files."""
+        project(root, text)
+        (root / "tests/test_example.py").write_text(first_test)
+        (root / "tests/test_other.py").write_text(
+            "import example\ndef test_other():\n    assert example.answer()\n"
+        )
+        baseline, _ = runner.run_domain(root, "unit", [], 20, baseline=True)
+        self.assertEqual(baseline["outcome"], "SURVIVED", baseline)
+        mutant = next(
+            m for m in source.candidates("src/example.py", text.encode())[0] if m.line == 1
+        )
+        owners = ["tests/test_example.py::test_value|run", "tests/test_other.py::test_other|run"]
+        mapping = {"unit": {"src/example.py": {1: owners}}}
+        path = root / "mutations.json"
+        path.write_text(json.dumps(gate.manifest_data(root, [mutant], mapping, 20)))
+        gate.execute_job(path, 0)
+        return json.loads((root / "result-0.json").read_text())
+
+    def test_import_failure_across_selected_files_is_an_import_kill_keeping_the_stop_notice(self):
+        # Given owners in two files, pytest -x stops collecting after the first file's import
+        # failure and reports that stop as a second collection failure of the session.
+        with tempfile.TemporaryDirectory() as directory:
+            row = self.two_file_import_run(
+                Path(directory).resolve(),
+                "flag = True\nif not flag:\n    raise TypeError('invalid table')\n"
+                "def answer():\n    return flag\n",
+                "import example\ndef test_value():\n    assert example.answer() is True\n",
+            )
+        self.assertEqual(
+            {name: row.get(name) for name in ("outcome", "kind", "phase", "node")},
+            {
+                "outcome": "KILLED",
+                "kind": "import",
+                "phase": "collection",
+                "node": "tests/test_example.py",
+            },
+            row,
+        )
+        (notice,) = row["stop_notices"]
+        self.assertEqual(
+            {name: notice[name] for name in ("node", "phase", "outcome", "stop_notice")},
+            {"node": "", "phase": "collection", "outcome": "failed", "stop_notice": True},
+        )
+        self.assertEqual(notice["exception"], "_pytest.main.Failed: stopping after 1 failures")
+
+    def test_an_unrelated_or_lookalike_first_collection_failure_stays_infra(self):
+        # Given a mutant that leaves its module importable, the first selected file's own
+        # collector fails (an unrelated error, a lookalike message, or pytest's stop type raised
+        # by the test itself). No row is a stop notice and the run stays infrastructure failure.
+        failures = {
+            "unrelated": "raise TypeError('unrelated collector')\n",
+            "lookalike text": "raise RuntimeError('stopping after 1 failures')\n",
+            "raised stop type": (
+                "raise __import__('pytest').Session.Failed('stopping after 1 failures')\n"
+            ),
+            "raised stop type carrying the inactive state": (
+                "raise __import__('pytest').Session.Failed(False)\n"
+            ),
+        }
+        for case, failure in failures.items():
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                row = self.two_file_import_run(
+                    Path(directory).resolve(),
+                    "flag = True\ndef answer():\n    return flag\n",
+                    "import example\nif not example.flag:\n    "
+                    + failure
+                    + "def test_value():\n    assert example.answer()\n",
+                )
+                self.assertEqual(row["outcome"], "INFRA", row)
+                self.assertEqual(row["failures"][0]["node"], "tests/test_example.py")
+                self.assertNotIn("stop_notice", row["failures"][0])
+                self.assertNotIn("stop_notices", row)
+
+    def test_only_a_marked_notice_after_one_qualifying_import_failure_is_set_aside(self):
+        target = Path("src/example.py").resolve()
+        failure = {
+            "node": "tests/test_example.py",
+            "phase": "collection",
+            "outcome": "failed",
+            "assertion": False,
+            "traceback_paths": [str(target)],
+            "exception": "TypeError: invalid table",
+        }
+        notice = {
+            "node": "",
+            "phase": "collection",
+            "outcome": "failed",
+            "assertion": False,
+            "traceback_paths": [],
+            "exception": "_pytest.main.Failed: stopping after 1 failures",
+            "stop_notice": True,
+        }
+        self.assertEqual(
+            runner.evidence_outcome(4, [failure, notice], target),
+            {
+                "outcome": "KILLED",
+                "kind": "import",
+                "phase": "collection",
+                "node": "tests/test_example.py",
+                "stop_notices": [notice],
+            },
+        )
+        unrelated = {**failure, "traceback_paths": [str(target.with_name("other.py"))]}
+        rejected = {
+            "notice only": [notice],
+            "marked primary reaching the file": [{**notice, "traceback_paths": [str(target)]}],
+            "marked primary with an invalid marker": [{**failure, "stop_notice": "true"}, notice],
+            "notice before the failure": [{**notice, "traceback_paths": [str(target)]}, failure],
+            "marker not exactly true": [failure, {**notice, "stop_notice": "true"}],
+            "marker on a call row": [failure, {**notice, "phase": "call"}],
+            "two independent failures": [failure, {**failure, "node": "tests/b.py"}, notice],
+            "SystemExit": [{**failure, "exception": "SystemExit: 1"}, notice],
+            "unrelated path": [unrelated, notice],
+        }
+        for case, rows in rejected.items():
+            with self.subTest(case=case):
+                self.assertEqual(
+                    runner.evidence_outcome(4, rows, target),
+                    {"outcome": "INFRA", "status": 4, "failures": rows},
+                )
+        self.assertEqual(runner.evidence_outcome(3, [failure, notice], target)["outcome"], "INFRA")
+
+    def test_only_pytests_own_stop_after_a_failure_is_a_stop_notice(self):
+        # pytest raises session.Failed(session.shouldfail) once -x has seen a failure; nothing
+        # else, including the same text, another type or a subclass, is that notice.
+        reason = "stopping after 1 failures"
+        stopped = SimpleNamespace(Failed=pytest.Session.Failed, shouldfail=reason)
+
+        def raised(error):
+            return SimpleNamespace(excinfo=SimpleNamespace(value=error))
+
+        self.assertTrue(probe.session_stop(stopped, raised(pytest.Session.Failed(reason))))
+        subclass = type("Subclass", (pytest.Session.Failed,), {})
+        cases = {
+            "no call": (stopped, None),
+            "no exception": (stopped, SimpleNamespace(excinfo=None)),
+            "same text, other type": (stopped, raised(RuntimeError(reason))),
+            "subclass": (stopped, raised(subclass(reason))),
+            "other reason": (stopped, raised(pytest.Session.Failed("stopping after 2 failures"))),
+            "before any failure": (
+                SimpleNamespace(Failed=pytest.Session.Failed, shouldfail=False),
+                raised(pytest.Session.Failed(reason)),
+            ),
+            "stop type carrying the inactive state": (
+                SimpleNamespace(Failed=pytest.Session.Failed, shouldfail=False),
+                raised(pytest.Session.Failed(False)),
+            ),
+        }
+        for case, (session, call) in cases.items():
+            with self.subTest(case=case):
+                self.assertFalse(probe.session_stop(session, call))
 
     def test_probe_configuration_consumes_launch_sink_and_passes_only_explicit_worker_sink(self):
         with (

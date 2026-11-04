@@ -260,3 +260,88 @@ def data_element(public_id="123", **extra):
         "dateModified": "2026-08-25",
         **extra,
     }
+
+
+def primary_element(value="To a large extent", codes=None, **fields):
+    """Contract-crafted metadata, not a recording of CDE 2178439."""
+    return data_element(
+        fields.pop("publicId", "2178439"),
+        ValueDomain={
+            "PermissibleValues": [
+                {
+                    "publicId": "123",
+                    "value": value,
+                    "ValueMeaning": {
+                        "publicId": "456",
+                        "version": "1",
+                        "longName": "Crafted value meaning",
+                        "Concepts": codes
+                        if codes is not None
+                        else [
+                            {
+                                "conceptCode": "C49508",
+                                "evsSource": "NCI_CONCEPT_CODE",
+                                "primaryIndicator": "No",
+                                "displayOrder": "1",
+                            },
+                            {
+                                "conceptCode": "C25332",
+                                "evsSource": "NCI_CONCEPT_CODE",
+                                "primaryIndicator": "Yes",
+                                "displayOrder": "0",
+                            },
+                            {
+                                "conceptCode": "C65107",
+                                "evsSource": "NCI_CONCEPT_CODE",
+                                "primaryIndicator": "No",
+                                "displayOrder": "2",
+                            },
+                        ],
+                    },
+                }
+            ]
+        },
+        **fields,
+    )
+
+
+def form(**extra):
+    raw = data_element()
+    return (
+        {k: v for k, v in raw.items() if k != "publicId"}
+        | {
+            "publicID": "123",
+            "modules": [{"name": "Module", "questions": [{"text": "Q"}]}],
+        }
+        | extra
+    )
+
+
+def cde_row(identifier="123", **extra):
+    return data_element(identifier, score=0.75, ruleDescription="Exact", matchedText="Q") | extra
+
+
+def cde_response(name="Q", matches=None):
+    return {"matchResults": {"entity": name, "matches": [] if matches is None else matches}}
+
+
+def vm_row(**extra):
+    return {
+        "itemType": "Concept",
+        "itemId": "123",
+        "version": "2",
+        "matchedName": "Value",
+        "ruleDescription": "Exact",
+        "concept": "C123",
+        "evsSource": "NCI_CONCEPT_CODE",
+        "context": "TEST",
+        "workflowStatus": "RETIRED ARCHIVED",
+        "registrationStatus": None,
+        "crosswalkCode": "NA",
+        "crosswalkDescription": "NA",
+        **extra,
+    }
+
+
+def vm_response(name="Q", matches=None):
+    return {"matchResults": [{"name": name, "matches": [] if matches is None else matches}]}

@@ -35,12 +35,17 @@ def _numpy() -> Any:
     return numpy
 
 
+# The owner-approved 64-token prefix bounds SQLite OR-expression work, not vector input.
+# Review real query workloads and SQLite expression cost before increasing this ceiling.
+MAX_LEXICAL_TOKENS = 64
+
+
 def _bm25(conn: sqlite3.Connection, build: str, query: str, mode: str) -> tuple[float, float]:
     # SQLite's temporary storage is file-backed; matching field scores are never
     # collected as a full Python ranking or retained between calls.
     conn.execute("CREATE TEMP TABLE query_bm25 (id INTEGER PRIMARY KEY, score REAL NOT NULL)")
     # unicode61 folds case and diacritics; quote every token so FTS syntax is inert.
-    tokens = re.findall(r"\w+", query.lower())
+    tokens = re.findall(r"\w+", query.lower())[:MAX_LEXICAL_TOKENS]
     if mode != "vector" and tokens:
         table = fts_table(build)
         conn.execute(

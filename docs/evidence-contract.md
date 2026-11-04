@@ -171,9 +171,11 @@ the local dashboard. UAT/PROD administration additionally needs the platform bou
 documentation never consumes operational result records. The wrapper, validators and local
 dashboard are implemented; deployed platform integration remains deferred.
 
-The standard `pdm run test` and CI coverage measurement include these evidence modules alongside
-the core server. The existing 95% floor and above-97% aim apply; these are regression tests for
-observable validation and projection behavior, not a separate relaxed portal threshold.
+The standard `pdm run test` includes these evidence modules with the core server under its 95%
+floor and above-98% aim. CI's enforced 95% floors cover both the combined core-and-scripts
+measurement and the two core packages separately; the combined measurement also supplies the
+above-98% aim warning. These remain regression tests for observable validation and projection
+behavior, not a separate portal floor.
 
 The public documentation build excludes operational UAT/PROD records from pages, search indexes
 and downloads. Local result browsing has no login requirement. A shared UAT/PROD deployment must

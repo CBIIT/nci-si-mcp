@@ -5,8 +5,8 @@ import os
 import sys
 from pathlib import Path
 
-MINIMUM = 90
-AIM = 95
+MINIMUM = 95
+AIM = 98
 
 
 def coverage_color(percentage: float) -> str:

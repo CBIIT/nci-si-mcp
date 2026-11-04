@@ -8,7 +8,7 @@ import json
 import subprocess
 from pathlib import Path, PurePosixPath
 
-from scripts.validation.mutation_run import context_tests, coverage_args, coverage_map
+from scripts.validation.mutation_run import DOMAINS, context_tests, coverage_args, coverage_map
 
 SHARDS = {"unit": 4, "selftest": 8, "fixture": 1}
 VERSION = 1
@@ -168,7 +168,9 @@ def perform(args) -> None:
     root = args.root.resolve()
     if args.operation == "configure":
         args.output.mkdir(parents=True, exist_ok=True)
-        coverage_args(root, args.output.resolve(), True, {})
+        # The producer's own data file: unit at the root, the harness domains in acceptance/.
+        destination = root / DOMAINS[args.domain][0] / ".coverage"
+        coverage_args(root, args.output.resolve(), True, {}, data_file=destination)
     elif args.operation == "check":
         load(root, args.output)
     else:

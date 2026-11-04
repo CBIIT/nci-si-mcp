@@ -192,7 +192,7 @@ class InstallerCliTest(unittest.TestCase):
                     {
                         "step": "check_prerequisites",
                         "missing": [
-                            "Install Git so pip can install the released source tag.",
+                            "Install Git so pip can install the recorded source commit.",
                             "Restore network access to NCI_SI_EVS_BASE_URL.",
                             "Restore network access to NCI_SI_CADSR_BASE_URL.",
                         ],
@@ -200,8 +200,8 @@ class InstallerCliTest(unittest.TestCase):
                 ],
                 "pending": ["install", "configure", "verify"],
                 "nextAction": (
-                    "Resolve the failed prerequisites: Install Git so pip can install the released "
-                    "source tag.; Restore "
+                    "Resolve the failed prerequisites: Install Git so pip can install the recorded "
+                    "source commit.; Restore "
                     "network access to NCI_SI_EVS_BASE_URL.; Restore network access to "
                     "NCI_SI_CADSR_BASE_URL."
                 ),

@@ -1,4 +1,8 @@
+import json
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -23,14 +27,32 @@ permissions: {contents: read}
 strategy:
   fail-fast: false
   matrix: {os: [macos-latest, ubuntu-24.04]}
+env:
+  NCI_SI_CADSR_BASE_URL: http://127.0.0.1:8767/cadsr
+  NCI_SI_CADSR_FTP_URL: http://127.0.0.1:8767/cadsr-ftp
+  NCI_SI_SSIS_SPARQL_URL: http://127.0.0.1:8767/ssis-sparql
+  no_proxy: 127.0.0.1,localhost,::1,cadsrapi.cancer.gov,cadsrapi-stage.cancer.gov,cadsr.nci.nih.gov,shared.semantics.cancer.gov
 steps:
+  - name: Resolve prohibited caDSR and Shared SI hosts to loopback (CI only)
+    run: |
+      set -euo pipefail
+      hosts="cadsrapi.cancer.gov cadsrapi-stage.cancer.gov cadsr.nci.nih.gov shared.semantics.cancer.gov"
+      printf '127.0.0.1 %s\n::1 %s\n' "$hosts" "$hosts" | sudo tee -a /etc/hosts
+      if [ "$RUNNER_OS" = "macOS" ]; then sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder; fi
+      HOSTS="$hosts" python3 - <<'PY'
+      import os, socket
+      for host in os.environ["HOSTS"].split():
+          addresses = {info[4][0] for info in socket.getaddrinfo(host, 443)}
+          assert addresses and addresses <= {"127.0.0.1", "::1"}, (host, addresses)
+          print(host, sorted(addresses))
+      PY
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
     with: {ref: '${{ needs.prepare.outputs.ref }}', fetch-depth: 0, persist-credentials: false}
   - name: Install Python
     id: python
     uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
     with: {python-version: '3.14'}
-  - name: Prepare pull request source (CI only)
+  - name: Prepare unreleased source (CI only)
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     env:
       INSTALL_REF: ${{ needs.prepare.outputs.ref }}
@@ -46,7 +68,7 @@ steps:
       PYTHON: ${{ steps.python.outputs.python-path }}
     run: |
       "$PYTHON" -m venv "$INSTALLER_VENV"
-      "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+      "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
   - name: Install the acceptance suite (CI only)
     env: {PYTHON: '${{ steps.python.outputs.python-path }}'}
     run: |
@@ -59,8 +81,17 @@ steps:
       INSTALLER_VENV: ${{ runner.temp }}/installer-venv
       STDIO_ROOT: ${{ runner.temp }}/stdio-install
       HTTP_ROOT: ${{ runner.temp }}/http-install
+      NEGATIVE_INSTALLER_VENV: ${{ runner.temp }}/negative-installer-venv
+      MOVED_TAG_ROOT: ${{ runner.temp }}/moved-tag-install
+      TAMPERED_HASH_ROOT: ${{ runner.temp }}/tampered-hash-install
+      PYTHON: ${{ steps.python.outputs.python-path }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
     run: |
       set -euo pipefail
+      recorder=""
+      original_tag=""
+      expected_commit=""
+      lock=""
       cleanup() {
         status=$?
         cleanup_status=0
@@ -72,10 +103,29 @@ steps:
           "$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT" || cleanup_status=$?
           "$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT" || cleanup_status=$?
         fi
+        if [ -n "$original_tag" ]; then
+          git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag" || cleanup_status=$?
+        fi
+        if [ -n "$lock" ] && [ -f "$RUNNER_TEMP/server-requirements.txt" ]; then
+          cp "$RUNNER_TEMP/server-requirements.txt" "$lock" || cleanup_status=$?
+        fi
+        if [ -n "$recorder" ]; then
+          kill "$recorder" 2>/dev/null || true
+          wait "$recorder" || true
+        fi
         if [ "$status" -eq 0 ]; then status=$cleanup_status; fi
         exit "$status"
       }
       trap cleanup EXIT
+      mkdir -p "$RUNNER_TEMP/upstream-recorder"
+      python3 -m http.server 8767 --bind 127.0.0.1 --directory "$RUNNER_TEMP/upstream-recorder" < /dev/null > "$RUNNER_TEMP/upstream-recorder.out" 2> "$RUNNER_TEMP/upstream-requests.log" &
+      recorder=$!
+      for attempt in $(seq 1 100); do
+        kill -0 "$recorder"
+        if (: <> /dev/tcp/127.0.0.1/8767) 2>/dev/null; then break; fi
+        if [ "$attempt" -eq 100 ]; then echo "::error::The loopback recorder did not listen."; exit 1; fi
+        sleep 0.1
+      done
       export STDIO_REQUIRED_TESTS="test_a_resolved_release_is_never_cached test_an_index_mode_without_an_index_is_unavailable"
       export HTTP_REQUIRED_TESTS="test_a_resolved_release_is_never_cached test_a_discovered_release_identifies_the_concept_and_its_provenance"
       mkdir -p "$STDIO_ROOT"
@@ -95,6 +145,32 @@ steps:
       "$INSTALLER_VENV/bin/nci-si-install" check --target local
       "$INSTALLER_VENV/bin/nci-si-install" run --target local --transport http --data-dir "$HTTP_ROOT" --non-interactive
       "$INSTALLER_VENV/bin/nci-si-install" status --target local --transport http --data-dir "$HTTP_ROOT"
+      kill "$recorder"
+      wait "$recorder" || [ $? -eq 143 ]
+      recorder=""
+      python3 - "$RUNNER_TEMP/upstream-requests.log" <<'PY'
+      import re, sys
+      request = re.compile(r'"(?P<method>[A-Z]+) (?P<path>\S+) HTTP/1\.[01]" (?P<status>\d{3}) ')
+      notice = re.compile(r"code 404, message File not found$")
+      allowed = re.compile(r"/(cadsr|cadsr-ftp|ssis-sparql)(/\S*)?")
+      records = []
+      for line in open(sys.argv[1], encoding="utf-8").read().splitlines():
+          found = request.search(line)
+          if found:
+              records.append((found["method"], found["path"], found["status"]))
+          else:
+              assert notice.search(line), line
+      assert all(method in ("GET", "HEAD") and allowed.fullmatch(path) and status == "404" for method, path, status in records), records
+      assert ("GET", "/cadsr", "404") in records, records
+      print("loopback requests:", records)
+      PY
+      if "$INSTALLER_VENV/bin/nci-si-install" check --target local > "$RUNNER_TEMP/unreachable.json"; then unreachable=0; else unreachable=$?; fi
+      [ "$unreachable" -eq 1 ] || { echo "::error::check against the stopped recorder exited $unreachable, not 1."; exit 1; }
+      python3 - "$RUNNER_TEMP/unreachable.json" <<'PY'
+      import json, sys
+      record = json.load(open(sys.argv[1], encoding="utf-8"))
+      assert record == {"target": "local", "components": ["server"], "status": "failed", "results": [{"name": "supported_os", "status": "passed"}, {"name": "git", "status": "passed"}, {"name": "python", "status": "passed"}, {"name": "evs_reachable", "status": "passed"}, {"name": "cadsr_reachable", "status": "failed", "fix": "Restore network access to NCI_SI_CADSR_BASE_URL."}]}, record
+      PY
       export NCI_SI_UPSTREAM_MODE=fixture
       export NCI_SI_EVS_BASE_URL=http://127.0.0.1:8766/evs
       export NCI_SI_EVS_FHIR_BASE_URL=http://127.0.0.1:8766/evs-fhir
@@ -121,6 +197,63 @@ steps:
           assert set(actual.values()) == {"passed"}, (name, actual)
           assert actual == {key: expected[key] for key in actual}, (name, actual)
       PY
+      export NCI_SI_UPSTREAM_MODE=fixture
+      export NCI_SI_EVS_BASE_URL=http://127.0.0.1:8767/evs
+      export NCI_SI_EVS_FHIR_BASE_URL=http://127.0.0.1:8767/evs-fhir
+      export NCI_SI_CADSR_BASE_URL=http://127.0.0.1:8767/cadsr
+      export NCI_SI_CADSR_FTP_URL=http://127.0.0.1:8767/cadsr-ftp
+      export NCI_SI_SSIS_SPARQL_URL=http://127.0.0.1:8767/ssis-sparql
+      python3 -m http.server 8767 --bind 127.0.0.1 --directory "$RUNNER_TEMP/upstream-recorder" < /dev/null > "$RUNNER_TEMP/negative-upstream.out" 2> "$RUNNER_TEMP/negative-upstream.log" &
+      recorder=$!
+      for attempt in $(seq 1 100); do
+        kill -0 "$recorder"
+        if (: <> /dev/tcp/127.0.0.1/8767) 2>/dev/null; then break; fi
+        if [ "$attempt" -eq 100 ]; then echo "::error::The negative-scenario recorder did not listen."; exit 1; fi
+        sleep 0.1
+      done
+      "$PYTHON" -m venv "$NEGATIVE_INSTALLER_VENV"
+      "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+      git config --file "$RUNNER_TEMP/moved-tag.gitconfig" url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
+      original_tag="$(git -C "$GITHUB_WORKSPACE" rev-parse "$RELEASE_TAG^{commit}")"
+      expected_commit="$original_tag"
+      git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag^"
+      if GIT_CONFIG_GLOBAL="$RUNNER_TEMP/moved-tag.gitconfig" "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$MOVED_TAG_ROOT" --non-interactive > "$RUNNER_TEMP/moved-tag.json" 2> "$RUNNER_TEMP/moved-tag.err"; then moved_status=0; else moved_status=$?; fi
+      git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag"
+      original_tag=""
+      [ "$moved_status" -eq 1 ] || { echo "::error::moved-tag run exited $moved_status, not 1."; exit 1; }
+      python3 - "$RUNNER_TEMP/moved-tag.json" "$RUNNER_TEMP/moved-tag.err" "$expected_commit" <<'PY'
+      import json, re, sys
+      record = json.load(open(sys.argv[1], encoding="utf-8"))
+      error = open(sys.argv[2], encoding="utf-8").read()
+      assert record["completed"] == ["check_prerequisites"], record
+      assert record["failed"] == ["install"], record
+      assert re.fullmatch(r"[0-9a-f]{40}", sys.argv[3]), sys.argv[3]
+      assert "release tag may have moved" in error and sys.argv[3] in error, error
+      PY
+      lock="$NEGATIVE_INSTALLER_VENV/lib/python3.14/site-packages/nci_si_mcp/server-requirements.txt"
+      cp "$lock" "$RUNNER_TEMP/server-requirements.txt"
+      python3 - "$lock" <<'PY'
+      import re, sys
+      path = sys.argv[1]
+      text = open(path, encoding="utf-8").read()
+      text = re.sub(r"--hash=sha256:[0-9a-f]{64}", "--hash=sha256:" + "0" * 64, text)
+      open(path, "w", encoding="utf-8").write(text)
+      PY
+      if "$NEGATIVE_INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$TAMPERED_HASH_ROOT" --non-interactive > "$RUNNER_TEMP/tampered-hash.json"; then hash_status=0; else hash_status=$?; fi
+      cp "$RUNNER_TEMP/server-requirements.txt" "$lock"
+      lock=""
+      [ "$hash_status" -eq 1 ] || { echo "::error::tampered-hash run exited $hash_status, not 1."; exit 1; }
+      python3 - "$RUNNER_TEMP/tampered-hash.json" "$TAMPERED_HASH_ROOT/venv/bin/python" <<'PY'
+      import json, subprocess, sys
+      record = json.load(open(sys.argv[1], encoding="utf-8"))
+      assert record["completed"] == ["check_prerequisites"], record
+      assert record["failed"] == ["install"], record
+      packages = subprocess.check_output([sys.argv[2], "-m", "pip", "list", "--format=json"], text=True)
+      assert [item["name"].lower() for item in json.loads(packages)] == ["pip"], packages
+      PY
+      kill "$recorder"
+      wait "$recorder" || [ $? -eq 143 ]
+      recorder=""
 """)
 
 EXPECTED_TRIGGERS = yaml.safe_load(r"""
@@ -217,7 +350,7 @@ def documented_install_lines():
         line
         for line in (
             '"$PYTHON" -m venv "$INSTALLER_VENV"',
-            '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ '
+            '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ '
             'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"',
         )
         if line in commands
@@ -232,6 +365,18 @@ def workflow_operator_lines(run):
         if line.startswith('"$INSTALLER_VENV/bin/nci-si-install"') or line == STDIO_CAPTURE
     ]
     return [line for line in selected if "|| cleanup_status=$?" not in line]
+
+
+def moved_tag_verdict():
+    run = next(
+        step["run"]
+        for step in named_steps()
+        if step["name"] == "Verify stdio and HTTP installer lifecycles"
+    )
+    command = 'python3 - "$RUNNER_TEMP/moved-tag.json"'
+    command_start = run.index(command)
+    start = run.index("<<'PY'\n", command_start) + len("<<'PY'\n")
+    return run[start:].split("\nPY\n", 1)[0]
 
 
 class ReleaseInstallerWorkflowTest(unittest.TestCase):
@@ -292,3 +437,22 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
             workflow_operator_lines(lifecycle["run"]),
             expected,
         )
+
+    def test_moved_tag_verdict_requires_the_full_expected_commit_in_the_diagnostic(self):
+        commit = "a" * 40
+        record = {"completed": ["check_prerequisites"], "failed": ["install"]}
+        with tempfile.TemporaryDirectory() as directory:
+            status = Path(directory) / "status.json"
+            error = Path(directory) / "error.txt"
+            status.write_text(json.dumps(record), encoding="utf-8")
+            command = [sys.executable, "-c", moved_tag_verdict(), str(status), str(error), commit]
+            error.write_text(f"{commit}; the release tag may have moved", encoding="utf-8")
+            accepted = subprocess.run(  # noqa: S603 - test interpreter and temporary paths
+                command, check=False
+            ).returncode
+            error.write_text("the release tag may have moved", encoding="utf-8")
+            rejected = subprocess.run(  # noqa: S603 - test interpreter and temporary paths
+                command, check=False
+            ).returncode
+
+        self.assertEqual((accepted, rejected), (0, 1))

@@ -52,6 +52,58 @@ def suite_line(workflow, job, name):
 
 
 class AcceptanceGateWorkflowTest(unittest.TestCase):
+    def test_fixture_ratchet_uses_the_event_or_ancestry_checked_dispatch_base(self):
+        compare = step("ci.yml", "acceptance", "Compare the outcomes with the expected ones")
+        self.assertEqual(
+            compare,
+            {
+                "name": "Compare the outcomes with the expected ones",
+                "if": "${{ always() && hashFiles('acceptance/fixture.json') != '' }}",
+                "env": {
+                    "EVENT_NAME": "${{ github.event_name }}",
+                    "PR_BASE_SHA": "${{ github.event.pull_request.base.sha }}",
+                    "DISPATCH_BASE_SHA": "${{ inputs.base_sha }}",
+                },
+                "run": "status=0\n"
+                "arguments=()\n"
+                'if [ "$EVENT_NAME" = "pull_request" ] || '
+                '[ "$EVENT_NAME" = "workflow_dispatch" ]; then\n'
+                '  if [ "$EVENT_NAME" = "pull_request" ]; then '
+                'BASE_SHA="$PR_BASE_SHA"; else BASE_SHA="$DISPATCH_BASE_SHA"; fi\n'
+                '  if ! [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then\n'
+                '    echo "::error title=Invalid base SHA::Supply a full lowercase '
+                '40-character commit SHA."\n'
+                "    exit 1\n"
+                "  fi\n"
+                '  if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then\n'
+                '    echo "::error title=Unknown base commit::$BASE_SHA is not available '
+                'in this checkout."\n'
+                "    exit 1\n"
+                "  fi\n"
+                '  if [ "$(git cat-file -t "$BASE_SHA")" != "commit" ]; then\n'
+                '    echo "::error title=Base is not a commit object::$BASE_SHA must identify '
+                'a commit object directly."\n'
+                "    exit 1\n"
+                "  fi\n"
+                '  if ! git merge-base --is-ancestor "$BASE_SHA" HEAD; then\n'
+                '    echo "::error title=Base is not an ancestor::$BASE_SHA must be an '
+                'ancestor of HEAD."\n'
+                "    exit 1\n"
+                "  fi\n"
+                '  git show "$BASE_SHA:acceptance/expected/fixture.json" > tmp/base-fixture.json\n'
+                "  arguments=(--base tmp/base-fixture.json "
+                '--base-sha "$BASE_SHA" '
+                "--approvals acceptance/expected/regressions.yaml)\n"
+                "fi\n"
+                "pdm run acceptance-expected check acceptance/fixture.json "
+                '"${arguments[@]}" > acceptance/difference.md || status=$?\n'
+                '{ echo "### Outcomes against acceptance/expected/fixture.json"; echo; '
+                'cat acceptance/difference.md; } >> "$GITHUB_STEP_SUMMARY"\n'
+                "cat acceptance/difference.md\n"
+                'exit "$status"\n',
+            },
+        )
+
     def test_only_a_clean_fixture_execution_exports_the_mutation_baseline(self):
         job = jobs("ci.yml")["acceptance"]
         self.assertEqual(step("ci.yml", "acceptance", FIXTURE_STEP)["id"], "fixture")
