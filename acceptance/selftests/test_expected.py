@@ -2,6 +2,7 @@
 from a report on request."""
 
 import json
+from typing import get_args, get_type_hints
 
 import pytest
 import yaml
@@ -10,6 +11,7 @@ from nci_si_acceptance.expected import (
     ABSENT_FROM_EXPECTED,
     ABSENT_FROM_REPORT,
     EXPECTED,
+    Approval,
     differences,
     main,
 )
@@ -17,6 +19,10 @@ from nci_si_acceptance.report import RANK
 
 BASE_SHA = "a" * 40
 OLD_SHA = "b" * 40
+
+
+def test_approval_before_type_is_the_closed_passed_outcome():
+    assert get_args(get_type_hints(Approval)["before"]) == ("passed",)
 
 
 def report(tests, mode):
@@ -360,6 +366,18 @@ approvals:
     after: failed
     reason: &text reviewed
     reference: *text
+""",
+            "YAML aliases are not allowed",
+        ),
+        (
+            f"""version: 1
+approvals:
+  - base_sha: {BASE_SHA}
+    test: &field reason
+    before: passed
+    after: failed
+    *field: reviewed
+    reference: issue
 """,
             "YAML aliases are not allowed",
         ),
