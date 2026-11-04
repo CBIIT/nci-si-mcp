@@ -723,6 +723,18 @@ def test_update_refuses_an_unknown_report_outcome(files, tmp_path):
     }
 
 
+def test_update_missing_report_has_an_actionable_diagnostic(files, tmp_path):
+    arguments = files({"t.py::a": "passed"}, {"t.py::a": "passed"})
+    (tmp_path / "report.json").unlink()
+
+    ran = run_expected(["update", *arguments[1:]])
+
+    assert_invalid_primary_input(ran)
+    assert json.loads((tmp_path / "expected.json").read_text(encoding="utf-8")) == {
+        "t.py::a": "passed"
+    }
+
+
 def test_the_committed_outcomes_are_in_the_reports_vocabulary_and_in_test_order():
     committed = json.loads(EXPECTED.read_text(encoding="utf-8"))
 
