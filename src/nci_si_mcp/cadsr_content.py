@@ -8,7 +8,14 @@ from typing import Annotated, Any, NoReturn, get_args
 
 from . import cursor as cursors
 from .caching import select_cache_hint
-from .cadsr import DATA_API, EXPORT_FOLDER, FORM_API, data_element_request
+from .cadsr import (
+    DATA_API,
+    EXPORT_FOLDER,
+    FORM_API,
+    data_element_request,
+    question_request,
+    search_request,
+)
 from .context import Context
 from .errors import InputValidationError, PlatformError
 from .models import Truncation, live_provenance, results_cut, with_attribution
@@ -31,6 +38,7 @@ from .validation import (
     bounded,
     validate_choice,
     validate_identifier,
+    validate_text_target,
 )
 
 _OWN = (
@@ -388,6 +396,10 @@ def get_data_element(
 ) -> dict[str, Any]:
     """Read one caDSR data element by its publicId or its preferred question text.
 
+    Text beyond its published maxLength is invalid_request, never shortened. URL-carried
+    text also has a 7,000-byte encoded request-target ceiling including filters and pins;
+    for caDSR that is conservative server policy, not measured platform capacity.
+
     registryRelease is left unset today (C-1: caDSR publishes no registry release).
 
     Returns the data element with provenance (the registry alone for unpinned content); nested
@@ -417,6 +429,13 @@ def get_data_element(
     displayOrder that is not a trimmed integer string.
     """
     sections = _lookup_options(publicId, longName, questionText, version, include)
+    if questionText is not None:
+        path, params = question_request(questionText, registryRelease)
+        # Refuse the actual target before pin discovery can contact caDSR.
+        validate_text_target(
+            context.cadsr.http.url(path, params),
+            "questionText",
+        )
     release = _pin(context, registryRelease)
     if longName is not None:
         _unavailable("longName lookup (OP-C02)")
@@ -474,6 +493,10 @@ def search_data_elements(
     """Search caDSR data elements by keyword, a page at a time; caDSR does not serve this route
     today (OP-C03).
 
+    Text beyond its published maxLength is invalid_request, never shortened. URL-carried
+    text also has a 7,000-byte encoded request-target ceiling including filters and pins;
+    for caDSR that is conservative server policy, not measured platform capacity.
+
     semantic and hybrid (OP-C04) and filters (OP-C03) are capability_unavailable until caDSR
     serves them.
 
@@ -488,6 +511,9 @@ def search_data_elements(
     publicId or question text instead.
     """
     _search_options(query, mode, filters)
+    path, params = search_request(query, _SEARCH_CAP, registryRelease)
+    # Refuse the actual target before pin discovery can contact caDSR.
+    validate_text_target(context.cadsr.http.url(path, params), "query")
     size = bounded(limit, 100, "limit")
     args = {
         "tool": "search_data_elements",
@@ -504,12 +530,7 @@ def search_data_elements(
     if filters:
         _unavailable("data-element search filters (OP-C03, docs/upstream/cadsr.md#cadsr-search)")
     response = _search_route(context, query, registryRelease)
-    provenance = _provenance(
-        context,
-        release,
-        f"{DATA_API}/DataElement/search",
-        {"keyword": query, "pageSize": _SEARCH_CAP, "registryRelease": registryRelease},
-    )
+    provenance = _provenance(context, release, path, params)
     rows = response["DataElements"]
     records = [{"dataElement": _element(row, [], provenance)} for row in rows[:_SEARCH_CAP]]
     result = _page(records, "results", position.offset, size, args, provenance)

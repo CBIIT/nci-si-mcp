@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -33,13 +34,19 @@ class InstallerGuidanceTest(unittest.TestCase):
             "required_input", "Repair the required input.", lambda: next(values)
         )
         stdout, stderr = io.StringIO(), io.StringIO()
+        release = installer.ReleaseIdentity("0.21.0", "a" * 40, Path(directory.name) / "lock")
         with (
             patch.object(installer.sys, "stdin", stream),
             patch.object(installer, "local_prerequisites", return_value=(check,)),
             patch.object(installer, "__version__", "0.21.0"),
-            patch.object(installer, "_installed_release", return_value=("0.21.0", "v0.21.0")),
+            patch.object(installer, "_release_identity", return_value=release),
+            patch.object(installer, "_installed_release", return_value=("0.21.0", "a" * 40)),
             patch.object(installer, "_verify_stdio", return_value=None),
-            patch.object(installer.subprocess, "run"),
+            patch.object(
+                installer.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess([], 0),
+            ),
             patch.dict(os.environ, {"PRIVATE_VALUE": "PRIVATE-CANARY"}),
             redirect_stdout(stdout),
             redirect_stderr(stderr),

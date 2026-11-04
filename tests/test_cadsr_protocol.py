@@ -15,14 +15,12 @@ from unittest.mock import patch
 import yaml
 from pydantic import TypeAdapter
 
-from fakes import code_map, data_element
+from fakes import cde_response, cde_row, code_map, data_element, form, vm_response, vm_row
 from nci_si_mcp import results
 from nci_si_mcp.cli import build_parser, main
 from nci_si_mcp.context import Context
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.release import RegistryState, registry_state
-from test_cadsr_forms import form
-from test_cadsr_matching import cde_response, cde_row, vm_response, vm_row
 from test_server import ServerFixture
 
 

@@ -29,6 +29,11 @@
 # An input schema may state a form, but an argument off it is answered with the error record,
 # invalid_request, as every invalid request is (A2.5). `free_text` names the free-text arguments
 # that go upstream (A7.7); `entities[].name` is the name of each element of `entities`.
+# `text_limits` maps each scalar path to its inputSchema `maxLength` in Unicode code points
+# and a one-line `why`; [] applies the bound to each string, not to the list's length.
+# `encoded_target` bounds URL-carried text by the complete encoded path and query in bytes,
+# filters and pins included (A7.7). `lexical_tokens` bounds only the local FTS token prefix.
+# Each limit's `why` states what to reassess before changing it.
 #
 # `not_offered` names what the platform has and the tool does not expose: argument values
 # under the argument's name, and platform features under a name of their own (`evs_type`,
@@ -78,6 +83,14 @@ search_concepts:
   inputs: (terminology, release?, query, mode?, limit?, cursor?, retired?)
   patterns: {terminology: *terminology, release: *release}
   free_text: [query]
+  text_limits:
+    query: &query_limit {maxLength: 1000, why: "Owner-selected search-phrase work bound; ordinary text fits the EVS URL budget, but Unicode expansion needs the separate encoded-target guard; reassess real queries and encoding before raising it."}
+  encoded_target: &encoded_target
+    maximumBytes: 7000
+    why: "EVS returned HTTP 400 at 8,046 request-target bytes; 7,000 retains the existing conservative batch margin (ARCHITECTURE.md, EVS request targets); for caDSR this is conservative server policy, not a measured ceiling; remeasure deployment capacity and encoded filters/pins before changing it."
+  lexical_tokens:
+    maximum: 64
+    why: "Owner-selected local FTS work bound to cap OR-expression expansion; reassess ranking and query cost before changing it; vectors retain the whole query."
   returns: "{ results[{ concept, score?, matchedOn? }], nextCursor?, totalKnown? }"
   items: ["results[].concept"]
   values: {mode: [lexical, typeahead, semantic, hybrid], retired: [include, only]}
@@ -86,6 +99,8 @@ search_concepts:
   not_offered: {retired: [exclude], evs_type: [match, phrase, AND, OR, fuzzy]}
   summary: >-
     Ranked search of a terminology; semantic and hybrid from the interim NCIt index (M4.1).
+    Local lexical candidate selection uses the first 64 tokens in order to bound FTS work;
+    only longer token sequences change lexical/hybrid ranking; vector search uses the whole text.
     Retired concepts are returned with the others (retired include, the default, as the
     platform returns them), or alone (retired only), where retirement is a concept status the
     search can select: the listing's metadata.retiredStatusValue is among its
@@ -110,6 +125,10 @@ get_concept_hierarchy:
     pathsToRoot returns each path the platform gives in paths, the codes from the concept to
     the root in the platform's order, with each concept on them once in nodes; depth, limit
     and cursor do not apply to it.
+    For parent/child, deadline exhaustion preserves verified partial content without nextCursor;
+    the first actual bound stays, otherwise truncation.bound is deadline with limit/reached in
+    milliseconds. Ask for less depth or retry. Before any verified start, or for pathsToRoot,
+    deadline exhaustion is upstream_unavailable, never partial paths.
 expand_value_set:
   title: Subset members
   group: evs
@@ -145,6 +164,9 @@ get_concept_neighborhood:
     the kinds asked so that none present is starved, in a way of its own. Negative assertions
     are returned marked, with the nodes they reach, which are not followed further unless
     includeNegative.
+    Deadline exhaustion preserves the verified partial graph with per-kind truncation and the
+    first actual bound; otherwise truncation.bound is deadline with limit/reached in milliseconds.
+    Ask for less depth or fewer kinds, or retry; before any verified start, it is upstream_unavailable.
 get_concept_subsets:
   title: Concept subset membership
   group: evs
@@ -206,6 +228,11 @@ get_data_element:
   inputs: (publicId | longName | questionText, version?, include[]?, registryRelease?)
   patterns: {publicId: &registry_id "^[1-9][0-9]*$", version: &registry_version "^[0-9]+([.][0-9]+)?$"}
   free_text: [questionText]
+  text_limits:
+    questionText:
+      maxLength: 2000
+      why: "The longest preferred question text in the July 2026 releasedCDEsExcel-OD.zip export is 1,011 characters (CDE 6148373 v1; archive SHA-256 e9c35f248f25c76089f63952c6117d51a241c6b20e645b9c9b5e7cc521c036c1; question SHA-256 0c579c0318b0d9c0e8afc23a84b07700372d3ccfd998c70941a8bd417076938e). The 2,000-character limit leaves headroom, but that snapshot excludes retired/TEST/TRAINING records; remeasure broader exports and ask caDSR whether legitimate inputs can exceed this or the 7,000-byte encoded URL ceiling. No rejection of legitimate content has been observed."
+  encoded_target: *encoded_target
   returns: data_element
   items: ["."]
   values: {include: [permissibleValues, valueDomain, conceptAssociations, alternateNames, classificationSchemes, referenceDocuments, dataElementConcept]}
@@ -225,6 +252,8 @@ search_data_elements:
   group: cadsr
   inputs: (query, mode?, filters?, limit?, cursor?, registryRelease?)
   free_text: [query]
+  text_limits: {query: *query_limit}
+  encoded_target: *encoded_target
   returns: "{ results[{ dataElement, score?, matchedOn? }], nextCursor?, totalKnown?, truncation }"
   items: ["results[].dataElement"]
   values: {mode: [lexical, semantic, hybrid], filters: [context, workflowStatus, registrationStatus, valueDomainType]}
@@ -242,6 +271,10 @@ match_data_elements:
   group: cadsr
   inputs: "(entities[{ name, userTip?, permissibleValues[]? }], matchLimit?, modelVariant?, similarityThreshold?, filters?, registryRelease?)"
   free_text: ["entities[].name", "entities[].userTip", "entities[].permissibleValues[]"]
+  text_limits:
+    entities[].name: &match_text {maxLength: 2000, why: "Owner-selected bound for individual matching names, tips or values in request bodies, not dictionary documents; reassess legitimate matching inputs and body work before changing it."}
+    entities[].userTip: *match_text
+    entities[].permissibleValues[]: *match_text
   returns: "{ matches[data_element_match] }"
   items: ["matches[].dataElement"]
   values: {filters: [context, workflowStatus, registrationStatus, classificationScheme, valueDomainType]}
@@ -262,6 +295,7 @@ match_value_meanings:
   group: cadsr
   inputs: (values[], strictness?, terminologyScope?, registryRelease?)
   free_text: ["values[]"]
+  text_limits: {"values[]": *match_text}
   returns: "{ matches[value_meaning_match] }"
   items: ["matches[].item"]
   values: {strictness: [restricted, unrestricted]}
@@ -419,6 +453,9 @@ ground_value:
   inputs: (conceptCode | text, commons?, release?, registryRelease?)
   patterns: {release: *release, conceptCode: *ncit_code}
   free_text: [text]
+  text_limits:
+    text: {maxLength: 2000, why: "Owner-selected bound for a short grounding phrase rather than a dictionary document; reassess real grounding inputs and downstream search work before changing it."}
+  encoded_target: *encoded_target
   returns: "{ concept, dataElements[data_element_use], permissibleValues[value_use], storedValues[stored_value]?, provenance, truncation }"
   items: ["concept", "dataElements[]", "permissibleValues[]", "storedValues[]"]
   summary: >-
@@ -462,6 +499,10 @@ harmonize_data_dictionary:
   group: workflow
   inputs: "(columns[{ name, description?, sampleValues[]? }], registryRelease?, filters?)"
   free_text: ["columns[].name", "columns[].description", "columns[].sampleValues[]"]
+  text_limits:
+    columns[].name: &dictionary_text {maxLength: 10000, why: "Owner-selected body-field budget for richer dictionary metadata and sample values; reassess real dictionaries and matching work before changing it."}
+    columns[].description: *dictionary_text
+    columns[].sampleValues[]: *dictionary_text
   returns: "{ columns[{ name, matches[data_element_match], permissibleValueAlignment[value_meaning_match] }], unmatched[], provenance }"
   items: ["columns[].matches[].dataElement"]
   computed: true

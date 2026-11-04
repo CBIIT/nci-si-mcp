@@ -59,7 +59,10 @@ The gate's nested self-tests require the larger timeout; current timing evidence
 the issue and pull request, not a standing runtime promise.
 
 CI's existing unit, harness self-test and prepared-fixture jobs collect per-test and child-phase
-coverage once. They export one-day fragments bound to the checked-out merge commit and tracked
+coverage once. Each job's generated config (`mutation_coverage configure`) names that job's own
+absolute data file (`.coverage` at the root for unit, `acceptance/.coverage` for the harness
+domains), so a child started from another working directory writes beside it and is combined.
+They export one-day fragments bound to the checked-out merge commit and tracked
 input bytes; mutation shards wait for those producers and the coverage floors, download their
 same-run fragments and pass `--coverage-dir`. A missing, incomplete, malformed or mismatched
 import fails as `INFRA`, even for an empty catalogue; it never silently reruns a baseline.
@@ -149,7 +152,11 @@ with `kind: assertion` or `kind: error`. Multiple unittest subtest reports becom
 call record; mixed assertion and error subtest failures are `KILLED` with `kind: error`.
 A collection exception whose traceback reaches the mutated file is a `kind: import`
 kill after a clean baseline, including pytest's exit 4 when precise node selection cannot
-collect that node because of the mutated import. Exit 4 without that collection evidence
+collect that node because of the mutated import. When the owners span several files, pytest
+`-x` then stops collecting and reports that stop as a further failed collection of the session;
+the probe marks only that exception (`Session.Failed` carrying the session's own stop reason,
+read in `pytest_make_collect_report` before pytest discards `report.call`), and the kill keeps
+such notices as `stop_notices`. Exit 4 without that collection evidence
 stays infrastructure failure. Unrelated collection failures, `SystemExit`, setup,
 teardown, internal and baseline failures stay infrastructure errors.
 Evidence collection loads an immutable controller copy, even when testing the probe.
@@ -170,6 +177,10 @@ cannot inherit changes to the parent's environment. Their setup-only lines there
 the whole-fixture fallback, counted like the other domains, rather than claiming per-RPC ownership.
 `runner_seconds_by_domain`, `runner_seconds` and `runner_hours` sum measured mutant test-process
 durations, excluding baseline and scratch setup; they are distinct from shard wall time.
+If their aggregate exceeds reporting range, the shard SUMMARY retains counts and fallback
+accounting but omits those three numeric fields and states `cost_error`; structured `INFRA`
+follows and the command exits 2. Candidate evidence stays unchanged: this reporting failure
+is not fabricated as a candidate-level result, and missing costs are never reported as zero.
 
 Mutation JSON rows record monotonic `elapsed_seconds` for the whole mutant (including scratch
 setup) and a `domains` list of measured test-run durations and outcomes. The scheduler stores
@@ -177,19 +188,58 @@ each source once, span/replacement edits and preselected test routes; it does no
 the baseline coverage map per worker. The probe consumes its launch-only evidence destination
 at configuration; only declared xdist workers receive it, so nested pytest programs cannot
 append to the parent's records.
-Each controller child must lead its own process group before it is waited on; a broken
-launch contract reaps only the direct child and fails. Scheduler failure exits as infrastructure
-failure while retaining every completed candidate row and emitting an explicit `INFRA` row for
-each missing result. A missing row never counts as a kill or verified scratch restoration.
+
+The mutation runner supports Darwin and Linux. `mutation_run.program()` verifies that its
+direct child leads a new session and process group, observes exit with `waitid(WNOWAIT)` without
+reaping, then owns TERM, grace, final KILL if needed and actual-parent reap. The unreaped child
+reserves the original PID/PGID until cleanup finishes; a consumed or missing anchor fails the
+ownership contract. A broken launch contract uses direct-child cleanup only and fails.
+
+While the anchor is live, exit observation needs no `ps`. After early leader exit, and when
+diagnosing denied group signals, inspection uses `/bin/ps -g PID` on Darwin or `/bin/ps -s PID`
+on Linux, filtering the latter's session rows to the original PGID. Both request
+`pid,ppid,pgid,uid,ruid,state` fields with numeric identities; Linux also requests `sid`.
+A complete, nonempty snapshot must contain the actual-parent anchor, have unique PIDs,
+and show only zombies with the expected
+PGID and effective/real UID (and Linux SID) before further signals can stop. Darwin zombie SID
+is unavailable: the retained session/group leader anchors membership because POSIX groups
+cannot cross sessions. `waitid`'s `si_uid` is not ownership evidence.
+Snapshots are non-atomic and establish no durable ownership or containment. Signals target
+only the original anchored group, never PIDs discovered by inspection. Live, mixed, foreign or
+unknown state cannot suppress a permission denial; failed inspection retains that denial.
+If inspection fails after successful TERM, cleanup still attempts final KILL through the
+verified anchor and retains the inspection error. Only the direct child is reaped here;
+descendants require their actual parents, including workers owning separate-session runners.
+
+`--timeout` defaults to 600 seconds per mutant domain run; `--baseline-timeout` defaults to
+1,800 seconds per baseline domain. The scheduler execution limit is
+`timeout × (candidate count + 2) × 3`. Cleanup has a separate single monotonic deadline:
+ordinary runners allow 10 seconds of TERM grace within 20 seconds total; the scheduler's
+`worker_cleanup=True` allows 21 seconds of grace within 31 seconds total so workers can finish
+nested cleanup. Inspection takes at most one second or the remaining cleanup time, whichever
+is smaller; polls and inspections never reset the deadline. `TIMEOUT` counts as killed by
+policy, not assertion-strength evidence; cleanup failures remain diagnostic failures.
+
+Each scheduler run prints its unique `tmp/mutation-runs/run-*` directory under the selected
+root to stderr as soon as it exists. Inspect `mutations.json`, `scheduler.log` and
+`result-N.json` there; worker results are published atomically. Scheduler failures and
+cooperative cancellation retain `traceback.txt`, including combined initiating/cleanup errors,
+and exit nonzero even if all candidates finished. Completed result bytes remain intact.
+Missing results receive explicit `INFRA` rows; corrupt JSON remains byte-for-byte in the
+original file, with its synthesized row in `result-N.infra.json`. Corruption fails the command
+even after scheduler exit zero; file permission failures remain diagnostic. An incomplete row
+never counts as a kill or verified scratch restoration. Retained runs are never resumed automatically.
 
 ## Coverage badges
 
 CI runs the unit suite in four sorted round-robin partitions, each serial with a 10-minute
 budget. `--unit-shard K/N` selects a partition without affecting nested pytest child runs.
 Each partition retains JUnit evidence and one-day coverage data. The `unit-coverage` job
-requires all four files, combines them, and enforces the same coverage floor and aim warning;
-individual partitions do not enforce a partial coverage floor. The local `pdm run test` remains
-the complete suite. The mutation gate's local unit baseline also remains serial and unsharded.
+requires all four files, combines them, enforces 95% floors over the core-and-scripts measurement
+and separately over `src/nci_si_mcp` plus `src/ncit_index`, and reports the above-98% aim over
+the combined measurement; individual partitions do not enforce a partial coverage floor. Local
+`pdm run test` checks the complete core-and-scripts suite. The mutation gate's local unit baseline
+also remains serial and unsharded.
 
 CI exports separate JSON coverage reports for the combined unit suite and the combined harness
 self-tests. The harness runs in eight sorted round-robin shards, each with four workers;
@@ -214,11 +264,13 @@ during feature-branch cleanup; it is generated publication data.
 1. **Stay on the goal.** A change does what its task asks.
 2. **Tests are written for their value.** Each one checks behaviour that a user or a caller can
    observe, and can fail when that behaviour breaks.
-3. **Coverage: 95% is the checked minimum, above 97% is the aim.** The gap is deliberate: it
+3. **Coverage: 95% is the checked minimum, above 98% is the aim.** The gap is deliberate: it
    keeps anyone from writing tests for the number. Cover untested behaviour whenever you can.
-   Never add a test that asserts nothing, or only that a mock was called.
-   The figure covers `src/` and every script in `scripts/` except those `omit`ted in
-   `pyproject.toml`, each with its reason there; omit nothing to raise the number.
+   Never add a test that asserts nothing, or only that a mock was called. Local `pdm run test`
+   checks the minimum over `src/nci_si_mcp`, `src/ncit_index` and every script in `scripts/`
+   except those `omit`ted in `pyproject.toml`. CI checks both the combined core-and-scripts and
+   core-only minimums, and reports the aim over the combined measurement. Harness self-tests
+   check their own 95% minimum and above-98% aim. Omit nothing to raise a number.
 4. **Keep it simple, and say each thing once.** Follow the structure in ARCHITECTURE.md: thin
    adapters over the service, one error path, closed value sets in `validation.py`. No
    abstraction for a single use.
@@ -227,6 +279,21 @@ during feature-branch cleanup; it is generated publication data.
 6. **Remove dead code** in the change that makes it dead.
 7. **Keep the documentation in step, and short.** Update it in the same change. The README
    answers the first questions and links onward; details belong in the deeper documents.
+
+### Adding a tool
+
+1. Specify it in `spec/tools.yaml` first; run `pdm run spec-render` and `pdm run quickstart-tools`.
+2. Write the handler with the `Context` as its first positional parameter, public inputs typed
+   with `parameters.py`, and a docstring that is the client contract.
+3. Add its result `TypedDict` to `results.py` and declare a `ToolSpec` in `registry.SPECS`: its
+   `group`, `name` and `title` (without a `name` it is not served as a tool), the output union with
+   `ErrorResult`, cache `resolution` or a handler-owned cache hint, an `audit` class per
+   parameter, and a `_CLI_FLAGS` spelling for any `True`-default boolean.
+4. Rely on the scopes `registry.invoke` and the server open for every call (permission, input
+   limits, cache decision, release selection, deadline, audited correlation); never reopen them.
+5. Add its scenario to `tests/test_registry_contracts.py` and update QUICKSTART.md; if outcomes
+   move, commit `acceptance/expected/fixture.json` from a fresh fixture run and run
+   `pdm run acceptance-status`.
 
 ### Typing conventions
 
@@ -273,7 +340,8 @@ pytest's original report. Local report files live under ignored `tmp/` directori
 | gitleaks, zizmor | No secrets; safe GitHub Actions workflows |
 | actionlint, shellcheck | Workflow syntax, expressions and shell scripts; both binaries are pinned in the PDM lint group. Only the unsupported `$/` self-repository diagnostics are ignored in `.github/actionlint.yaml`; local target existence is tested separately. |
 | Upstream requirement packages | `docs/upstream/*.md` are the current render of `docs/upstream/catalogue.yaml` (`scripts/upstream_requirements.py --check`) |
-| Acceptance ratchet (CI) | Every test of the acceptance suite, in fixture mode, has the outcome in `acceptance/expected/fixture.json`. A change that moves an outcome on purpose updates that file in the same pull request, and the diff of the file is what the review reads: `pdm run acceptance-expected update acceptance/fixture.json` writes it from a fresh report, and `pdm run acceptance-status` the README table that follows |
+| Installer requirements | The package-shipped server lock is the current PDM export of the `server` and `build` groups: `pdm export -G server -G build --no-default -o src/nci_si_mcp/server-requirements.txt` |
+| Acceptance ratchet (CI) | Every fixture-mode test has the outcome in `acceptance/expected/fixture.json`. An intentional move updates that file in the same pull request; a base `passed` outcome that regresses or is removed also needs its exact base-bound transition in `acceptance/expected/regressions.yaml`. `pdm run acceptance-expected update acceptance/fixture.json` writes current outcomes from a fresh report, and `pdm run acceptance-status` updates the README table. |
 | Tests and coverage | The suite passes before each push and in CI; CI fails below the coverage minimum of standard 3 and warns when the aim is missed |
 | Local run (CI only) | The documented setup, walked literally on `macos-latest` and `ubuntu-24.04` (`.github/workflows/local-run.yml`, on pushes to `main`, weekly, by hand, and on pull requests that touch the install paths). Every command is copied from the document that gives it; the test of the workflow compares the two, so change a documented command and its workflow line together. Not a required check: it uses live EVS |
 | Dependency audit (CI only) | Every Python and npm package in the committed locks is at least five days old; no runtime dependency has a known vulnerability (pip-audit over the server and embeddings extras, on every change and weekly); no pull request brings one in at high severity (dependency review). Dependabot groups weekly updates for Actions, both Dockerfile directories and the documentation npm tree after a seven-day cooldown. Dependabot cannot update `pdm.lock`, so `pdm run lock` is the only Python lock command. [SECURITY.md](SECURITY.md) says how to report a vulnerability |

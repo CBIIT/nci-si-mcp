@@ -3,22 +3,10 @@
 import json
 from urllib.parse import parse_qs, urlsplit
 
-from fakes import code_map, data_element
+from fakes import code_map, form
 from test_cadsr_client import reply
 from test_cadsr_content import CaDSRFixture
 from test_http_client import Reply
-
-
-def form(**extra):
-    raw = data_element()
-    return (
-        {k: v for k, v in raw.items() if k != "publicId"}
-        | {
-            "publicID": "123",
-            "modules": [{"name": "Module", "questions": [{"text": "Q"}]}],
-        }
-        | extra
-    )
 
 
 class FormsTest(CaDSRFixture):

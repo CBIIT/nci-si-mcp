@@ -7,6 +7,7 @@ from dataclasses import replace
 from threading import Event
 from unittest.mock import patch
 
+import anyio
 import httpx2
 from mcp.server.auth.provider import AccessToken
 from mcp.server.auth.settings import AuthSettings
@@ -55,6 +56,40 @@ def result(response):
 
 
 class HTTPTest(ServerFixture):
+    def test_health_answers_before_busy_worker_tokens_are_released(self):
+        async def scenario():
+            limiter = anyio.to_thread.current_default_thread_limiter()
+            release_workers = anyio.Event()
+            occupied = anyio.Event()
+            owners = [object() for _ in range(int(limiter.total_tokens))]
+
+            async def block_workers():
+                try:
+                    for owner in owners:
+                        limiter.acquire_on_behalf_of_nowait(owner)
+                    occupied.set()
+                    await release_workers.wait()
+                finally:
+                    for owner in owners:
+                        limiter.release_on_behalf_of(owner)
+
+            async with http_app(self.settings, self.context) as client:
+                workers = asyncio.create_task(block_workers())
+                try:
+                    await occupied.wait()
+                    response = None
+                    with anyio.move_on_after(2):
+                        response = await client.get("/health")
+                    self.assertIsNotNone(response, "liveness queued behind occupied worker tokens")
+                    self.assertFalse(release_workers.is_set())
+                    return response
+                finally:
+                    release_workers.set()
+                    await workers
+
+        response = asyncio.run(scenario())
+        self.assertEqual((response.status_code, response.json()), (200, {"status": "ok"}))
+
     def test_legacy_index_readiness_keeps_the_previous_error_identity(self):
         logging.disable(logging.NOTSET)
         invoke(self.context, "index_codes", ["C3262"])

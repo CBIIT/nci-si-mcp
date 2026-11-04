@@ -26,7 +26,10 @@ codes), `CONTRIBUTING.md` (how to work on it: commands, gates, standards, releas
 The specification of the required tools and their behaviour is owned by this repository. Its
 source of record is the data in `spec/` (conventions, records, tools, requirements);
 `docs/specification.md` is generated from it with `pdm run spec-render` and is never edited by
-hand. `docs/implementation-plan.md` plans the implementation, and `acceptance/` holds the
+hand. Tokens such as `(A4.4)`, `M2.2` or `X-22` in code, tests and documents are convention and
+requirement IDs from `spec/conventions.yaml` and `spec/requirements.yaml`; `OP-…` tokens such as
+`OP-C10` name platform operations: those with recorded request forms are listed in
+`acceptance/request-forms/`, and those raised with an upstream team in `docs/upstream/`. `docs/implementation-plan.md` plans the implementation, and `acceptance/` holds the
 acceptance suite that tests the requirements (its README says how).
 
 ## Engineering standards
@@ -48,10 +51,13 @@ These are the owner's rules. They apply to every change.
   could observe and must be able to fail on a regression. A test of a workflow or other
   configuration file asserts the exact value of each property it protects (a job's condition,
   permissions, dependencies, environment and commands), never a substring or one member of a list.
-- **Coverage: the checked minimum is 95%, the aim is above 97%.** The gap exists so that nobody
-  pads coverage to pass a threshold. Take every real opportunity to cover untested behaviour;
-  never write a test whose purpose is the number (no assertion-free tests, no tests that only
-  check that a mock was called). CI fails below 95% and warns at or below 97%.
+- **Coverage: the checked minimum is 95%, the aim is above 98%.** Local `pdm run test` checks the
+  core and scripts together. CI checks both the combined core-and-scripts and core-only minimums,
+  and warns on the combined core-and-scripts aim; the acceptance harness checks its own minimum
+  and aim. The gaps exist so that nobody pads
+  coverage to pass a threshold. Take every real opportunity to cover untested behaviour; never
+  write a test whose purpose is the number (no assertion-free tests, no tests that only check that
+  a mock was called).
 - **Design: KISS and DRY.** The simplest structure that does the job, one place for each fact,
   and the established architecture (thin adapters over the registry, one error path, closed value
   sets in `validation.py`). No abstraction for a single use.
@@ -89,6 +95,17 @@ pdm run spec-render                       # regenerate docs/specification.md fro
 pdm run quickstart-tools                  # regenerate the tool table of QUICKSTART.md from spec/
 ```
 
+- **Know the executing shell.** At session start, use the tool's declared shell or inspect the
+  current shell process; do not infer it from `$SHELL` alone. This workstation's command tool uses
+  zsh. In zsh, `status` is a read-only special parameter: use `gate_status`, `exit_code` or another
+  non-special name for exit-status capture. Run Bash-specific scripts explicitly with `bash`; a
+  terminal tool named Bash does not imply its commands execute in Bash. Before an expensive run,
+  exercise a new wrapper with cheap success and failure commands in the same shell and verify
+  status capture and propagation. A syntax-only check cannot catch read-only-variable assignments.
+  A wrapper failure before test launch is not a test run.
+- **Distinguish the working tree from the index.** Before testing, inspect both `git diff` and
+  `git diff --cached`: staging changes commit contents, not the files a test executes. Preserve
+  the test command's exact output; never present a paraphrase as captured output.
 - Run the tests through `pdm run` (`pdm run test`, `pdm run pytest ...`), never a bare `pytest`,
   so the project's environment and configuration apply.
 - The tests are unittest-style and offline. They import shared doubles with `from fakes import
@@ -98,8 +115,10 @@ pdm run quickstart-tools                  # regenerate the tool table of QUICKST
   basedpyright (`src`, `scripts` and `acceptance/src`), the hooks run `scripts/validation/check_complexity.py`
   (every function below 8, nested ones and the tests included), `check_test_quality.py` (no test
   without a behaviour assertion; an assertion in a nested function or class that the test never
-  uses does not count), vulture, gitleaks, zizmor and `scripts/upstream_requirements.py --check`
-  (the upstream requirement packages are the current render of their catalogue). All Python tools run from the PDM
+  uses does not count), vulture, gitleaks, zizmor, `scripts/upstream_requirements.py --check`
+  (the upstream requirement packages are the current render of their catalogue), and the package-shipped
+  installer lock exported from the `server` and `build` groups with
+  `pdm export -G server -G build --no-default -o src/nci_si_mcp/server-requirements.txt`. All Python tools run from the PDM
   environment, so `pdm.lock` decides their versions.
 - `tests/test_docs.py`, `tests/test_server.py` and `tests/test_release_config.py` compare
   QUICKSTART.md, ARCHITECTURE.md and the title check with the code (settings and defaults, error
@@ -153,7 +172,9 @@ it.
 and fails when an outcome differs from the expected one. A change that moves an outcome on purpose
 updates that file in the same pull request, written with `pdm run acceptance-expected update` from
 a fresh report, and `pdm run acceptance-status` updates the README table that follows from it; the
-diff of `expected/fixture.json` is what the review reads. The `Acceptance (live)` workflow runs the
+diff of `expected/fixture.json` is what the review reads. A base `passed` outcome that regresses or
+is removed also needs its exact base-bound transition in `acceptance/expected/regressions.yaml`.
+The `Acceptance (live)` workflow runs the
 suite against the live services by hand and every Monday; its outcomes are not ratcheted, but
 the weekly run fails when a test that passes on the fixtures fails live (upstream drift).
 The `Local run` workflow (`local-run.yml`) walks the documented setup on `macos-latest` and
@@ -238,7 +259,8 @@ adding exclusion pathspecs for generated files.
    `pdm run test`, `pdm run acceptance-selftest`, `pdm run pre-commit run --all-files`, then the
    fixture run and, where outcomes moved on purpose,
    `pdm run acceptance-expected update acceptance/fixture.json` and `pdm run acceptance-status`,
-   so the ratchet file moves in the same pull request.
+   so the ratchet file moves in the same pull request. A base `passed` outcome that regresses or is
+   removed also adds its exact base-bound transition to `acceptance/expected/regressions.yaml`.
    An issue that changes a workflow dispatches that workflow on the issue branch before the
    `--no-ff` merge and links the green run in its completion comment. A red run blocks the merge.
 4. **Merge the issue branch into the milestone branch yourself** once the gates pass and the
@@ -307,6 +329,16 @@ and the reviewer acts for the coordinator.
     wait loop you started. Verify that no merged issue branches or the milestone branch remain
     on origin; check the branch-cleanup run and remove any leftovers yourself.
 
+The context that creates a temporary file or directory, branch, worktree, process or watcher owns
+its cleanup through the artifact's full lifecycle, not merely the current session. A handoff names
+the owner and purpose, exact path or ref, retained-evidence location and cleanup condition; the
+successor inherits that duty. Before deleting, verify project ownership, no active work/open
+pull request/current dependency, a clean worktree or preserved changes, merge or supersession
+status, and evidence-retention obligations. Remove only known-obsolete project artifacts. Preserve
+retained evidence outside deleted worktrees, and retain unknown-owner items; never glob-delete,
+reset another session's tree or remove another project's scratch. At milestone closure or session
+handoff, record exact paths and refs removed and those retained with their reason and next owner.
+
 The `milestone branches` ruleset forbids force pushes to `milestone/*` and requires no status
 checks, because the milestone pull request into `main` runs the full CI on the milestone head and
 `main` accepts nothing else. Issue work reaches the milestone branch by a merge of its issue
@@ -349,6 +381,16 @@ Rules learned the hard way:
   `ServerSession._connection` (`server._session_state`). The bound does not protect a private name,
   so `create_mcp` raises a `RuntimeError` at startup when it is missing; the real-SDK HTTP session
   test is the regression guard. Ask upstream for a public accessor when lifting the bound.
+- `server._serve_schemas` rewrites each tool's published schemas through the SDK's private
+  `mcp._tool_manager` and `Tool.fn_metadata.output_schema`. A rename fails at startup with an
+  `AttributeError`; `tests/test_server.py` compares the published schemas.
+- Synchronous tool callbacks run in a worker thread through `anyio.to_thread.run_sync`, which
+  copies the calling task's context. The correlation, audit record, permission, session
+  release-pin and cache-decision context variables, set by server middleware, reach a handler
+  only through that copy; `registry.invoke` opens the deadline and per-call release selection
+  inside the worker. A value set in the worker does not flow back, hence the mutable carriers
+  (the cache-decision dict of `caching.cache_call`, the `audit.Audit` record and
+  `release_selection.SessionRelease`).
 - The package must be installed to be imported: `__version__` reads the installed metadata.
 
 ## Architecture in brief
@@ -359,6 +401,13 @@ defaults and choices. Business operations live in `handlers.py` and, for the spe
 content tools, `content.py`, with injectable collaborators in `context.Context`. Closed value
 sets live once in `validation.py`. A profile selects the tools, resources and prompts the server
 serves (M1.5, M1.6); caller policy can only narrow that surface.
+
+`bounds.py` owns the shared call deadline; `ToolSpec.deadline` exempts long-running index
+operator commands. `validation.py` owns input bounds in `TEXT_LIMITS` and
+`MAX_TEXT_TARGET_BYTES`. Every limit is a named constant with a comment stating its reason,
+evidence and what to re-measure; a new limit also needs a spec `why`, an `inputSchema` entry
+and a QUICKSTART limits row. Tool descriptions carry the shared deadline and input-limit
+wording from one source so clients receive the same contract.
 
 Each ToolSpec classifies its parameters as plain or hashed for audit. Undeclared parameters
 default to hashed. `audit.py` emits one JSON completion record per call, including validation

@@ -9,7 +9,7 @@ from unittest.mock import patch
 from mcp.client import Client
 from mcp.shared.exceptions import MCPError
 
-from fakes import concept
+from fakes import cde_response, cde_row, concept, primary_element
 from nci_si_mcp import cadsr_content, cadsr_matching, seam, workflows
 from nci_si_mcp.caching import cache_call
 from nci_si_mcp.errors import PlatformError, correlated
@@ -24,10 +24,8 @@ from nci_si_mcp.permissions import (
 )
 from nci_si_mcp.registry import invoke
 from nci_si_mcp.server import create_mcp
-from test_cadsr_matching import cde_response, cde_row
 from test_evs_client import FakeResponse
 from test_index import normalized
-from test_primary_api import primary_element
 from test_release_selection import initialize_http
 from test_seam import gdc_map
 from test_server import ServerFixture, pinned

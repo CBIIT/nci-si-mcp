@@ -944,21 +944,25 @@ truncation:
     occurred false and no other field. When a bound was reached it holds occurred, bound, limit,
     reached, omitted and exact, and perKind as well where a traversal spans several
     relationship kinds. A page that a cursor or an offset continues is not a truncation (M6.1).
+    On deadline exhaustion, traversal preserves only its verified partial graph; before any
+    start node is verified it returns upstream_unavailable instead. The first real bound
+    remains reported. Deadline omissions per kind are numeric lower bounds (zero when no
+    positive minimum is known), with exact false; unread relations are never called complete.
   fields:
     occurred:
       content: Whether a bound was reached
       of: A5.4
     bound:
       content: Which bound was reached
-      values: [results, depth, nodes, edges, kind_budget, requests, upstream_cap]
+      values: [results, depth, nodes, edges, kind_budget, requests, deadline, upstream_cap]
       optional: true
       of: A5.4
     limit:
-      content: The value of that bound
+      content: The value of that bound; for deadline, integer milliseconds of the call's elapsed-time budget
       optional: true
       of: A5.1
     reached:
-      content: The amount counted against the bound when it stopped
+      content: The amount counted against the bound when it stopped; for deadline, elapsed integer milliseconds since the call began
       optional: true
       of: A5.4
     omitted:
@@ -1012,6 +1016,9 @@ error:
   about: >-
     A failed call returns { error } as its structuredContent, with isError set (M3.2); it never
     resembles an empty result (A2.5).
+    Call deadline exhaustion is upstream_unavailable, with attempts counting actual outbound
+    requests started across the call, including retries and release discovery. An ordinary
+    request or match timeout that ends before the deadline retains the timeout contract (X-5).
   fields:
     code:
       content: >-
@@ -1052,9 +1059,9 @@ error:
       served: The list of releases the content came from, one element where it is a single release
       source: Where the content came from, evs, cadsr or index
     upstream_unavailable:
-      surface: The platform that failed, such as evs
+      surface: The platform that failed, such as evs; for deadline exhaustion, where known
       status: The HTTP status of the last failed request, where there was one
-      attempts: The number of requests made
+      attempts: The number of requests made; for deadline exhaustion, all outbound requests actually started across the call, including retries
       retryAfter: The Retry-After the platform sent, where it sent one
     timeout:
       surface: The platform that did not answer, such as evs

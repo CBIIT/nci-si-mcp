@@ -42,7 +42,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass, fields
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypeIs, get_args
 
 import pytest
 import yaml
@@ -76,7 +76,11 @@ ATTRIBUTION = "acceptance_attribution"
 WORKER_TOOLS = "acceptance_tools"
 # A later phase of a test (setup, call, teardown) overrides an earlier outcome only
 # when it ranks higher or equally; the later outcome wins a tie.
-RANK = {
+type UnrunOutcome = Literal["skipped", "not_implemented", "not_live"]
+type FailureOutcome = Literal["failed", "no_fixture"]
+type NonPassingOutcome = UnrunOutcome | FailureOutcome
+type Outcome = Literal["passed"] | NonPassingOutcome
+RANK: dict[Outcome, int] = {
     "passed": 0,
     "skipped": 1,
     "not_implemented": 1,
@@ -84,12 +88,23 @@ RANK = {
     "failed": 2,
     "no_fixture": 3,
 }
-FAILED = ("failed", "no_fixture")
-# The final outcomes of a test that did not run to a verdict.
-UNRUN = ("skipped", "not_implemented", "not_live")
-# Those of them that could not run. A live run's fixture-only tests and gates do not run there
-# by design (not_live), so they keep no tool from passing.
+FAILED: tuple[FailureOutcome, ...] = get_args(FailureOutcome.__value__)
+UNRUN: tuple[UnrunOutcome, ...] = get_args(UnrunOutcome.__value__)
+# Those of the unrun outcomes that could not run. A live run's fixture-only tests and gates do
+# not run there by design (not_live), so they keep no tool from passing.
 CANNOT_RUN = ("skipped", "not_implemented")
+
+
+def is_outcome(value: str) -> TypeIs[Outcome]:
+    """Whether a string is in the report's one closed outcome vocabulary."""
+
+    return value in RANK
+
+
+def is_unrun_outcome(value: str) -> TypeIs[UnrunOutcome]:
+    """Whether a string is an outcome that says the test did not run to a verdict."""
+
+    return value in UNRUN
 
 
 class ReportFieldError(ValueError):
@@ -122,7 +137,7 @@ class Attribution:
 
 @dataclass(frozen=True)
 class TestResult(Attribution):
-    outcome: str
+    outcome: Outcome
     unmatched: list[str]
     not_live_reason: Literal["scenario", "not_live_capable"] | Absent = Absent.FIELD
 
@@ -291,12 +306,15 @@ def own_unrun(counts: Counter[str]) -> int:
     return sum(counts[outcome] for outcome in CANNOT_RUN)
 
 
-def _skip_outcome(report: pytest.TestReport) -> str:
+def _skip_outcome(report: pytest.TestReport) -> UnrunOutcome:
     # The site of the skip says why (suite.SKIP); its reason text is for people.
-    return str(dict(report.user_properties).get(SKIP, "skipped"))
+    outcome = str(dict(report.user_properties).get(SKIP, "skipped"))
+    if not is_unrun_outcome(outcome):
+        raise ValueError(f"unknown skip outcome: {outcome}")
+    return outcome
 
 
-def _phase_outcome(report: pytest.TestReport) -> str | None:
+def _phase_outcome(report: pytest.TestReport) -> Outcome | None:
     if report.failed:
         return "no_fixture" if dict(report.user_properties).get(UNMATCHED) else "failed"
     if report.skipped:

@@ -132,9 +132,9 @@ The registry derives adapter parameters from handler signatures; closed choices 
 | Component | Responsibility | Main dependencies |
 | --- | --- | --- |
 | `caching.py` | Defines trusted-local producer-selected hints: explicitly release-pinned content and the static server surface (86,400,000 ms/public), unpinned caDSR content (3,600,000/public), resolution/status (0/public), and implicit NCIt calls, computed matching results or errors (0/private). Secured calls override these hints to zero/private. It contains no data cache. | Python standard library |
-| `bounds.py` | Owns traversal defaults and maxima and the per-call `Budget`. A context variable shares 200 HTTP attempts, including retries, release discovery and split batches, and restores the previous context on exit. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Neighborhood and CLI traversal preserve partial graphs on exhaustion; without graph content they raise `RequestBudgetError`, mapped to `bound_exceeded`. Hierarchy page replay always fails with `bound_exceeded` on request exhaustion. | Python standard library |
+| `bounds.py` | Owns traversal defaults and maxima, the per-call `Budget` and shared monotonic call deadline. Context-variable scopes share limits across nested work and restore the previous context on exit. The request budget counts 200 HTTP attempts, including retries, release discovery and split batches. The walker rotates kinds across each breadth-first frontier and counts newly admitted nodes against optional per-kind allowances. Neighborhood and CLI traversal preserve partial graphs on request exhaustion; without graph content they raise `RequestBudgetError`, mapped to `bound_exceeded`. Hierarchy page replay always fails with `bound_exceeded` on request exhaustion. Deadline behavior is described below. | Python standard library |
 | `cli.py` | Builds command arguments and dispatch from the registry; owns `serve` startup, reports configuration failures and exits 1 on an error record. | `registry.py`, `server.py` |
-| `installer.py` | Defines installation plans, local prerequisite checks, guided prerequisite execution, status and step help. Target install/configure/verify actions and uninstall are later phases. | `config.py`, `installer_state.py`, Python standard library |
+| `installer.py` | Defines installation plans, local prerequisite checks, guided execution and status, and the local install/configure/verify/start/stop/uninstall actions. The install action recreates only an owned environment, uses the running installer's exact Git commit and package-shipped hash lock, and verifies the installed version and commit. | `config.py`, `installer_state.py`, Python standard library |
 | `installer_state.py` | Owns the versioned atomic installer state, POSIX exclusive lock, ordered reverification/resume and status projection. | Python standard library |
 | `config_snapshot.py` | Opt-in local startup evidence from the actual serving settings; explicit safe-field allowlist, target instance/revision and owned-file cleanup. No live-state or remote discovery claim; companion proposals never apply settings. | `config.py`, local validation companion |
 | `container_entry.py` | Starts the same server with externally supplied assets, verifies the index and loads the model offline; startup failures name the asset and error class without library messages. It never builds or activates an index. | `context.py`, `ncit_index.embeddings`, `transport.py` |
@@ -176,6 +176,14 @@ The registry derives adapter parameters from handler signatures; closed choices 
 | `validation.py` | Defines the closed value sets (search modes, directions, edge types), the identifier forms of `spec/tools.yaml` (`NCIT_CODE_FORM`, `REGISTRY_ID_FORM`, `ITEM_VERSION_FORM`, `RELEASE_FORM`, `TERMINOLOGY_FORM`), normalizes NCIt codes, and validates search and traversal inputs. | Shared errors, limits in `bounds.py` |
 | `errors.py` | Defines validation errors, `PlatformError` with the specification's closed error-code set, correlation and `serialise`. Index exceptions belong to the package and are mapped by `invocation._ERROR_CODES`. | Python standard library |
 
+The scripts share `scripts/processes.py` for ordinary bounded stop/wait operations, SIGTERM
+unwinding and log tails. Mutation execution has a dedicated owner in
+`scripts/validation/mutation_run.py`: `program()` retains an unreaped session/group leader
+through exit observation and bounded group cleanup, then reaps its direct child. Read-only
+Darwin/Linux process snapshots can justify stopping signals, never signalling discovered PIDs
+or claiming durable containment. The scheduler retains candidate evidence and combined failure
+traces; [Mutation gate](CONTRIBUTING.md#mutation-gate) documents budgets and evidence inspection.
+
 ## Portable index package
 
 The top-level `ncit_index` package ships in the same distribution but imports neither
@@ -191,6 +199,46 @@ The top-level `ncit_index` package ships in the same distribution but imports ne
 | `errors.py` | Package exceptions, without protocol error codes or MCP imports. |
 
 ## Primary flows
+
+### Shared call deadline
+
+`registry.invoke` establishes one request-local monotonic deadline for MCP, CLI and resource
+invocations, reused by nested producers and workflow hops and restored on exit. Release
+discovery and every upstream client spend the same budget. `NCI_SI_CALL_DEADLINE_SECONDS`
+defaults to 50 seconds, must be finite and positive, and cannot disable the deadline.
+Long-running index operator commands are outside this scope through `ToolSpec.deadline`.
+
+Before each actual HTTP attempt, retry wait and traversal work-start checkpoint, remaining
+time is checked. Request and match operations use the smaller of their own timeout and the
+remaining budget. Success and HTTP error bodies use bounded-progress chunk reads with checks
+after each chunk; response-size limits and response closing still apply. A retry wait must fit
+in full: never sleep past the deadline or retry earlier than Retry-After permits. DNS resolution
+and connection setup are bounded only by the per-request timeout, so this is an elapsed-time
+budget, not hard real-time; no detached worker continues after a timeout response.
+One stalled body read can overrun the deadline by at most the socket timeout chosen at request
+open: `min(timeout, remaining)`, where `timeout` is `NCI_SI_TIMEOUT_SECONDS` or, for matching,
+`NCI_SI_MATCH_TIMEOUT_SECONDS`. Connection-level timeout refresh is deferred: no mid-body stall
+has been observed, and HTTP/HTTPS connection subclasses would add TLS-sensitive transport
+complexity. Measure recorded EVS/caDSR live timings for stalls before building that refresh.
+
+Deadline exhaustion follows the one error path as `upstream_unavailable`, with correlation,
+retry guidance, platform where known and the actual total outbound attempts started across
+the call. Ordinary request or match timeout that ends before the deadline remains `timeout`.
+Neighborhood, CLI traversal and parent/child hierarchy preserve existing verified partial
+content on deadline exhaustion; before any start is verified they return the deadline error.
+`pathsToRoot` returns an error, never partial paths. Other upstream failures remain errors.
+The first actual bound remains reported; the deadline never overwrites it;
+otherwise `deadline` uses integer milliseconds for `limit` and `reached`. Per-kind omissions
+are numeric lower bounds with `exact: false`, zero when no positive minimum is known.
+Deadline-partial hierarchy has no `nextCursor` and never claims replay is complete. Ask for
+less depth or fewer relationship kinds, or retry.
+
+`validation.py`'s `TEXT_LIMITS` supplies per-field Unicode-code-point limits published as
+`maxLength` in `inputSchema`; `MAX_TEXT_TARGET_BYTES` separately caps the complete encoded
+URL path/query at 7,000 bytes, including filters and pins. Excess caller input is
+`invalid_request`, never shortened; upstream content is unchanged. The field-specific reasons,
+evidence and remeasurement criteria live in `spec/tools.yaml` and the
+[QUICKSTART limits table](QUICKSTART.md#limits-and-reasons).
 
 ### An indexed search call
 

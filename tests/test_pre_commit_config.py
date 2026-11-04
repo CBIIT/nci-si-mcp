@@ -148,6 +148,16 @@ class PrePushTestHookTest(unittest.TestCase):
                 },
                 common
                 | {
+                    "id": "installer-requirements",
+                    "name": "installer requirements are current",
+                    "entry": "pdm export -G server -G build --no-default "
+                    "-o src/nci_si_mcp/server-requirements.txt",
+                    "pass_filenames": False,
+                    "files": r"^(pyproject\.toml|pdm\.lock|"
+                    r"src/nci_si_mcp/server-requirements\.txt)$",
+                },
+                common
+                | {
                     "id": "complexity",
                     "name": "cyclomatic complexity below 8",
                     "entry": "pdm run python scripts/validation/check_complexity.py",

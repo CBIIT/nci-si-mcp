@@ -6,10 +6,9 @@ from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
-from fakes import FakeSSIS
+from fakes import FakeSSIS, primary_element
 from nci_si_mcp.cli import build_parser
 from nci_si_mcp.evs import EVSClient
-from test_primary_api import primary_element
 from test_seam import NCIT, element, gdc_map
 from test_server import ServerFixture
 

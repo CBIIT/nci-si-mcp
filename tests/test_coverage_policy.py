@@ -75,10 +75,10 @@ class CoveragePolicyTest(unittest.TestCase):
             server,
             {
                 "name": "Report coverage against the aim",
-                "run": "total=\"$(pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py' --format=total)\"\n"
-                'echo "Coverage ${total}% (the aim is above 97%)" >> "$GITHUB_STEP_SUMMARY"\n'
-                "if awk -v total=\"$total\" 'BEGIN { exit !(total <= 97) }'; then\n"
-                '  echo "::warning title=Coverage is not above 97%::${total}%. Cover the untested behaviour; do not pad."\nfi\n',
+                "run": "total=\"$(pdm run coverage report --include='*/src/nci_si_mcp/*,*/src/ncit_index/*,*/scripts/*' --omit='*/scripts/companion_entry.py' --fail-under=0 --format=total)\"\n"
+                'echo "Coverage ${total}% (the aim is above 98%)" >> "$GITHUB_STEP_SUMMARY"\n'
+                "if awk -v total=\"$total\" 'BEGIN { exit !(total <= 98) }'; then\n"
+                '  echo "::warning title=Coverage is not above 98%::${total}%. Cover the untested behaviour; do not pad."\nfi\n',
             },
         )
         self.assertEqual(
@@ -88,9 +88,9 @@ class CoveragePolicyTest(unittest.TestCase):
                 "run": "pdm run coverage combine --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest selftest-coverage/*/.coverage\n"
                 "pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --include='*/acceptance/src/*'\n"
                 "total=\"$(pdm run coverage report --rcfile=acceptance/pyproject.toml --data-file=.coverage-selftest --include='*/acceptance/src/*' --format=total)\"\n"
-                'echo "Self-test coverage ${total}% (the aim is above 97%)" >> "$GITHUB_STEP_SUMMARY"\n'
-                "if awk -v total=\"$total\" 'BEGIN { exit !(total <= 97) }'; then\n"
-                '  echo "::warning title=Self-test coverage is not above 97%::${total}%. Cover the untested behaviour; do not pad."\nfi\n',
+                'echo "Self-test coverage ${total}% (the aim is above 98%)" >> "$GITHUB_STEP_SUMMARY"\n'
+                "if awk -v total=\"$total\" 'BEGIN { exit !(total <= 98) }'; then\n"
+                '  echo "::warning title=Self-test coverage is not above 98%::${total}%. Cover the untested behaviour; do not pad."\nfi\n',
             },
         )
         self.assertEqual(
@@ -116,10 +116,22 @@ class CoveragePolicyTest(unittest.TestCase):
     def test_documented_thresholds_match_the_gate(self):
         minimum = floor("pyproject.toml")
         expected = {
-            "AGENTS.md": f"**Coverage: the checked minimum is {minimum}%, the aim is above 97%.**",
-            "CONTRIBUTING.md": f"**Coverage: {minimum}% is the checked minimum, above 97% is the aim.**",
-            "docs/evidence-contract.md": f"The existing {minimum}% floor and above-97% aim apply",
+            "AGENTS.md": f"**Coverage: the checked minimum is {minimum}%, the aim is above 98%.**",
+            "CONTRIBUTING.md": f"**Coverage: {minimum}% is the checked minimum, above 98% is the aim.**",
+            "docs/evidence-contract.md": (
+                f"CI's enforced {minimum}% floors cover both the combined core-and-scripts "
+                "measurement and the two core packages separately"
+            ),
         }
         for name, statement in expected.items():
             with self.subTest(name=name):
-                self.assertIn(statement, (ROOT / name).read_text())
+                document = " ".join((ROOT / name).read_text().split())
+                self.assertIn(statement, document)
+
+        for name in ("AGENTS.md", "CONTRIBUTING.md"):
+            with self.subTest(name=name):
+                document = " ".join((ROOT / name).read_text().split())
+                self.assertIn(
+                    "CI checks both the combined core-and-scripts and core-only minimums",
+                    document,
+                )

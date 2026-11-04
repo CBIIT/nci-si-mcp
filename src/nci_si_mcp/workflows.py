@@ -64,7 +64,11 @@ def _ground_registry(context: Context, requested: str | None) -> None:
 def _text_code(context: Context, text: str, selected: ReleaseContext) -> str:
     require("search_concepts")
     pin = None if implicit_selection() else selected.version
-    found = content.search_concepts(context, "ncit", text, pin)["results"]
+    try:
+        found = content.search_concepts(context, "ncit", text, pin)["results"]
+    except InputValidationError as exc:
+        # Fixed options, validated release/text and no cursor leave only query refusal here.
+        raise InputValidationError(str(exc), "text") from exc
     if not found:
         raise PlatformError(
             "not_found", "No concept matches. Try other text or give a conceptCode."
@@ -166,6 +170,8 @@ def ground_value(
     Representation-term use is not covered by this route, so absence does not establish non-use.
 
     registryRelease is left unset today (C-1).
+    Text is bounded by its inputSchema maxLength; longer input is refused with invalid_request
+    before any upstream or index work, never shortened.
 
     Returns the concept, dataElements, permissibleValues and, with commons, storedValues; every
     joined record names both content states. Each hop holds at most 1000 results; a cut reports
@@ -180,6 +186,8 @@ def ground_value(
     require_operation("ground_value", {"text": text, "commons": commons})
     if release is not None:
         validate_identifier(release, RELEASE_FORM, "release")
+    if text is not None:
+        content._search_target(context, "ncit", release, text, "lexical", 10, "text")
     with budgeted(current_budget() or Budget()):
         _ground_registry(context, registryRelease)
         selected = seam._selected(context, release)
@@ -249,6 +257,8 @@ def harmonize_data_dictionary(
     in one call.
 
     registryRelease is left unset today (C-1); every match names the same registry state.
+    Each column name, description and sample value is bounded by its inputSchema maxLength;
+    longer input is refused with invalid_request before any upstream work, never shortened.
 
     Returns the columns in caller order, each with every platform match and its aligned sample
     values, plus the names that matched nothing. Results are computed from the text given.
