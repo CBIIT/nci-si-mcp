@@ -529,8 +529,11 @@ class DocumentationTest(unittest.TestCase):
         self.assertEqual(set(setting.findall(QUICKSTART)), read_by_the_code)
 
     def test_quickstart_names_the_licence_key_header_and_the_wait_cap_the_client_uses(self):
-        row = next(line for line in QUICKSTART.splitlines() if "NCI_SI_EVS_LICENSE_KEY" in line)
-        backoff = next(line for line in QUICKSTART.splitlines() if "RETRY_BACKOFF" in line)
+        table = section(QUICKSTART, "Settings")
+        row = next(
+            line for line in table.splitlines() if line.startswith("| `NCI_SI_EVS_LICENSE_KEY` |")
+        )
+        backoff = next(line for line in table.splitlines() if "RETRY_BACKOFF" in line)
 
         self.assertIn("`X-EVSRESTAPI-License-Key`", row)
         self.assertEqual(LICENSE_KEY_HEADER, "X-EVSRESTAPI-License-Key")
