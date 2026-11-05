@@ -845,8 +845,25 @@ class LocalRunWorkflowTest(unittest.TestCase):
         by_name = run_by_name()
         self.assertIn(DOCUMENTED_INDEX_INSTALL, documented_commands("docs/local-guide.md"))
         install = by_name["Install released server and optional index environments"]
-        self.assertIn(CI_INDEX_INSTALL, install)
-        self.assertIn(CI_SERVER_INSTALL, install)
+        self.assertEqual(
+            install,
+            "\n".join(
+                (
+                    'INDEX_VENV="$RUNNER_TEMP/index-venv"',
+                    'SERVER_VENV="$RUNNER_TEMP/server-venv"',
+                    'python3.14 -m venv "$SERVER_VENV"',
+                    CI_SERVER_INSTALL,
+                    'echo "SERVER_VENV=$SERVER_VENV" >> "$GITHUB_ENV"',
+                    'if [ "$WITH_INDEX" = "true" ]; then',
+                    '  python3.14 -m venv "$INDEX_VENV"',
+                    "  " + CI_INDEX_INSTALL,
+                    '  echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"',
+                    "fi",
+                    'echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"',
+                    "",
+                )
+            ),
+        )
         self.assertEqual(
             by_name["Select the released index source (CI only)"],
             "\n".join(
