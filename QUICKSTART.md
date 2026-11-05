@@ -19,6 +19,8 @@ configuration proposals, including startup-settings snapshots
 ### Platforms and prerequisites
 
 Supported platforms: macOS (primary) and Linux, with a POSIX shell. Windows is not supported.
+Python 3.14 is the validated development, CI and release baseline; the minimum keeps these
+environments aligned rather than promising compatibility with older interpreters.
 
 | Need | For | How to get it |
 |---|---|---|
@@ -120,13 +122,13 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_PROFILE` | `unified` | `evs`, `cadsr` or `unified`. Selects twelve EVS tools, ten caDSR tools, or all 29 tools including cross-domain and workflows. Unified also exposes four furnished prompts: the templates of `spec/prompts.yaml` with the arguments substituted, which make no content calls. Resources follow their group. CLI commands remain available in every profile |
 | `NCI_SI_UPSTREAM_MODE` | `live` | `live` or `fixture`; selects the five base URLs below as a set (next paragraph) |
 | `NCI_SI_EVS_BASE_URL` | `https://api-evsrest.nci.nih.gov` | EVS REST endpoint (`http` or `https`) |
-| `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint |
+| `NCI_SI_EVS_FHIR_BASE_URL` | `https://api-evsrest.nci.nih.gov/fhir/r4` | EVS FHIR endpoint; an operator-set URL must be on the platform that issued the EVS licence key, which is sent to both REST and FHIR |
 | `NCI_SI_CADSR_BASE_URL` | `https://cadsrapi.cancer.gov/rad` | caDSR REST endpoint |
 | `NCI_SI_CADSR_FTP_URL` | `https://cadsr.nci.nih.gov/ftp/caDSR_Downloads` | caDSR export (FTP) endpoint |
 | `NCI_SI_SSIS_SPARQL_URL` | `https://shared.semantics.cancer.gov` | Shared Semantic Infrastructure SPARQL endpoint |
 | `NCI_SI_RELEASE_CHANNEL` | `monthly` | The default channel for discovery and CLI diagnostics: `monthly` or `weekly`. The release is the one EVS row that is latest and tagged with the channel; with none or several the call fails with a release-not-available error. MCP content tools use the release the caller supplies |
 | `NCI_SI_EXCLUSION_ROLE_CODES` | `R135,R136,R137,R138,R139,R140,R141,R142` | NCIt exclusion roles, a comma-separated list of codes (`R` and digits); checked against the requested release catalogue on each relationship listing or neighborhood call |
-| `NCI_SI_EVS_LICENSE_KEY` | unset | EVS licence key, sent as the `X-EVSRESTAPI-License-Key` header on EVS requests and to no other host; at least 8 characters, so redaction never matches unrelated text. A credential: never logged, in no error message or string form |
+| `NCI_SI_EVS_LICENSE_KEY` | unset | EVS licence key, sent as the `X-EVSRESTAPI-License-Key` header on EVS REST and FHIR requests, bound to each configured endpoint origin; at least 8 characters, so redaction never matches unrelated text. A credential: never logged, in no error message or string form |
 | `NCI_SI_CADSR_CREDENTIAL` | unset | caDSR credential as `user:password` (the password at least 8 characters); handled like the licence key |
 | `NCI_SI_TIMEOUT_SECONDS` | `30` | Per-request timeout |
 | `NCI_SI_MATCH_TIMEOUT_SECONDS` | `45` | Timeout of a caDSR match request |
@@ -359,7 +361,11 @@ Result:
 
 The example token is illustrative. Continue with the actual returned `nextCursor` as `cursor`,
 keeping the other arguments unchanged; the final page has no `nextCursor`. Pages are not
-truncation. An index activation, even for the same release, expires indexed search cursors.
+truncation. Cursors are advisory and unsigned; their arguments, release and any indexed build
+identity are revalidated on every use. An index activation, even for the same release,
+expires indexed search cursors. Each indexed search page rescans the corpus. Stateless HTTP
+resolves an omitted release on every call; pass `release` explicitly to avoid repeated
+discovery and keep content stable (X-22, A3.1).
 
 ### List the subtypes of a concept
 

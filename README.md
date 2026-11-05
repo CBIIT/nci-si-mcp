@@ -42,6 +42,9 @@ pdm run acceptance           # the acceptance suite against it, on recorded upst
 ```
 
 [Platforms and prerequisites](QUICKSTART.md#platforms-and-prerequisites) lists what to install first.
+Python 3.14 is the validated development, CI and release baseline; older interpreters are
+outside the supported configuration. [GitHub Releases](https://github.com/CBIIT/nci-sip-mcp/releases)
+are the changelog.
 A plain `pdm run acceptance` skips prepared, secured and optional registry-release checks.
 The [complete fixture command](CONTRIBUTING.md#complete-fixture-ratchet) supplies preparation, the security
 adapter and `NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=required` to run all cases.

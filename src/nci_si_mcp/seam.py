@@ -76,6 +76,7 @@ def _date(value: Any, surface: str) -> str:
         return datetime.fromisoformat(value).date().isoformat()
     except ValueError:
         try:
+            # The recorded English month spelling assumes the server's C/English locale.
             return datetime.strptime(value, "%B %d, %Y").date().isoformat()
         except ValueError:
             _malformed("dataset date", surface)

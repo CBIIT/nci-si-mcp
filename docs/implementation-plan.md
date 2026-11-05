@@ -584,7 +584,9 @@ boundary/error/concurrency assertions. Document new behavior in the same PR, inc
 stories, examples and architecture/deployment changes. The #176 documentation-only change moves
 no expected acceptance outcomes and does not approve the separate furnished baseline.
 
-The owner deferred #180 and the remaining runtime/adoption work of #181 to Backlog on
-8 October 2026. The [research strategy](deferred-capabilities.md) records why, what would justify
-re-entry and the required decisions. The [Phase 6 assurance record](phase-6-assurance.md) covers
-the delivered scope; neither backlog issue is closed by the Phase 6 release.
+After the 8 October 2026 deferral, #180 was closed as not planned: no demonstrated client need
+justifies server-side generation. Reopening requires a demonstrated need clients cannot meet
+and an approved A9.2 amendment. #181 remains open in the Cloud One wxMCP evaluation milestone;
+runtime/adoption work is still deferred. The [research strategy](deferred-capabilities.md)
+records re-entry decisions. The [Phase 6 assurance record](phase-6-assurance.md) covers the
+delivered scope; the Phase 6 release shipped neither capability.

@@ -831,11 +831,13 @@ class DocumentationTest(unittest.TestCase):
             [],
         )
 
-    def test_the_code_of_conduct_holds_the_report_address_and_the_entry_documents_link_to_it(self):
+    def test_contact_address_is_limited_to_conduct_and_security_and_entry_documents_link_conduct(
+        self,
+    ):
         address = "hannes.niedner@nih.gov"
         holders = [name for name in tracked_documents() if address in read(name)]
 
-        self.assertEqual(holders, ["CODE_OF_CONDUCT.md"])
+        self.assertEqual(holders, ["CODE_OF_CONDUCT.md", "SECURITY.md"])
         self.assertEqual(
             [
                 name

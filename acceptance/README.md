@@ -196,6 +196,9 @@ fails every dependent test; a failed scenario state change fails the test that n
 The endpoint wait ends at once on an HTTP 401 or 403. Failures retain their diagnostic reason,
 with credentials withheld, rather than aborting the run or counting as `not_live`.
 
+The fixture server's `/_log` endpoint returns recorded request headers, including credential
+headers. Keep it local and use test credentials only; treat exported request logs as sensitive.
+
 ## The report
 
 `--report` writes one JSON report per run; `nci_si_acceptance.report` renders it as the per-tool
