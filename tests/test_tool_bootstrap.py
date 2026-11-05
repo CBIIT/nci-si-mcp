@@ -3,6 +3,7 @@
 import json
 import os
 import subprocess
+import sys
 import unittest
 import venv
 from pathlib import Path
@@ -39,6 +40,33 @@ for name, required in expected.items():
     if installed != required:
         raise SystemExit("Unsupported PDM tool distribution")
 print(json.dumps(sorted((item.metadata["Name"], item.version) for item in distributions())))
+PYTHON
+"""
+PIP_REPORT_RUN = r""""$PDM_TOOL_HOME/venv/bin/python" - <<'PYTHON'
+import json
+import os
+import re
+from pathlib import Path
+
+versions = []
+try:
+    source = Path(os.environ["PDM_TOOL_PIP_LOG"]).open()
+except FileNotFoundError:
+    raise SystemExit("Missing bootstrap pip version evidence") from None
+with source:
+    for line in source:
+        if " Using pip " not in line:
+            continue
+        match = re.search(
+            r" Using pip ([0-9]+(?:\.[0-9]+)+) from .+ \(python [0-9]+\.[0-9]+\)\s*$",
+            line,
+        )
+        if match is None:
+            raise SystemExit("Unrecognized bootstrap pip version evidence")
+        versions.append(match.group(1))
+if len(versions) < 2:
+    raise SystemExit("Incomplete bootstrap pip version evidence")
+print(json.dumps(versions))
 PYTHON
 """
 GUARD_ENV = {"PDM_TOOL_HOME": "${{ runner.temp }}/pdm-tool"}
@@ -141,3 +169,63 @@ class ToolBootstrapTest(unittest.TestCase):
         result = self.execute(self.supported(), wrong_interpreter=True)
         self.assertEqual(result.returncode, 1)
         self.assertEqual(result.stderr, "Unexpected PDM tool interpreter\n")
+
+
+class BootstrapPipEvidenceTest(unittest.TestCase):
+    def execute(self, content):
+        setup = yaml.safe_load((ROOT / ".github/actions/setup/action.yml").read_text())
+        found = [
+            s for s in setup["runs"]["steps"] if s.get("name") == "Record bootstrap pip versions"
+        ]
+        self.assertEqual(
+            len(found), 1, "Bootstrap pip evidence must be recorded before installation"
+        )
+        with TemporaryDirectory() as directory:
+            home = Path(directory)
+            (home / "venv/bin").mkdir(parents=True)
+            (home / "venv/bin/python").symlink_to(sys.executable)
+            log = home / "pip.log"
+            if content is not None:
+                log.write_text(content)
+            return subprocess.run(  # noqa: S603 - execute the actual selective reporter against owned local records.
+                ["/bin/bash", "-euo", "pipefail", "-c", found[0]["run"]],
+                env=os.environ | {"PDM_TOOL_HOME": str(home), "PDM_TOOL_PIP_LOG": str(log)},
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=10,
+            )
+
+    def test_only_executing_pip_versions_are_reported(self):
+        result = self.execute(
+            "private-index-or-credential-canary\n"
+            "2026-11-05T12:13:19,528 Using pip 26.2.2 from /tool/site-packages/pip (python 3.14)\n"
+            "unrelated installation details\n"
+            "2026-11-05T12:13:20,528 Using pip 26.2.2 from /tool/site-packages/pip (python 3.14)\n"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, '["26.2.2", "26.2.2"]\n')
+        self.assertEqual(result.stderr, "")
+
+    def test_missing_empty_or_incomplete_evidence_fails_visibly(self):
+        for content, reason in (
+            (None, "Missing"),
+            ("", "Incomplete"),
+            ("unrelated installation details\n", "Incomplete"),
+            ("time Using pip 26.2.2 from /tool/pip (python 3.14)\n", "Incomplete"),
+        ):
+            with self.subTest(content=content):
+                result = self.execute(content)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stderr, reason + " bootstrap pip version evidence\n")
+                self.assertEqual(result.stdout, "")
+
+    def test_unrecognized_pip_evidence_is_not_silently_dropped(self):
+        result = self.execute(
+            "time Using pip 26.2.2 from /tool/pip (python 3.14)\n"
+            "time Using pip unknown private-canary\n"
+            "time Using pip 26.2.2 from /tool/pip (python 3.14)\n"
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stderr, "Unrecognized bootstrap pip version evidence\n")
+        self.assertEqual(result.stdout, "")

@@ -14,7 +14,7 @@ from tempfile import TemporaryDirectory
 import tomli_w
 import yaml
 
-from test_tool_bootstrap import GUARD_ENV, GUARD_RUN
+from test_tool_bootstrap import GUARD_ENV, GUARD_RUN, PIP_REPORT_RUN
 
 ROOT = Path(__file__).resolve().parents[1]
 RELEASE = ROOT / ".github/workflows/release.yml"
@@ -150,6 +150,7 @@ class ReleaseWorkflowTest(unittest.TestCase):
                             "PDM_NO_FROZEN_DEPS": "1",
                             "PDM_DEPS": "hishel==1.2.1,unearth==0.18.2,virtualenv==21.15.2",
                             "PIP_UPLOADED_PRIOR_TO": "P5D",
+                            "PIP_LOG": "${{ runner.temp }}/pdm-bootstrap-pip.log",
                         },
                         "with": {
                             "python-version": "3.14",
@@ -163,6 +164,15 @@ class ReleaseWorkflowTest(unittest.TestCase):
                         "env": GUARD_ENV,
                         "run": GUARD_RUN,
                         "shell": "bash",
+                    },
+                    {
+                        "name": "Record bootstrap pip versions",
+                        "env": {
+                            "PDM_TOOL_HOME": "${{ runner.temp }}/pdm-tool",
+                            "PDM_TOOL_PIP_LOG": "${{ runner.temp }}/pdm-bootstrap-pip.log",
+                        },
+                        "shell": "bash",
+                        "run": PIP_REPORT_RUN,
                     },
                     {
                         "if": "inputs.release-only != 'true'",

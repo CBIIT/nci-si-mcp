@@ -413,6 +413,8 @@ REMOVALS = {
 # image ships take over unnoticed.
 IN_USE_PYTHON_MACOS = r"""fail() { echo "::error::$1"; exit 1; }
 [ "$(command -v pdm)" = "$(brew --prefix)/bin/pdm" ] || fail "pdm is $(command -v pdm), not the Homebrew install"
+tool_python="$(brew --prefix pdm)/libexec/bin/python"
+"$tool_python" -c 'import json; from importlib.metadata import distributions; print(json.dumps(sorted((item.metadata["Name"], item.version) for item in distributions())))'
 version="$(pdm run python -c "import sys; print('%d.%d' % sys.version_info[:2])" | tail -n 1)"
 [ "$version" = "3.14" ] || fail "the project runs Python $version, not 3.14"
 base="$(pdm run python -c "import sys; print(sys.base_prefix)" | tail -n 1)"
@@ -422,6 +424,8 @@ case "$base" in "$formula"/*) ;; *) fail "the project's Python is $base, not Hom
 
 IN_USE_PYTHON_LINUX = r"""fail() { echo "::error::$1"; exit 1; }
 [ "$(command -v pdm)" = "$HOME/.local/bin/pdm" ] || fail "pdm is $(command -v pdm), not the uv tool install"
+tool_python="$(uv tool dir)/pdm/bin/python"
+"$tool_python" -c 'import json; from importlib.metadata import distributions; print(json.dumps(sorted((item.metadata["Name"], item.version) for item in distributions())))'
 version="$(pdm run python -c "import sys; print('%d.%d' % sys.version_info[:2])" | tail -n 1)"
 [ "$version" = "3.14" ] || fail "the project runs Python $version, not 3.14"
 base="$(pdm run python -c "import sys; print(sys.base_prefix)" | tail -n 1)"
