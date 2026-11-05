@@ -7,6 +7,7 @@ import subprocess
 import tomllib
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
+from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import call, patch
@@ -64,6 +65,11 @@ def registry_images(path):
 
 
 class DependencyLockPolicyTest(unittest.TestCase):
+    def test_lock_cutoff_tracks_an_independently_changed_shared_minimum_age(self):
+        module = lock_script()
+        with patch("scripts.dependency_age.MINIMUM_AGE", timedelta(days=7)):
+            self.assertEqual(module.command(ROOT), ["pdm", "lock", "--exclude-newer", "7d"])
+
     def test_lock_command_uses_only_the_relative_five_day_cutoff(self):
         project = tomllib.loads((ROOT / "pyproject.toml").read_text())
         scripts = project["tool"]["pdm"]["scripts"]
