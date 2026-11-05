@@ -5,6 +5,14 @@ Report a vulnerability privately through
 Please do not open a public issue for it. The NCI SI MCP project coordinator receives the
 report and answers it there.
 
+Only the latest release is supported. Response targets are to acknowledge a report within
+5 business days and provide an initial assessment (validity and severity) within 10 business
+days. For a confirmed High or Critical finding, the target is a fix or published advisory
+within 30 days of confirmation; lower severities are scheduled into a milestone.
+
+If GitHub private reporting is unavailable, contact the NCI SI MCP project coordinator at
+[hannes.niedner@nih.gov](mailto:hannes.niedner@nih.gov).
+
 What the server holds and sends upstream (the EVS licence key, the caDSR credential) and how
 it keeps them out of logs, errors and results is specified in
 [docs/specification.md](docs/specification.md) (A7.5).

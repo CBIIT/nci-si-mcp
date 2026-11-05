@@ -54,6 +54,9 @@ cold and 2-second warm targets, so float16 storage was not attempted. New files 
 
 ## Reproducing the evidence
 
+The [current operator guide](../ncit-semantic-index.md) separates today's build procedure and
+revision-enforcement limits from this historical calibration.
+
 Use Python 3.14 with the `index` and `embeddings` extras and a separate data directory.
 Select the `sentence-transformers` provider and
 `cambridgeltl/SapBERT-from-PubMedBERT-fulltext`; freeze the model revision above in the

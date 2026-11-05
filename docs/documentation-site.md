@@ -6,25 +6,20 @@ to the MCP process or an operational results store. Local use requires no instit
 
 ## Build and preview
 
-From the repository root, with the [prerequisites](../QUICKSTART.md#platforms-and-prerequisites) installed (Node.js 24 or newer, with npm):
+Use the [host documentation sequence](local-guide.md#host-documentation-and-companion) from a
+repository checkout with [Python/PDM prerequisites](../QUICKSTART.md#platforms-and-prerequisites).
+Node.js 24 or newer, with npm, is required to build the local site assets.
+It installs the docs tools, builds the local assets and site, and previews it on loopback port 8080.
+The portal command in that sequence is optional when you only need documentation. Open
+`http://127.0.0.1:8080/`; stop the preview with Ctrl+C. For container operation, follow the
+[separate component sequence](local-guide.md#documentation-and-companion-containers).
 
-```bash
-pdm install -G docs
-npm ci --prefix docs/site-assets --ignore-scripts
-npm audit --prefix docs/site-assets --audit-level high
-npm run build --prefix docs/site-assets
-pdm run docs-build
-pdm run python -m http.server 8000 --bind 127.0.0.1 --directory tmp/docs-site
-```
-
-The build records the installed package version, which `pdm install` derives from the nearest
-tag: on a clone without tags, run `git fetch --tags origin && pdm install` first, or the build
-refuses the development fallback version.
-
-Open `http://127.0.0.1:8000/`. Stop the preview with Ctrl+C. Builds require a new output
-directory: for another preview use `pdm run docs-build --output tmp/docs-site-next`, or remove
-your previous generated directory after stopping its preview. Existing output is never deleted
-by the builder. No GitHub Pages, DNS or cloud settings are changed by these commands.
+The build records the installed package version, derived from the nearest tag. On a clone
+without tags, run `git fetch --tags origin && pdm install` first; the builder refuses the fallback
+version. Each build needs a new output directory: use
+`pdm run docs-build --output tmp/docs-site-next` for another build, then give that directory to
+the preview server. Remove an old generated directory only after stopping its preview. The
+builder never deletes existing output. No GitHub Pages, DNS or cloud settings are changed.
 
 Zensical is pinned in the docs development group in `pdm.lock`. Mermaid is pinned separately
 in `docs/site-assets/package-lock.json`; npm lifecycle scripts are disabled. Neither is a core

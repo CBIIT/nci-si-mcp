@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -295,6 +296,103 @@ class OperationsDocumentationTest(unittest.TestCase):
 
 
 class DocumentationTest(unittest.TestCase):
+    def test_camel_case_parameter_ignore_is_limited_to_spec_spelling_modules(self):
+        config = tomllib.loads((ROOT / "pyproject.toml").read_text())
+        per_file = config["tool"]["ruff"]["lint"]["per-file-ignores"]
+        self.assertEqual(
+            per_file,
+            {
+                "src/nci_si_mcp/seam.py": ["N803"],
+                "src/nci_si_mcp/content.py": ["N803"],
+                "src/nci_si_mcp/cadsr_matching.py": ["N803"],
+                "src/nci_si_mcp/workflows.py": ["N803"],
+                "src/nci_si_mcp/cadsr_content.py": ["N803"],
+                "src/ncit_index/embeddings.py": ["PLC0415"],
+                "src/nci_si_mcp/server.py": ["PLC0415"],
+                "src/nci_si_mcp/transport.py": ["PLC0415"],
+                "src/ncit_index/scoring.py": ["PLC0415"],
+                "scripts/**/*.py": ["T20"],
+                "acceptance/{tests,selftests}/**/*.py": ["S101"],
+            },
+        )
+        lint = config["tool"]["ruff"]["lint"]
+        self.assertEqual(set(lint), {"select", "ignore", "per-file-ignores"})
+        self.assertEqual(lint["ignore"], ["PLR0913", "PLR0917", "TC001", "TC002", "TC003"])
+
+    def test_ruff_enforces_effective_parameter_spelling_outside_spec_modules(self):
+        paths = [
+            ("src/nci_si_mcp/seam.py", 0),
+            ("src/nci_si_mcp/content.py", 0),
+            ("src/nci_si_mcp/cadsr_matching.py", 0),
+            ("src/nci_si_mcp/workflows.py", 0),
+            ("src/nci_si_mcp/cadsr_content.py", 0),
+            ("src/nci_si_mcp/config.py", 1),
+        ]
+        for name, exit_code in paths:
+            with self.subTest(path=name):
+                result = subprocess.run(  # noqa: S603 - real project Ruff configuration.
+                    [
+                        sys.executable,
+                        "-m",
+                        "ruff",
+                        "check",
+                        "--no-cache",
+                        "--output-format",
+                        "json",
+                        "--stdin-filename",
+                        name,
+                        "-",
+                    ],
+                    cwd=ROOT,
+                    input="def public(camelCase):\n    return camelCase\n",
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                diagnostic = {
+                    "cell": None,
+                    "code": "N803",
+                    "end_location": {"column": 21, "row": 1},
+                    "filename": str(ROOT / name),
+                    "fix": None,
+                    "location": {"column": 12, "row": 1},
+                    "message": "Argument name `camelCase` should be lowercase",
+                    "name": "invalid-argument-name",
+                    "noqa_row": 1,
+                    "severity": "error",
+                    "url": "https://docs.astral.sh/ruff/rules/invalid-argument-name",
+                }
+                self.assertEqual(result.returncode, exit_code)
+                self.assertEqual(result.stderr, "")
+                self.assertEqual(json.loads(result.stdout), [diagnostic] if exit_code else [])
+
+    def test_effective_git_attributes_preserve_text_fonts_and_generated_documents(self):
+        attributes = ["text", "eol", "binary", "diff", "merge", "linguist-generated"]
+        paths = [
+            "README.md",
+            "docs/site-assets/fonts/open-sans.ttf",
+            "docs/specification.md",
+            "docs/behavioural-tests.md",
+            "docs/threat-model.md",
+        ]
+        result = subprocess.run(  # noqa: S603 - Git is the effective attribute boundary.
+            ["git", "check-attr", "-z", *attributes, "--", *paths],  # noqa: S607
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        text = ["auto", "lf", "unspecified", "unspecified", "unspecified", "unspecified"]
+        generated = ["auto", "lf", "unspecified", "unspecified", "unspecified", "set"]
+        font = ["unset", "lf", "set", "unset", "unset", "unspecified"]
+        expected = [
+            value
+            for path, values in zip(paths, [text, font, generated, generated, text], strict=True)
+            for attribute, setting in zip(attributes, values, strict=True)
+            for value in (path, attribute, setting)
+        ]
+        self.assertEqual(result.stdout.split("\0")[:-1], expected)
+
     def test_typing_conventions_are_consulted_before_python_and_in_type_review(self):
         agents = read("AGENTS.md")
         self.assertIn(
@@ -570,14 +668,16 @@ class DocumentationTest(unittest.TestCase):
         for command in ("search", "lookup"):
             arguments = build_parser().parse_args([command, "x", "--include-raw"])
             self.assertTrue(arguments.include_raw)
-        # Every command-line flag the guide names is one of the CLI.
+        # Setup also documents uv/PDM flags; its exact commands belong to the Local run
+        # contracts. Check the server's runtime guidance against the actual server CLI.
+        runtime_guide = QUICKSTART.split("\n## Connect a client\n", 1)[1]
         (subcommands,) = build_parser()._subparsers._group_actions
         flags = {
             flag
             for parser in subcommands.choices.values()
             for flag in parser._option_string_actions
         }
-        self.assertLessEqual(set(re.findall(r"(?<![\w-])--[a-z][a-z-]+", QUICKSTART)), flags)
+        self.assertLessEqual(set(re.findall(r"(?<![\w-])--[a-z][a-z-]+", runtime_guide)), flags)
 
     def test_quickstart_cli_section_names_subcommands_the_cli_has(self):
         (subcommands,) = build_parser()._subparsers._group_actions
@@ -710,7 +810,7 @@ class DocumentationTest(unittest.TestCase):
         self.assertTrue(target_interface.is_file())
         self.assertIn(
             "check prerequisites → install → configure → verify",
-            target_interface.read_text(encoding="utf-8"),
+            " ".join(target_interface.read_text(encoding="utf-8").split()),
         )
 
     def test_every_repository_url_in_the_documents_names_this_repository(self):
@@ -767,9 +867,10 @@ class DocumentationTest(unittest.TestCase):
         self.assertEqual(
             commands,
             [
-                '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"',
-                '"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"',
-                '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"',
+                '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"',
+                '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${LEGACY_RELEASE_TAG}"',
+                '"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-sip-mcp@vX.Y.Z"',
+                '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-sip-mcp@vX.Y.Z"',
             ],
         )
 
@@ -803,11 +904,13 @@ class DocumentationTest(unittest.TestCase):
             [],
         )
 
-    def test_the_code_of_conduct_holds_the_report_address_and_the_entry_documents_link_to_it(self):
+    def test_contact_address_is_limited_to_conduct_and_security_and_entry_documents_link_conduct(
+        self,
+    ):
         address = "hannes.niedner@nih.gov"
         holders = [name for name in tracked_documents() if address in read(name)]
 
-        self.assertEqual(holders, ["CODE_OF_CONDUCT.md"])
+        self.assertEqual(holders, ["CODE_OF_CONDUCT.md", "SECURITY.md"])
         self.assertEqual(
             [
                 name

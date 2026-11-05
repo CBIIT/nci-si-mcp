@@ -103,8 +103,10 @@ generated server capability. It does not establish that no such need exists.
 Actual-model evaluation still needs approved provider/model revision, full-transcript
 data/retention/region/training policy, egress and spend. Live caDSR validation still
 needs credentials. Domain review, natural-language answer support and paired candidate
-evidence remain unmeasured. The owner approved deferral on 8 October 2026;
-[#180](https://github.com/CBIIT/nci-si-mcp/issues/180) remains open in Backlog. The
+evidence remain unmeasured. Following the 8 October 2026 deferral,
+[#180](https://github.com/CBIIT/nci-si-mcp/issues/180) was closed as not planned: no unmet client
+need justifies server-side generation. Reopening requires a demonstrated need clients cannot
+meet and an approved A9.2 amendment. The
 [research strategy](deferred-capabilities.md) defines evidence for reconsideration; this report
 does not approve or ship a pilot. Any later candidate must use paired tasks and comparable model/data/
 release/budgets, and meet separately approved thresholds before shipping.

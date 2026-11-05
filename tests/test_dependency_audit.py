@@ -38,7 +38,14 @@ pdm() {
 
 def audit_block() -> str:
     workflow = yaml.safe_load((ROOT / ".github/workflows/audit.yml").read_text())
-    return workflow["jobs"]["pip-audit"]["steps"][-1]["run"]
+    matches = [
+        step["run"]
+        for step in workflow["jobs"]["pip-audit"]["steps"]
+        if step.get("name") == "Audit every locked dependency group"
+    ]
+    if len(matches) != 1:
+        raise AssertionError("Expected exactly one project dependency audit step")
+    return matches[0]
 
 
 def execute_audit(

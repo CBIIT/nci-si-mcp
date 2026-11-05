@@ -287,6 +287,9 @@ and optional authentication precede this tool invocation (see [transport](docs/t
 
 ### Build a local index
 
+The [operator guide](docs/ncit-semantic-index.md) owns the end-to-end procedure and model rationale;
+this section explains the package boundaries and storage flow.
+
 The local index is interim. The [EVS migration guide](docs/index-migration.md) describes the
 read contract and future handover; a hosted service, HTTP adapter, switch setting and local
 operator retirement are not implemented. Phase 30 changes no caller-visible behavior.

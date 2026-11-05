@@ -9,6 +9,65 @@ from unittest.mock import patch
 
 from scripts.docs_site import build_identity, navigation_pages, stage_pages
 
+PUBLIC_NAVIGATION = [
+    {
+        "Start here": [
+            {"Overview": "README.md"},
+            {"Run locally": "docs/local-guide.md"},
+            {"Installer target interface": "docs/installer-targets.md"},
+            {"Quickstart": "QUICKSTART.md"},
+            {"Domain users and UAT": "docs/user-acceptance.md"},
+            {"Behavioral stories": "docs/behavioural-tests.md"},
+        ]
+    },
+    {
+        "Architecture and deployment": [
+            {"Architecture": "ARCHITECTURE.md"},
+            {"NCIt semantic index": "docs/ncit-semantic-index.md"},
+            {"EVS index migration": "docs/index-migration.md"},
+            {"Content-injection threat model": "docs/threat-model.md"},
+            {"Local and cloud deployment": "docs/deployment.md"},
+            {"Operations and authorization evidence": "docs/operations.md"},
+            {"HTTP transport": "docs/transport.md"},
+            {"Container operations": "docs/container.md"},
+            {"Local companion containers": "docs/companion-containers.md"},
+            {"Caller permissions": "docs/caller-permissions.md"},
+            {"Governed HTTP boundary": "docs/governed-http.md"},
+            {"SI architecture decision": "docs/decisions/001-si-architecture-alignment.md"},
+        ]
+    },
+    {
+        "Contracts and evaluation": [
+            {"Behavior specification": "docs/specification.md"},
+            {"Acceptance suite": "acceptance/README.md"},
+            {"Benchmark definitions": "docs/benchmark.md"},
+            {"Retrieval evaluation": "docs/retrieval-evaluation.md"},
+            {"Evaluation dataset": "docs/evaluation/ncit-v1-notes.md"},
+            {"Assisted task evaluation": "docs/assisted-evaluation.md"},
+            {"Run evidence contract": "docs/evidence-contract.md"},
+            {"Local validation dashboard": "docs/local-validation.md"},
+        ]
+    },
+    {
+        "Contributing and roadmap": [
+            {"Contributing": "CONTRIBUTING.md"},
+            {"Documentation website": "docs/documentation-site.md"},
+            {"Government website assurance": "docs/government-site-assurance.md"},
+            {"Implementation plan": "docs/implementation-plan.md"},
+            {"Portal plan": "docs/portal-plan.md"},
+            {"Deferred capabilities": "docs/deferred-capabilities.md"},
+            {"Gateway assessment": "docs/wxmcp-assessment.md"},
+            {"Upstream contracts": "docs/upstream/README.md"},
+            {"Upstream team responses": "docs/upstream/team-responses-2026-10-08.md"},
+            {"EVS": "docs/upstream/evs.md"},
+            {"caDSR": "docs/upstream/cadsr.md"},
+            {"CDE AI Engine evaluation": "docs/upstream/cadsr-ai-engine.md"},
+            {"Shared SI": "docs/upstream/ssis.md"},
+            {"Shared SI query dependencies": "docs/upstream/ssis-dependencies.md"},
+        ]
+    },
+]
+
 
 class SiteStagingTest(unittest.TestCase):
     def test_domain_user_plan_is_published_from_reviewed_navigation(self):
@@ -21,6 +80,33 @@ class SiteStagingTest(unittest.TestCase):
             (self.destination / "docs/user-acceptance.md").read_text(),
             (root / "docs/user-acceptance.md").read_text(),
         )
+
+    def test_public_navigation_publishes_the_complete_reviewed_reader_paths(self):
+        root = Path(__file__).resolve().parents[1]
+        config = tomllib.loads((root / "docs/site-assets/zensical.toml").read_text())
+        self.assertEqual(config["project"]["nav"], PUBLIC_NAVIGATION)
+        pages = navigation_pages(config["project"]["nav"])
+        self.assertEqual(len(pages), len(set(pages)))
+        stage_pages(root, self.destination, pages)
+        expected_pages = {
+            path
+            for group in PUBLIC_NAVIGATION
+            for section in group.values()
+            for entry in section
+            for path in entry.values()
+        }
+        self.assertEqual(
+            {str(path.relative_to(self.destination)) for path in self.destination.rglob("*.md")},
+            expected_pages,
+        )
+        for name in (
+            "docs/local-guide.md",
+            "docs/installer-targets.md",
+            "docs/ncit-semantic-index.md",
+            "docs/index-migration.md",
+        ):
+            with self.subTest(page=name):
+                self.assertEqual((self.destination / name).read_bytes(), (root / name).read_bytes())
 
     def setUp(self):
         self.directory = TemporaryDirectory()

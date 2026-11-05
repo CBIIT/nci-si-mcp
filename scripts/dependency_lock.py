@@ -4,6 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts import dependency_age
 from scripts.dependency_age import (
     ROOT,
     Fetch,
@@ -15,7 +16,7 @@ from scripts.dependency_age import (
 
 
 def command(root: Path = ROOT, fetch: Fetch = fetch_json) -> list[str]:
-    arguments = ["pdm", "lock", "--exclude-newer", "5d"]
+    arguments = ["pdm", "lock", "--exclude-newer", f"{dependency_age.MINIMUM_AGE.days}d"]
     for name, exception in sorted(read_exceptions(root).items()):
         uploaded = release_upload_time(Package("pypi", name, exception.version), fetch)
         arguments.extend(["--exclude-newer-override", f"{name}={uploaded.isoformat()}"])

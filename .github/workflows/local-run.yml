@@ -164,7 +164,7 @@ jobs:
         if: (matrix.server || matrix.host_docs) && runner.os == 'Linux'
         run: |
           uv python install 3.14
-          uv tool install pdm
+          uv tool install --exclude-newer 5d --with 'hishel==1.2.1' --with 'unearth==0.18.2' --with 'virtualenv==21.15.2' 'pdm==2.29.2'
 
       - name: Install the project
         if: matrix.server || matrix.host_docs
@@ -176,6 +176,8 @@ jobs:
         run: |
           fail() { echo "::error::$1"; exit 1; }
           [ "$(command -v pdm)" = "$(brew --prefix)/bin/pdm" ] || fail "pdm is $(command -v pdm), not the Homebrew install"
+          tool_python="$(brew --prefix pdm)/libexec/bin/python"
+          "$tool_python" -c 'import json; from importlib.metadata import distributions; print(json.dumps(sorted((item.metadata["Name"], item.version) for item in distributions())))'
           version="$(pdm run python -c "import sys; print('%d.%d' % sys.version_info[:2])" | tail -n 1)"
           [ "$version" = "3.14" ] || fail "the project runs Python $version, not 3.14"
           base="$(pdm run python -c "import sys; print(sys.base_prefix)" | tail -n 1)"
@@ -186,14 +188,13 @@ jobs:
         run: |
           fail() { echo "::error::$1"; exit 1; }
           [ "$(command -v pdm)" = "$HOME/.local/bin/pdm" ] || fail "pdm is $(command -v pdm), not the uv tool install"
+          tool_python="$(uv tool dir)/pdm/bin/python"
+          "$tool_python" -c 'import json; from importlib.metadata import distributions; print(json.dumps(sorted((item.metadata["Name"], item.version) for item in distributions())))'
           version="$(pdm run python -c "import sys; print('%d.%d' % sys.version_info[:2])" | tail -n 1)"
           [ "$version" = "3.14" ] || fail "the project runs Python $version, not 3.14"
           base="$(pdm run python -c "import sys; print(sys.base_prefix)" | tail -n 1)"
           managed="$(uv python dir)"
           case "$base" in "$managed"/*) ;; *) fail "the project's Python is $base, not a uv-managed one under $managed" ;; esac
-
-      # QUICKSTART supplies release-info; docs/local-guide.md supplies released environments and
-      # the explicit sample index.
       - name: Print the EVS release
         if: matrix.combination == 'server'
         run: pdm run nci-si-mcp release-info
@@ -220,11 +221,11 @@ jobs:
           INDEX_VENV="$RUNNER_TEMP/index-venv"
           SERVER_VENV="$RUNNER_TEMP/server-venv"
           python3.14 -m venv "$SERVER_VENV"
-          "$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+          "$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"
           echo "SERVER_VENV=$SERVER_VENV" >> "$GITHUB_ENV"
           if [ "$WITH_INDEX" = "true" ]; then
             python3.14 -m venv "$INDEX_VENV"
-            "$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+            "$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"
             echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"
           fi
           echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"

@@ -1,27 +1,29 @@
 # Deferred orchestration and gateway capabilities
 
-**Decision, 8 October 2026:** the owner directed that [#180](https://github.com/CBIIT/nci-si-mcp/issues/180)
-and the remaining runtime/adoption work in [#181](https://github.com/CBIIT/nci-si-mcp/issues/181)
-move to **Backlog**, remain open and be marked deferred. Phase 6 delivers the portable access
-boundary and evaluation/desk-assessment evidence, without an internal LLM, an `ask` tool or a
-wxMCP adapter. This is a prioritization decision, not rejection of the underlying ideas.
+**Current disposition:** [#180](https://github.com/CBIIT/nci-si-mcp/issues/180) is closed as not
+planned: no demonstrated client need justifies server-side generation. Reopen only for a
+demonstrated need clients cannot meet and an approved A9.2 amendment.
+[#181](https://github.com/CBIIT/nci-si-mcp/issues/181) remains open in **Cloud One wxMCP
+evaluation — deferred**. These supersede the 8 October 2026 Backlog placement. Phase 6 delivered
+the portable access boundary and evaluation/desk-assessment evidence, without an internal LLM,
+an `ask` tool or a wxMCP adapter.
 
 The proposed server of the Semantic Infrastructure (SI) team was not built; this codebase
 supersedes the proposal. This document develops the team's orchestration and integration suggestions while preserving
 the validated semantic core. The [architecture ledger](decisions/001-si-architecture-alignment.md)
 and `spec/` retain the operative contracts; this research strategy changes none of them.
 
-## Why defer
+## Dispositions and remaining decisions
 
 | Issue | Delivered evidence | Deferred work and reason |
 | --- | --- | --- |
-| #180: evidence-backed `ask` orchestration | [Offline evaluation mechanics](assisted-evaluation.md): 12 tasks, two fixed-recipe arms, three repetitions; actual MCP calls and outcome scoring | Actual-model research, server pilot and shipping. The 72 runs do not measure LLM planning, analyst benefit or server-side superiority. Provider, full-transcript handling, spend, generated-capability amendment and shipping criteria remain unapproved. An external agent can test the need before the server takes on model dependencies, generated outputs and admission/cancellation costs. |
-| #181: wxMCP integration | [Version-pinned desk assessment](wxmcp-assessment.md), including source limitations and unexecuted conformance checks | Hosted/runtime comparison, any adapter and adoption. There is no demonstrated consumer requirement, approved runtime entitlement, experiment ceiling or measured advantage over direct MCP. The pinned implementation has prompt/resource catalogue limitations; preserving our semantics may require additional glue. Those source observations are not a failed runtime test or a judgment about every IBM product. |
+| #180: `ask` orchestration, closed as not planned | [Offline evaluation mechanics](assisted-evaluation.md): 12 tasks, two fixed-recipe arms, three repetitions; actual MCP calls and outcome scoring | Actual-model research, server pilot and shipping. The 72 runs do not measure LLM planning, analyst benefit or server-side superiority. Provider, full-transcript handling, spend, generated-capability amendment and shipping criteria remain unapproved. An external agent can test the need before the server takes on model dependencies, generated outputs and admission/cancellation costs. |
+| #181: wxMCP integration, Cloud One milestone | [Version-pinned desk assessment](wxmcp-assessment.md), including source limitations and unexecuted conformance checks | Hosted/runtime comparison, any adapter and adoption. There is no demonstrated consumer requirement, approved runtime entitlement, experiment ceiling or measured advantage over direct MCP. The pinned implementation has prompt/resource catalogue limitations; preserving our semantics may require additional glue. Those source observations are not a failed runtime test or a judgment about every IBM product. |
 
 Neither deferral weakens mandatory authentication, authorization, evidence, release or cache
 requirements. Production identity/hosting and live credentialed caDSR validation remain separate
 unvalidated dependencies. A gateway is not required merely because an orchestrator uses MCP;
-the two backlog decisions must be evaluated independently.
+the two dispositions must be evaluated independently.
 
 ## Relevant public precedents
 
@@ -56,6 +58,10 @@ are deployment/model-specific. AWS hosting, no-training terms and a compliance l
 not settle retention, geographic routing or the project's authorization boundary.
 
 ## Research strategy and signals to reconsider #180
+
+#180 is closed because no unmet client need has been demonstrated. The strategy below is
+conditional: reopening requires a demonstrated need clients cannot meet plus an approved A9.2
+amendment. It authorizes no experiment.
 
 Start with domain-reviewed tasks and a deterministic baseline, then an external agent using
 the existing SI MCP plus explicitly approved resource connectors. CTRP/CDA/GDC/IDC discovery
@@ -134,9 +140,10 @@ Do not introduce a gateway solely to wrap working MCP tools or to obtain an LLM 
 
 ## Backlog and completion records
 
-Both issues remain open in Backlog with a link to this document; no milestone closing keyword
-should close them. #181's completed desk assessment remains credited separately from its
-deferred runtime work. Review the decisions when a concrete consumer request, approved model
+#180 is closed as not planned, with the unmet-client-need and approved A9.2 amendment
+reopen conditions above. #181 remains open in its Cloud One evaluation milestone; no Phase 6
+closing keyword closes it. Its completed desk assessment remains credited separately from
+its deferred runtime work. Review the decisions when a concrete consumer request, approved model
 environment or platform opportunity supplies the missing evidence; elapsed time alone does not
 authorize implementation. Phase 6's [assurance record](phase-6-assurance.md) tracks delivered
 behavior and release verification without representing either deferred capability as shipped.

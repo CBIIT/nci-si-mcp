@@ -77,7 +77,7 @@ steps:
       PYTHON: ${{ steps.python.outputs.python-path }}
     run: |
       "$PYTHON" -m venv "$INSTALLER_VENV"
-      "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${INSTALL_REF}"
+      "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-sip-mcp@${INSTALL_REF}"
   - name: Install the acceptance suite (CI only)
     env: {PYTHON: '${{ steps.python.outputs.python-path }}'}
     run: |
@@ -222,7 +222,7 @@ steps:
         sleep 0.1
       done
       "$PYTHON" -m venv "$NEGATIVE_INSTALLER_VENV"
-      "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${INSTALL_REF}"
+      "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-sip-mcp@${INSTALL_REF}"
       git config --file "$RUNNER_TEMP/moved-tag.gitconfig" --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
       git config --file "$RUNNER_TEMP/moved-tag.gitconfig" --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-sip-mcp
       original_tag="$(git -C "$GITHUB_WORKSPACE" rev-parse "$RELEASE_TAG^{commit}")"
@@ -365,7 +365,7 @@ def documented_install_lines():
         for line in (
             '"$PYTHON" -m venv "$INSTALLER_VENV"',
             '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ '
-            'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"',
+            'git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"',
         )
         if line in commands
     ]
@@ -499,7 +499,7 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
             [
                 '"$PYTHON" -m venv "$INSTALLER_VENV"',
                 '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ '
-                'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"',
+                'git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"',
             ],
         )
         self.assertEqual(

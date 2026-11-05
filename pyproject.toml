@@ -201,6 +201,12 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+# These public parameter spellings are mandated by spec/tools.yaml.
+"src/nci_si_mcp/seam.py" = ["N803"]
+"src/nci_si_mcp/content.py" = ["N803"]
+"src/nci_si_mcp/cadsr_matching.py" = ["N803"]
+"src/nci_si_mcp/workflows.py" = ["N803"]
+"src/nci_si_mcp/cadsr_content.py" = ["N803"]
 # Optional extras (mcp, sentence-transformers) are imported where they are first needed.
 "src/ncit_index/embeddings.py" = ["PLC0415"]
 "src/nci_si_mcp/server.py" = ["PLC0415"]

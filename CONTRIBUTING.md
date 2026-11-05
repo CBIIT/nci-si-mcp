@@ -20,6 +20,19 @@ Run the install command again in a clone whose hooks were installed before the p
 added. A commit runs the file and project gates. A push runs `pdm run test` and therefore takes
 about as long as that command.
 
+The Gitleaks developer hook needs a Go compiler: pre-commit uses Go on `PATH` or downloads
+a toolchain. On managed/VPN macOS, an approved local installation (for example `brew install go`)
+avoids the Python downloader. Verify that the following prints `system`, then rerun all hooks:
+
+```bash
+pdm run python -c "from pre_commit.languages.golang import get_default_version; print(get_default_version())"
+pdm run pre-commit run --all-files
+```
+
+If certificate verification fails, diagnose the trust chain with IT; never disable verification
+or skip the hook. This is a developer bootstrap option, not a server-installer prerequisite or
+a diagnosis of the underlying TLS failure.
+
 ## Everyday commands
 
 | Command | What it does |
@@ -346,6 +359,9 @@ pytest's original report. Local report files live under ignored `tmp/` directori
 | Local run (CI only) | The documented setup, walked literally on `macos-latest` and `ubuntu-24.04` (`.github/workflows/local-run.yml`, on pushes to `main`, weekly, by hand, and on pull requests that touch the install paths). Every command is copied from the document that gives it; the test of the workflow compares the two, so change a documented command and its workflow line together. Not a required check: it uses live EVS |
 | Dependency audit (CI only) | Every Python and npm package in the committed locks is at least five days old; no external Python package in any PDM-locked group has a known vulnerability (pip-audit across all platform markers, on every change and weekly; only the local acceptance project is excluded); no pull request brings one in at high severity (dependency review). Dependabot groups weekly updates for Actions, both Dockerfile directories and the documentation npm tree after a seven-day cooldown. Dependabot cannot update `pdm.lock`, so `pdm run lock` is the only Python lock command. [SECURITY.md](SECURITY.md) says how to report a vulnerability |
 
+The [`$/` self-repository syntax](https://github.blog/changelog/2026-07-30-reference-same-repository-actions-with-self-repository-syntax/)
+resolves local actions and reusable workflows at the running commit without a checkout.
+
 A dependency security fix inside the five-day window is an exception only when the owner records
 its exact version and GHSA, CVE or PYSEC advisory in `[tool.nci-si.dependency-age.exceptions]`.
 The lock and audit read that one list. The audit fails with “remove this exception” once the fixed
@@ -448,6 +464,10 @@ their code owner.
 A scope is optional, in lower case: `fix(index): …`. Choose the type with care, because it
 decides the version. Only the title counts: the squash commit has no body, so mark a breaking
 change with `!`, and do not edit the commit message in the merge dialog.
+
+Review the exact PDM (including its bootstrap hishel, unearth and virtualenv constraints), Ruff,
+basedpyright, Zensical and python-semantic-release tool pins monthly,
+using a separate reviewed dependency refresh and the release-age/security gates above.
 
 When CI passes on `main`, the release workflow tags that commit `vX.Y.Z` and creates a GitHub
 release using semantic-release from the hash-locked `release` dependency group, not a third-party
