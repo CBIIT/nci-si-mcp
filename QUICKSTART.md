@@ -66,15 +66,17 @@ and possibly a specification change; changing a URL does not translate its proto
 
 ### Current SSIS dependencies and transition risk
 
-SSIS may be retired; no retirement or complete replacement is established here. Current call paths are:
+SSIS may be retired; no retirement or complete replacement is established here. Principal content/SSIS
+dependencies follow; shared release/registry discovery still applies under the [release rules](#mcp-tools):
 
 | Operations | Upstream dependency |
 | --- | --- |
-| `find_data_elements_for_concept`, `ground_value` | Shared SI graph identities and concept-to-CDE/permissible-value joins, with the effective NCIt release retained |
+| `find_data_elements_for_concept` | Shared SI graph identities and concept-to-CDE/permissible-value joins, with the effective NCIt release retained |
+| `ground_value` | EVS concept read (and search when text is supplied), Shared SI identities/joins, plus the stored-value path below when commons is supplied |
 | `get_release_alignment` | Shared SI graph identities, EVS release and caDSR export state |
 | EVS tools, `expand_cohort` | EVS REST/FHIR or the NCIt index; no SSIS |
 | caDSR tools, `harmonize_data_dictionary` | Direct caDSR APIs/export; no SSIS |
-| `get_concept_for_permissible_value` | caDSR data-element reader, then EVS when resolved; no SSIS |
+| `get_concept_for_permissible_value` | May discover an EVS release before the caDSR item read; EVS concept retrieval only for a resolvable reference; no SSIS |
 | `resolve_stored_value` | EVS GDC mapset or caDSR CRDC code maps; no SSIS |
 
 This map describes dependencies, not permission to contact them. Independent [#391](https://github.com/CBIIT/nci-sip-mcp/issues/391)
