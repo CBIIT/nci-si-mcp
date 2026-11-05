@@ -1,10 +1,13 @@
-# Implementation plan: from EVS-first prototype to the shared NCI Semantic Infrastructure MCP platform
+# Implementation history: the shared NCI Semantic Infrastructure MCP platform
 
 **Status:** record of delivered work (Phases 0 to 6 are merged; Phase 7 is recorded in [portal-plan.md](portal-plan.md); open work is on the GitHub milestones) · **Written:** 1 October 2026 · **Last updated to the code:** 2 October 2026, `main` after `v0.2.0`; later sections carry their own dates · **Furnished commit:** tagged when the owner cuts it (§1.2, §11)
 
+For current module boundaries, use [ARCHITECTURE.md](../ARCHITECTURE.md); this document retains
+the dated implementation decisions and original baseline rather than a current setup recipe.
+
 The work is tracked on GitHub as one milestone per phase and one for the furnished package (§11), with one issue per deliverable; issues cite this document by section. Where a section describes the code "today", it means `main` at the *Updated* date above.
 
-This document is the implementation plan: how `nci_si_mcp` is extended from the original EVS-first prototype into the shared platform, the EVS module and the caDSR module, together with the acceptance suite that is the acceptance instrument for both. It is written against the code as it is, so every change is stated as a delta from a named module, and it is ordered so that each phase leaves the repository releasable.
+This document is the implementation plan: how `nci_si_mcp` is extended from the original EVS-first implementation into the shared platform, the EVS module and the caDSR module, together with the acceptance suite that is the acceptance instrument for both. It is written against the code as it is, so every change is stated as a delta from a named module, and it is ordered so that each phase leaves the repository releasable.
 
 The specification of the required tools and their behaviour is the source of record. It lives in this repository as data in `spec/` (conventions, tools, requirements), rendered as [`docs/specification.md`](specification.md), and is cited below by convention id (A1–A11, M1–M5) and requirement id. The requests to the platform teams are the [upstream requirements](upstream/README.md). Where this plan is more specific than the specification, it is because the code forces a decision the specification leaves open.
 
@@ -49,7 +52,7 @@ These hold today and continue to hold:
 
 ### 1.4 Ground rules that change
 
-| Prototype baseline | Target |
+| Original baseline | Target |
 |---|---|
 | Every concept request addresses `ncit_{release}` of the one current monthly release, and each concept payload's `version` is checked; the terminology and the release cannot be chosen. An unknown release is `evs_invalid_response` on the batch and descendants endpoints but `concept_not_found` on a single-concept lookup (a 404 there cannot be told from an unknown code), and a payload mismatch is `evs_invalid_response` | Every content request addresses `{terminology}_{release}` from the call's `ReleaseContext` explicitly (verified to work and to fail closed with 404 on an unknown release); the payload check becomes a second guard, not the only one; an unknown release is `release_not_available` and a payload mismatch `release_mismatch` (A3.1, A3.4) |
 | Expected exceptions are mapped to codes by one table (`_ERROR_CODES`, applied by `service._enveloped`); with the envelopes that the service, the CLI and the resources build directly, `ErrorCode` has fourteen values | One error model, the error record's closed set of codes (A2.5), one serialisation — every tool returns a structured error through the same path (§3.1) |

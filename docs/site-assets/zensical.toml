@@ -8,12 +8,16 @@ extra_css = ["assets/ncids.css", "assets/site.css"]
 nav = [
   { "Start here" = [
     { "Overview" = "README.md" },
+    { "Run locally" = "docs/local-guide.md" },
+    { "Installer target interface" = "docs/installer-targets.md" },
     { "Quickstart" = "QUICKSTART.md" },
     { "Domain users and UAT" = "docs/user-acceptance.md" },
     { "Behavioral stories" = "docs/behavioural-tests.md" },
   ] },
   { "Architecture and deployment" = [
     { "Architecture" = "ARCHITECTURE.md" },
+    { "NCIt semantic index" = "docs/ncit-semantic-index.md" },
+    { "EVS index migration" = "docs/index-migration.md" },
     { "Content-injection threat model" = "docs/threat-model.md" },
     { "Local and cloud deployment" = "docs/deployment.md" },
     { "Operations and authorization evidence" = "docs/operations.md" },

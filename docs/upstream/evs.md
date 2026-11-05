@@ -84,7 +84,7 @@ Source discussion: [issue evidence](https://github.com/CBIIT/nci-si-mcp/issues/4
 
 Evidence (linked request/response files retain their original form):
 
-- [docs/retrieval-evaluation.md](../../docs/retrieval-evaluation.md) — document; SHA-256 `eec67b8272d5b502352ccac676e88054c422acc1e09d5b9440b586328226a6e2`.
+- [docs/retrieval-evaluation.md](../../docs/retrieval-evaluation.md) — document; SHA-256 `32f98e22180a728a88ba40a6796be7c87cb18a27a92964ee149c2606d13d74c9`.
 - [acceptance/request-forms/evs.md](../../acceptance/request-forms/evs.md) — document; SHA-256 `f7d0dc379d5b959f9348eb0710186669f7500761901164c10ade06994ff515b0`.
 
 | Affected test function | Fixture | Live |

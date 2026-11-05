@@ -5,6 +5,8 @@ versioned NCIt queries and expected concept codes, not a claim that an embedding
 clinically validated. The initial judgments are engineering regression scenarios pending NCI
 subject-matter expert (SME) validation.
 
+For the full operator task and field/model policy, use the [NCIt index guide](ncit-semantic-index.md).
+
 ## Metrics and evidence
 
 Every query contributes once to each metric. Hit@1 and Hit@5 are the fractions of queries with

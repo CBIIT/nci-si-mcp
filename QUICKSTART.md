@@ -24,10 +24,11 @@ environments aligned rather than promising compatibility with older interpreters
 
 | Need | For | How to get it |
 |---|---|---|
-| Python 3.14 or newer and [PDM](https://pdm-project.org) | everything | macOS: `brew install python@3.14 pdm && pdm use -f "$(command -v python3.14)"`. Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh`, then, in a new shell, `uv python install 3.14` and `uv tool install --exclude-newer 5d --with 'hishel==1.2.1' --with 'unearth==0.18.2' --with 'virtualenv==21.15.2' 'pdm==2.29.2'` |
-| git, with tags | everything: the version comes from the nearest tag | a plain `git clone` has them; a shallow clone or a source archive does not |
+| Python 3.14 or newer and [PDM](https://pdm-project.org) | checkout development and site construction | macOS: `brew install python@3.14 pdm && pdm use -f "$(command -v python3.14)"`. Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh`, then, in a new shell, `uv python install 3.14` and `uv tool install --exclude-newer 5d --with 'hishel==1.2.1' --with 'unearth==0.18.2' --with 'virtualenv==21.15.2' 'pdm==2.29.2'` |
+| git, with tags | checkout development and site construction: the version comes from the nearest tag | a plain `git clone` has them; a shallow clone or a source archive does not |
+| Python 3.14 or newer and the Git executable | released server and index installation; PDM and a source checkout are unnecessary | [Released installation prerequisites](docs/local-guide.md#prerequisites) |
 | Network access to EVS, caDSR and Shared SI | live calls; installer checks EVS and caDSR; `download.pytorch.org` supplies the container image | |
-| Free ports 8000, 8080, 8081 | 8000 the HTTP server and the site preview, 8080 the documentation container, 8081 the validation dashboard | |
+| Free ports for selected components | HTTP server: 8000; documentation: 8080 in the local guide; companion: 8081. Stdio needs no listener | |
 | Node.js 24 or newer | the documentation site only | macOS: `brew install node`; Linux: `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh \| bash`, then, in a new shell, `nvm install 24` |
 | A container runtime with Compose | containers only; on Apple Silicon it needs amd64 emulation | Docker or Podman |
 
@@ -205,18 +206,10 @@ or unclassified build.
 `search` only sees what has been indexed; no MCP
 tool builds the index.
 
-For a full release, `index-build` downloads and verifies all pinned NCIt search pages,
-then evaluates the candidate and returns an inactive build id with its evaluation report.
-Production activation requires a passing report. The shipped calibration is for NCIt 26.09d,
-SapBERT (`cambridgeltl/SapBERT-from-PubMedBERT-fulltext`), 768 dimensions; another release or
-model needs a new full-corpus calibration before activation. `evaluate --build-id BUILD_ID`
-repeats evaluation on a completed candidate without activating it. Plain `evaluate` scores
-the active build; samples and older unclassified snapshots report all twelve queries without
-claiming a production pass. `index-builds` lists completed builds. Activate one
-with `index-activate BUILD_ID`; activating the previous id rolls back. Every activation
-keeps only the newly active build and the build it replaced. These are operator CLI commands.
-The public manifest contains `terminology`, `version`, `concepts`, `embedding`
-(`provider`, `model`, `dimensions`), `builtAt` and `provenance`.
+For a full release, follow the [NCIt semantic index guide](docs/ncit-semantic-index.md#build-evaluate-and-activate):
+release reconciliation, separate field embeddings, calibrated evaluation, explicit activation and
+rollback. Samples are not full evaluated candidates. The public manifest contains `terminology`,
+`version`, `concepts`, `embedding` (`provider`, `model`, `dimensions`), `builtAt` and `provenance`.
 
 Until the index is rebuilt after a new release, CLI `search` keeps serving
 the old release (named in the `provenance.release` of each hit), and `lookup` fails with
@@ -224,41 +217,9 @@ the old release (named in the `provenance.release` of each hit), and `lookup` fa
 MCP `search_concepts` in semantic/hybrid mode requires the caller's release to match the index; `get_concept`
 reads the caller's pinned release directly from EVS.
 
-No MCP result carries the full EVS `raw` payload, to keep MCP context compact. The
-CLI adds it to `search` and `lookup` with `--include-raw`, for debugging:
-
-```bash
-pdm run nci-si-mcp lookup C3262 --include-raw
-```
-
-Traversal can be tested from the terminal before using MCP:
-
-```bash
-pdm run nci-si-mcp traverse C3262 \
-  --max-depth 1 \
-  --max-edges 100 \
-  --edge-type role \
-  --relationship-name Disease_Has_Abnormal_Cell
-```
-
-The index records its embedding provider, model, and dimensions. A runtime with
-different embedding settings cannot search it or add to it. To rebuild with new
-settings, use `index-rebuild BUILD_ID` to rebuild stored raw concepts offline, then
-`index-activate NEW_BUILD_ID`. Schema migration preserves legacy concepts for cached lookup;
-their concatenated vectors require this explicit rebuild before search is available
-(`capability_unavailable`). Opening the index never downloads a model or rebuilds it.
-Rebuilding an older, unclassified snapshot creates a production build requiring evaluation;
-the original remains available for rollback. For an old developer sample, recreate it with
-`index-sample` in a separate data directory instead. The refusal message identifies the original
-snapshot and both migration paths. See the [retrieval evaluation protocol](docs/retrieval-evaluation.md)
-for metrics, calibration and the distinction between developer checks and production evidence.
-
-New index files use 64 KiB SQLite pages to reduce cold vector-scan I/O. Existing files retain
-their page size. To convert an existing file, stop all processes using it and back it up first;
-in a SQLite connection to that file run `PRAGMA journal_mode=DELETE`,
-`PRAGMA page_size=65536`, `VACUUM`, then `PRAGMA journal_mode=WAL`. This rewrites the file
-and needs temporary disk space; it changes neither vectors nor rankings. Opening the index
-does not perform this conversion automatically.
+Embedding provider/model/dimensions must match the index. The guide covers
+[offline rebuild and legacy migration](docs/ncit-semantic-index.md#rebuilds-and-future-handover),
+including evaluation and preserved rollback data. Opening the index never re-embeds it.
 
 ## Usage examples
 
@@ -316,6 +277,13 @@ Result:
 
 The result is shortened: the concept has two further definitions.
 
+No MCP result carries the full EVS `raw` payload, to keep MCP context compact. The
+CLI adds it to `search` and `lookup` with `--include-raw`, for debugging:
+
+```bash
+pdm run nci-si-mcp lookup C3262 --include-raw
+```
+
 ### Search the local index
 
 User prompt: "Which indexed concept best matches kinase inhibition?"
@@ -368,6 +336,16 @@ resolves an omitted release on every call; pass `release` explicitly to avoid re
 discovery and keep content stable (X-22, A3.1).
 
 ### List the subtypes of a concept
+
+Traversal can be tested from the terminal before using MCP:
+
+```bash
+pdm run nci-si-mcp traverse C3262 \
+  --max-depth 1 \
+  --max-edges 100 \
+  --edge-type role \
+  --relationship-name Disease_Has_Abnormal_Cell
+```
 
 User prompt: "Which concepts are the direct subtypes of Neoplasm?"
 

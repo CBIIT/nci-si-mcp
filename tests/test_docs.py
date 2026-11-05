@@ -668,14 +668,16 @@ class DocumentationTest(unittest.TestCase):
         for command in ("search", "lookup"):
             arguments = build_parser().parse_args([command, "x", "--include-raw"])
             self.assertTrue(arguments.include_raw)
-        # Every command-line flag the guide names is one of the CLI.
+        # Setup also documents uv/PDM flags; its exact commands belong to the Local run
+        # contracts. Check the server's runtime guidance against the actual server CLI.
+        runtime_guide = QUICKSTART.split("\n## Connect a client\n", 1)[1]
         (subcommands,) = build_parser()._subparsers._group_actions
         flags = {
             flag
             for parser in subcommands.choices.values()
             for flag in parser._option_string_actions
         }
-        self.assertLessEqual(set(re.findall(r"(?<![\w-])--[a-z][a-z-]+", QUICKSTART)), flags)
+        self.assertLessEqual(set(re.findall(r"(?<![\w-])--[a-z][a-z-]+", runtime_guide)), flags)
 
     def test_quickstart_cli_section_names_subcommands_the_cli_has(self):
         (subcommands,) = build_parser()._subparsers._group_actions
@@ -808,7 +810,7 @@ class DocumentationTest(unittest.TestCase):
         self.assertTrue(target_interface.is_file())
         self.assertIn(
             "check prerequisites → install → configure → verify",
-            target_interface.read_text(encoding="utf-8"),
+            " ".join(target_interface.read_text(encoding="utf-8").split()),
         )
 
     def test_every_repository_url_in_the_documents_names_this_repository(self):
