@@ -43,7 +43,8 @@ The implementation is [`evs.py`](../src/nci_si_mcp/evs.py) for extraction and
 of their selected fields outside write transactions. This is a concept-batch size, not an
 explicit sentence-transformers inference batch size. It validates vector count and dimensions,
 and stores finite little-endian float32 vectors, grouped by concept with field positions.
-The query is encoded separately by the same provider/model; vector search uses the whole query.
+The complete query string is passed separately to the same provider/model, subject to that
+model's tokenization and truncation limits.
 
 ## Model, rationale and reproducibility limits
 
@@ -83,7 +84,7 @@ MCP lexical/typeahead queries retain EVS ordering and do not use this index. The
 `bm25` mode uses SQLite FTS5; semantic mode (internally `vector`) scores every indexed field
 against the query vector. Hybrid combines per-query normalized components as
 `0.55 * BM25 + 0.45 * vector`. Local lexical candidate selection uses only the first 64 tokens;
-this does not shorten the vector query. The exact scan has no approximate-neighbor candidate cap.
+this 64-token preselection does not apply to the string passed to the vector encoder. The exact scan has no approximate-neighbor candidate cap.
 
 Each concept appears once, with its winning field in `matchedOn`. Field-score ties prefer name,
 then synonym, then definition. Exact preferred-name comparison separately applies Unicode NFC,
@@ -104,9 +105,11 @@ hashing CI checks the evaluation machinery; neither establishes real-model retri
 ## Build, evaluate and activate
 
 Use a Git checkout with its tags and the [checkout prerequisites](../QUICKSTART.md#platforms-and-prerequisites).
-Choose a fresh, writable **absolute** data directory below; replace the example path. Keep
-samples, candidates and serving assets deliberately separated. Obtain model assets and authorize
-EVS access before running this operator task. It can be expensive and requires disk space for
+For the first build, choose a writable **absolute** data directory below; replace the example
+path. Developer samples need their own separate directory. Full-build candidates and the active
+snapshot coexist in **one index database**, distinguished by build IDs, so atomic activation and
+rollback use that same directory. Reuse it for subsequent candidates; do not create a fresh
+directory for each build. Obtain model assets and authorize EVS access before this operator task. It can be expensive and requires disk space for
 the database, download spool and retained builds. Installing the optional embeddings group and
 constructing its provider may download model assets; opening the index database itself does not.
 
@@ -116,13 +119,24 @@ export NCI_SI_DATA_DIR=/absolute/path/to/dedicated-ncit-index
 export NCI_SI_EMBEDDING_PROVIDER=sentence-transformers
 export NCI_SI_EMBEDDING_MODEL=cambridgeltl/SapBERT-from-PubMedBERT-fulltext
 pdm run nci-si-mcp release-info
+```
+
+**Stop and inspect the selected release before building.** The shipped calibration matches
+NCIt 26.09d/SapBERT/768 dimensions. If the selected release or model differs, do not start a full
+build under those floors: agree a separately reviewed [full-corpus calibration](retrieval-evaluation.md#calibration-and-ci)
+first. For a
+smoke check only, use the separate sample path instead. `index-build` resolves the configured
+monthly/weekly channel again; it has no arbitrary historical release argument. If the release
+changes between preflight and build, its evaluation must still match the actual pinned candidate.
+
+With the intended release/model and applicable calibration confirmed, build and list candidates:
+
+```bash
 pdm run nci-si-mcp index-build
 pdm run nci-si-mcp index-builds
 ```
 
-Inspect the selected release before the full build. `index-build` resolves the configured
-monthly/weekly channel, not an arbitrary historical release argument. It downloads unfiltered
-release-pinned EVS search pages of 1000 and reconciles each page's release, unique codes and
+The build downloads unfiltered release-pinned EVS search pages of 1000 and reconciles each page's release, unique codes and
 stable total before the first index write. A shifted/incomplete download fails. It then embeds
 into a `building` snapshot and marks it complete only after all batches succeed. Interrupted
 partial builds never serve or activate; stale work is reaped after checking its builder lease.
@@ -130,9 +144,7 @@ partial builds never serve or activate; stale work is reaped after checking its 
 A full build is an **inactive production candidate**. Here “production” is the internal build
 classification, not a statement that the server is deployed in production. `index-build`
 automatically evaluates it and returns `buildId`, manifest and evaluation report on success.
-The shipped calibration matches 26.09d/SapBERT/768; a different release/model needs a separately
-reviewed full-corpus calibration. Missing calibration or a failed evaluation must be resolved
-before activation, not bypassed. A completed candidate can remain inactive after such failure;
+Missing calibration or a failed evaluation must be resolved before activation, not bypassed. A completed candidate can remain inactive after such failure;
 inspect `index-builds` and the error's next step. The existing active build continues serving.
 
 Set `BUILD_ID` to the exact completed candidate ID returned/listed, then inspect its manifest and

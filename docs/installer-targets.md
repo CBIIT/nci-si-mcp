@@ -1,7 +1,7 @@
 # Installer target interface
 
-The installer owns the local server only. Follow the [local guide's server
-sequence](local-guide.md#server) for the canonical installation/lifecycle commands; this
+The installer owns the local server only. Follow the [local guide's prerequisites and server
+sequence](local-guide.md#prerequisites) for the canonical installation/lifecycle commands; this
 reference explains identity, state and failures.
 
 ## Prerequisites and selection

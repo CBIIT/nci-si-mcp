@@ -35,7 +35,7 @@ null; explicit null stays null. Item-owned dates and optional component identiti
 Included object-class/property derivations with missing or non-Yes/No primary flags now return
 `upstream_unavailable`; malformed supplied `displayOrder` is rejected instead of passed through.
 
-Install a released server with the [local guide](docs/local-guide.md#server). From a checkout:
+Install a released server with the [local guide prerequisites and server sequence](docs/local-guide.md#prerequisites). From a checkout:
 
 ```bash
 pdm install                  # Python 3.14+ and PDM; see the prerequisites below
