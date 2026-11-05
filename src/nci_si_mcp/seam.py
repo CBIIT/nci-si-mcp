@@ -248,7 +248,7 @@ def _page_items(
 
 def find_data_elements_for_concept(
     context: Context,
-    conceptCode: Annotated[  # noqa: N803
+    conceptCode: Annotated[
         str, Described("NCIt code of the concept, for example C3262.", pattern=NCIT_CODE_FORM)
     ],
     terminology: Annotated[
@@ -256,13 +256,13 @@ def find_data_elements_for_concept(
         Described("Terminology of the code; only ncit is served. Default ncit."),
     ] = "ncit",
     release: NcitRelease = None,
-    expandDescendants: Annotated[  # noqa: N803
+    expandDescendants: Annotated[
         bool,
         Described(
             "Also find the data elements that use a descendant of the concept. Default false."
         ),
     ] = False,
-    includePermissibleValues: Annotated[  # noqa: N803
+    includePermissibleValues: Annotated[
         bool,
         Described(
             "Also return the permissible values whose value meaning stands for the "
@@ -401,7 +401,7 @@ def _unresolved_reason(reference: dict[str, Any]) -> UnresolvedConceptReason | N
 
 def get_concept_for_permissible_value(
     context: Context,
-    permissibleValueId: Annotated[  # noqa: N803
+    permissibleValueId: Annotated[
         str | None,
         Described(
             "Requested from caDSR (OP-C10); not served yet, so a value is refused with "
@@ -409,7 +409,7 @@ def get_concept_for_permissible_value(
             pattern=REGISTRY_ID_FORM,
         ),
     ] = None,
-    dataElementId: Annotated[  # noqa: N803
+    dataElementId: Annotated[
         str | None,
         Described(
             "Public id of the data element that lists the value, for example 2179689. "
@@ -656,7 +656,7 @@ def _crosswalk_values(
 
 def resolve_stored_value(
     context: Context,
-    conceptCode: Annotated[  # noqa: N803
+    conceptCode: Annotated[
         str,
         Described(
             "NCIt code of the concept whose stored value to find, for example C3262.",
@@ -665,7 +665,7 @@ def resolve_stored_value(
     ],
     commons: Annotated[str, Described("Data commons whose stored value to find, for example GDC.")],
     release: NcitRelease = None,
-    dataElementId: Annotated[  # noqa: N803
+    dataElementId: Annotated[
         str | None,
         Described(
             "Public id of one caDSR data element to restrict a CRDC commons to, for "
@@ -763,7 +763,7 @@ def _alignment_datasets(context: Context) -> list[dict[str, Any]]:
 
 def get_release_alignment(
     context: Context,
-    maxIntervalDays: Annotated[  # noqa: N803
+    maxIntervalDays: Annotated[
         int,
         Described(
             "Largest gap in days between the dates of the datasets before a warning is "

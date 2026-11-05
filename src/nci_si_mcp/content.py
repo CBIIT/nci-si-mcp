@@ -194,7 +194,7 @@ def expand_value_set(
         Described("Terminology of the subset; only ncit is served."),
     ],
     release: Release = None,
-    valueSet: Annotated[  # noqa: N803 - public name specified in tools.yaml.
+    valueSet: Annotated[
         str | None,
         Described(
             "Code of the subset to expand, for example C165258. Give exactly one of "
@@ -222,7 +222,7 @@ def expand_value_set(
             "is refused."
         ),
     ] = 0,
-    activeOnly: Annotated[  # noqa: N803
+    activeOnly: Annotated[
         bool, Described("Return only the active members. Default false.")
     ] = False,
 ) -> dict[str, Any]:
@@ -254,7 +254,7 @@ def get_concept_mappings(
     terminology: Terminology,
     code: Code,
     release: Release = None,
-    targetTerminology: Annotated[  # noqa: N803 - public name specified in tools.yaml.
+    targetTerminology: Annotated[
         str | None,
         Described(
             "Only the mappings to this target terminology, written exactly as the "
@@ -933,18 +933,18 @@ def get_concept_neighborhood(
             "inverseRole, inverseAssociation. Leave unset for all six."
         ),
     ] = None,
-    maxNodes: Annotated[  # noqa: N803 - the public signature is specified in tools.yaml.
+    maxNodes: Annotated[
         int, count_bound("Most concepts to return, the starting concept included.", 200, 1000)
     ] = 200,
-    maxEdges: Annotated[int, count_bound("Most relationships to return.", 1000, 5000)] = 1000,  # noqa: N803
-    budgetPerKind: Annotated[  # noqa: N803
+    maxEdges: Annotated[int, count_bound("Most relationships to return.", 1000, 5000)] = 1000,
+    budgetPerKind: Annotated[
         int | None,
         Described(
             "Most concepts any one kind may add, at most 1000. Leave unset to let the "
             "kinds take turns within maxNodes."
         ),
     ] = None,
-    includeNegative: Annotated[  # noqa: N803
+    includeNegative: Annotated[
         bool,
         Described(
             "Also walk through negative assertions, such as exclusion roles; they are "

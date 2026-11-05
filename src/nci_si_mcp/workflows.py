@@ -133,7 +133,7 @@ def _gdc_hop(context: Context, selected: ReleaseContext, code: str) -> list[dict
 
 def ground_value(
     context: Context,
-    conceptCode: Annotated[  # noqa: N803
+    conceptCode: Annotated[
         str | None,
         Described(
             "NCIt code of the concept to ground, for example C3262. Give exactly one of "
@@ -157,7 +157,7 @@ def ground_value(
         ),
     ] = None,
     release: NcitRelease = None,
-    registryRelease: RegistryRelease = None,  # noqa: N803
+    registryRelease: RegistryRelease = None,
 ) -> dict[str, Any]:
     """Ground a concept, or a text that names one, in both EVS and caDSR: the concept, the data
     elements and permissible values that use it, and optionally a commons' stored values.
@@ -243,7 +243,7 @@ def harmonize_data_dictionary(
             max_items=10,
         ),
     ],
-    registryRelease: RegistryRelease = None,  # noqa: N803
+    registryRelease: RegistryRelease = None,
     filters: Annotated[
         MatchFilters | None,
         Described(
@@ -371,7 +371,7 @@ def _cohort_cut(
 
 def expand_cohort(
     context: Context,
-    conceptCode: Annotated[  # noqa: N803
+    conceptCode: Annotated[
         str,
         Described(
             "NCIt code of the concept whose cohort to expand, for example C3262.",
@@ -379,15 +379,15 @@ def expand_cohort(
         ),
     ],
     release: NcitRelease = None,
-    maxDepth: Annotated[int, count_bound("How many levels of descendants to include.", 2, 4)] = 2,  # noqa: N803
-    includeNegative: Annotated[  # noqa: N803
+    maxDepth: Annotated[int, count_bound("How many levels of descendants to include.", 2, 4)] = 2,
+    includeNegative: Annotated[
         bool,
         Described(
             "Keep the codes an exclusion role withholds in codes; they are listed in "
             "excluded either way. Default false."
         ),
     ] = False,
-    maxNodes: Annotated[  # noqa: N803
+    maxNodes: Annotated[
         int, count_bound("Most codes to return, the concept itself included.", 200, 1000)
     ] = 200,
 ) -> dict[str, Any]:

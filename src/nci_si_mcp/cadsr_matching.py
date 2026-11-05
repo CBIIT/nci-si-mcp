@@ -174,8 +174,8 @@ def match_data_elements(
             max_items=10,
         ),
     ],
-    matchLimit: Annotated[int, count_bound("Most matches for each entity.", 10, 100)] = 10,  # noqa: N803 - public specification spelling.
-    modelVariant: Annotated[  # noqa: N803 - public specification spelling.
+    matchLimit: Annotated[int, count_bound("Most matches for each entity.", 10, 100)] = 10,
+    modelVariant: Annotated[
         str | None,
         Described(
             "Required by the specification (embedding model variant); the Enhanced CDE Match "
@@ -183,7 +183,7 @@ def match_data_elements(
             "invalid_request. Leave unset until it does."
         ),
     ] = None,
-    similarityThreshold: Annotated[  # noqa: N803 - public specification spelling.
+    similarityThreshold: Annotated[
         float | None,
         Described(
             "Required by the specification (similarity threshold); the Enhanced CDE Match "
@@ -199,7 +199,7 @@ def match_data_elements(
             "filter."
         ),
     ] = None,
-    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
+    registryRelease: RegistryRelease = None,
 ) -> dict[str, Any]:
     """Find the caDSR data elements that best match described entities, such as the columns of a
     data dictionary; the discovery route while keyword search is unavailable.
@@ -339,14 +339,14 @@ def match_value_meanings(
             "unrestricted. Default restricted."
         ),
     ] = "restricted",
-    terminologyScope: Annotated[  # noqa: N803 - public specification spelling.
+    terminologyScope: Annotated[
         list[str] | None,
         Described(
             "Names of the EVS code systems to match against. Leave unset to use the "
             "platform's default."
         ),
     ] = None,
-    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
+    registryRelease: RegistryRelease = None,
 ) -> dict[str, Any]:
     """Find the caDSR value meanings, with their concepts, that best match given values, such as
     the permissible values of a column.

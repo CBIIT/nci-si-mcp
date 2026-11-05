@@ -295,6 +295,21 @@ class OperationsDocumentationTest(unittest.TestCase):
 
 
 class DocumentationTest(unittest.TestCase):
+    def test_camel_case_parameter_ignore_is_limited_to_spec_spelling_modules(self):
+        config = tomllib.loads((ROOT / "pyproject.toml").read_text())
+        per_file = config["tool"]["ruff"]["lint"]["per-file-ignores"]
+        self.assertEqual(
+            {path: codes for path, codes in per_file.items() if "N803" in codes},
+            {
+                "src/nci_si_mcp/seam.py": ["N803"],
+                "src/nci_si_mcp/content.py": ["N803"],
+                "src/nci_si_mcp/cadsr_matching.py": ["N803"],
+                "src/nci_si_mcp/workflows.py": ["N803"],
+                "src/nci_si_mcp/cadsr_content.py": ["N803"],
+            },
+        )
+        self.assertNotIn("N803", config["tool"]["ruff"]["lint"]["ignore"])
+
     def test_effective_git_attributes_preserve_text_fonts_and_generated_documents(self):
         attributes = ["text", "eol", "binary", "diff", "merge", "linguist-generated"]
         paths = [
