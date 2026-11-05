@@ -7,7 +7,8 @@ to the MCP process or an operational results store. Local use requires no instit
 ## Build and preview
 
 Use the [host documentation sequence](local-guide.md#host-documentation-and-companion) from a
-repository checkout with [Python/PDM and Node/npm prerequisites](../QUICKSTART.md#platforms-and-prerequisites).
+repository checkout with [Python/PDM prerequisites](../QUICKSTART.md#platforms-and-prerequisites).
+Node.js 24 or newer, with npm, is required to build the local site assets.
 It installs the docs tools, builds the local assets and site, and previews it on loopback port 8080.
 The portal command in that sequence is optional when you only need documentation. Open
 `http://127.0.0.1:8080/`; stop the preview with Ctrl+C. For container operation, follow the

@@ -14,8 +14,6 @@ from tempfile import TemporaryDirectory
 import tomli_w
 import yaml
 
-from test_tool_bootstrap import GUARD_ENV, GUARD_RUN, PIP_REPORT_RUN
-
 ROOT = Path(__file__).resolve().parents[1]
 RELEASE = ROOT / ".github/workflows/release.yml"
 CLI = (
@@ -40,6 +38,66 @@ def git(root, *arguments, env=None):
         text=True,
         stderr=subprocess.PIPE,
     ).strip()
+
+
+GUARD_RUN = """"$PDM_TOOL_HOME/venv/bin/python" - <<'PYTHON'
+import json
+import os
+from importlib.metadata import PackageNotFoundError, distributions, version
+from pathlib import Path
+import shutil
+import sys
+
+home = Path(os.environ["PDM_TOOL_HOME"])
+selected = shutil.which("pdm")
+if Path(sys.prefix).resolve() != (home / "venv").resolve():
+    raise SystemExit("Unexpected PDM tool interpreter")
+if selected is None or Path(selected).resolve() != (home / "bin/pdm").resolve():
+    raise SystemExit("Unexpected PDM executable")
+expected: dict[str, str] = {
+    "pdm": "2.29.2",
+    "hishel": "1.2.1",
+    "unearth": "0.18.2",
+    "virtualenv": "21.15.2",
+}
+for name, required in expected.items():
+    try:
+        installed = version(name)
+    except PackageNotFoundError:
+        raise SystemExit("Missing PDM tool distribution") from None
+    if installed != required:
+        raise SystemExit("Unsupported PDM tool distribution")
+print(json.dumps(sorted((item.metadata["Name"], item.version) for item in distributions())))
+PYTHON
+"""
+PIP_REPORT_RUN = r""""$PDM_TOOL_HOME/venv/bin/python" - <<'PYTHON'
+import json
+import os
+import re
+from pathlib import Path
+
+versions = []
+try:
+    source = Path(os.environ["PDM_TOOL_PIP_LOG"]).open()
+except FileNotFoundError:
+    raise SystemExit("Missing bootstrap pip version evidence") from None
+with source:
+    for line in source:
+        if " Using pip " not in line:
+            continue
+        match = re.search(
+            r" Using pip ([0-9]+(?:\.[0-9]+)+) from .+ \(python [0-9]+\.[0-9]+\)\s*$",
+            line,
+        )
+        if match is None:
+            raise SystemExit("Unrecognized bootstrap pip version evidence")
+        versions.append(match.group(1))
+if len(versions) < 2:
+    raise SystemExit("Incomplete bootstrap pip version evidence")
+print(json.dumps(versions))
+PYTHON
+"""
+GUARD_ENV = {"PDM_TOOL_HOME": "${{ runner.temp }}/pdm-tool"}
 
 
 class ReleaseWorkflowTest(unittest.TestCase):
