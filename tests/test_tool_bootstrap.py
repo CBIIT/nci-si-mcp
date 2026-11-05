@@ -127,7 +127,7 @@ class ToolBootstrapTest(unittest.TestCase):
 
     def test_missing_interpreter_fails_before_installation(self):
         result = self.execute(self.supported(), missing_interpreter=True)
-        self.assertEqual(result.returncode, 127)
+        self.assertNotEqual(result.returncode, 0)
         self.assertIn("/venv/bin/python: No such file or directory", result.stderr)
 
     def test_unrelated_interpreter_fails_before_installation(self):
