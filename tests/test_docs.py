@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -299,16 +300,71 @@ class DocumentationTest(unittest.TestCase):
         config = tomllib.loads((ROOT / "pyproject.toml").read_text())
         per_file = config["tool"]["ruff"]["lint"]["per-file-ignores"]
         self.assertEqual(
-            {path: codes for path, codes in per_file.items() if "N803" in codes},
+            per_file,
             {
                 "src/nci_si_mcp/seam.py": ["N803"],
                 "src/nci_si_mcp/content.py": ["N803"],
                 "src/nci_si_mcp/cadsr_matching.py": ["N803"],
                 "src/nci_si_mcp/workflows.py": ["N803"],
                 "src/nci_si_mcp/cadsr_content.py": ["N803"],
+                "src/ncit_index/embeddings.py": ["PLC0415"],
+                "src/nci_si_mcp/server.py": ["PLC0415"],
+                "src/nci_si_mcp/transport.py": ["PLC0415"],
+                "src/ncit_index/scoring.py": ["PLC0415"],
+                "scripts/**/*.py": ["T20"],
+                "acceptance/{tests,selftests}/**/*.py": ["S101"],
             },
         )
-        self.assertNotIn("N803", config["tool"]["ruff"]["lint"]["ignore"])
+        lint = config["tool"]["ruff"]["lint"]
+        self.assertEqual(set(lint), {"select", "ignore", "per-file-ignores"})
+        self.assertEqual(lint["ignore"], ["PLR0913", "PLR0917", "TC001", "TC002", "TC003"])
+
+    def test_ruff_enforces_effective_parameter_spelling_outside_spec_modules(self):
+        paths = [
+            ("src/nci_si_mcp/seam.py", 0),
+            ("src/nci_si_mcp/content.py", 0),
+            ("src/nci_si_mcp/cadsr_matching.py", 0),
+            ("src/nci_si_mcp/workflows.py", 0),
+            ("src/nci_si_mcp/cadsr_content.py", 0),
+            ("src/nci_si_mcp/config.py", 1),
+        ]
+        for name, exit_code in paths:
+            with self.subTest(path=name):
+                result = subprocess.run(  # noqa: S603 - real project Ruff configuration.
+                    [
+                        sys.executable,
+                        "-m",
+                        "ruff",
+                        "check",
+                        "--no-cache",
+                        "--output-format",
+                        "json",
+                        "--stdin-filename",
+                        name,
+                        "-",
+                    ],
+                    cwd=ROOT,
+                    input="def public(camelCase):\n    return camelCase\n",
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                diagnostic = {
+                    "cell": None,
+                    "code": "N803",
+                    "end_location": {"column": 21, "row": 1},
+                    "filename": str(ROOT / name),
+                    "fix": None,
+                    "location": {"column": 12, "row": 1},
+                    "message": "Argument name `camelCase` should be lowercase",
+                    "name": "invalid-argument-name",
+                    "noqa_row": 1,
+                    "severity": "error",
+                    "url": "https://docs.astral.sh/ruff/rules/invalid-argument-name",
+                }
+                self.assertEqual(result.returncode, exit_code)
+                self.assertEqual(result.stderr, "")
+                self.assertEqual(json.loads(result.stdout), [diagnostic] if exit_code else [])
 
     def test_effective_git_attributes_preserve_text_fonts_and_generated_documents(self):
         attributes = ["text", "eol", "binary", "diff", "merge", "linguist-generated"]
