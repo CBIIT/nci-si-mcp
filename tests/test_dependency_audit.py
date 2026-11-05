@@ -1,0 +1,217 @@
+"""The workflow audits the lock's full inventory and propagates failed verdicts."""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tomllib
+import unittest
+from collections.abc import Iterable, Iterator
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
+
+import yaml
+from packaging.utils import canonicalize_name
+from packaging.version import Version
+from pip_audit._cli import audit
+from pip_audit._service.interface import Dependency, VulnerabilityID, VulnerabilityResult
+
+ROOT = Path(__file__).resolve().parents[1]
+LOCAL_ACCEPTANCE = "-e ./acceptance#egg=nci-si-acceptance\n"
+# The exporter may be real or provide bounded fixtures; the audit always runs its real CLI.
+PDM_BOUNDARY = """
+pdm() {
+    if [[ "$1" == export ]]; then
+        case "$EXPORT_MODE" in
+            real) command "$PDM_COMMAND" "$@" ;;
+            fail) printf 'export failed\\n' >&2; return 23 ;;
+            fixture) cp "$EXPORT_INPUT" "${@: -1}" ;;
+        esac
+    else
+        "$AUDIT_PYTHON" "$AUDIT_FIXTURE" "${@:3}"
+    fi
+}
+"""
+
+
+def audit_block() -> str:
+    workflow = yaml.safe_load((ROOT / ".github/workflows/audit.yml").read_text())
+    return workflow["jobs"]["pip-audit"]["steps"][-1]["run"]
+
+
+def execute_audit(
+    contents: str = "", *, mode: str = "fixture"
+) -> tuple[subprocess.CompletedProcess[str], str, bool]:
+    with TemporaryDirectory(prefix="audit workflow ") as directory:
+        root = Path(directory)
+        source = root / "export.txt"
+        source.write_text(contents)
+        requirements = root / "requirements.txt"
+        requirements.write_text("stale-package==9.0\n")
+        invoked = root / "audit-invoked"
+        environment = {
+            **os.environ,
+            "RUNNER_TEMP": str(root),
+            "EXPORT_INPUT": str(source),
+            "EXPORT_MODE": mode,
+            "PDM_COMMAND": shutil.which("pdm") or "pdm",
+            "AUDIT_PYTHON": sys.executable,
+            "AUDIT_FIXTURE": str(Path(__file__).resolve()),
+            "AUDIT_INVOKED": str(invoked),
+            "PIP_AUDIT_VULNERABILITY_SERVICE": "pypi",
+        }
+        result = subprocess.run(  # noqa: S603 - execute the tracked workflow offline.
+            [  # noqa: S607 - GitHub run-step shell semantics.
+                "bash",
+                "--noprofile",
+                "--norc",
+                "-eo",
+                "pipefail",
+                "-c",
+                PDM_BOUNDARY + audit_block(),
+            ],
+            cwd=ROOT,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return result, requirements.read_text(), invoked.exists()
+
+
+class OfflineAdvisories:
+    """Fixed responses at the advisory-service boundary; never contacts a registry."""
+
+    def query_all(
+        self, dependencies: Iterable[Dependency]
+    ) -> Iterator[tuple[Dependency, list[VulnerabilityResult]]]:
+        for dependency in dependencies:
+            vulnerabilities = []
+            if dependency.name == "audit-vulnerable":
+                vulnerabilities = [
+                    VulnerabilityResult(
+                        VulnerabilityID("PYSEC-2099-1"),
+                        "Offline workflow fixture vulnerability",
+                        [Version("2.0")],
+                        set(),
+                    )
+                ]
+            yield dependency, vulnerabilities
+
+
+class DependencyAuditInputTest(unittest.TestCase):
+    def test_every_external_locked_version_reaches_the_real_auditor(self):
+        packages = tomllib.loads((ROOT / "pdm.lock").read_text())["package"]
+        local = [package for package in packages if "path" in package]
+        self.assertEqual(
+            [(p["name"], p["path"], p.get("editable")) for p in local],
+            [("nci-si-acceptance", "./acceptance", True)],
+        )
+        expected = {
+            (canonicalize_name(package["name"]), package["version"])
+            for package in packages
+            if "path" not in package
+        }
+
+        result, requirements, _ = execute_audit(mode="real")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        actual = {
+            (canonicalize_name(dependency["name"]), dependency["version"])
+            for dependency in report["dependencies"]
+        }
+        self.assertEqual(actual, expected)
+        self.assertEqual(report["fixes"], [])
+        self.assertNotIn(";", requirements)
+        self.assertNotIn("[", requirements)
+        self.assertNotIn("-e ", requirements)
+
+    def test_only_the_known_local_project_is_excluded(self):
+        result, requirements, _ = execute_audit(LOCAL_ACCEPTANCE + "audit-safe==1.0\n")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(requirements, "audit-safe==1.0\n")
+        self.assertEqual(
+            json.loads(result.stdout),
+            {"dependencies": [{"name": "audit-safe", "version": "1.0", "vulns": []}], "fixes": []},
+        )
+
+    def test_unexpected_editable_or_url_cannot_be_reported_as_a_clean_audit(self):
+        for requirement, error in (
+            (
+                "-e ./another-project#egg=another-project\n",
+                "requirement another-project is not pinned: another-project from ./another-project",
+            ),
+            (
+                "external @ https://example.invalid/external.whl\n",
+                "external: URL requirements cannot be pinned to a specific package version",
+            ),
+        ):
+            with self.subTest(requirement=requirement):
+                result, requirements, _ = execute_audit(requirement)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(requirements, requirement)
+                self.assertEqual(result.stdout, "")
+                self.assertIn("ERROR:pip_audit._cli:" + error, result.stderr)
+
+    def test_unpinned_requirement_fails_at_the_source_boundary(self):
+        result, requirements, _ = execute_audit("audit-safe\n")
+
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(requirements, "audit-safe\n")
+        self.assertEqual(result.stdout, "")
+        self.assertIn("requirement audit-safe is not pinned: audit-safe", result.stderr)
+
+    def test_conflicting_locked_versions_are_preserved_and_rejected(self):
+        contents = "audit-safe==1.0\naudit-safe==2.0\n"
+        result, requirements, _ = execute_audit(contents)
+
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(requirements, contents)
+        self.assertEqual(result.stdout, "")
+        self.assertIn(
+            "package audit-safe has duplicate requirements: audit-safe==2.0", result.stderr
+        )
+
+    def test_export_failure_never_audits_the_stale_file(self):
+        result, requirements, invoked = execute_audit(mode="fail")
+
+        self.assertEqual(result.returncode, 23)
+        self.assertEqual(result.stderr, "export failed\n")
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(requirements, "stale-package==9.0\n")
+        self.assertFalse(invoked)
+
+    def test_vulnerability_verdict_fails_the_workflow_with_its_report(self):
+        result, requirements, _ = execute_audit("audit-vulnerable==1.0\n")
+
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(requirements, "audit-vulnerable==1.0\n")
+        self.assertEqual(
+            json.loads(result.stdout)["dependencies"],
+            [
+                {
+                    "name": "audit-vulnerable",
+                    "version": "1.0",
+                    "vulns": [
+                        {
+                            "id": "PYSEC-2099-1",
+                            "fix_versions": ["2.0"],
+                            "aliases": [],
+                            "description": "Offline workflow fixture vulnerability",
+                        }
+                    ],
+                }
+            ],
+        )
+
+
+if __name__ == "__main__":
+    marker = Path(os.environ["AUDIT_INVOKED"])
+    marker.write_text("invoked\n")
+    sys.argv = ["pip-audit", *sys.argv[1:], "--format=json", "--cache-dir", str(marker.parent)]
+    with patch("pip_audit._cli.PyPIService.query_all", OfflineAdvisories().query_all):
+        audit()
