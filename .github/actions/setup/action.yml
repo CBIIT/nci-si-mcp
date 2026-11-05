@@ -10,12 +10,52 @@ runs:
   using: composite
   steps:
     - uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37  # v4.6
+      # Keep the bootstrap separate from pdm.lock, which governs the project environment.
+      env:
+        PDM_HOME: ${{ runner.temp }}/pdm-tool
+        PDM_NO_FROZEN_DEPS: '1'
+        PDM_DEPS: hishel==1.2.1,unearth==0.18.2,virtualenv==21.15.2
+        PIP_UPLOADED_PRIOR_TO: P5D
       with:
         python-version: "3.14"
         version: "2.29.2"
         cache: ${{ inputs.release-only != 'true' }}
         # An environment built from another lock file may hold packages this one dropped.
         cache-restore-exact-match: true
+    - name: Verify PDM tool environment
+      env:
+        PDM_TOOL_HOME: ${{ runner.temp }}/pdm-tool
+      shell: bash
+      run: |
+        "$PDM_TOOL_HOME/venv/bin/python" - <<'PYTHON'
+        import json
+        import os
+        from importlib.metadata import PackageNotFoundError, distributions, version
+        from pathlib import Path
+        import shutil
+        import sys
+
+        home = Path(os.environ["PDM_TOOL_HOME"])
+        selected = shutil.which("pdm")
+        if Path(sys.prefix).resolve() != (home / "venv").resolve():
+            raise SystemExit("Unexpected PDM tool interpreter")
+        if selected is None or Path(selected).resolve() != (home / "bin/pdm").resolve():
+            raise SystemExit("Unexpected PDM executable")
+        expected: dict[str, str] = {
+            "pdm": "2.29.2",
+            "hishel": "1.2.1",
+            "unearth": "0.18.2",
+            "virtualenv": "21.15.2",
+        }
+        for name, required in expected.items():
+            try:
+                installed = version(name)
+            except PackageNotFoundError:
+                raise SystemExit("Missing PDM tool distribution") from None
+            if installed != required:
+                raise SystemExit("Unsupported PDM tool distribution")
+        print(json.dumps(sorted((item.metadata["Name"], item.version) for item in distributions())))
+        PYTHON
     # --check fails on a lock file that no longer matches pyproject.toml.
     - if: inputs.release-only != 'true'
       run: pdm install --check

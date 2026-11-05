@@ -465,7 +465,8 @@ A scope is optional, in lower case: `fix(index): …`. Choose the type with care
 decides the version. Only the title counts: the squash commit has no body, so mark a breaking
 change with `!`, and do not edit the commit message in the merge dialog.
 
-Review the exact PDM, Ruff, basedpyright, Zensical and python-semantic-release tool pins monthly,
+Review the exact PDM (including its bootstrap hishel, unearth and virtualenv constraints), Ruff,
+basedpyright, Zensical and python-semantic-release tool pins monthly,
 using a separate reviewed dependency refresh and the release-age/security gates above.
 
 When CI passes on `main`, the release workflow tags that commit `vX.Y.Z` and creates a GitHub

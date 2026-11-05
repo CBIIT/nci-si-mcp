@@ -37,6 +37,13 @@ jobs:
           sed -e '\|^-e \./acceptance#egg=nci-si-acceptance$|d' -e 's/;.*//' "$RUNNER_TEMP/all-requirements.txt" > "$RUNNER_TEMP/requirements.txt"
           pdm run pip-audit -r "$RUNNER_TEMP/requirements.txt" --no-deps --disable-pip --strict
 
+      - name: Audit the actual PDM tool environment
+        env:
+          PDM_TOOL_HOME: ${{ runner.temp }}/pdm-tool
+        run: |
+          tool_site="$("$PDM_TOOL_HOME/venv/bin/python" -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+          pdm run pip-audit --path "$tool_site" --strict
+
   # A pull request that brings in a dependency with a known vulnerability of high severity fails.
   dependency-review:
     name: dependency review

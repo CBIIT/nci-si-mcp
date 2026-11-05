@@ -164,7 +164,7 @@ jobs:
         if: (matrix.server || matrix.host_docs) && runner.os == 'Linux'
         run: |
           uv python install 3.14
-          uv tool install 'pdm[locked]==2.29.2'
+          uv tool install --exclude-newer 5d --with 'hishel==1.2.1' --with 'unearth==0.18.2' --with 'virtualenv==21.15.2' 'pdm==2.29.2'
 
       - name: Install the project
         if: matrix.server || matrix.host_docs

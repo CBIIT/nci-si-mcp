@@ -24,7 +24,7 @@ environments aligned rather than promising compatibility with older interpreters
 
 | Need | For | How to get it |
 |---|---|---|
-| Python 3.14 or newer and [PDM](https://pdm-project.org) | everything | macOS: `brew install python@3.14 pdm && pdm use -f "$(command -v python3.14)"`. Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh`, then, in a new shell, `uv python install 3.14` and `uv tool install 'pdm[locked]==2.29.2'` |
+| Python 3.14 or newer and [PDM](https://pdm-project.org) | everything | macOS: `brew install python@3.14 pdm && pdm use -f "$(command -v python3.14)"`. Linux: `curl -LsSf https://astral.sh/uv/install.sh \| sh`, then, in a new shell, `uv python install 3.14` and `uv tool install --exclude-newer 5d --with 'hishel==1.2.1' --with 'unearth==0.18.2' --with 'virtualenv==21.15.2' 'pdm==2.29.2'` |
 | git, with tags | everything: the version comes from the nearest tag | a plain `git clone` has them; a shallow clone or a source archive does not |
 | Network access to EVS, caDSR and Shared SI | live calls; installer checks EVS and caDSR; `download.pytorch.org` supplies the container image | |
 | Free ports 8000, 8080, 8081 | 8000 the HTTP server and the site preview, 8080 the documentation container, 8081 the validation dashboard | |
