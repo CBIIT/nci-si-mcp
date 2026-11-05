@@ -699,6 +699,15 @@ def undocumented_lines(step_name, run, documents):
 
 
 class LocalRunWorkflowTest(unittest.TestCase):
+    def test_linux_bootstrap_uses_locked_pdm_at_the_independently_pinned_ci_version(self):
+        steps = {step.get("name"): step for step in job()["steps"]}
+        self.assertEqual(
+            steps["Install Python and PDM (Linux)"]["run"],
+            "uv python install 3.14\nuv tool install 'pdm[locked]==2.29.2'\n",
+        )
+        setup = load(WORKFLOWS.parent / "actions" / "setup" / "action.yml")
+        self.assertEqual(setup["runs"]["steps"][0]["with"]["version"], "2.29.2")
+
     def test_the_workflow_exists_beside_the_others(self):
         self.assertEqual(
             sorted(path.name for path in WORKFLOWS.glob("*.yml")),
