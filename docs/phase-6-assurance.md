@@ -2,8 +2,11 @@
 
 This record covers portable caller permissions, required HTTP integration and offline evaluation
 mechanics. It is not production identity, live caDSR, actual-model or IBM-runtime certification.
-The owner moved [#180 and #181 to Backlog](deferred-capabilities.md); both remain open and
-deferred. Their absence does not suppress any mandatory security requirement.
+Following the original [Backlog deferral](deferred-capabilities.md), #180 is closed as not
+planned because no unmet client need justifies server-side generation; reopening requires a
+demonstrated need clients cannot meet and an approved A9.2 amendment. #181 remains open in
+the Cloud One evaluation milestone with runtime/adoption deferred. Their absence does not
+suppress any mandatory security requirement.
 
 ## Delivered behavior and executable evidence
 
@@ -85,8 +88,8 @@ The mutation evidence is a point-in-time record: its file hashes and test node i
 tree as it was in Phase 6, and later test file moves and renames invalidate them.
 The release is not considered complete until CI, Audit, CodeQL and Release pass on its merge
 commit, all remaining Phase 6 issues close, milestone 8 closes through the API, installed version
-metadata refreshes, and owned scratch/branches/processes are removed. Deferred Backlog issues
-#180/#181 are intentionally excluded from closing references.
+metadata refreshes, and owned scratch/branches/processes are removed. #180/#181 were
+intentionally excluded from that release's closing references.
 
 The [evaluation report](assisted-evaluation.md) names measured inputs, source hashes, releases,
 request counts and fixture latency. It must be regenerated if its runner/scorer changes during

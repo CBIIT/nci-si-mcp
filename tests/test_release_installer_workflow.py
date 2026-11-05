@@ -77,7 +77,7 @@ steps:
       PYTHON: ${{ steps.python.outputs.python-path }}
     run: |
       "$PYTHON" -m venv "$INSTALLER_VENV"
-      "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${INSTALL_REF}"
+      "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-sip-mcp@${INSTALL_REF}"
   - name: Install the acceptance suite (CI only)
     env: {PYTHON: '${{ steps.python.outputs.python-path }}'}
     run: |
@@ -222,7 +222,7 @@ steps:
         sleep 0.1
       done
       "$PYTHON" -m venv "$NEGATIVE_INSTALLER_VENV"
-      "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${INSTALL_REF}"
+      "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-sip-mcp@${INSTALL_REF}"
       git config --file "$RUNNER_TEMP/moved-tag.gitconfig" --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
       git config --file "$RUNNER_TEMP/moved-tag.gitconfig" --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-sip-mcp
       original_tag="$(git -C "$GITHUB_WORKSPACE" rev-parse "$RELEASE_TAG^{commit}")"
@@ -344,31 +344,12 @@ def named_steps():
     return [step for step in job()["steps"] if "name" in step]
 
 
-def documented_lines():
+def documented_procedures():
     text = DOCUMENT.read_text(encoding="utf-8")
-    blocks = re.findall(r"^```(?:bash|sh|shell)\n(.*?)^```", text, re.DOTALL | re.MULTILINE)
-    return [line.strip() for block in blocks for line in block.splitlines() if line.strip()]
-
-
-def documented_operator_lines():
-    return [
-        line
-        for line in documented_lines()
-        if line.startswith('"$INSTALLER_VENV/bin/nci-si-install"')
-    ]
-
-
-def documented_install_lines():
-    commands = documented_lines()
-    return [
-        line
-        for line in (
-            '"$PYTHON" -m venv "$INSTALLER_VENV"',
-            '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ '
-            'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"',
-        )
-        if line in commands
-    ]
+    section = text.split("\n## Verify a released local installation\n", 1)[1]
+    section = section.split("\n## ", 1)[0]
+    blocks = re.findall(r"^```(?:bash|sh|shell)\n(.*?)^```", section, re.DOTALL | re.MULTILINE)
+    return [block.splitlines() for block in blocks]
 
 
 def workflow_operator_lines(run):
@@ -493,13 +474,26 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
         steps = {step["name"]: step for step in named_steps()}
         install = steps["Install the selected installer source"]
         self.assertEqual(install["working-directory"], "${{ runner.temp }}")
-        public = documented_install_lines()
+        procedures = documented_procedures()
+        self.assertEqual(len(procedures), 2)
+        public = procedures[0]
         self.assertEqual(
             public,
             [
                 '"$PYTHON" -m venv "$INSTALLER_VENV"',
                 '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ '
-                'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"',
+                'git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"',
+                '"$INSTALLER_VENV/bin/nci-si-install" check --target local',
+                '"$INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$STDIO_ROOT" --non-interactive',
+                '"$INSTALLER_VENV/bin/nci-si-install" status --target local --transport stdio --data-dir "$STDIO_ROOT"',
+                '"$INSTALLER_VENV/bin/nci-si-install" start --target local --transport stdio --data-dir "$STDIO_ROOT"',
+                '"$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport stdio --data-dir "$STDIO_ROOT"',
+                '"$INSTALLER_VENV/bin/nci-si-install" check --target local',
+                '"$INSTALLER_VENV/bin/nci-si-install" run --target local --transport http --data-dir "$HTTP_ROOT" --non-interactive',
+                '"$INSTALLER_VENV/bin/nci-si-install" status --target local --transport http --data-dir "$HTTP_ROOT"',
+                '"$INSTALLER_VENV/bin/nci-si-install" start --target local --transport http --data-dir "$HTTP_ROOT"',
+                '"$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT"',
+                '"$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT"',
             ],
         )
         self.assertEqual(
@@ -513,12 +507,22 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
             '"$INSTALLER_VENV/bin/nci-si-install" start --target local --transport stdio '
             '--data-dir "$STDIO_ROOT"'
         )
-        expected = [
-            STDIO_CAPTURE if line == stdio_start else line for line in documented_operator_lines()
-        ]
+        expected = [STDIO_CAPTURE if line == stdio_start else line for line in public[2:]]
         self.assertEqual(
             workflow_operator_lines(lifecycle["run"]),
             expected,
+        )
+
+    def test_legacy_installer_keeps_its_separate_complete_old_origin_procedure(self):
+        procedures = documented_procedures()
+        self.assertEqual(len(procedures), 2)
+        self.assertEqual(
+            procedures[1],
+            [
+                '"$PYTHON" -m venv "$INSTALLER_VENV"',
+                '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ '
+                'git+https://github.com/CBIIT/nci-si-mcp@${LEGACY_RELEASE_TAG}"',
+            ],
         )
 
     def test_moved_tag_verdict_requires_the_full_expected_commit_in_the_diagnostic(self):

@@ -35,6 +35,8 @@ null; explicit null stays null. Item-owned dates and optional component identiti
 Included object-class/property derivations with missing or non-Yes/No primary flags now return
 `upstream_unavailable`; malformed supplied `displayOrder` is rejected instead of passed through.
 
+Install a released server with the [local guide prerequisites and server sequence](docs/local-guide.md#prerequisites). From a checkout:
+
 ```bash
 pdm install                  # Python 3.14+ and PDM; see the prerequisites below
 pdm run nci-si-mcp serve     # the server, over MCP stdio
@@ -42,6 +44,9 @@ pdm run acceptance           # the acceptance suite against it, on recorded upst
 ```
 
 [Platforms and prerequisites](QUICKSTART.md#platforms-and-prerequisites) lists what to install first.
+Python 3.14 is the validated development, CI and release baseline; older interpreters are
+outside the supported configuration. [GitHub Releases](https://github.com/CBIIT/nci-sip-mcp/releases)
+are the changelog.
 A plain `pdm run acceptance` skips prepared, secured and optional registry-release checks.
 The [complete fixture command](CONTRIBUTING.md#complete-fixture-ratchet) supplies preparation, the security
 adapter and `NCI_SI_ACCEPTANCE_REGISTRY_RELEASE=required` to run all cases.
@@ -172,6 +177,8 @@ The delivered phases are recorded, with their dates, in the
   their evidence, affected tests, workarounds and acceptance criteria.
 - **NCI reviewers and the suite's maintainers**: [acceptance/README.md](acceptance/README.md) and
   [acceptance/fixtures/README.md](acceptance/fixtures/README.md), where the fixtures come from.
+- **Building or maintaining an NCIt index**: the [semantic index guide](docs/ncit-semantic-index.md)
+  explains its fields, model, evidence and build/evaluate/activate/rollback procedure.
 - **Working on this repository**: [CONTRIBUTING.md](CONTRIBUTING.md) for the commands, standards
   and gates; [ARCHITECTURE.md](ARCHITECTURE.md) for how the server is built.
   Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md).

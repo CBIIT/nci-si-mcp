@@ -132,6 +132,8 @@ cache. The `docker` CLI on a Podman engine builds the OCI format, which drops th
 `HEALTHCHECK` the smoke check reads; there use `podman build --format docker` instead.
 The build downloads about 200 MB of torch from `download.pytorch.org` and produces an image of
 about 1.6 GB, so it needs that network access, the disk and several minutes.
+The build trusts the PyTorch wheel index at `https://download.pytorch.org/whl/cpu` as an
+additional dependency source; the committed lock binds the selected wheel hashes.
 Keep exactly one current wheel in `dist/`. Run
 `pdm run python -m scripts.container_smoke nci-si-mcp:local` to check the image with an
 external, test-only model and a recorded concept. CI builds the same wheel/image and runs

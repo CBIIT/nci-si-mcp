@@ -103,11 +103,11 @@ DOCUMENTS = {
 
 CI_INDEX_INSTALL = (
     '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ '
-    'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
+    'git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"'
 )
 CI_SERVER_INSTALL = (
     '"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ '
-    'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
+    'git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"'
 )
 
 FIXTURE_RUN = """# shellcheck disable=SC2016 # the single quotes are the documented form
@@ -285,7 +285,7 @@ PROBES = {
 
 DOCUMENTED_INDEX_INSTALL = (
     '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ '
-    'git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"'
+    'git+https://github.com/CBIIT/nci-sip-mcp@vX.Y.Z"'
 )
 REQUIRED_INDEX_RUN = r"""set -euo pipefail
 server=""
@@ -413,6 +413,8 @@ REMOVALS = {
 # image ships take over unnoticed.
 IN_USE_PYTHON_MACOS = r"""fail() { echo "::error::$1"; exit 1; }
 [ "$(command -v pdm)" = "$(brew --prefix)/bin/pdm" ] || fail "pdm is $(command -v pdm), not the Homebrew install"
+tool_python="$(brew --prefix pdm)/libexec/bin/python"
+"$tool_python" -c 'import json; from importlib.metadata import distributions; print(json.dumps(sorted((item.metadata["Name"], item.version) for item in distributions())))'
 version="$(pdm run python -c "import sys; print('%d.%d' % sys.version_info[:2])" | tail -n 1)"
 [ "$version" = "3.14" ] || fail "the project runs Python $version, not 3.14"
 base="$(pdm run python -c "import sys; print(sys.base_prefix)" | tail -n 1)"
@@ -422,6 +424,8 @@ case "$base" in "$formula"/*) ;; *) fail "the project's Python is $base, not Hom
 
 IN_USE_PYTHON_LINUX = r"""fail() { echo "::error::$1"; exit 1; }
 [ "$(command -v pdm)" = "$HOME/.local/bin/pdm" ] || fail "pdm is $(command -v pdm), not the uv tool install"
+tool_python="$(uv tool dir)/pdm/bin/python"
+"$tool_python" -c 'import json; from importlib.metadata import distributions; print(json.dumps(sorted((item.metadata["Name"], item.version) for item in distributions())))'
 version="$(pdm run python -c "import sys; print('%d.%d' % sys.version_info[:2])" | tail -n 1)"
 [ "$version" = "3.14" ] || fail "the project runs Python $version, not 3.14"
 base="$(pdm run python -c "import sys; print(sys.base_prefix)" | tail -n 1)"
@@ -699,6 +703,19 @@ def undocumented_lines(step_name, run, documents):
 
 
 class LocalRunWorkflowTest(unittest.TestCase):
+    def test_linux_bootstrap_uses_secure_compatible_pdm_at_the_independently_pinned_ci_version(
+        self,
+    ):
+        steps = {step.get("name"): step for step in job()["steps"]}
+        self.assertEqual(
+            steps["Install Python and PDM (Linux)"]["run"],
+            "uv python install 3.14\n"
+            "uv tool install --exclude-newer 5d --with 'hishel==1.2.1' "
+            "--with 'unearth==0.18.2' --with 'virtualenv==21.15.2' 'pdm==2.29.2'\n",
+        )
+        setup = load(WORKFLOWS.parent / "actions" / "setup" / "action.yml")
+        self.assertEqual(setup["runs"]["steps"][0]["with"]["version"], "2.29.2")
+
     def test_the_workflow_exists_beside_the_others(self):
         self.assertEqual(
             sorted(path.name for path in WORKFLOWS.glob("*.yml")),
@@ -836,8 +853,25 @@ class LocalRunWorkflowTest(unittest.TestCase):
         by_name = run_by_name()
         self.assertIn(DOCUMENTED_INDEX_INSTALL, documented_commands("docs/local-guide.md"))
         install = by_name["Install released server and optional index environments"]
-        self.assertIn(CI_INDEX_INSTALL, install)
-        self.assertIn(CI_SERVER_INSTALL, install)
+        self.assertEqual(
+            install,
+            "\n".join(
+                (
+                    'INDEX_VENV="$RUNNER_TEMP/index-venv"',
+                    'SERVER_VENV="$RUNNER_TEMP/server-venv"',
+                    'python3.14 -m venv "$SERVER_VENV"',
+                    CI_SERVER_INSTALL,
+                    'echo "SERVER_VENV=$SERVER_VENV" >> "$GITHUB_ENV"',
+                    'if [ "$WITH_INDEX" = "true" ]; then',
+                    '  python3.14 -m venv "$INDEX_VENV"',
+                    "  " + CI_INDEX_INSTALL,
+                    '  echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"',
+                    "fi",
+                    'echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"',
+                    "",
+                )
+            ),
+        )
         self.assertEqual(
             by_name["Select the released index source (CI only)"],
             "\n".join(

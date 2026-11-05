@@ -4,9 +4,9 @@ The server, optional NCIt index, documentation site and validation companion are
 local components. Choose one row, then run only the linked component sections. The installer
 owns the server only. It never installs an index, documentation or the companion.
 
-Released Git installation examples retain the old repository URL during the
-[installer compatibility transition](installer-targets.md#verify-a-released-local-installation).
-Current source and navigation use `CBIIT/nci-sip-mcp`; released package names stay unchanged.
+Current release examples use `CBIIT/nci-sip-mcp`. Installers from v0.29.1 accept both canonical
+origins; older installers need the [old-origin instructions](installer-targets.md#verify-a-released-local-installation).
+Package, import, command, environment and data-directory names are unchanged.
 
 ## Combinations
 
@@ -43,7 +43,7 @@ Create a virtual environment and install the tagged server package:
 
 ```bash
 python3.14 -m venv "$SERVER_VENV"
-"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"
+"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-sip-mcp@vX.Y.Z"
 ```
 
 Walk the stdio lifecycle:
@@ -76,7 +76,7 @@ start the one required-index server for this combination:
 
 ```bash
 python3.14 -m venv "$INDEX_VENV"
-"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"
+"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-sip-mcp@vX.Y.Z"
 export NCI_SI_DATA_DIR="$INDEX_DATA"
 "$INDEX_VENV/bin/nci-si-mcp" index-sample C3262 C2991 C40704 C153397 C116938
 "$INDEX_VENV/bin/nci-si-mcp" evaluate
@@ -86,7 +86,9 @@ export NCI_SI_HTTP_REQUIRE_INDEX=1
 
 Verify `http://127.0.0.1:8000/ready`, then call `search_concepts` with terminology `ncit`, query
 `Neoplasm` and mode `semantic`. The first result is C3262 with `source: evs_index` and
-`servedBy: index`. Opening an index never downloads a model or starts a full build.
+`servedBy: index`. Opening an index never downloads a model or starts a full build. This subset is a smoke test,
+not full-corpus retrieval evidence. The [semantic index guide](ncit-semantic-index.md) owns the
+full build, field/model policy, evaluation and activation procedure.
 
 ## Host documentation and companion
 

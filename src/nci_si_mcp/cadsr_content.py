@@ -353,7 +353,7 @@ def _candidate_id(raw: dict[str, Any]) -> str:
 
 def get_data_element(
     context: Context,
-    publicId: Annotated[  # noqa: N803 - public specification spelling.
+    publicId: Annotated[
         str | None,
         Described(
             "Public id of the data element, for example 2179689. Give exactly one of "
@@ -361,14 +361,14 @@ def get_data_element(
             pattern=REGISTRY_ID_FORM,
         ),
     ] = None,
-    longName: Annotated[  # noqa: N803 - public specification spelling.
+    longName: Annotated[
         str | None,
         Described(
             "Required by the specification; caDSR does not serve it yet (OP-C02), so a value "
             "is refused with capability_unavailable. Leave unset until it does."
         ),
     ] = None,
-    questionText: Annotated[  # noqa: N803 - public specification spelling.
+    questionText: Annotated[
         str | None,
         Described(
             "The preferred question text of the data element; it resolves to the one "
@@ -392,7 +392,7 @@ def get_data_element(
             "Leave unset for the element's own fields only."
         ),
     ] = None,
-    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
+    registryRelease: RegistryRelease = None,
 ) -> dict[str, Any]:
     """Read one caDSR data element by its publicId or its preferred question text.
 
@@ -488,7 +488,7 @@ def search_data_elements(
     ] = None,
     limit: Annotated[int, count_bound("Most results on a page.", 10, 100)] = 10,
     cursor: Cursor = None,
-    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
+    registryRelease: RegistryRelease = None,
 ) -> dict[str, Any]:
     """Search caDSR data elements by keyword, a page at a time; caDSR does not serve this route
     today (OP-C03).
@@ -620,7 +620,7 @@ def list_contexts(
     context: Context,
     limit: Annotated[int, count_bound("Most contexts on a page.", 100, 1000)] = 100,
     cursor: Cursor = None,
-    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
+    registryRelease: RegistryRelease = None,
 ) -> dict[str, Any]:
     """List the caDSR contexts, the owner groups under which data elements are registered, by name.
 
@@ -658,7 +658,7 @@ def list_classification_schemes(
     ] = None,
     limit: Annotated[int, count_bound("Most schemes on a page.", 100, 1000)] = 100,
     cursor: Cursor = None,
-    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
+    registryRelease: RegistryRelease = None,
 ) -> dict[str, Any]:
     """List caDSR classification schemes with their nested items; caDSR does not serve this today
     (OP-C13).
@@ -703,12 +703,12 @@ def resolve_registry_release(context: Context) -> dict[str, Any]:
     return context.cadsr.resolve_registry_release().to_dict()
 
 
-def data_element_resource(context: Context, publicId: str) -> dict[str, Any]:  # noqa: N803 - public specification spelling.
+def data_element_resource(context: Context, publicId: str) -> dict[str, Any]:
     """A caDSR data element at its latest item version, without a registry pin."""
     return get_data_element(context, publicId=publicId)
 
 
-def data_element_version_resource(context: Context, publicId: str, version: str) -> dict[str, Any]:  # noqa: N803 - public specification spelling.
+def data_element_version_resource(context: Context, publicId: str, version: str) -> dict[str, Any]:
     """A caDSR data element at the named item version, without a registry pin."""
     return get_data_element(context, publicId=publicId, version=version)
 
@@ -732,7 +732,7 @@ def registry_resource(context: Context) -> dict[str, Any]:
 
 def get_form(
     context: Context,
-    publicId: Annotated[  # noqa: N803 - public specification spelling.
+    publicId: Annotated[
         str | None,
         Described("Public id of the form, for example 2200604.", pattern=REGISTRY_ID_FORM),
     ] = None,
@@ -751,14 +751,14 @@ def get_form(
             pattern=ITEM_VERSION_FORM,
         ),
     ] = None,
-    includeModules: Annotated[  # noqa: N803 - public specification spelling.
+    includeModules: Annotated[
         bool,
         Described(
             "Return the modules and questions of the form. Default true; false returns "
             "the form's own fields only."
         ),
     ] = True,
-    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
+    registryRelease: RegistryRelease = None,
 ) -> dict[str, Any]:
     """Read one caDSR form or case report form by its publicId, with its modules and questions.
 
@@ -820,7 +820,7 @@ def _form_options(
 
 def get_permissible_value(
     context: Context,
-    permissibleValueId: Annotated[  # noqa: N803 - public specification spelling.
+    permissibleValueId: Annotated[
         str,
         Described(
             "Identifier of the permissible value, for example 2200636. The tool is "
@@ -829,7 +829,7 @@ def get_permissible_value(
             pattern=REGISTRY_ID_FORM,
         ),
     ],
-    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
+    registryRelease: RegistryRelease = None,
 ) -> dict[str, Any]:
     """Read one caDSR permissible value by its identifier; caDSR cannot retrieve one standalone
     today (OP-C10).
@@ -885,17 +885,17 @@ def _map_options(source: str, target: str | None, identifier: str | None) -> Non
 
 def get_code_map(
     context: Context,
-    sourceSystem: Annotated[  # noqa: N803 - public specification spelling.
+    sourceSystem: Annotated[
         CodeMapSource,
         Described("Source code system of the maps; only CRDC is served. Default CRDC."),
     ] = "CRDC",
-    targetContext: Annotated[  # noqa: N803 - public specification spelling.
+    targetContext: Annotated[
         str | None,
         Described(
             "Only the maps of this context or commons name, for example GDC. Leave unset for all."
         ),
     ] = None,
-    dataElementId: Annotated[  # noqa: N803 - public specification spelling.
+    dataElementId: Annotated[
         str | None,
         Described(
             "Only the map of this one data element, for example 2179689.", pattern=REGISTRY_ID_FORM
@@ -903,7 +903,7 @@ def get_code_map(
     ] = None,
     limit: Annotated[int, count_bound("Most code maps on a page.", 100, 1000)] = 100,
     cursor: Cursor = None,
-    registryRelease: RegistryRelease = None,  # noqa: N803 - public specification spelling.
+    registryRelease: RegistryRelease = None,
 ) -> dict[str, Any]:
     """Page the CRDC code maps that tie a CRDC field to its data element and the values it may
     store, with concept codes.

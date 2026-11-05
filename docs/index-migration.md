@@ -58,7 +58,7 @@ are represented without changing retrieval behavior.
   The package defines exceptions, not protocol codes; the MCP invocation table translates them.
 
 See [tool and error contracts](specification.md) for public semantics and
-[current operator instructions](../QUICKSTART.md#build-a-small-local-index) for local operation.
+[current operator instructions](ncit-semantic-index.md#build-evaluate-and-activate) for local operation.
 
 ## Future handover and rollback — not implemented
 

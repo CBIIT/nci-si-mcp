@@ -5,6 +5,10 @@ An assistant consuming its results may nevertheless act on hostile instructions 
 definition, CDE name, question text or permissible value. Structured fields are not sanitisation.
 The server preserves upstream-managed content rather than detecting, rewriting or removing it.
 
+See also: [transport and sessions](transport.md), [governed HTTP](governed-http.md),
+[container supply chain](container.md), [installer source and local state](installer-targets.md),
+and [local evidence files](evidence-contract.md).
+
 ## Assets and trust boundaries
 
 - **Upstream → server:** EVS, caDSR and Shared SI supply content. The NCIt index holds snapshots

@@ -1,7 +1,7 @@
 # WxMCPServer desk assessment
 
 **Owner decision: defer runtime integration and adoption; retain direct MCP.**
-[#181](https://github.com/CBIIT/nci-si-mcp/issues/181) remains open in Backlog; the
+[#181](https://github.com/CBIIT/nci-si-mcp/issues/181) remains open in the Cloud One wxMCP evaluation milestone; the
 [deferral and research strategy](deferred-capabilities.md) records the entry criteria. This is a source-based assessment,
 not a deployed gateway test, certification or judgment about every IBM offering.
 

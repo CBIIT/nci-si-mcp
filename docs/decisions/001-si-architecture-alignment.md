@@ -20,8 +20,8 @@ implementation to migrate. Its single deployable and semantic core are retained.
 | EVS, caDSR and Shared SI access | `evs.py`, `cadsr.py`, `ssis.py`, shared `http_client.py` | Implemented; caDSR fixture evidence is not live credentialed validation. |
 | Authentication, authorization and audit | SDK authentication and policy, required HTTP entry point, `audit.py` | Portable implementation in #177/#178; production identity remains deferred/off. |
 | Focused MCP addresses | One `/mcp` address | D4 retains one address. No aliases without a demonstrated consumer need and decision. |
-| `ask(question)` planner | Deterministic workflows and client prompt templates | Deferred to Backlog #180 by the owner; [research strategy](../deferred-capabilities.md) defines re-entry. #179 supplies fixture mechanics only. |
-| wxMCP integration | Direct MCP is the conformance reference | [Versioned desk assessment](../wxmcp-assessment.md) in #181; runtime/adoption work deferred to Backlog by the owner; runtime checks unexecuted. |
+| `ask(question)` planner | Deterministic workflows and client prompt templates | Closed as not planned (#180): no demonstrated unmet client need. Reopen for a need clients cannot meet plus an approved A9.2 amendment; [research strategy](../deferred-capabilities.md) retains the gates. #179 supplies fixture mechanics only. |
+| wxMCP integration | Direct MCP is the conformance reference | [Versioned desk assessment](../wxmcp-assessment.md) in #181; runtime/adoption work deferred to the Cloud One evaluation milestone; runtime checks unexecuted. |
 | Protocol DB | No implemented client or published contract used here | Deferred until contracts, access and scope exist. |
 
 ## Approved portable decisions
@@ -91,8 +91,8 @@ silently. Test principal ownership independently of successful load-balancer rou
 | --- | --- | --- |
 | Production identity and hosting | Deferred/off under D4 | Approved issuer/audience, capability mapping, revocation freshness, proxy/network boundary, operator inputs and live integration evidence; security owner decision. |
 | Model/provider and transcript policy | Deferred/off under D5 | Approved model revision, spend and permitted data classes for the entire transcript: caller values, retrieved/licensed metadata, tool results and traces; retention, region, training use and egress policy. |
-| Server-side generated capability | Owner-approved deferral to Backlog #180; absent |  #179 unmet-need evidence, explicit A9.2 written amendment naming capability and owner, output schema and M1.4 annotation decision, then #180 paired shipping evidence and owner decision. |
-| wxMCP experiment/adoption | Owner-approved deferral to Backlog #181; desk assessment delivered |  Version-specific feasibility and approved effort/spend limits before hosted/adapter work; adoption separately scoped. No license purchase or infrastructure provisioning. |
+| Server-side generated capability | Closed as not planned (#180): no demonstrated unmet client need; absent |  #180 reopens only for demonstrated need clients cannot meet and an approved A9.2 amendment; #179 unmet-need evidence, explicit A9.2 written amendment naming capability and owner, output schema and M1.4 annotation decision, then #180 paired shipping evidence and owner decision. |
+| wxMCP experiment/adoption | Cloud One evaluation milestone (#181), runtime/adoption deferred; desk assessment delivered |  Version-specific feasibility and approved effort/spend limits before hosted/adapter work; adoption separately scoped. No license purchase or infrastructure provisioning. |
 
 Generated explanations are not a platform capability under current A9.2. A future amendment
 must leave retrieved evidence unchanged and clearly separate generation from retrieval. Any ask
@@ -103,7 +103,9 @@ child-call cache hints cannot overwrite this. No ask tool is added to discovery 
 domain review and actual external-model planning remain unmeasured. The target evaluation
 requires a domain-reviewed, held-out task set. Pre-register success, evidence support, correct identities/releases, abstention,
 request bounds, failures/incomplete runs, latency, tokens and cost before measurement. The
-baseline can establish an unmet need, not server-side superiority. #180 needs paired candidate
+baseline can establish an unmet need, not server-side superiority. #180 is closed as not planned
+because no unmet client need is demonstrated; reopening requires a demonstrated need clients
+cannot meet and an approved A9.2 amendment. Any reopened #180 needs paired candidate
 evidence under comparable models, data, releases and budgets before shipping. Offline model
 doubles test mechanics only; unavailable approvals lead to an explicit defer, not invented results.
 
@@ -128,7 +130,7 @@ and remains covered by the generated catalogue's completeness check.
 | AUTH-3 | Principal collision, policy expiry/change/outage, cache and cursor replay tests cannot leak content or grant permission. | #177, #178 |
 | HTTP-1 | Missing/invalid/expired/wrong issuer/audience tokens, spoofed headers, startup without required auth, and two replicas preserve the approved boundary and X-22. | #178 |
 | EVAL-1 | Scoring includes failed/incomplete runs and missing evidence; deterministic execution tests are labeled separately from actual model quality. | #179 |
-| ASK-1 | Conditional only: forged citations, mixed releases, hidden tool errors, recursive calls, cancellation and concurrent exhaustion fail safely; implicit/session/explicit outer results stay 0/private. | #180 |
+| ASK-1 | #180 closed as not planned (no demonstrated unmet client need); reopen for a need clients cannot meet plus approved A9.2 amendment. Conditional only: forged citations, mixed releases, hidden tool errors, recursive calls, cancellation and concurrent exhaustion fail safely; implicit/session/explicit outer results stay 0/private. | #180 |
 | GW-1 | Versioned gateway matrix reports every unsupported/untested requirement and stops at its approved limits. | #181 |
 | COMPAT-1 | Local/secured, protocol, stateful/stateless and conditional pilot modes have explicit tests/omissions plus secure upgrade/rollback evidence. | #182 |
 
