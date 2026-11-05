@@ -199,12 +199,12 @@ class BootstrapPipEvidenceTest(unittest.TestCase):
     def test_only_executing_pip_versions_are_reported(self):
         result = self.execute(
             "private-index-or-credential-canary\n"
-            "2026-11-05T12:13:19,528 Using pip 26.2.2 from /tool/site-packages/pip (python 3.14)\n"
+            "2026-11-05T12:13:19,528 Using pip 25.3 from /tool/site-packages/pip (python 3.14)\n"
             "unrelated installation details\n"
             "2026-11-05T12:13:20,528 Using pip 26.2.2 from /tool/site-packages/pip (python 3.14)\n"
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, '["26.2.2", "26.2.2"]\n')
+        self.assertEqual(result.stdout, '["25.3", "26.2.2"]\n')
         self.assertEqual(result.stderr, "")
 
     def test_missing_empty_or_incomplete_evidence_fails_visibly(self):
