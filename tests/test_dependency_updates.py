@@ -164,25 +164,41 @@ class DependencyAuditWorkflowTest(unittest.TestCase):
                 "schedule": [{"cron": "17 6 * * 1"}],
             },
         )
-        steps = workflow["jobs"]["pip-audit"]["steps"]
+        self.assertEqual(workflow["permissions"], {"contents": "read"})
         self.assertEqual(
-            [step for step in steps if step.get("uses") == "$/.github/actions/setup"],
-            [{"uses": "$/.github/actions/setup"}],
+            workflow["concurrency"],
+            {
+                "group": (
+                    "audit-${{ github.event_name == 'pull_request' && github.ref || github.sha }}"
+                ),
+                "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
+            },
         )
-        runs = [step for step in steps if "run" in step]
-
+        job = workflow["jobs"]["pip-audit"]
         self.assertEqual(
-            runs,
+            {key: value for key, value in job.items() if key != "steps"},
+            {"name": "pip-audit", "runs-on": "ubuntu-24.04", "timeout-minutes": 10},
+        )
+        self.assertEqual(
+            job["steps"],
             [
+                {
+                    "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                    "with": {"fetch-depth": 0, "persist-credentials": False},
+                },
+                {"uses": "$/.github/actions/setup"},
                 {
                     "name": "Reject dependencies released inside five days",
                     "run": "pdm run python scripts/dependency_age.py",
                 },
                 {
-                    "name": "Audit the runtime dependencies",
+                    "name": "Audit every locked dependency group",
                     "run": (
-                        "pdm export -G server -G embeddings --prod --without-hashes "
-                        '-o "$RUNNER_TEMP/requirements.txt"\n'
+                        "pdm export -G :all --without-hashes --no-extras "
+                        '-o "$RUNNER_TEMP/all-requirements.txt"\n'
+                        "sed -e '\\|^-e \\./acceptance#egg=nci-si-acceptance$|d' "
+                        "-e 's/;.*//' "
+                        '"$RUNNER_TEMP/all-requirements.txt" > "$RUNNER_TEMP/requirements.txt"\n'
                         'pdm run pip-audit -r "$RUNNER_TEMP/requirements.txt" '
                         "--no-deps --disable-pip --strict\n"
                     ),
