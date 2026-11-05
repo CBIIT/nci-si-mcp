@@ -209,6 +209,15 @@ class DependencyAuditWorkflowTest(unittest.TestCase):
                         "--no-deps --disable-pip --strict\n"
                     ),
                 },
+                {
+                    "name": "Audit the actual PDM tool environment",
+                    "env": {"PDM_TOOL_HOME": "${{ runner.temp }}/pdm-tool"},
+                    "run": (
+                        'tool_site="$("$PDM_TOOL_HOME/venv/bin/python" -c '
+                        '\'import sysconfig; print(sysconfig.get_path("purelib"))\')"\n'
+                        'pdm run pip-audit --path "$tool_site" --strict\n'
+                    ),
+                },
             ],
         )
 

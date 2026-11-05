@@ -699,11 +699,15 @@ def undocumented_lines(step_name, run, documents):
 
 
 class LocalRunWorkflowTest(unittest.TestCase):
-    def test_linux_bootstrap_uses_locked_pdm_at_the_independently_pinned_ci_version(self):
+    def test_linux_bootstrap_uses_secure_compatible_pdm_at_the_independently_pinned_ci_version(
+        self,
+    ):
         steps = {step.get("name"): step for step in job()["steps"]}
         self.assertEqual(
             steps["Install Python and PDM (Linux)"]["run"],
-            "uv python install 3.14\nuv tool install 'pdm[locked]==2.29.2'\n",
+            "uv python install 3.14\n"
+            "uv tool install --exclude-newer 5d --with 'hishel==1.2.1' "
+            "--with 'unearth==0.18.2' --with 'virtualenv==21.15.2' 'pdm==2.29.2'\n",
         )
         setup = load(WORKFLOWS.parent / "actions" / "setup" / "action.yml")
         self.assertEqual(setup["runs"]["steps"][0]["with"]["version"], "2.29.2")

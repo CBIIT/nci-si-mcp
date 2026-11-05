@@ -14,6 +14,8 @@ from tempfile import TemporaryDirectory
 import tomli_w
 import yaml
 
+from test_tool_bootstrap import GUARD_ENV, GUARD_RUN
+
 ROOT = Path(__file__).resolve().parents[1]
 RELEASE = ROOT / ".github/workflows/release.yml"
 CLI = (
@@ -143,12 +145,24 @@ class ReleaseWorkflowTest(unittest.TestCase):
                 "steps": [
                     {
                         "uses": "pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37",
+                        "env": {
+                            "PDM_HOME": "${{ runner.temp }}/pdm-tool",
+                            "PDM_NO_FROZEN_DEPS": "1",
+                            "PDM_DEPS": "hishel==1.2.1,unearth==0.18.2,virtualenv==21.15.2",
+                            "PIP_UPLOADED_PRIOR_TO": "P5D",
+                        },
                         "with": {
                             "python-version": "3.14",
                             "version": "2.29.2",
                             "cache": "${{ inputs.release-only != 'true' }}",
                             "cache-restore-exact-match": True,
                         },
+                    },
+                    {
+                        "name": "Verify PDM tool environment",
+                        "env": GUARD_ENV,
+                        "run": GUARD_RUN,
+                        "shell": "bash",
                     },
                     {
                         "if": "inputs.release-only != 'true'",
