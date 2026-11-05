@@ -4,6 +4,10 @@ The server, optional NCIt index, documentation site and validation companion are
 local components. Choose one row, then run only the linked component sections. The installer
 owns the server only. It never installs an index, documentation or the companion.
 
+Released Git installation examples retain the old repository URL during the
+[installer compatibility transition](installer-targets.md#verify-a-released-local-installation).
+Current source and navigation use `CBIIT/nci-sip-mcp`; released package names stay unchanged.
+
 ## Combinations
 
 | Combination | Platform | Processes | Fixed ports | Sections |

@@ -48,7 +48,9 @@ COMMIT_ID = re.compile(r"[0-9a-f]{40}\Z")
 OWNED_CHILDREN = ("venv", "server-data", "runtime")
 OWNED_MARKER = ".installer-owned"
 INSTALL_INCOMPLETE = ".installer-incomplete"
-REPOSITORY_URL = "https://github.com/CBIIT/nci-si-mcp"
+REPOSITORY_URL = "https://github.com/CBIIT/nci-sip-mcp"
+# Released installers and installations may retain the pre-rename PEP 610 origin.
+REPOSITORY_ORIGINS = ("https://github.com/CBIIT/nci-si-mcp", REPOSITORY_URL)
 SERVER_REQUIREMENTS = Path(__file__).with_name("server-requirements.txt")
 PRIVATE_DIRECTORY_MODE = 0o700
 
@@ -91,7 +93,7 @@ STEP_HELP = {
         "Action: Apply every fix reported by `check` or a BLOCKED `run`.\n"
         "Verification: Rerun every selected prerequisite; confirmation alone is never accepted.\n"
         "Common failures: missing tools, occupied ports, or unreachable EVS and caDSR endpoints.\n"
-        "Guide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"
+        "Guide: https://github.com/CBIIT/nci-sip-mcp/blob/main/docs/installer-targets.md\n"
     ),
     "install": (
         "Step: install\n"
@@ -100,7 +102,7 @@ STEP_HELP = {
         "Action: Run a released Git installer with its package-shipped hash lock.\n"
         "Verification: Installed metadata names the installer's X.Y.Z and exact Git commit.\n"
         "Common failures: development installer version, Git access, or package installation.\n"
-        "Guide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"
+        "Guide: https://github.com/CBIIT/nci-sip-mcp/blob/main/docs/installer-targets.md\n"
     ),
     "configure": (
         "Step: configure\n"
@@ -109,7 +111,7 @@ STEP_HELP = {
         "Action: Select stdio or loopback HTTP and an EVS/caDSR profile.\n"
         "Verification: The recorded values match and the runtime directory mode is 0700.\n"
         "Common failures: inaccessible installation paths.\n"
-        "Guide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"
+        "Guide: https://github.com/CBIIT/nci-sip-mcp/blob/main/docs/installer-targets.md\n"
     ),
     "verify": (
         "Step: verify\nPurpose: Verify the installed local server boundary.\n"
@@ -117,7 +119,7 @@ STEP_HELP = {
         f"Action: Free loopback port {HTTP_PORT} when HTTP is selected.\n"
         "Verification: installed stdio initializes and lists tools, or HTTP /ready succeeds.\n"
         "Common failures: an unowned port listener or an invalid installed release.\n"
-        "Guide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"
+        "Guide: https://github.com/CBIIT/nci-sip-mcp/blob/main/docs/installer-targets.md\n"
     ),
 }
 
@@ -497,7 +499,7 @@ def _release_identity() -> ReleaseIdentity | None:
 
 
 def _commit_from_direct_url(direct: object) -> str | None:
-    if not isinstance(direct, dict) or direct.get("url") != REPOSITORY_URL:
+    if not isinstance(direct, dict) or direct.get("url") not in REPOSITORY_ORIGINS:
         return None
     vcs = direct.get("vcs_info")
     if not isinstance(vcs, dict) or vcs.get("vcs") != "git":

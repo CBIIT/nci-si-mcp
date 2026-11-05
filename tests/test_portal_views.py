@@ -82,7 +82,7 @@ class PortalViewsTest(unittest.TestCase):
     def test_the_contact_link_points_at_the_project_issue_tracker(self):
         footer = page("Run checks", "<p>Content</p>").split('<footer class="nci-footer">', 1)[1]
         self.assertIn(
-            '<a href="https://github.com/CBIIT/nci-si-mcp/issues">Contact project maintainers</a>',
+            '<a href="https://github.com/CBIIT/nci-sip-mcp/issues">Contact project maintainers</a>',
             footer,
         )
 

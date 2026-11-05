@@ -838,10 +838,23 @@ class LocalRunWorkflowTest(unittest.TestCase):
         install = by_name["Install released server and optional index environments"]
         self.assertIn(CI_INDEX_INSTALL, install)
         self.assertIn(CI_SERVER_INSTALL, install)
-        self.assertIn(
-            'git config --global url."file://$GITHUB_WORKSPACE/".insteadOf '
-            "https://github.com/CBIIT/nci-si-mcp",
+        self.assertEqual(
             by_name["Select the released index source (CI only)"],
+            "\n".join(
+                (
+                    "set -euo pipefail",
+                    'if [ "$EVENT_NAME" = "pull_request" ]; then',
+                    "  RELEASE_TAG=v0.0.0",
+                    '  git tag "$RELEASE_TAG" HEAD',
+                    '  git config --global --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp',
+                    '  git config --global --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-sip-mcp',
+                    "else",
+                    '  RELEASE_TAG="$(git describe --tags --abbrev=0)"',
+                    "fi",
+                    'echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"',
+                    "",
+                )
+            ),
         )
 
     def test_required_index_readiness_and_search_are_exact(self):

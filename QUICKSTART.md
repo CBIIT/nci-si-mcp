@@ -42,7 +42,7 @@ uses that environment without activating it.
 
 For a released version without a checkout, use the tagged server and index commands in the
 [complete local guide](docs/local-guide.md). The
-[releases page](https://github.com/CBIIT/nci-si-mcp/releases) lists the versions.
+[releases page](https://github.com/CBIIT/nci-sip-mcp/releases) lists the versions.
 
 The package version is not written in any file. It is derived from the nearest `vX.Y.Z` git
 tag when the package is installed or built; a commit after the tag gets a development version

@@ -1,10 +1,10 @@
 # NCI SI MCP
 
-[![CI](https://github.com/CBIIT/nci-si-mcp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/CBIIT/nci-si-mcp/actions/workflows/ci.yml?query=branch%3Amain)
-[![CodeQL](https://github.com/CBIIT/nci-si-mcp/actions/workflows/github-code-scanning/codeql/badge.svg?branch=main)](https://github.com/CBIIT/nci-si-mcp/actions/workflows/github-code-scanning/codeql?query=branch%3Amain)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CBIIT/nci-si-mcp/badge)](https://scorecard.dev/viewer/?uri=github.com/CBIIT/nci-si-mcp)
-[![Server coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FCBIIT%2Fnci-si-mcp%2Fcoverage-badges%2Fserver.json)](https://github.com/CBIIT/nci-si-mcp/blob/coverage-badges/provenance.json)
-[![Harness coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FCBIIT%2Fnci-si-mcp%2Fcoverage-badges%2Fharness.json)](https://github.com/CBIIT/nci-si-mcp/blob/coverage-badges/provenance.json)
+[![CI](https://github.com/CBIIT/nci-sip-mcp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/CBIIT/nci-sip-mcp/actions/workflows/ci.yml?query=branch%3Amain)
+[![CodeQL](https://github.com/CBIIT/nci-sip-mcp/actions/workflows/github-code-scanning/codeql/badge.svg?branch=main)](https://github.com/CBIIT/nci-sip-mcp/actions/workflows/github-code-scanning/codeql?query=branch%3Amain)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CBIIT/nci-sip-mcp/badge)](https://scorecard.dev/viewer/?uri=github.com/CBIIT/nci-sip-mcp)
+[![Server coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FCBIIT%2Fnci-sip-mcp%2Fcoverage-badges%2Fserver.json)](https://github.com/CBIIT/nci-sip-mcp/blob/coverage-badges/provenance.json)
+[![Harness coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FCBIIT%2Fnci-sip-mcp%2Fcoverage-badges%2Fharness.json)](https://github.com/CBIIT/nci-sip-mcp/blob/coverage-badges/provenance.json)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue.svg)](pyproject.toml)
 
@@ -156,7 +156,7 @@ The delivered phases are recorded, with their dates, in the
 [deferred capabilities](docs/deferred-capabilities.md) and
 [assisted-task evaluation](docs/assisted-evaluation.md) records, and the
 [Phase 7 companion plan](docs/portal-plan.md); the
-[milestones](https://github.com/CBIIT/nci-si-mcp/milestones) track what is open.
+[milestones](https://github.com/CBIIT/nci-sip-mcp/milestones) track what is open.
 
 ## Start here
 

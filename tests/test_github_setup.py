@@ -59,10 +59,10 @@ class GitHubSetupTest(unittest.TestCase):
         self.assertEqual(
             commands,
             [
-                [["secret", "list", "--repo", "CBIIT/nci-si-mcp", "--json", "name"], ""],
-                [["variable", "list", "--repo", "CBIIT/nci-si-mcp", "--json", "name"], ""],
+                [["secret", "list", "--repo", "CBIIT/nci-sip-mcp", "--json", "name"], ""],
+                [["variable", "list", "--repo", "CBIIT/nci-sip-mcp", "--json", "name"], ""],
                 [
-                    ["secret", "set", "NCI_SI_EVS_LICENSE_KEY", "--repo", "CBIIT/nci-si-mcp"],
+                    ["secret", "set", "NCI_SI_EVS_LICENSE_KEY", "--repo", "CBIIT/nci-sip-mcp"],
                     module.PLACEHOLDER,
                 ],
             ],
@@ -71,9 +71,9 @@ class GitHubSetupTest(unittest.TestCase):
             result.stdout,
             "Existing secret: NCI_SI_CADSR_CREDENTIAL (unchanged; value not inspected)\n"
             "Created secret: NCI_SI_EVS_LICENSE_KEY (placeholder)\n"
-            "Maintainer: run gh secret set NCI_SI_CADSR_CREDENTIAL --repo CBIIT/nci-si-mcp "
+            "Maintainer: run gh secret set NCI_SI_CADSR_CREDENTIAL --repo CBIIT/nci-sip-mcp "
             "in your own terminal; it prompts for the value.\n"
-            "Maintainer: run gh secret set NCI_SI_EVS_LICENSE_KEY --repo CBIIT/nci-si-mcp "
+            "Maintainer: run gh secret set NCI_SI_EVS_LICENSE_KEY --repo CBIIT/nci-sip-mcp "
             "in your own terminal; it prompts for the value.\n",
         )
 

@@ -413,9 +413,9 @@ has been issued. The owner deleted the dummy on 24 October; setup can create its
 | `NCI_SI_CADSR_CREDENTIAL` | Issued caDSR user:password for protected live checks | Acceptance (live) |
 | `NCI_SI_EVS_LICENSE_KEY` | Issued EVS licence key for restricted live checks | Acceptance (live) |
 
-Maintainer: run gh secret set NCI_SI_CADSR_CREDENTIAL --repo CBIIT/nci-si-mcp in your own terminal; it prompts for the value.
+Maintainer: run gh secret set NCI_SI_CADSR_CREDENTIAL --repo CBIIT/nci-sip-mcp in your own terminal; it prompts for the value.
 
-Maintainer: run gh secret set NCI_SI_EVS_LICENSE_KEY --repo CBIIT/nci-si-mcp in your own terminal; it prompts for the value.
+Maintainer: run gh secret set NCI_SI_EVS_LICENSE_KEY --repo CBIIT/nci-sip-mcp in your own terminal; it prompts for the value.
 
 `GITHUB_TOKEN` is automatic and is never created by setup. No repository Actions variables are
 required. INT, UAT and Production environments remain deferred to the AWS phases; setup creates

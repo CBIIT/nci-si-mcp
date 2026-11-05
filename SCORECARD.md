@@ -1,6 +1,6 @@
 # OpenSSF Scorecard
 
-What this repository's [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/CBIIT/nci-si-mcp)
+What this repository's [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/CBIIT/nci-sip-mcp)
 result is, what keeps it below 10, and what is done about it. Scorecard measures repository
 security practices, not the server's behaviour or its acceptance outcomes. This file is updated in
 the change that moves a check.
@@ -51,5 +51,5 @@ from three organisations. It is not a target.
 ## Updating this file
 
 When a change moves a check, update its row, the costs and the latest result line in that change.
-The public result is at `https://api.scorecard.dev/projects/github.com/CBIIT/nci-si-mcp`, and the
+The public result is at `https://api.scorecard.dev/projects/github.com/CBIIT/nci-sip-mcp`, and the
 workflow keeps its SARIF output as the `scorecard-sarif` artifact for five days.

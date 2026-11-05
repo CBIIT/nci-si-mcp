@@ -42,7 +42,7 @@ options:
 """
 )
 
-STEP_HELP = "Step: check_prerequisites\nPurpose: Check every selected requirement before installation changes anything.\nWhy: A partial installation must not be created when required inputs are missing.\nAction: Apply every fix reported by `check` or a BLOCKED `run`.\nVerification: Rerun every selected prerequisite; confirmation alone is never accepted.\nCommon failures: missing tools, occupied ports, or unreachable EVS and caDSR endpoints.\nGuide: https://github.com/CBIIT/nci-si-mcp/blob/main/docs/installer-targets.md\n"  # noqa: E501
+STEP_HELP = "Step: check_prerequisites\nPurpose: Check every selected requirement before installation changes anything.\nWhy: A partial installation must not be created when required inputs are missing.\nAction: Apply every fix reported by `check` or a BLOCKED `run`.\nVerification: Rerun every selected prerequisite; confirmation alone is never accepted.\nCommon failures: missing tools, occupied ports, or unreachable EVS and caDSR endpoints.\nGuide: https://github.com/CBIIT/nci-sip-mcp/blob/main/docs/installer-targets.md\n"  # noqa: E501
 
 STATUS_HELP = (
     """usage: nci-si-install status [-h] --target {local} [--transport {stdio,http}]
