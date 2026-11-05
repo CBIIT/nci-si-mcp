@@ -687,6 +687,23 @@ class DocumentationTest(unittest.TestCase):
                     expected_controls[name],
                 )
 
+    def test_access_notices_precede_setup_and_link_the_single_usage_owner(self):
+        owner = "## Upstream access and SSIS transition\n"
+        self.assertEqual(QUICKSTART.count(owner), 1)
+        self.assertLess(QUICKSTART.index(owner), QUICKSTART.index("\n## Install\n"))
+        notice = "> **Current upstream access limits:**"
+        for filename, setup, target in (
+            ("README.md", "\n## Try it\n", "QUICKSTART.md"),
+            ("docs/local-guide.md", "```bash", "../QUICKSTART.md"),
+        ):
+            with self.subTest(document=filename):
+                document = read(filename)
+                self.assertEqual(document.count(notice), 1)
+                position = document.index(notice)
+                self.assertLess(position, document.index(setup))
+                block = document[position:].split("\n\n", 1)[0]
+                self.assertIn(f"]({target}#upstream-access-and-ssis-transition)", block)
+
     def test_quickstart_provenance_table_names_the_fields_of_the_specification(self):
         text = section(QUICKSTART, "Provenance and truncation")
 

@@ -14,6 +14,79 @@ configuration proposals, including startup-settings snapshots
 (`nci-si-mcp serve --configuration-snapshot PATH`,
 [configuration evidence](docs/local-validation.md#configuration-evidence-and-proposals)).
 
+## Upstream access and SSIS transition
+
+**Operational status: 2026-11-05.** The [current access decision](https://github.com/CBIIT/nci-sip-mcp/issues/421#issuecomment-6671335647)
+and [stage investigation](https://github.com/CBIIT/nci-sip-mcp/issues/383) distinguish three things:
+
+- **Technical access:** data-element, vmMatch and Form API operations can be anonymous;
+  protected CDE Match and lists-of-values APIs need credentials that NCI has not issued.
+  Their contract-crafted fixtures establish caller behavior, not live acceptance or access.
+- **Operational authorization:** production caDSR requests are prohibited even anonymously.
+  Shared SI/SSIS traffic is paused; no new stage or AI requests are authorized here, and
+  Acceptance(live) remains disabled. A stage hostname and earlier exploratory contact are
+  recorded, but present access and stage registry identity are unverified. A production export
+  date cannot supply that identity. Existing automatic hosted setup checks retain their
+  [bounded EVS traffic](https://github.com/CBIIT/nci-sip-mcp/issues/421#issuecomment-6671269749);
+  that is separate from offline fixture verification.
+- **Capability:** a pause or missing credential does not prove an API lacks a capability.
+  The [upstream requirements catalogue](docs/upstream/README.md) records the actual contract gaps
+  and needed evidence. Green fixtures are not permission to contact production.
+
+While holds remain, use [offline fixture validation](CONTRIBUTING.md#complete-fixture-ratchet).
+Do not run live installer connectivity checks against their default production caDSR target.
+The [local guide](docs/local-guide.md#server) describes the lifecycle, not authorization to
+make those requests.
+
+### External configuration and its limits
+
+Keep deployment targets, credentials and approved access policy outside code wherever the
+existing interfaces support them; never commit secrets. The [Settings table](#settings) owns
+`NCI_SI_UPSTREAM_MODE` and the five endpoints: `NCI_SI_EVS_BASE_URL`, `NCI_SI_EVS_FHIR_BASE_URL`,
+`NCI_SI_CADSR_BASE_URL`, `NCI_SI_CADSR_FTP_URL` and `NCI_SI_SSIS_SPARQL_URL`.
+It also owns `NCI_SI_CADSR_CREDENTIAL` and `NCI_SI_EVS_LICENSE_KEY`; service credentials are
+origin-bound, not caller authorization. Live mode fills unset endpoints with production defaults.
+Fixture mode requires all five explicit endpoints, preventing silent fallback; it does not
+reject an explicitly supplied prohibited origin.
+
+`NCI_SI_PROFILE` limits the served surface. An opt-in `authority_resolver` supplies
+[caller permissions](docs/caller-permissions.md); governed HTTP uses `NCI_SI_HTTP_AUTH_MODE`
+and `NCI_SI_HTTP_AUTH_FACTORY` for an approved [authentication/policy integration](docs/governed-http.md).
+These inbound/tool controls are not a universal outbound-environment policy. Current settings
+and credentials neither enforce nor lift the operational holds. Named environment isolation
+and pre-send request safeguards are scheduled in [#447](https://github.com/CBIIT/nci-sip-mcp/issues/447)
+and [#448](https://github.com/CBIIT/nci-sip-mcp/issues/448); they are not implemented here.
+[Deployment egress controls](docs/container.md#gateway-controls-and-outbound-access) remain
+an operator responsibility, not a guarantee supplied by selecting a profile or URL.
+
+For the same supported API at a newly approved origin, prefer endpoint/credential/policy
+configuration changes. First obtain explicit authorization and verify the endpoint, content
+identity and contracts with bounded validation. An incompatible API needs a reviewed adapter
+and possibly a specification change; changing a URL does not translate its protocol.
+
+### Current SSIS dependencies and transition risk
+
+SSIS may be retired; no retirement or complete replacement is established here. Current call paths are:
+
+| Operations | Upstream dependency |
+| --- | --- |
+| `find_data_elements_for_concept`, `ground_value` | Shared SI graph identities and concept-to-CDE/permissible-value joins, with the effective NCIt release retained |
+| `get_release_alignment` | Shared SI graph identities, EVS release and caDSR export state |
+| EVS tools, `expand_cohort` | EVS REST/FHIR or the NCIt index; no SSIS |
+| caDSR tools, `harmonize_data_dictionary` | Direct caDSR APIs/export; no SSIS |
+| `get_concept_for_permissible_value` | caDSR data-element reader, then EVS when resolved; no SSIS |
+| `resolve_stored_value` | EVS GDC mapset or caDSR CRDC code maps; no SSIS |
+
+This map describes dependencies, not permission to contact them. Independent [#391](https://github.com/CBIIT/nci-sip-mcp/issues/391)
+owns replacement feasibility. Reuse a verified existing API; establish role/placement and
+value-meaning reverse-association coverage, completeness/pagination/caps, content identities,
+provenance and applicable release alignment before any switch. Exploratory header summaries
+are not equivalence evidence; a missing sample field does not prove API-wide absence.
+Report missing capabilities to the upstream owner through the
+[traceable requirements](docs/upstream/catalogue.yaml). Keep the server a lean wrapper:
+no local shadow of caDSR/SSIS, inferred associations, fabricated identities or errors silently
+turned into empty results. No new investigation or adapter switch is authorized by this guide.
+
 ## Install
 
 ### Platforms and prerequisites
@@ -167,8 +240,9 @@ local server time without a zone, so `generatedAt` carries no offset (for exampl
 release does not inherit that export date.
 
 The five base URLs are one set. In `live` mode a base URL that is not given takes its production
-default, and one that is given replaces that default. In `fixture` mode every one of the five must be given, so a fixture
-server cannot reach a production host by accident; a missing one stops startup, naming it. The
+default, and one that is given replaces that default. In `fixture` mode every one of the five must be given;
+a missing one stops startup, naming it, rather than silently falling back to production. Explicit
+origins are not checked against the [operational holds](#upstream-access-and-ssis-transition). The
 server adds the platform's own paths to each base URL. A setting set to an empty value is
 rejected: unset it instead.
 
