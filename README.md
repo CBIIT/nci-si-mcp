@@ -17,7 +17,14 @@ The NCI Semantic Infrastructure Model Context Protocol (MCP) server, built to pr
 and likely to become the production codebase, though not yet declared production. It serves
 terminology (NCI Thesaurus through EVS) and metadata (common data elements through caDSR), with
 the cross-domain tools that join them, and it never returns content it did not retrieve:
-[what the server must do](docs/specification.md#what-the-server-must-do). The repository holds four deliverables:
+[what the server must do](docs/specification.md#what-the-server-must-do).
+
+> **Current upstream access limits:** Green fixtures do not establish live production access.
+> Production caDSR requests are prohibited, Shared SI/SSIS traffic is paused, protected caDSR
+> credentials have not been issued, and Acceptance(live) is disabled. Read the
+> [dated access and transition guidance](QUICKSTART.md#upstream-access-and-ssis-transition) before setup.
+
+The repository holds four deliverables:
 
 - **The MCP server** with its local NCIt index: [QUICKSTART.md](QUICKSTART.md).
 - **The acceptance suite** that it and its successors are measured by:

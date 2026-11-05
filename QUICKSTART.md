@@ -14,6 +14,81 @@ configuration proposals, including startup-settings snapshots
 (`nci-si-mcp serve --configuration-snapshot PATH`,
 [configuration evidence](docs/local-validation.md#configuration-evidence-and-proposals)).
 
+## Upstream access and SSIS transition
+
+**Operational status: 2026-11-05.** The [current access decision](https://github.com/CBIIT/nci-sip-mcp/issues/421#issuecomment-6671335647)
+and [stage investigation](https://github.com/CBIIT/nci-sip-mcp/issues/383) distinguish three things:
+
+- **Technical access:** data-element, vmMatch and Form API operations can be anonymous;
+  protected CDE Match and lists-of-values APIs need credentials that NCI has not issued.
+  Their contract-crafted fixtures establish caller behavior, not live acceptance or access.
+- **Operational authorization:** production caDSR requests are prohibited even anonymously.
+  Shared SI/SSIS traffic is paused; no new stage or AI requests are authorized here, and
+  Acceptance(live) remains disabled. A stage hostname and earlier exploratory contact are
+  recorded, but present access and stage registry identity are unverified. A production export
+  date cannot supply that identity. Existing automatic hosted setup checks retain their
+  [bounded EVS traffic](https://github.com/CBIIT/nci-sip-mcp/issues/421#issuecomment-6671269749);
+  that is separate from offline fixture verification.
+- **Capability:** a pause or missing credential does not prove an API lacks a capability.
+  The [upstream requirements catalogue](docs/upstream/README.md) records the actual contract gaps
+  and needed evidence. Green fixtures are not permission to contact production.
+
+While holds remain, use [offline fixture validation](CONTRIBUTING.md#complete-fixture-ratchet).
+Do not run live installer connectivity checks against their default production caDSR target.
+The [local guide](docs/local-guide.md#server) describes the lifecycle, not authorization to
+make those requests.
+
+### External configuration and its limits
+
+Keep deployment targets, credentials and approved access policy outside code wherever the
+existing interfaces support them; never commit secrets. The [Settings table](#settings) owns
+`NCI_SI_UPSTREAM_MODE` and the five endpoints: `NCI_SI_EVS_BASE_URL`, `NCI_SI_EVS_FHIR_BASE_URL`,
+`NCI_SI_CADSR_BASE_URL`, `NCI_SI_CADSR_FTP_URL` and `NCI_SI_SSIS_SPARQL_URL`.
+It also owns `NCI_SI_CADSR_CREDENTIAL` and `NCI_SI_EVS_LICENSE_KEY`; service credentials are
+origin-bound, not caller authorization. Live mode fills unset endpoints with production defaults.
+Fixture mode requires all five explicit endpoints, preventing silent fallback; it does not
+reject an explicitly supplied prohibited origin.
+
+`NCI_SI_PROFILE` limits the served surface. An opt-in `authority_resolver` supplies
+[caller permissions](docs/caller-permissions.md); governed HTTP uses `NCI_SI_HTTP_AUTH_MODE`
+and `NCI_SI_HTTP_AUTH_FACTORY` for an approved [authentication/policy integration](docs/governed-http.md).
+These inbound/tool controls are not a universal outbound-environment policy. Current settings
+and credentials neither enforce nor lift the operational holds. Named environment isolation
+and pre-send request safeguards are scheduled in [#447](https://github.com/CBIIT/nci-sip-mcp/issues/447)
+and [#448](https://github.com/CBIIT/nci-sip-mcp/issues/448); they are not implemented here.
+[Deployment egress controls](docs/container.md#gateway-controls-and-outbound-access) remain
+an operator responsibility, not a guarantee supplied by selecting a profile or URL.
+
+For the same supported API at a newly approved origin, prefer endpoint/credential/policy
+configuration changes. First obtain explicit authorization and verify the endpoint, content
+identity and contracts with bounded validation. An incompatible API needs a reviewed adapter
+and possibly a specification change; changing a URL does not translate its protocol.
+
+### Current SSIS dependencies and transition risk
+
+SSIS may be retired; no retirement or complete replacement is established here. Principal content/SSIS
+dependencies follow; shared release/registry discovery still applies under the [release rules](#mcp-tools):
+
+| Operations | Upstream dependency |
+| --- | --- |
+| `find_data_elements_for_concept` | Shared SI graph identities and concept-to-CDE/permissible-value joins, with the effective NCIt release retained |
+| `ground_value` | EVS concept read (and search when text is supplied), Shared SI identities/joins, plus the stored-value path below when commons is supplied |
+| `get_release_alignment` | Shared SI graph identities, EVS release and caDSR export state |
+| EVS tools, `expand_cohort` | EVS REST/FHIR or the NCIt index; no SSIS |
+| caDSR tools, `harmonize_data_dictionary` | Direct caDSR APIs/export; no SSIS |
+| `get_concept_for_permissible_value` | May discover an EVS release before the caDSR item read; EVS concept retrieval only for a resolvable reference; no SSIS |
+| `resolve_stored_value` | EVS GDC mapset or caDSR CRDC code maps; no SSIS |
+
+This map describes dependencies, not permission to contact them. Independent [#391](https://github.com/CBIIT/nci-sip-mcp/issues/391)
+owns replacement feasibility. Reuse a verified existing API; establish role/placement and
+value-meaning reverse-association coverage, completeness/pagination/caps, content identities,
+provenance and applicable release alignment before any switch. Exploratory header summaries
+are not equivalence evidence; a missing sample field does not prove API-wide absence.
+Report missing capabilities to the upstream owner through the
+[traceable requirements](docs/upstream/catalogue.yaml). Keep the server a lean wrapper:
+no local shadow of caDSR/SSIS, inferred associations, fabricated identities or errors silently
+turned into empty results. No new investigation or adapter switch is authorized by this guide.
+
 ## Install
 
 ### Platforms and prerequisites
@@ -150,6 +225,12 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_HTTP_ALLOWED_ORIGINS` | `http://127.0.0.1:*,http://localhost:*,http://[::1]:*` | Permitted Origin authorities, exact or wildcard port; requests without Origin are allowed |
 | `NCI_SI_HTTP_REQUIRE_INDEX` | `0` | Boolean switch, read as `0` or `1` only (anything else is a configuration error). Set to 1 when deployment supplies an index: readiness requires an active build compatible with the configured embedding model. With 0 an absent index permits live tools; an existing active build is still verified |
 
+Choose `NCI_SI_PROFILE` for the **whole session**: use `evs` or `cadsr` only when every
+needed operation belongs to that domain. Use `unified` for mixed-domain sessions,
+cross-domain lookups or workflow tools. A caller policy can narrow the selected surface
+further; selecting a profile grants no permission. See [response selection](#select-result-sections-and-pages)
+for choosing details within a call.
+
 HTTP synchronous calls share AnyIO's default ceiling of 40 worker tokens per process. Each
 call holds a token for its whole duration, including upstream waits. `/health` needs no worker
 token; `/ready` dispatches its storage check to that pool.
@@ -161,8 +242,9 @@ local server time without a zone, so `generatedAt` carries no offset (for exampl
 release does not inherit that export date.
 
 The five base URLs are one set. In `live` mode a base URL that is not given takes its production
-default, and one that is given replaces that default. In `fixture` mode every one of the five must be given, so a fixture
-server cannot reach a production host by accident; a missing one stops startup, naming it. The
+default, and one that is given replaces that default. In `fixture` mode every one of the five must be given;
+a missing one stops startup, naming it, rather than silently falling back to production. Explicit
+origins are not checked against the [operational holds](#upstream-access-and-ssis-transition). The
 server adds the platform's own paths to each base URL. A setting set to an empty value is
 rejected: unset it instead.
 
@@ -632,6 +714,46 @@ and origin. Null means that the answer producing this record supplied no value; 
 match results do not trigger a detail lookup to fill one. Request `include: [referenceDocuments]`
 for all upstream document rows, including question texts, references and templates, unchanged.
 The section is absent unless requested.
+
+### Select result sections and pages
+
+Search first, then read the chosen record: `search_concepts` returns concept summaries
+without definition/synonym sections; pass a hit's code to `get_concept` for those details.
+Likewise, follow `search_data_elements` with `get_data_element` for selected CDE sections.
+`include` on `get_concept`, `get_concepts` and `get_data_element` selects optional sections,
+not a replacement for required fields or provenance. For CDE permissible values, also request
+`valueDomain`: an empty value list alone cannot distinguish a non-enumerated domain from an
+empty enumerated one. Use `get_form` with `includeModules: false` when form metadata suffices;
+modules and questions are then absent. Omitting that argument retains its documented default.
+
+Illustrative first-page/detail arguments follow; use the identifiers and discovered release
+appropriate to your task. These are argument examples, not captured results or size measurements.
+
+| Need | Tool | Arguments |
+| --- | --- | --- |
+| Concept definition | `get_concept` | `{"terminology":"ncit","release":"26.09d","code":"C4817","include":["definitions"]}` |
+| CDE values and domain | `get_data_element` | `{"publicId":"123","include":["permissibleValues","valueDomain"]}` |
+| Form metadata only | `get_form` | `{"publicId":"123","includeModules":false}` |
+| Concept search page | `search_concepts` | `{"terminology":"ncit","release":"26.09d","query":"kinase","limit":5}` |
+| CDE search page | `search_data_elements` | `{"query":"gender","limit":5}` |
+| Code-map page | `get_code_map` | `{"limit":5}` |
+| Subset member page | `expand_value_set` | `{"terminology":"ncit","release":"26.09d","code":"C54443","count":5,"offset":0}` |
+
+For tools with `limit` and `cursor`, request the page size you need and pass a returned
+`nextCursor` unchanged as `cursor` to continue. Preserve the original query, options and
+effective release/registry pin; changing them is not continuation. For omitted NCIt releases,
+use the effective release in the first result's provenance to keep sessionless calls stable
+([release rules](#mcp-tools)). `get_concept_hierarchy` uses these controls for parent/child
+pages; `pathsToRoot` does not use depth, limit or cursor. `expand_value_set` instead uses
+`count` and `offset`: continue by the number of members returned, with the same selection,
+until the returned `total` is reached. It has no cursor. `list_relationships` has no caller
+size or section selector.
+
+Paging and truncation are different: `search_concepts` has no `truncation` field, and
+an absent cursor does not prove a graph is complete. Read any applicable
+[truncation record](#provenance-and-truncation), including per-kind cuts, and
+[graph bounds](#graph-bounds) before treating a partial answer as exhaustive. Selection does
+not alter [errors](#errors), release checks or provenance; an error is never an empty page.
 
 ### CLI
 
