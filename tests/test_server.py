@@ -253,6 +253,13 @@ class ServerTest(ServerFixture):
         for term in ("depth", "exact=false", "budgetPerKind"):
             self.assertIn(term, tools["get_concept_neighborhood"].description)
 
+    def test_search_description_advertises_pagination_without_nonexistent_truncation(self, _):
+        tools = {tool.name: tool for tool in self.session(lambda client: client.list_tools()).tools}
+        description = tools["search_concepts"].description
+        self.assertIn("totalKnown", description)
+        self.assertIn("nextCursor", description)
+        self.assertNotIn("truncation", description)
+
     def test_tool_titles_follow_the_specification_in_each_profile(self, _):
         for profile in ("evs", "cadsr", "unified"):
             self.settings = replace(self.settings, profile=profile)
