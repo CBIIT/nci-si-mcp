@@ -258,7 +258,8 @@ class ServerTest(ServerFixture):
         description = tools["search_concepts"].description
         self.assertIn("totalKnown", description)
         self.assertIn("nextCursor", description)
-        self.assertNotIn("truncation", description)
+        search_contract = description.split("Call elapsed-time budget:", 1)[0]
+        self.assertNotIn("truncation", search_contract)
 
     def test_tool_titles_follow_the_specification_in_each_profile(self, _):
         for profile in ("evs", "cadsr", "unified"):
