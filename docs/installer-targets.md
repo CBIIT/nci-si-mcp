@@ -9,6 +9,15 @@ Non-restart runs reverify from the beginning; the first stale step and later rec
 
 ## Verify a released local installation
 
+The repository is now `CBIIT/nci-sip-mcp`. Keep the old Git URL below for released
+bootstrap installations until a dual-origin compatibility release is available: v0.28.0
+and v0.29.0 installers validate only the old PEP 610 origin. GitHub's Git redirect preserves
+that install route; it does not make new-origin metadata acceptable to those releases.
+The newly built compatibility installer accepts exactly both canonical HTTPS origins and
+fetches the server from the new URL at its own full commit. Switch the released examples
+and matching workflow bootstrap commands only after that compatibility release is verified.
+Package, import, command, environment and data-directory names remain unchanged.
+
 Set `PYTHON` to an absolute Python 3.14-or-newer executable, `RELEASE_TAG` to a released `vX.Y.Z`,
 and choose fresh absolute paths for the other variables below. Run from a directory outside a
 source checkout. The HTTP commands inherit any configured upstream URLs; trusted-local HTTP remains

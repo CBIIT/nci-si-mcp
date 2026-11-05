@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import subprocess
 import sys
@@ -66,7 +67,8 @@ steps:
       INSTALL_TAG: ${{ needs.prepare.outputs.tag }}
     run: |
       git tag "$INSTALL_TAG" "$INSTALL_REF"
-      git config --global url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
+      git config --global --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
+      git config --global --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-sip-mcp
   - name: Install the selected installer source
     working-directory: ${{ runner.temp }}
     env:
@@ -221,7 +223,8 @@ steps:
       done
       "$PYTHON" -m venv "$NEGATIVE_INSTALLER_VENV"
       "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${INSTALL_REF}"
-      git config --file "$RUNNER_TEMP/moved-tag.gitconfig" url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
+      git config --file "$RUNNER_TEMP/moved-tag.gitconfig" --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
+      git config --file "$RUNNER_TEMP/moved-tag.gitconfig" --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-sip-mcp
       original_tag="$(git -C "$GITHUB_WORKSPACE" rev-parse "$RELEASE_TAG^{commit}")"
       expected_commit="$original_tag"
       git -C "$GITHUB_WORKSPACE" tag -f "$RELEASE_TAG" "$original_tag^"
@@ -391,6 +394,65 @@ def moved_tag_verdict():
 
 
 class ReleaseInstallerWorkflowTest(unittest.TestCase):
+    def test_both_origin_rewrites_resolve_the_selected_local_commit(self):
+        local_run = yaml.safe_load((WORKFLOW.parent / "local-run.yml").read_text())
+        scripts = [step["run"] for step in named_steps() if "run" in step]
+        scripts += [step.get("run", "") for step in local_run["jobs"]["local-run"]["steps"]]
+        mappings = [script for script in scripts if "insteadOf" in script]
+        self.assertEqual(len(mappings), 3)
+        for script in mappings:
+            with self.subTest(script=script), tempfile.TemporaryDirectory() as directory:
+                self.check_origin_rewrites(Path(directory), script)
+
+    def check_origin_rewrites(self, root, script):
+        repository = root / "repo"
+        repository.mkdir()
+        environment = os.environ | {
+            "GITHUB_WORKSPACE": str(repository),
+            "RUNNER_TEMP": str(root),
+            "GIT_CONFIG_GLOBAL": str(root / "global.gitconfig"),
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_ALLOW_PROTOCOL": "file",
+        }
+
+        def git(*arguments):
+            return subprocess.check_output(  # noqa: S603 - isolated local Git fixture
+                ["git", "-C", str(repository), *arguments],  # noqa: S607
+                env=environment,
+                text=True,
+            ).strip()
+
+        git("init", "--quiet")
+        git(
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "--quiet",
+            "--allow-empty",
+            "-m",
+            "selected",
+        )
+        commands = "\n".join(line for line in script.splitlines() if "insteadOf" in line)
+        subprocess.run(  # noqa: S603 - only workflow Git config lines, isolated fixture paths
+            ["bash", "-euc", commands],  # noqa: S607 - Bash interprets the workflow fixture
+            env=environment,
+            check=True,
+        )
+        config = root / ("moved-tag.gitconfig" if "--file" in commands else "global.gitconfig")
+        values = git(
+            "config", "--file", str(config), "--get-all", f"url.file://{repository}/.insteadOf"
+        )
+        self.assertEqual(
+            values.splitlines(),
+            ["https://github.com/CBIIT/nci-si-mcp", "https://github.com/CBIIT/nci-sip-mcp"],
+        )
+        environment["GIT_CONFIG_GLOBAL"] = str(config)
+        expected = git("rev-parse", "HEAD") + "\tHEAD"
+        for origin in values.splitlines():
+            self.assertEqual(git("ls-remote", origin, "HEAD"), expected)
+
     def test_the_whole_release_installer_job_is_exact(self):
         self.assertEqual(job(), EXPECTED_JOB)
 

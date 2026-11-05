@@ -714,7 +714,7 @@ class DocumentationTest(unittest.TestCase):
         )
 
     def test_every_repository_url_in_the_documents_names_this_repository(self):
-        # The documents must send readers to CBIIT/nci-si-mcp, never to a fork of it.
+        # Both canonical names remain in use during the released-installer transition.
         tracked = subprocess.run(
             ["git", "ls-files", "*.md", "*.yaml", "*.yml", "*.json", "*.toml"],  # noqa: S607
             cwd=ROOT,
@@ -726,12 +726,52 @@ class DocumentationTest(unittest.TestCase):
             f"{name}:{number}"
             for name in tracked
             for number, line in enumerate((ROOT / name).read_text(encoding="utf-8").splitlines(), 1)
-            for owner in re.findall(r"github\.com/([A-Za-z0-9_.-]+)/nci-si-mcp", line)
+            for owner in re.findall(r"github\.com/([A-Za-z0-9_.-]+)/nci-sip?-mcp", line)
             if owner != "CBIIT"
         ]
 
         self.assertTrue(tracked)
         self.assertEqual(foreign, [])
+
+    def test_current_repository_badges_use_canonical_plain_and_encoded_urls(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        base = "https://github.com/CBIIT/nci-sip-mcp"
+        coverage = (
+            "https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com"
+            "%2FCBIIT%2Fnci-sip-mcp%2Fcoverage-badges%2F"
+        )
+        self.assertEqual(
+            re.findall(r"https[^)\s]+", "\n".join(readme.splitlines()[:7])),
+            [
+                base + "/actions/workflows/ci.yml/badge.svg?branch=main",
+                base + "/actions/workflows/ci.yml?query=branch%3Amain",
+                base + "/actions/workflows/github-code-scanning/codeql/badge.svg?branch=main",
+                base + "/actions/workflows/github-code-scanning/codeql?query=branch%3Amain",
+                "https://api.scorecard.dev/projects/github.com/CBIIT/nci-sip-mcp/badge",
+                "https://scorecard.dev/viewer/?uri=github.com/CBIIT/nci-sip-mcp",
+                coverage + "server.json",
+                base + "/blob/coverage-badges/provenance.json",
+                coverage + "harness.json",
+                base + "/blob/coverage-badges/provenance.json",
+            ],
+        )
+
+    def test_repository_rename_keeps_released_install_commands_compatible(self):
+        paths = ("docs/installer-targets.md", "docs/local-guide.md")
+        commands = [
+            line
+            for name in paths
+            for line in (ROOT / name).read_text(encoding="utf-8").splitlines()
+            if "git+https://github.com/CBIIT/" in line
+        ]
+        self.assertEqual(
+            commands,
+            [
+                '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"',
+                '"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"',
+                '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"',
+            ],
+        )
 
     def test_every_file_in_docs_has_a_lower_case_name(self):
         # Owner's rule: names in docs/ differ by meaning, never by case alone.

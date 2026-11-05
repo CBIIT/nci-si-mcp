@@ -47,6 +47,8 @@ ACCEPTANCE = EXPECTED.parents[1]
 README = ACCEPTANCE.parent / "README.md"
 LIVE = ACCEPTANCE.parent / "docs/evidence/acceptance-live"
 CATALOGUE = ACCEPTANCE.parent / "docs/upstream/catalogue.yaml"
+# Stored pre-rename live evidence retains its historical run/commit URL identity.
+# This base makes no claim about the provenance of a future live run.
 GITHUB = "https://github.com/CBIIT/nci-si-mcp"
 BEGIN, END = "<!-- acceptance-status:begin -->", "<!-- acceptance-status:end -->"
 GROUPS = {

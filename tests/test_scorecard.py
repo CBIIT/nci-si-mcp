@@ -55,8 +55,8 @@ jobs:
           sarif_file: results.sarif
 """)
 BADGE = (
-    "[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CBIIT/nci-si-mcp/badge)]"
-    "(https://scorecard.dev/viewer/?uri=github.com/CBIIT/nci-si-mcp)"
+    "[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CBIIT/nci-sip-mcp/badge)]"
+    "(https://scorecard.dev/viewer/?uri=github.com/CBIIT/nci-sip-mcp)"
 )
 
 

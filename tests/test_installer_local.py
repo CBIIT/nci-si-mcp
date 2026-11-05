@@ -151,7 +151,7 @@ class LocalInstallerTest(unittest.TestCase):
                     "--no-build-isolation",
                     "--no-index",
                     "--no-cache-dir",
-                    f"nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@{commit}",
+                    f"nci-si-mcp @ git+https://github.com/CBIIT/nci-sip-mcp@{commit}",
                 ],
             ],
         )
@@ -178,7 +178,7 @@ class LocalInstallerTest(unittest.TestCase):
         self.assertEqual((code, error), (1, ""))
         blocked = json.loads(output)["blocked"]
         self.assertEqual([item["step"] for item in blocked], ["install"])
-        self.assertIn("git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z", output)
+        self.assertIn("git+https://github.com/CBIIT/nci-sip-mcp@vX.Y.Z", output)
         self.assertFalse((self.data_dir / "venv").exists())
         run.assert_not_called()
 
@@ -545,7 +545,7 @@ class LocalInstallerTest(unittest.TestCase):
 
         self.assertEqual((code, error), (1, ""))
         self.assertEqual(json.loads(output)["blocked"][0]["step"], "install")
-        self.assertIn("git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z", output)
+        self.assertIn("git+https://github.com/CBIIT/nci-sip-mcp@vX.Y.Z", output)
         run.assert_not_called()
 
     def test_configuration_preserves_profile_and_keeps_each_transport_local(self):

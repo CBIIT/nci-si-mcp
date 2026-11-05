@@ -29,7 +29,9 @@ class DocumentationLinksTest(unittest.TestCase):
 
     def test_repository_source_link_is_bound_to_source_commit(self):
         result = self.render('<a href="sample.py">Example</a>')
-        self.assertIn("https://github.com/CBIIT/nci-si-mcp/blob/" + "a" * 40 + "/sample.py", result)
+        self.assertIn(
+            "https://github.com/CBIIT/nci-sip-mcp/blob/" + "a" * 40 + "/sample.py", result
+        )
 
     def test_remote_badge_becomes_text_without_network_image_dependency(self):
         result = self.render(

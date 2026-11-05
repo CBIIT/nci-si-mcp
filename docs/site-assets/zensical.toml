@@ -54,7 +54,7 @@ nav = [
 
 # The footer links of the documentation site and of the local validation portal.
 [project.extra.footer]
-contact_url = "https://github.com/CBIIT/nci-si-mcp/issues"
+contact_url = "https://github.com/CBIIT/nci-sip-mcp/issues"
 agencies = [
   { label = "U.S. Department of Health and Human Services", url = "https://www.hhs.gov" },
   { label = "National Institutes of Health", url = "https://www.nih.gov" },
