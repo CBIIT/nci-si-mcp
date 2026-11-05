@@ -295,6 +295,33 @@ class OperationsDocumentationTest(unittest.TestCase):
 
 
 class DocumentationTest(unittest.TestCase):
+    def test_effective_git_attributes_preserve_text_fonts_and_generated_documents(self):
+        attributes = ["text", "eol", "binary", "diff", "merge", "linguist-generated"]
+        paths = [
+            "README.md",
+            "docs/site-assets/fonts/open-sans.ttf",
+            "docs/specification.md",
+            "docs/behavioural-tests.md",
+            "docs/threat-model.md",
+        ]
+        result = subprocess.run(  # noqa: S603 - Git is the effective attribute boundary.
+            ["git", "check-attr", "-z", *attributes, "--", *paths],  # noqa: S607
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        text = ["auto", "lf", "unspecified", "unspecified", "unspecified", "unspecified"]
+        generated = ["auto", "lf", "unspecified", "unspecified", "unspecified", "set"]
+        font = ["unset", "lf", "set", "unset", "unset", "unspecified"]
+        expected = [
+            value
+            for path, values in zip(paths, [text, font, generated, generated, text], strict=True)
+            for attribute, setting in zip(attributes, values, strict=True)
+            for value in (path, attribute, setting)
+        ]
+        self.assertEqual(result.stdout.split("\0")[:-1], expected)
+
     def test_typing_conventions_are_consulted_before_python_and_in_type_review(self):
         agents = read("AGENTS.md")
         self.assertIn(
@@ -767,9 +794,10 @@ class DocumentationTest(unittest.TestCase):
         self.assertEqual(
             commands,
             [
-                '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"',
-                '"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"',
-                '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"',
+                '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"',
+                '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${LEGACY_RELEASE_TAG}"',
+                '"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-sip-mcp@vX.Y.Z"',
+                '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-sip-mcp@vX.Y.Z"',
             ],
         )
 

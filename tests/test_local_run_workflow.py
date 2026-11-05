@@ -103,11 +103,11 @@ DOCUMENTS = {
 
 CI_INDEX_INSTALL = (
     '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ '
-    'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
+    'git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"'
 )
 CI_SERVER_INSTALL = (
     '"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ '
-    'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"'
+    'git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"'
 )
 
 FIXTURE_RUN = """# shellcheck disable=SC2016 # the single quotes are the documented form
@@ -285,7 +285,7 @@ PROBES = {
 
 DOCUMENTED_INDEX_INSTALL = (
     '"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ '
-    'git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"'
+    'git+https://github.com/CBIIT/nci-sip-mcp@vX.Y.Z"'
 )
 REQUIRED_INDEX_RUN = r"""set -euo pipefail
 server=""
