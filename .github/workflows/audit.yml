@@ -16,9 +16,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Known vulnerabilities in the runtime dependencies the lock file pins: the server and
-  # embeddings extras. The core has none (`dependencies = []`), so `--prod` alone would
-  # export nothing.
+  # Audit every locked group and platform, not just the runner's installed packages.
+  # The local acceptance project has no external advisory identity; exclude only that line.
+  # PDM's --no-markers filters to the current platform before stripping: normalize after export.
   pip-audit:
     name: pip-audit
     runs-on: ubuntu-24.04
@@ -31,9 +31,10 @@ jobs:
       - uses: $/.github/actions/setup
       - name: Reject dependencies released inside five days
         run: pdm run python scripts/dependency_age.py
-      - name: Audit the runtime dependencies
+      - name: Audit every locked dependency group
         run: |
-          pdm export -G server -G embeddings --prod --without-hashes -o "$RUNNER_TEMP/requirements.txt"
+          pdm export -G :all --without-hashes --no-extras -o "$RUNNER_TEMP/all-requirements.txt"
+          sed -e '\|^-e \./acceptance#egg=nci-si-acceptance$|d' -e 's/;.*//' "$RUNNER_TEMP/all-requirements.txt" > "$RUNNER_TEMP/requirements.txt"
           pdm run pip-audit -r "$RUNNER_TEMP/requirements.txt" --no-deps --disable-pip --strict
 
   # A pull request that brings in a dependency with a known vulnerability of high severity fails.
