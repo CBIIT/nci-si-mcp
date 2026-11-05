@@ -150,6 +150,12 @@ A leading `~` is expanded, and an empty value is rejected. The other settings:
 | `NCI_SI_HTTP_ALLOWED_ORIGINS` | `http://127.0.0.1:*,http://localhost:*,http://[::1]:*` | Permitted Origin authorities, exact or wildcard port; requests without Origin are allowed |
 | `NCI_SI_HTTP_REQUIRE_INDEX` | `0` | Boolean switch, read as `0` or `1` only (anything else is a configuration error). Set to 1 when deployment supplies an index: readiness requires an active build compatible with the configured embedding model. With 0 an absent index permits live tools; an existing active build is still verified |
 
+Choose `NCI_SI_PROFILE` for the **whole session**: use `evs` or `cadsr` only when every
+needed operation belongs to that domain. Use `unified` for mixed-domain sessions,
+cross-domain lookups or workflow tools. A caller policy can narrow the selected surface
+further; selecting a profile grants no permission. See [response selection](#select-result-sections-and-pages)
+for choosing details within a call.
+
 HTTP synchronous calls share AnyIO's default ceiling of 40 worker tokens per process. Each
 call holds a token for its whole duration, including upstream waits. `/health` needs no worker
 token; `/ready` dispatches its storage check to that pool.
@@ -632,6 +638,46 @@ and origin. Null means that the answer producing this record supplied no value; 
 match results do not trigger a detail lookup to fill one. Request `include: [referenceDocuments]`
 for all upstream document rows, including question texts, references and templates, unchanged.
 The section is absent unless requested.
+
+### Select result sections and pages
+
+Search first, then read the chosen record: `search_concepts` returns concept summaries
+without definition/synonym sections; pass a hit's code to `get_concept` for those details.
+Likewise, follow `search_data_elements` with `get_data_element` for selected CDE sections.
+`include` on `get_concept`, `get_concepts` and `get_data_element` selects optional sections,
+not a replacement for required fields or provenance. For CDE permissible values, also request
+`valueDomain`: an empty value list alone cannot distinguish a non-enumerated domain from an
+empty enumerated one. Use `get_form` with `includeModules: false` when form metadata suffices;
+modules and questions are then absent. Omitting that argument retains its documented default.
+
+Illustrative first-page/detail arguments follow; use the identifiers and discovered release
+appropriate to your task. These are argument examples, not captured results or size measurements.
+
+| Need | Tool | Arguments |
+| --- | --- | --- |
+| Concept definition | `get_concept` | `{"terminology":"ncit","release":"26.09d","code":"C4817","include":["definitions"]}` |
+| CDE values and domain | `get_data_element` | `{"publicId":"123","include":["permissibleValues","valueDomain"]}` |
+| Form metadata only | `get_form` | `{"publicId":"123","includeModules":false}` |
+| Concept search page | `search_concepts` | `{"terminology":"ncit","release":"26.09d","query":"kinase","limit":5}` |
+| CDE search page | `search_data_elements` | `{"query":"gender","limit":5}` |
+| Code-map page | `get_code_map` | `{"limit":5}` |
+| Subset member page | `expand_value_set` | `{"terminology":"ncit","release":"26.09d","code":"C54443","count":5,"offset":0}` |
+
+For tools with `limit` and `cursor`, request the page size you need and pass a returned
+`nextCursor` unchanged as `cursor` to continue. Preserve the original query, options and
+effective release/registry pin; changing them is not continuation. For omitted NCIt releases,
+use the effective release in the first result's provenance to keep sessionless calls stable
+([release rules](#mcp-tools)). `get_concept_hierarchy` uses these controls for parent/child
+pages; `pathsToRoot` does not use depth, limit or cursor. `expand_value_set` instead uses
+`count` and `offset`: continue by the number of members returned, with the same selection,
+until the returned `total` is reached. It has no cursor. `list_relationships` has no caller
+size or section selector.
+
+Paging and truncation are different: `search_concepts` has no `truncation` field, and
+an absent cursor does not prove a graph is complete. Read any applicable
+[truncation record](#provenance-and-truncation), including per-kind cuts, and
+[graph bounds](#graph-bounds) before treating a partial answer as exhaustive. Selection does
+not alter [errors](#errors), release checks or provenance; an error is never an empty page.
 
 ### CLI
 

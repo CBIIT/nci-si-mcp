@@ -20,6 +20,7 @@ from typing import get_args
 from unittest.mock import patch
 
 import yaml
+from jsonschema import Draft202012Validator
 from mcp.client import Client
 
 from nci_si_mcp.audit import Audit
@@ -645,6 +646,46 @@ class DocumentationTest(unittest.TestCase):
                 call = json.loads(CALL.search(example).group(1))
                 self.assertIn(call["tool"], served)
                 self.assertLessEqual(set(call["arguments"]), served[call["tool"]])
+
+    @patch("nci_si_mcp.server.configure_logging")
+    def test_selection_examples_have_effective_controls_and_validate_as_complete_calls(self, _):
+        async def schemas(data_dir):
+            async with Client(create_mcp(Settings(data_dir=data_dir))) as client:
+                return {tool.name: tool.input_schema for tool in (await client.list_tools()).tools}
+
+        root = logging.getLogger()
+        self.addCleanup(setattr, root, "handlers", root.handlers[:])
+        self.addCleanup(root.setLevel, root.level)
+        logging.disable(logging.CRITICAL)
+        self.addCleanup(logging.disable, logging.NOTSET)
+        with tempfile.TemporaryDirectory() as directory:
+            served = asyncio.run(schemas(Path(directory)))
+        guidance = QUICKSTART.split("### Select result sections and pages\n", 1)[1].split(
+            "\n### ", 1
+        )[0]
+        table = [line.split("|") for line in guidance.splitlines() if line.startswith("|")]
+        rows = []
+        for cells in table[2:]:
+            self.assertEqual(len(cells), 5, cells)
+            rows.append((cells[2].strip().strip("`"), cells[3].strip().strip("`")))
+        expected_controls = {
+            "get_concept": {"include": ["definitions"]},
+            "get_data_element": {"include": ["permissibleValues", "valueDomain"]},
+            "get_form": {"includeModules": False},
+            "search_concepts": {"limit": 5},
+            "search_data_elements": {"limit": 5},
+            "get_code_map": {"limit": 5},
+            "expand_value_set": {"count": 5, "offset": 0},
+        }
+        self.assertEqual(sorted(name for name, _ in rows), sorted(expected_controls))
+        for name, encoded in rows:
+            with self.subTest(tool=name):
+                arguments = json.loads(encoded)
+                Draft202012Validator(served[name]).validate(arguments)
+                self.assertEqual(
+                    {key: arguments[key] for key in expected_controls[name]},
+                    expected_controls[name],
+                )
 
     def test_quickstart_provenance_table_names_the_fields_of_the_specification(self):
         text = section(QUICKSTART, "Provenance and truncation")
