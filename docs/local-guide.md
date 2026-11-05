@@ -43,7 +43,7 @@ Create a virtual environment and install the tagged server package:
 
 ```bash
 python3.14 -m venv "$SERVER_VENV"
-"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"
+"$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-sip-mcp@vX.Y.Z"
 ```
 
 Walk the stdio lifecycle:
@@ -76,7 +76,7 @@ start the one required-index server for this combination:
 
 ```bash
 python3.14 -m venv "$INDEX_VENV"
-"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@vX.Y.Z"
+"$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-sip-mcp@vX.Y.Z"
 export NCI_SI_DATA_DIR="$INDEX_DATA"
 "$INDEX_VENV/bin/nci-si-mcp" index-sample C3262 C2991 C40704 C153397 C116938
 "$INDEX_VENV/bin/nci-si-mcp" evaluate

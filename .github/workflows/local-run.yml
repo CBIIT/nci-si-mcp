@@ -220,11 +220,11 @@ jobs:
           INDEX_VENV="$RUNNER_TEMP/index-venv"
           SERVER_VENV="$RUNNER_TEMP/server-venv"
           python3.14 -m venv "$SERVER_VENV"
-          "$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+          "$SERVER_VENV/bin/python" -m pip install "nci-si-mcp[server] @ git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"
           echo "SERVER_VENV=$SERVER_VENV" >> "$GITHUB_ENV"
           if [ "$WITH_INDEX" = "true" ]; then
             python3.14 -m venv "$INDEX_VENV"
-            "$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+            "$INDEX_VENV/bin/python" -m pip install "nci-si-mcp[server,index] @ git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"
             echo "INDEX_VENV=$INDEX_VENV" >> "$GITHUB_ENV"
           fi
           echo "INDEX_DATA=$RUNNER_TEMP/index-data" >> "$GITHUB_ENV"

@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.ttf binary
+docs/specification.md linguist-generated
+docs/behavioural-tests.md linguist-generated

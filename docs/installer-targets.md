@@ -9,14 +9,10 @@ Non-restart runs reverify from the beginning; the first stale step and later rec
 
 ## Verify a released local installation
 
-The repository is now `CBIIT/nci-sip-mcp`. Keep the old Git URL below for released
-bootstrap installations until a dual-origin compatibility release is available: v0.28.0
-and v0.29.0 installers validate only the old PEP 610 origin. GitHub's Git redirect preserves
-that install route; it does not make new-origin metadata acceptable to those releases.
-The newly built compatibility installer accepts exactly both canonical HTTPS origins and
-fetches the server from the new URL at its own full commit. Switch the released examples
-and matching workflow bootstrap commands only after that compatibility release is verified.
-Package, import, command, environment and data-directory names remain unchanged.
+Released installers from v0.29.1 accept both exact canonical repository origins and fetch
+new server installations from `CBIIT/nci-sip-mcp` at the installer's full commit. Use the
+new origin below for current releases. Package, import, command, environment and
+data-directory names remain unchanged.
 
 Set `PYTHON` to an absolute Python 3.14-or-newer executable, `RELEASE_TAG` to a released `vX.Y.Z`,
 and choose fresh absolute paths for the other variables below. Run from a directory outside a
@@ -25,7 +21,7 @@ on loopback.
 
 ```bash
 "$PYTHON" -m venv "$INSTALLER_VENV"
-"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-sip-mcp@${RELEASE_TAG}"
 "$INSTALLER_VENV/bin/nci-si-install" check --target local
 "$INSTALLER_VENV/bin/nci-si-install" run --target local --transport stdio --data-dir "$STDIO_ROOT" --non-interactive
 "$INSTALLER_VENV/bin/nci-si-install" status --target local --transport stdio --data-dir "$STDIO_ROOT"
@@ -37,6 +33,15 @@ on loopback.
 "$INSTALLER_VENV/bin/nci-si-install" start --target local --transport http --data-dir "$HTTP_ROOT"
 "$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT"
 "$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT"
+```
+
+For immutable v0.28.0 or v0.29.0 installers, keep the old origin: they accept only the
+old PEP 610 origin, even though GitHub redirects Git fetches. Set `LEGACY_RELEASE_TAG`
+to the required older tag and bootstrap in a fresh environment outside a checkout:
+
+```bash
+"$PYTHON" -m venv "$INSTALLER_VENV"
+"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${LEGACY_RELEASE_TAG}"
 ```
 
 CI selects the source before installation and checks scheduled releases against protected `main`. Both CI installer environments bootstrap from that selected full commit (`INSTALL_REF`), deliberately differing from the public released-tag example above. Moving a tag after selection cannot select different bootstrap source. The selected tag still identifies the release and drives the controlled moved-tag negative check.
