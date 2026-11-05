@@ -29,3 +29,5 @@ on loopback.
 "$INSTALLER_VENV/bin/nci-si-install" stop --target local --transport http --data-dir "$HTTP_ROOT"
 "$INSTALLER_VENV/bin/nci-si-install" uninstall --target local --transport http --data-dir "$HTTP_ROOT"
 ```
+
+CI selects the source before installation and checks scheduled releases against protected `main`. Both CI installer environments bootstrap from that selected full commit (`INSTALL_REF`), deliberately differing from the public released-tag example above. Moving a tag after selection cannot select different bootstrap source. The selected tag still identifies the release and drives the controlled moved-tag negative check.
