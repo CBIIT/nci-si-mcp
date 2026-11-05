@@ -93,10 +93,17 @@ class ToolBootstrapTest(unittest.TestCase):
         return {"pdm": "2.29.2", "hishel": "1.2.1", "unearth": "0.18.2", "virtualenv": "21.15.2"}
 
     def test_supported_tool_reports_the_complete_actual_inventory(self):
-        result = self.execute(self.supported())
+        result = self.execute(self.supported() | {"pip": "26.2.2"})
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
-            json.loads(result.stdout), [[k, v] for k, v in sorted(self.supported().items())]
+            json.loads(result.stdout),
+            [
+                ["hishel", "1.2.1"],
+                ["pdm", "2.29.2"],
+                ["pip", "26.2.2"],
+                ["unearth", "0.18.2"],
+                ["virtualenv", "21.15.2"],
+            ],
         )
 
     def test_vulnerable_or_incompatible_distribution_fails_before_installation(self):
