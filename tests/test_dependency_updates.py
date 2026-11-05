@@ -194,9 +194,10 @@ class DependencyAuditWorkflowTest(unittest.TestCase):
                 {
                     "name": "Audit every locked dependency group",
                     "run": (
-                        "pdm export -G :all --without-hashes --no-markers --no-extras "
+                        "pdm export -G :all --without-hashes --no-extras "
                         '-o "$RUNNER_TEMP/all-requirements.txt"\n'
-                        "sed '\\|^-e \\./acceptance#egg=nci-si-acceptance$|d' "
+                        "sed -e '\\|^-e \\./acceptance#egg=nci-si-acceptance$|d' "
+                        "-e 's/;.*//' "
                         '"$RUNNER_TEMP/all-requirements.txt" > "$RUNNER_TEMP/requirements.txt"\n'
                         'pdm run pip-audit -r "$RUNNER_TEMP/requirements.txt" '
                         "--no-deps --disable-pip --strict\n"

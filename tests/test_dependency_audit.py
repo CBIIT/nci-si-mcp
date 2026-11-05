@@ -139,6 +139,16 @@ class DependencyAuditInputTest(unittest.TestCase):
             {"dependencies": [{"name": "audit-safe", "version": "1.0", "vulns": []}], "fixes": []},
         )
 
+    def test_foreign_platform_requirement_is_audited_instead_of_skipped(self):
+        result, requirements, _ = execute_audit('audit-safe==1.0; sys_platform == "foreign"\n')
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            json.loads(result.stdout),
+            {"dependencies": [{"name": "audit-safe", "version": "1.0", "vulns": []}], "fixes": []},
+        )
+        self.assertEqual(requirements, "audit-safe==1.0\n")
+
     def test_unexpected_editable_or_url_cannot_be_reported_as_a_clean_audit(self):
         for requirement, error in (
             (
