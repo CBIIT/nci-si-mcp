@@ -19,6 +19,13 @@ STDIO_CAPTURE = (
     'STDIO_CLIENT="$("$INSTALLER_VENV/bin/nci-si-install" start '
     '--target local --transport stdio --data-dir "$STDIO_ROOT")"'
 )
+CI_BOOTSTRAP_NOTE = (
+    "CI selects the source before installation and checks scheduled releases against protected "
+    "`main`. Both CI installer environments bootstrap from that selected full commit "
+    "(`INSTALL_REF`), deliberately differing from the public released-tag example above. "
+    "Moving a tag after selection cannot select different bootstrap source. The selected tag "
+    "still identifies the release and drives the controlled moved-tag negative check."
+)
 EXPECTED_JOB = yaml.safe_load(r"""
 name: local installer (macOS/Linux) (${{ matrix.os }})
 needs: prepare
@@ -65,12 +72,12 @@ steps:
   - name: Install the selected installer source
     working-directory: ${{ runner.temp }}
     env:
-      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      INSTALL_REF: ${{ needs.prepare.outputs.ref }}
       INSTALLER_VENV: ${{ runner.temp }}/installer-venv
       PYTHON: ${{ steps.python.outputs.python-path }}
     run: |
       "$PYTHON" -m venv "$INSTALLER_VENV"
-      "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+      "$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${INSTALL_REF}"
   - name: Install the acceptance suite (CI only)
     env: {PYTHON: '${{ steps.python.outputs.python-path }}'}
     run: |
@@ -87,6 +94,7 @@ steps:
       MOVED_TAG_ROOT: ${{ runner.temp }}/moved-tag-install
       TAMPERED_HASH_ROOT: ${{ runner.temp }}/tampered-hash-install
       PYTHON: ${{ steps.python.outputs.python-path }}
+      INSTALL_REF: ${{ needs.prepare.outputs.ref }}
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
     run: |
       set -euo pipefail
@@ -214,7 +222,7 @@ steps:
         sleep 0.1
       done
       "$PYTHON" -m venv "$NEGATIVE_INSTALLER_VENV"
-      "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"
+      "$NEGATIVE_INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ git+https://github.com/CBIIT/nci-si-mcp@${INSTALL_REF}"
       git config --file "$RUNNER_TEMP/moved-tag.gitconfig" --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-si-mcp
       git config --file "$RUNNER_TEMP/moved-tag.gitconfig" --add url."file://$GITHUB_WORKSPACE/".insteadOf https://github.com/CBIIT/nci-sip-mcp
       original_tag="$(git -C "$GITHUB_WORKSPACE" rev-parse "$RELEASE_TAG^{commit}")"
@@ -314,7 +322,10 @@ steps:
         tag="v0.0.0"
       else
         tag="$(gh release view --json tagName --jq .tagName)"
-        ref="$(git rev-list -n 1 "$tag")"
+        if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then exit 1; fi
+        ref="$(git rev-parse --verify "refs/tags/$tag^{commit}")"
+        git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+        git merge-base --is-ancestor "$ref" refs/remotes/origin/main
       fi
       echo "ref=$ref" >> "$GITHUB_OUTPUT"
       echo "tag=$tag" >> "$GITHUB_OUTPUT"
@@ -482,10 +493,20 @@ class ReleaseInstallerWorkflowTest(unittest.TestCase):
         steps = {step["name"]: step for step in named_steps()}
         install = steps["Install the selected installer source"]
         self.assertEqual(install["working-directory"], "${{ runner.temp }}")
+        public = documented_install_lines()
+        self.assertEqual(
+            public,
+            [
+                '"$PYTHON" -m venv "$INSTALLER_VENV"',
+                '"$INSTALLER_VENV/bin/python" -m pip install "nci-si-mcp @ '
+                'git+https://github.com/CBIIT/nci-si-mcp@${RELEASE_TAG}"',
+            ],
+        )
         self.assertEqual(
             install["run"].splitlines(),
-            documented_install_lines(),
+            [public[0], public[1].replace("${RELEASE_TAG}", "${INSTALL_REF}")],
         )
+        self.assertIn(CI_BOOTSTRAP_NOTE, DOCUMENT.read_text(encoding="utf-8"))
         lifecycle = steps["Verify stdio and HTTP installer lifecycles"]
         self.assertEqual(lifecycle["working-directory"], "${{ runner.temp }}")
         stdio_start = (
