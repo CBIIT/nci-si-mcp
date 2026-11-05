@@ -88,9 +88,16 @@ class SiteStagingTest(unittest.TestCase):
         pages = navigation_pages(config["project"]["nav"])
         self.assertEqual(len(pages), len(set(pages)))
         stage_pages(root, self.destination, pages)
+        expected_pages = {
+            path
+            for group in PUBLIC_NAVIGATION
+            for section in group.values()
+            for entry in section
+            for path in entry.values()
+        }
         self.assertEqual(
             {str(path.relative_to(self.destination)) for path in self.destination.rglob("*.md")},
-            set(navigation_pages(PUBLIC_NAVIGATION)),
+            expected_pages,
         )
         for name in (
             "docs/local-guide.md",
