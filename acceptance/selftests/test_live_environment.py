@@ -117,10 +117,9 @@ def test_selected_destinations_and_credentials_are_one_private_snapshot(monkeypa
         assert ran.returncode == 0, ran.stderr
         received = upstream.log()
         assert received and all(row["surface"] == "evs" for row in received)
-        assert all(
-            row["headers"]["X-EVSRESTAPI-License-Key"] == "selected-private-marker"
-            for row in received
-        )
+        for row in received:
+            headers = {key.lower(): value for key, value in row["headers"].items()}
+            assert headers["x-evsrestapi-license-key"] == "selected-private-marker"
         with pytest.raises(HTTPError) as error:
             build_opener(ProxyHandler({})).open(
                 env["NCI_SI_CADSR_BASE_URL"] + "/blocked", timeout=2
