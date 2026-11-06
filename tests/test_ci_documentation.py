@@ -313,7 +313,7 @@ class DocumentationWorkflowTest(unittest.TestCase):
                 "name": "Build validated site",
                 "timeout-minutes": 1,
                 "shell": "bash",
-                "run": "time pdm run acceptance-stories --check\\ntime pdm run docs-build\\n",
+                "run": "time pdm run acceptance-stories --check\ntime pdm run docs-build\n",
             },
             "Record browser identity": {
                 "name": "Record browser identity",
