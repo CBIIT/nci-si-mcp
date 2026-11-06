@@ -12,6 +12,58 @@ import yaml
 JOBS = yaml.safe_load(Path(".github/workflows/ci.yml").read_text())["jobs"]
 
 
+PREPARE = r"""mkdir -p tmp/documentation-ci
+test ! -e "$PLAYWRIGHT_BROWSERS_PATH"
+printf 'browser_directory_initially_absent=true\n' > tmp/documentation-ci/phase-timings.txt
+time npm ci --prefix docs/site-assets --ignore-scripts
+time npm audit --prefix docs/site-assets --audit-level high
+time npm run build --prefix docs/site-assets
+node <<'JS'
+const fs = require('node:fs');
+const prefix = './docs/site-assets/';
+const lock = JSON.parse(fs.readFileSync(prefix + 'package-lock.json', 'utf8'));
+const versions = {};
+for (const name of ['@playwright/test', 'playwright', 'playwright-core']) {
+  const file = prefix + 'node_modules/' + name + '/package.json';
+  const installed = JSON.parse(fs.readFileSync(file, 'utf8')).version;
+  if (installed !== lock.packages['node_modules/' + name].version)
+    throw new Error('Installed Playwright version differs from package-lock: ' + name);
+  versions[name] = installed;
+}
+const identity = {
+  runnerImageOS: process.env.ImageOS,
+  runnerImageVersion: process.env.ImageVersion,
+  runnerOS: process.platform,
+  runnerArchitecture: process.arch,
+  nodeVersion: process.version,
+  versions,
+  browsers: JSON.parse(fs.readFileSync(
+    prefix + 'node_modules/playwright-core/browsers.json', 'utf8')).browsers,
+  browserDirectory: process.env.PLAYWRIGHT_BROWSERS_PATH,
+  browserDirectoryInitiallyAbsent: true,
+};
+fs.writeFileSync('tmp/documentation-ci/identity.json', JSON.stringify(identity, null, 2) + '\n');
+console.log(JSON.stringify(identity));
+JS
+"""
+IDENTITY = r"""node <<'JS'
+const fs = require('node:fs');
+const path = require('node:path');
+const { chromium } = require('./docs/site-assets/node_modules/playwright');
+const file = 'tmp/documentation-ci/identity.json';
+const identity = JSON.parse(fs.readFileSync(file, 'utf8'));
+const executable = chromium.executablePath();
+const relative = path.relative(process.env.PLAYWRIGHT_BROWSERS_PATH, executable);
+if (!relative || relative.startsWith('..') || path.isAbsolute(relative))
+  throw new Error('Chromium executable is outside the owned browser directory');
+fs.accessSync(executable, fs.constants.X_OK);
+identity.chromiumExecutable = executable;
+fs.writeFileSync(file, JSON.stringify(identity, null, 2) + '\n');
+console.log(JSON.stringify(identity));
+JS
+"""
+
+
 def timed_command(command: str, label: str) -> str:
     """Independent expected shell contract: preserve first failure before reporting errors."""
     return (
@@ -248,6 +300,48 @@ class DocumentationWorkflowTest(unittest.TestCase):
         self.assertEqual(
             result.stdout, "::error::The documentation artifact producer did not succeed.\n"
         )
+
+    def test_preparation_build_identity_and_usable_upload_are_exact(self):
+        expected = {
+            "Prepare cold browser verification": {
+                "name": "Prepare cold browser verification",
+                "timeout-minutes": 1,
+                "shell": "bash",
+                "run": PREPARE,
+            },
+            "Build validated site": {
+                "name": "Build validated site",
+                "timeout-minutes": 1,
+                "shell": "bash",
+                "run": "time pdm run acceptance-stories --check\\ntime pdm run docs-build\\n",
+            },
+            "Record browser identity": {
+                "name": "Record browser identity",
+                "if": "${{ always() }}",
+                "timeout-minutes": 1,
+                "shell": "bash",
+                "run": IDENTITY,
+            },
+            "Upload validated site": {
+                "name": "Upload validated site",
+                "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+                "if": "${{ success() }}",
+                "timeout-minutes": 1,
+                "with": {
+                    "name": "documentation-preview-${{ github.sha }}",
+                    "path": "tmp/docs-site/",
+                    "if-no-files-found": "error",
+                    "retention-days": 30,
+                },
+            },
+        }
+        for name, contract in expected.items():
+            actual = next(
+                (step for step in JOBS["documentation"]["steps"] if step.get("name") == name),
+                None,
+            )
+            with self.subTest(step=name):
+                self.assertEqual(actual, contract)
 
     def test_node_contract_matches_the_ci_major_in_package_and_operator_docs(self):
         package = json.loads(Path("docs/site-assets/package.json").read_text())
