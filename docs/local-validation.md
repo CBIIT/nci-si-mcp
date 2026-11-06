@@ -4,7 +4,7 @@ The companion displays acceptance and benchmark evidence on `127.0.0.1`, indepen
 MCP server. Repository users need no account. UAT/PROD administration is disabled
 ([deployment.md](deployment.md) records where it may be exposed).
 
-Imported acceptance and stdio benchmark reports display their recorded live environment name,
+Imported acceptance reports display their recorded live environment name,
 surface origins and policy hash. These are read-only provenance, not live controls or proof of
 access approval. Historical omission remains unknown; HTTP fixture operation is unchanged.
 See [managed live environments](../acceptance/README.md#managed-live-environments).

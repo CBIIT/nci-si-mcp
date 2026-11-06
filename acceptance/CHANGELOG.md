@@ -15,7 +15,8 @@ under construction: the per-tool tests, the protocol gates, the prompts and reso
 fixture set pinned to NCIt 26.09d.
 
 - #447: require the reviewed named environment for managed live execution and preserve its
-  immutable, credential-free provenance through native/benchmark/evidence reports. Block caDSR
+  immutable, credential-free provenance through native/evidence reports. Live stdio benchmarking is temporarily disabled pending #453.
+  Block caDSR
   citation transport pending #448; preserve fixture comparison and all fixture expectations.
   Plan approval: [6678764601](https://github.com/CBIIT/nci-sip-mcp/issues/447#issuecomment-6678764601),
   scope revision: [6679884146](https://github.com/CBIIT/nci-sip-mcp/issues/447#issuecomment-6679884146).

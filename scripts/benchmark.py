@@ -27,8 +27,7 @@ from scripts.benchmark_records import (
 from scripts.benchmark_report import Report
 from scripts.operator_files import write_json
 
-from nci_si_acceptance.client import Mode, Session, Target, open_session, server_environment
-from nci_si_acceptance.environments import LAUNCHER
+from nci_si_acceptance.client import Mode, Session, open_session, server_environment
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 from nci_si_acceptance.suite import unmatched_requests
 from nci_si_acceptance.suite_identity import identity
@@ -114,11 +113,7 @@ def opened(environment: dict[str, str]):
         directory = Path(temporary)
         log = directory / "audit.jsonl"
         settings = environment | {"NCI_SI_DATA_DIR": str(directory / "data")}
-        command = (
-            [*LAUNCHER, "serve"]
-            if environment["NCI_SI_UPSTREAM_MODE"] == "live"
-            else [sys.executable, "-m", "nci_si_mcp.cli", "serve"]
-        )
+        command = [sys.executable, "-m", "nci_si_mcp.cli", "serve"]
         with (
             log.open("w") as stream,
             open_session(command, settings, stream, timeout=CLIENT_TIMEOUT_SECONDS) as session,
@@ -137,16 +132,8 @@ def run_case(case: dict[str, Any], environment: dict[str, str], repetitions: int
     return Case(SelectedCase(**case), Phase.measured(cold), Phase.measured(warm)).to_dict("stdio")
 
 
-def environment_for(
-    mode: Mode, upstream: FixtureServer | None, case: dict[str, Any], target: Target | None = None
-):
-    environment = server_environment(
-        mode,
-        ROOT / "tmp",
-        upstream.url if upstream else None,
-        environment=target.environment if target else None,
-        denied_url=target.denied_url if target else None,
-    )
+def environment_for(mode: Mode, upstream: FixtureServer | None, case: dict[str, Any]):
+    environment = server_environment(mode, ROOT / "tmp", upstream.url if upstream else None)
     if upstream:
         selected = (case["scenario"],) if case["scenario"] else ()
         upstream.activate(*selected)
@@ -168,21 +155,14 @@ def source_digest() -> str:
     return digest.hexdigest()
 
 
-def _target(mode: Mode) -> Target:
-    target = Target.from_env(mode_override=mode)
-    if mode == "live" and target.prepare is not None:
-        raise ValueError("NCI_SI_ACCEPTANCE_PREPARE is not supported by the index-free benchmark")
-    return target
-
-
 def run(mode: Mode, names: list[str], repetitions: int, output: Path) -> dict[str, Any]:
+    if mode == "live":
+        raise ValueError("live stdio benchmarking is disabled pending the environment follow-up")
     if repetitions < 1:
         raise ValueError("At least one measured repetition is required")
-    target = _target(mode)
     (ROOT / "tmp").mkdir(exist_ok=True)
     report = Report(
         mode=mode,
-        environment=target.environment.to_record() if target.environment else None,
         transport="stdio",
         createdAt=datetime.now(UTC).isoformat(),
         serverVersion=version("nci-si-mcp"),
@@ -206,9 +186,9 @@ def run(mode: Mode, names: list[str], repetitions: int, output: Path) -> dict[st
     # An interrupted first case must not leave an older successful report.
     write_json(output, report, form="report")
     fixture = FixtureServer(load_fixtures(FIXTURES)) if mode == "fixture" else nullcontext(None)
-    with target.managed() as managed, fixture as upstream:
+    with fixture as upstream:
         for case in cases(names):
-            environment = environment_for(mode, upstream, case, managed)
+            environment = environment_for(mode, upstream, case)
             report["cases"].append(run_case(case, environment, repetitions))
             if upstream and unmatched_requests(upstream.log()):
                 raise ValueError("Benchmark requested an unrecorded fixture response")

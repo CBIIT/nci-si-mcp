@@ -31,7 +31,7 @@ pdm run spec-render                                  # regenerate docs/specifica
 
 ## Managed live environments
 
-Local live acceptance and stdio benchmarks require `NCI_SI_ACCEPTANCE_ENVIRONMENT=evs-only`.
+Local live acceptance requires `NCI_SI_ACCEPTANCE_ENVIRONMENT=evs-only`.
 This selects the reviewed executable policy in `fixtures/environments.yaml`; the historical
 origins in `fixtures/manifest.yaml` grant no permission. Only EVS REST and EVS FHIR are enabled.
 caDSR, its FTP/contracts surfaces, SSIS and SSIS SPARQL stay blocked, including anonymous calls.
@@ -56,11 +56,16 @@ blocked surfaces use an owned local refusal endpoint, which never forwards reque
 Current live reports record `environment`: name, all surface origins and the SHA-256 of the
 exact selected policy bytes. Each process freezes its selection for managed prepare/server
 children. Current worker provenance must agree with the controller before a report is accepted;
-this is not pre-send agreement across workers. A benchmark records its own selection.
+this is not pre-send agreement across workers.
 No credentials or local policy path enter this record. Native/evidence/portal and combined
-reports preserve it; benchmark comparisons bind it. Historical omission stays unknown rather
+reports preserve it. Historical omission stays unknown rather
 than acquiring a fabricated selection. The policy hash identifies configuration, not approval
 or evidence authenticity. Fixture reports and expected outcomes remain unchanged.
+
+Live stdio benchmarking is temporarily disabled, including with a supplied environment. It fails
+before child/request/report creation and leaves existing reports unchanged. Selected-environment
+benchmarking and its provenance consumers follow together in [#453](https://github.com/CBIIT/nci-sip-mcp/issues/453);
+fixture benchmarking and historical report parsing remain available.
 
 ## Writing a test
 
