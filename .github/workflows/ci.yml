@@ -141,6 +141,7 @@ jobs:
       - name: Prepare cold browser verification
         timeout-minutes: 1
         env: &documentation-browser
+          DEBUG: pw:browser
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/nci-si-documentation-browsers-${{ github.run_id }}-${{ github.run_attempt }}
           PLAYWRIGHT_JUNIT_OUTPUT_FILE: ${{ github.workspace }}/tmp/documentation-ci/browser-junit.xml
         shell: bash
@@ -233,7 +234,7 @@ jobs:
           if (!relative || relative.startsWith('..') || path.isAbsolute(relative))
             throw new Error('Chromium executable is outside the owned browser directory');
           fs.accessSync(executable, fs.constants.X_OK);
-          identity.chromiumExecutable = executable;
+          identity.installedChromiumExecutable = executable;
           fs.writeFileSync(file, JSON.stringify(identity, null, 2) + '\n');
           console.log(JSON.stringify(identity));
           JS

@@ -114,6 +114,10 @@ transient failures. The browser suite has a 90-second internal deadline inside a
 step, with separate job headroom for teardown and diagnostic upload. SHA-bound diagnostics
 contain only named identity, timing, install/test log and JUnit files; only the validated
 same-SHA site can feed the companion images.
+The identity record labels the installed full Chromium executable as inventory. The
+supported `pw:browser` diagnostics in the named browser test log record the actual launch
+executable; the unchanged default-headless journeys use the separately pinned headless shell.
+No private browser-selection accessor or channel override is used.
 The dashboard imports synthetic, validated evidence into a temporary store. The run/cancel
 journey injects a controlled executor through the existing worker interface; it proves browser
 form admission, navigation, cancellation feedback and absence of invented successful evidence.
