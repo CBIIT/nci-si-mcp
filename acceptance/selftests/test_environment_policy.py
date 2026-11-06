@@ -19,6 +19,7 @@ def policy_with_origin(monkeypatch, tmp_path, origin):
 @pytest.mark.parametrize(
     "origin",
     [
+        "https://api-evsrest.nci.nih.gov:invalid",
         "https://api-evsrest.nci.nih.gov\t",
         "https://api-evsrest.nci.nih.gov?",
         "https://api-evsrest.nci.nih.gov#",
@@ -45,20 +46,29 @@ def test_explicit_paths_ports_and_encoded_path_data_stay_exact(monkeypatch, tmp_
     assert selected.origins["evs"] == origin
 
 
-@pytest.mark.parametrize("defect", ["missing", "extra", "duplicate", "permission", "unknown"])
-def test_policy_structure_and_permission_are_closed(monkeypatch, tmp_path, defect):
+POLICY_EDITS = {
+    "missing": ("  ssis-sparql: null", ""),
+    "extra": ("allowed:", "allowed:\n  private-marker: null"),
+    "duplicate": ("allowed:", "allowed:\n  evs: https://private-marker.invalid"),
+    "permission": ("    cadsr: null", "    cadsr: https://private-marker.invalid"),
+    "unknown": ("environments:", "private-marker:\nenvironments:"),
+    "mapping": ("environments:\n  evs-only:", "environments:\n  - evs-only:"),
+    "key": ("  evs: ", "  !!bool evs: "),
+    "node": ("    cadsr: null", "    cadsr: !!null {}"),
+    "scalar": ("  evs: https:", "  evs: !!int https:"),
+    "syntax": ("allowed:", "allowed: ["),
+    "unreadable": None,
+}
+
+
+@pytest.mark.parametrize("edit", POLICY_EDITS.values(), ids=POLICY_EDITS)
+def test_policy_structure_and_permission_are_closed(monkeypatch, tmp_path, edit):
     raw = environments.POLICY.read_text()
-    edits = {
-        "missing": ("  ssis-sparql: null", ""),
-        "extra": ("allowed:", "allowed:\n  private-marker: null"),
-        "duplicate": ("allowed:", "allowed:\n  evs: https://private-marker.invalid"),
-        "permission": ("    cadsr: null", "    cadsr: https://private-marker.invalid"),
-        "unknown": ("environments:", "private-marker:\nenvironments:"),
-    }
-    old, new = edits[defect]
-    assert old in raw
     path = tmp_path / "policy.yaml"
-    path.write_text(raw.replace(old, new, 1))
+    if edit is not None:
+        old, new = edit
+        assert old in raw
+        path.write_text(raw.replace(old, new, 1))
     monkeypatch.setattr(environments, "POLICY", path)
     monkeypatch.setenv(environments.VARIABLE, "evs-only")
     with pytest.raises(ValueError) as error:

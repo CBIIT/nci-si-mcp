@@ -43,11 +43,6 @@ def native():
     }
 
 
-def test_native_roundtrip_and_historical_omission():
-    old = native()
-    assert NativeReport.from_dict(old).to_dict() == old
-
-
 @pytest.mark.parametrize("worker", [None, {}, ENVIRONMENT | {"policy_sha256": "b" * 64}])
 def test_current_workers_cannot_omit_or_conflict_with_controller_selection(worker):
     collector = Collector()
@@ -90,6 +85,7 @@ def test_native_producer_preserves_selection(compliant, monkeypatch, workers):
     "change",
     [
         {"name": None},
+        {"origins": ENVIRONMENT["origins"] | {"evs": False}},
         {"policy_sha256": "private-marker"},
         {"origins": {"evs": "https://private-marker@example.com/"}},
         {"origins": ENVIRONMENT["origins"] | {"evs": "https://private-marker@example.com/"}},

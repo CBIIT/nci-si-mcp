@@ -1,6 +1,7 @@
 """Managed transport paths use real local receivers and never contact an upstream."""
 
 import os
+import runpy
 import socket
 import subprocess
 import sys
@@ -98,9 +99,27 @@ def test_live_environment_requires_an_owned_refusal_endpoint(monkeypatch, tmp_pa
         server_environment("live", tmp_path, None)
 
 
-@pytest.mark.parametrize("phase", ["startup", "serve", "close"])
+START_FAILED = "owned refusal listener failed to start"
+FINISH_FAILED = "owned refusal listener did not finish cleanly"
+
+
+@pytest.mark.parametrize(
+    ("boundary", "fault", "stopping", "expected_error", "message"),
+    [
+        ("start", RuntimeError, False, RuntimeError, START_FAILED),
+        ("start", OSError, False, RuntimeError, START_FAILED),
+        ("start", KeyboardInterrupt, False, KeyboardInterrupt, "private-marker"),
+        ("handle_request", OSError, False, RuntimeError, FINISH_FAILED),
+        ("handle_request", RuntimeError, False, RuntimeError, FINISH_FAILED),
+        ("server_close", OSError, False, RuntimeError, FINISH_FAILED),
+        ("finish_request", OSError, False, RuntimeError, FINISH_FAILED),
+        ("handle_request", OSError, True, None, None),
+        ("handle_request", ValueError, True, None, None),
+        ("handle_request", RuntimeError, True, RuntimeError, FINISH_FAILED),
+    ],
+)
 def test_listener_failures_are_visible_sanitized_and_leave_no_owned_resource(
-    monkeypatch, capfd, phase
+    monkeypatch, capfd, boundary, fault, stopping, expected_error, message
 ):
     denied = DeniedSurfaces()
     port = denied._server.server_address[1]
@@ -109,58 +128,39 @@ def test_listener_failures_are_visible_sanitized_and_leave_no_owned_resource(
         threading, "excepthook", lambda failure: thread_errors.append(str(failure.exc_value))
     )
     close = denied._server.server_close
+    entered = threading.Event()
+    stopped = []
 
-    def fail():
-        raise RuntimeError("private-marker")
+    def fail(*_args):
+        if boundary == "server_close":
+            close()
+        entered.set()
+        if stopping:
+            stopped.append(denied._stop.wait(2))
+        raise fault("private-marker")
 
-    def fail_close():
-        close()
-        raise OSError("private-marker")
-
-    if phase == "startup":
-        monkeypatch.setattr(denied.thread, "start", fail)
-    elif phase == "serve":
-        monkeypatch.setattr(denied._server, "handle_request", fail)
-    else:
-        monkeypatch.setattr(denied._server, "server_close", fail_close)
-    with pytest.raises(RuntimeError, match="owned refusal listener") as error, denied:
-        if phase == "serve":
-            denied.thread.join(2)
-    expected = {"startup": "owned refusal listener failed to start"}.get(
-        phase, "owned refusal listener did not finish cleanly"
-    )
-    assert str(error.value) == expected
+    owner = denied.thread if boundary == "start" else denied._server
+    monkeypatch.setattr(owner, boundary, fail)
+    expectation = pytest.raises(expected_error) if expected_error else nullcontext()
+    with expectation as error, denied:
+        if boundary == "handle_request":
+            assert entered.wait(2)
+            if not stopping:
+                denied.thread.join(2)
+        elif boundary == "finish_request":
+            with socket.create_connection(("127.0.0.1", port), timeout=2) as peer:
+                assert peer.recv(1) == b""
+    if expected_error:
+        assert str(error.value) == message
+    assert entered.is_set()
+    assert bool(stopped) is stopping
+    assert all(stopped)
     assert not denied.thread.is_alive()
     with socket.socket() as probe:
         assert probe.connect_ex(("127.0.0.1", port)) != 0
     output = capfd.readouterr()
     assert "private-marker" not in output.out + output.err
     assert thread_errors == []
-
-
-@pytest.mark.parametrize("error", [OSError, ValueError, RuntimeError])
-def test_refusal_shutdown_distinguishes_expected_and_unexpected_errors(monkeypatch, error):
-    denied = DeniedSurfaces()
-    entered = threading.Event()
-    stopped = []
-
-    def interrupted():
-        entered.set()
-        stopped.append(denied._stop.wait(2))
-        raise error("private-marker")
-
-    monkeypatch.setattr(denied._server, "handle_request", interrupted)
-    expectation = (
-        pytest.raises(RuntimeError, match=r"\Aowned refusal listener did not finish cleanly\Z")
-        if error is RuntimeError
-        else nullcontext()
-    )
-    with expectation, denied:
-        assert entered.wait(2)
-    assert stopped == [True]
-    assert not denied.thread.is_alive()
-    with socket.socket() as probe:
-        assert probe.connect_ex(denied._server.server_address) != 0
 
 
 @pytest.mark.parametrize(
@@ -322,3 +322,15 @@ def test_imported_launcher_transport_never_proxies_or_forwards_redirects(
             assert {key.lower(): value for key, value in received[0]["headers"].items()}[
                 "x-evsrestapi-license-key"
             ] == "private-marker"
+
+
+@pytest.mark.parametrize("exit_code", [0, 17])
+def test_module_entry_propagates_the_cli_exit(monkeypatch, callable_launcher, exit_code):
+    monkeypatch.setattr(sys, "argv", ["launcher", "serve"])
+    seen = []
+    monkeypatch.setattr(cli, "main", lambda: seen.append(sys.argv.copy()) or exit_code)
+    monkeypatch.delitem(sys.modules, "nci_si_acceptance.live_launcher")
+    with pytest.raises(SystemExit) as outcome:
+        runpy.run_module("nci_si_acceptance.live_launcher", run_name="__main__")
+    assert outcome.value.code == exit_code
+    assert seen == [["nci-si-mcp", "serve", "--transport", "stdio"]]

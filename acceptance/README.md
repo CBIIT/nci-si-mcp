@@ -57,9 +57,9 @@ Current live reports record `environment`: name, all surface origins and the SHA
 exact selected policy bytes. Each process freezes its selection for managed prepare/server
 children. Current worker provenance must agree with the controller before a report is accepted;
 this is not pre-send agreement across workers.
-No credentials or local policy path enter this record. Native/evidence/portal and combined
-reports preserve it. Historical omission stays unknown rather
-than acquiring a fabricated selection. The policy hash identifies configuration, not approval
+No credentials or local policy path enter this record. Native/evidence and combined reports
+preserve it. Portal display follows [#453](https://github.com/CBIIT/nci-sip-mcp/issues/453).
+Historical omission stays unknown rather than acquiring a fabricated selection. The policy hash identifies configuration, not approval
 or evidence authenticity. Fixture reports and expected outcomes remain unchanged.
 
 Live stdio benchmarking is temporarily disabled, including with a supplied environment. It fails
