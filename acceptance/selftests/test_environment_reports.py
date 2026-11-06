@@ -7,11 +7,10 @@ from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
-from test_report import live_test, run
 
 from conftest import REVIEWED_ORIGINS, STAND_IN
 from nci_si_acceptance import environments
-from nci_si_acceptance.report import Collector, NativeReport, ReportFieldError, complete, main
+from nci_si_acceptance.report import Collector, NativeReport, ReportFieldError, complete
 
 pytest_plugins = ["pytester"]
 
@@ -141,20 +140,3 @@ def test_workers_cannot_omit_required_or_report_unexpected_provenance(selected, 
     with pytest.raises(ReportFieldError) as failure:
         collector.report("live" if selected else "fixture")
     assert str(failure.value) == "Invalid acceptance field: environment"
-
-
-def test_combined_renderer_labels_only_the_supplied_live_environment(tmp_path, capsys):
-    fixture = run({"get_form": "PASS"}, {"test.py::one": live_test("get_form", "passed")})
-    live = fixture | {"mode": "live", "environment": deepcopy(ENVIRONMENT)}
-    live["environment"]["origins"]["evs"] = "https://example.test/<script>private-marker</script>"
-    first, second = tmp_path / "fixture.json", tmp_path / "synthetic-live.json"
-    first.write_text(json.dumps(fixture))
-    second.write_text(json.dumps(live))
-    assert main([str(first), "--live", str(second)]) == 0
-    displayed = capsys.readouterr().out
-    assert "Live environment" in displayed
-    assert "evs-only" in displayed
-    assert ENVIRONMENT["policy_sha256"] in displayed
-    assert "&lt;script&gt;private-marker&lt;/script&gt;" in displayed
-    assert "<script>private-marker</script>" not in displayed
-    assert "environment" not in json.loads(first.read_text())

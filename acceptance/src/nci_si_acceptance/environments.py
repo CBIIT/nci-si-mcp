@@ -112,9 +112,6 @@ def _origin(value: object) -> str | None:
             parsed.scheme not in ("http", "https"),
             not parsed.hostname,
             parsed.username is not None,
-            parsed.password is not None,
-            bool(parsed.query),
-            bool(parsed.fragment),
             port == 0,
         )
     ):

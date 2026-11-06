@@ -31,41 +31,30 @@ pdm run spec-render                                  # regenerate docs/specifica
 
 ## Managed live environments
 
-Local live acceptance requires `NCI_SI_ACCEPTANCE_ENVIRONMENT=evs-only`.
-This selects the reviewed executable policy in `fixtures/environments.yaml`; the historical
-origins in `fixtures/manifest.yaml` grant no permission. Only EVS REST and EVS FHIR are enabled.
-caDSR, its FTP/contracts surfaces, SSIS and SSIS SPARQL stay blocked, including anonymous calls.
+Local live acceptance requires `NCI_SI_ACCEPTANCE_ENVIRONMENT=evs-only`, selecting the reviewed
+`fixtures/environments.yaml` policy. Historical manifest origins grant no permission. Only EVS
+REST/FHIR are enabled; caDSR (including anonymous/FTP/contracts), SSIS and SPARQL stay blocked.
+A caDSR-enabled map needs #448's reviewed bounded reader and separate access approval. These
+settings grant no upstream access and do not enable the disabled live workflow.
+
+Managed live execution requires the furnished `.venv`, isolated CLI and unified profile, with
+no proxy and same-origin redirects. Custom commands, remote/fixture settings, upstream overrides,
+proxy/Python/native-loader injection and blocked-surface credentials fail before launch; later
+injection is filtered. This assumes a trusted installation, not an OS sandbox or recorder guard.
+
+Set live preparation to `NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample'`; the harness supplies
+validated argv without a shell. The shell-expanded fixture command below is rejected live.
+Selected origins reach item provenance; blocked surfaces use an owned non-forwarding refusal.
 Live caDSR citation comparison fails before transport with
 `live caDSR citation comparison is disabled by run policy`; fixture comparison is unchanged.
-A caDSR-enabled map needs the reviewed bounded direct reader from #448 and separate access
-approval. These settings do not authorize upstream traffic or enable the disabled live workflow.
 
-Live execution uses this checkout's furnished `.venv` interpreter, isolated Python and the
-verified CLI with a no-proxy transport and same-origin redirects. It requires the unified
-profile; custom server commands, shell preparation, remote/fixture settings, upstream overrides,
-proxy/Python/native-loader injection and credentials for blocked surfaces are rejected before
-launch. Later parent injection settings are filtered from managed children. This controls the
-local managed harness with a trusted installation; it is not an OS sandbox or a recorder guard.
-Fixture custom commands and remote fixture operation keep their existing semantics.
+Native/evidence reports preserve the frozen name, all origins and exact policy-byte SHA-256,
+without credentials or local paths. Workers must agree with the controller at report time;
+historical omission stays unknown. The hash identifies configuration rather than approval or
+authenticity. Fixture reports/outcomes are unchanged; combined/portal display follows [#453](https://github.com/CBIIT/nci-sip-mcp/issues/453).
 
-For live preparation set `NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample'`; the harness supplies
-validated concept arguments without a shell. The shell-expanded command below remains fixture
-syntax and is rejected live. Selected real origins reach the server and item provenance;
-blocked surfaces use an owned local refusal endpoint, which never forwards requests.
-
-Current live reports record `environment`: name, all surface origins and the SHA-256 of the
-exact selected policy bytes. Each process freezes its selection for managed prepare/server
-children. Current worker provenance must agree with the controller before a report is accepted;
-this is not pre-send agreement across workers.
-No credentials or local policy path enter this record. Native/evidence and combined reports
-preserve it. Portal display follows [#453](https://github.com/CBIIT/nci-sip-mcp/issues/453).
-Historical omission stays unknown rather than acquiring a fabricated selection. The policy hash identifies configuration, not approval
-or evidence authenticity. Fixture reports and expected outcomes remain unchanged.
-
-Live stdio benchmarking is temporarily disabled, including with a supplied environment. It fails
-before child/request/report creation and leaves existing reports unchanged. Selected-environment
-benchmarking and its provenance consumers follow together in [#453](https://github.com/CBIIT/nci-sip-mcp/issues/453);
-fixture benchmarking and historical report parsing remain available.
+Live stdio benchmarking is temporarily disabled; [Benchmark](../docs/benchmark.md) documents its
+refusal and preserved-output contract. Its producer/consumers follow #453; fixtures and historical parsing remain available.
 
 ## Writing a test
 

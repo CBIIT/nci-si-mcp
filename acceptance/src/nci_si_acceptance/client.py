@@ -195,9 +195,7 @@ class Target:
             yield replace(self, denied_url=url)
 
     def prepare_command(self, codes: list[str]) -> list[str]:
-        if not codes or not all(
-            isinstance(code, str) and NCIT_CODE_RE.fullmatch(code) for code in codes
-        ):
+        if not codes or not all(NCIT_CODE_RE.fullmatch(code) for code in codes):
             raise ValueError("live preparation requires the validated harness concept list")
         return [*LAUNCHER, "index-sample", *codes]
 

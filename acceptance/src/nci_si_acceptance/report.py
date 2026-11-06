@@ -41,7 +41,6 @@ import sys
 from collections import Counter
 from dataclasses import asdict, dataclass, fields
 from enum import Enum
-from html import escape
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TypeIs, get_args
 
@@ -537,8 +536,6 @@ def render(
     combined: dict[str, tuple[str, list[str]]],
     modes: str,
     approved: Path = APPROVED,
-    *,
-    live_environment: EnvironmentRecord | None = None,
 ) -> str:
     """The report as Markdown: the suite's identity, which says whether this is an acceptance
     report or MODIFIED (suite_identity.py), then the per-tool table and the tools whose tests
@@ -547,7 +544,6 @@ def render(
     lines = [
         *heading(report["suite"], approved_digests(approved)),
         f"Run modes: {modes}.",
-        *_environment_lines(report, live_environment),
         "",
         "| Tool | Group | Outcome | Tests passed / failed / no fixture / not run "
         "| Upstream limitation |",
@@ -568,21 +564,6 @@ def render(
         f"Size of the tools/list result: {_size(report['tools_list_bytes'])}.",
     ]
     return "\n".join(lines) + "\n"
-
-
-def _environment_lines(report: dict[str, object], supplied: EnvironmentRecord | None) -> list[str]:
-    environment = (
-        supplied
-        if supplied is not None
-        else (report.get("environment") if report.get("mode") == "live" else None)
-    )
-    if environment is None:
-        return []
-    return [
-        "Live environment: <code>"
-        + escape(json.dumps(_report_environment(environment, "live"), sort_keys=True))
-        + "</code>."
-    ]
 
 
 # ---- pytest plugin
@@ -770,10 +751,8 @@ def main(arguments: Iterable[str] | None = None) -> int:
 
 
 def _render_options(options: argparse.Namespace, fixture: dict[str, Any]) -> int:
-    environment = None
     if options.live:
         live = _live_report(fixture, options.live)
-        environment = live.get("environment")
         if options.drift:
             return drift(fixture, live)
         limitations = {}
@@ -787,7 +766,7 @@ def _render_options(options: argparse.Namespace, fixture: dict[str, Any]) -> int
             f"fixture ({fixture['transport']}) only; "
             "the live run is not included, so no outcome here is final"
         )
-    sys.stdout.write(render(fixture, combined, modes, live_environment=environment))
+    sys.stdout.write(render(fixture, combined, modes))
     return 0
 
 
