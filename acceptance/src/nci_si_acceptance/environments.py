@@ -123,7 +123,7 @@ def _origin(value: object) -> str | None:
 
 
 def _check_raw_url(value: str) -> None:
-    if any(char.isspace() or char < " " or char == "\x7f" for char in value):
+    if any(char.isspace() or char < " " or "\x7f" <= char <= "\x9f" for char in value):
         raise ValueError("invalid reviewed environment origin")
     if "?" in value or "#" in value:
         raise ValueError("invalid reviewed environment origin")
@@ -190,8 +190,12 @@ def validate_live_inputs(environment: Environment) -> None:
             raise ValueError(f"{key} is incompatible with the selected live environment")
 
 
+def external_runtime_setting(key: str) -> bool:
+    return key.lower().endswith("_proxy") or key.upper().startswith(("PYTHON", "LD_", "DYLD_"))
+
+
 def _incompatible(key: str, environment: Environment) -> bool:
-    if key.lower().endswith("_proxy") or key.upper().startswith("PYTHON"):
+    if external_runtime_setting(key):
         return True
     if key.startswith("NCI_SI_") and key.endswith(("_BASE_URL", "_FTP_URL", "_SPARQL_URL")):
         return True

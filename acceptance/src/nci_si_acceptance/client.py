@@ -52,7 +52,13 @@ from mcp.client.streamable_http import streamable_http_client
 from mcp.shared._httpx_utils import create_mcp_http_client
 
 from nci_si_acceptance.denied_surfaces import DeniedSurfaces
-from nci_si_acceptance.environments import LAUNCHER, Environment, selection, validate_live_inputs
+from nci_si_acceptance.environments import (
+    LAUNCHER,
+    Environment,
+    external_runtime_setting,
+    selection,
+    validate_live_inputs,
+)
 from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES
 from nci_si_acceptance.spec import PROFILES
 from nci_si_mcp.validation import NCIT_CODE_RE
@@ -337,14 +343,26 @@ def server_environment(
     inherited = without_nci_si_settings(os.environ)
     inherited |= {"NCI_SI_UPSTREAM_MODE": mode, "NCI_SI_DATA_DIR": str(data_dir)}
     if mode == "live":
-        if environment is None or denied_url is None:
-            raise ValueError("live mode requires a selected environment and owned refusal endpoint")
-        inherited |= {
+        return _live_environment(inherited, environment, denied_url)
+    return inherited | _upstream_settings(fixture_url)
+
+
+def _live_environment(
+    inherited: dict[str, str], environment: Environment | None, denied_url: str | None
+) -> dict[str, str]:
+    if environment is None or denied_url is None:
+        raise ValueError("live mode requires a selected environment and owned refusal endpoint")
+    inherited = {
+        key: value for key, value in inherited.items() if not external_runtime_setting(key)
+    }
+    return (
+        inherited
+        | {
             variable: environment.origins[surface] or denied_url
             for variable, surface in UPSTREAM_VARIABLES.items()
         }
-        return inherited | dict(environment.credentials)
-    return inherited | _upstream_settings(fixture_url)
+        | dict(environment.credentials)
+    )
 
 
 class Session:
