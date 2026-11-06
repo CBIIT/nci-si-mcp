@@ -6,6 +6,7 @@ import os
 import socket
 import subprocess
 import sys
+import threading
 from http import HTTPStatus
 from pathlib import Path
 from urllib.error import HTTPError
@@ -89,3 +90,39 @@ def test_live_environment_requires_an_owned_refusal_endpoint(monkeypatch, tmp_pa
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_ENVIRONMENT", "evs-only")
     with pytest.raises(ValueError, match="owned refusal"):
         server_environment("live", tmp_path, None)
+
+
+@pytest.mark.parametrize("phase", ["startup", "serve", "close"])
+def test_listener_failures_are_visible_sanitized_and_leave_no_owned_resource(
+    monkeypatch, capfd, phase
+):
+    denied = listener()
+    port = denied._server.server_address[1]
+    thread_errors = []
+    monkeypatch.setattr(
+        threading, "excepthook", lambda failure: thread_errors.append(str(failure.exc_value))
+    )
+    close = denied._server.server_close
+
+    def fail():
+        raise RuntimeError("private-marker")
+
+    def fail_close():
+        close()
+        raise OSError("private-marker")
+
+    if phase == "startup":
+        monkeypatch.setattr(denied.thread, "start", fail)
+    elif phase == "serve":
+        monkeypatch.setattr(denied._server, "handle_request", fail)
+    else:
+        monkeypatch.setattr(denied._server, "server_close", fail_close)
+    with pytest.raises(RuntimeError, match="owned refusal listener"), denied:
+        if phase == "serve":
+            denied.thread.join(2)
+    assert not denied.thread.is_alive()
+    with socket.socket() as probe:
+        assert probe.connect_ex(("127.0.0.1", port)) != 0
+    output = capfd.readouterr()
+    assert "private-marker" not in output.out + output.err
+    assert thread_errors == []
