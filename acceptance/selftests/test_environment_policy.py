@@ -64,3 +64,19 @@ def test_policy_structure_and_permission_are_closed(monkeypatch, tmp_path, defec
     with pytest.raises(ValueError) as error:
         environments.selection("live")
     assert "private-marker" not in str(error.value)
+
+
+def test_shipped_policy_is_exactly_the_reviewed_evs_only_permission():
+    expected = {
+        "evs": "https://api-evsrest.nci.nih.gov",
+        "evs-fhir": "https://api-evsrest.nci.nih.gov/fhir/r4",
+        "cadsr": None,
+        "cadsr-ftp": None,
+        "cadsr-contracts": None,
+        "ssis": None,
+        "ssis-sparql": None,
+    }
+    assert yaml.safe_load(environments.POLICY.read_bytes()) == {
+        "allowed": expected,
+        "environments": {"evs-only": expected},
+    }
