@@ -1,12 +1,33 @@
-"""One same-commit site build feeds images; browser caching never omits OS setup."""
+"""One same-commit site build feeds images; cold browser verification remains fail-closed."""
 
 import json
+import os
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
 import yaml
 
 JOBS = yaml.safe_load(Path(".github/workflows/ci.yml").read_text())["jobs"]
+
+
+def timed_command(command: str, label: str) -> str:
+    """Independent expected shell contract: preserve first failure before reporting errors."""
+    return (
+        "started=$SECONDS\n"
+        "set +e\n"
+        f"{{ time {command}; }} > tmp/documentation-ci/browser-{label}.log 2>&1\n"
+        "gate_status=$?\n"
+        f"cat tmp/documentation-ci/browser-{label}.log\n"
+        "display_status=$?\n"
+        f"printf '{label} exit=%d elapsed_seconds=%d\\n' "
+        '"$gate_status" "$((SECONDS - started))" >> tmp/documentation-ci/phase-timings.txt\n'
+        "timing_status=$?\n"
+        'if [ "$gate_status" -ne 0 ]; then exit "$gate_status"; fi\n'
+        'if [ "$display_status" -ne 0 ]; then exit "$display_status"; fi\n'
+        'exit "$timing_status"\n'
+    )
 
 
 class DocumentationWorkflowTest(unittest.TestCase):
@@ -58,7 +79,7 @@ class DocumentationWorkflowTest(unittest.TestCase):
         upload = next(
             step["with"]
             for step in JOBS["documentation"]["steps"]
-            if step.get("uses", "").startswith("actions/upload-artifact@")
+            if step.get("with", {}).get("name") == "documentation-preview-${{ github.sha }}"
         )
         self.assertEqual(
             upload,
@@ -76,32 +97,156 @@ class DocumentationWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(upload["name"], download["name"])
 
-    def test_browser_cache_is_versioned_and_system_dependencies_are_always_installed(self):
+    def test_cold_browser_directory_and_job_budget_are_explicit(self):
+        job = JOBS["documentation"]
+        self.assertEqual(job["timeout-minutes"], 15)
+        self.assertEqual(
+            job.get("env"),
+            {
+                "PLAYWRIGHT_BROWSERS_PATH": "${{ runner.temp }}/nci-si-documentation-browsers-"
+                "${{ github.run_id }}-${{ github.run_attempt }}",
+                "PLAYWRIGHT_JUNIT_OUTPUT_FILE": (
+                    "${{ github.workspace }}/tmp/documentation-ci/browser-junit.xml"
+                ),
+            },
+        )
+        self.assertEqual(
+            [step["timeout-minutes"] for step in job["steps"]],
+            [1, 2, 1, 1, 1, 2, 2, 1, 1, 1],
+        )
+        self.assertEqual(
+            [step.get("name") for step in job["steps"]],
+            [
+                None,
+                None,
+                None,
+                "Prepare cold browser verification",
+                "Build validated site",
+                "Install pinned Chromium",
+                "Run browser journeys",
+                "Record browser identity",
+                "Retain documentation diagnostics",
+                "Upload validated site",
+            ],
+        )
+        for step in job["steps"]:
+            self.assertNotIn("continue-on-error", step)
+
+    def test_browser_install_and_test_are_unconditional(self):
         steps = JOBS["documentation"]["steps"]
-        caches = [step for step in steps if step.get("id") == "playwright-cache"]
-        self.assertEqual(len(caches), 1, "Cache only the pinned browser binaries")
-        cache = caches[0]
-        self.assertEqual(cache["uses"], "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9")
-        self.assertEqual(cache["with"]["path"], "~/.cache/ms-playwright")
         self.assertEqual(
-            cache["with"]["key"],
-            "playwright-${{ runner.os }}-${{ runner.arch }}-"
-            "${{ hashFiles('docs/site-assets/package-lock.json') }}",
+            [step.get("uses") for step in steps],
+            [
+                "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "$/.github/actions/setup",
+                "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+                None,
+                None,
+                None,
+                None,
+                None,
+                "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+                "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+            ],
         )
-        self.assertNotIn("restore-keys", cache["with"])
-        system = next(
-            step for step in steps if "playwright install-deps chromium" in step.get("run", "")
+        for name in ("Install pinned Chromium", "Run browser journeys"):
+            step = next(step for step in steps if step.get("name") == name)
+            self.assertNotIn("if", step)
+            self.assertEqual(step.get("shell"), "bash")
+
+    def test_diagnostics_cannot_be_consumed_as_a_usable_site(self):
+        steps = JOBS["documentation"]["steps"]
+        diagnostics = next(
+            (step for step in steps if step.get("name") == "Retain documentation diagnostics"),
+            None,
         )
-        self.assertNotIn("if", system)
+        self.assertIsNotNone(diagnostics, "Failure diagnostics need a separate bounded upload")
         self.assertEqual(
-            system["run"], "npm exec --prefix docs/site-assets -- playwright install-deps chromium"
+            diagnostics,
+            {
+                "name": "Retain documentation diagnostics",
+                "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+                "if": "${{ always() }}",
+                "timeout-minutes": 1,
+                "with": {
+                    "name": "documentation-diagnostics-${{ github.sha }}",
+                    "path": "tmp/documentation-ci/identity.json\n"
+                    "tmp/documentation-ci/phase-timings.txt\n"
+                    "tmp/documentation-ci/browser-install.log\n"
+                    "tmp/documentation-ci/browser-test.log\n"
+                    "tmp/documentation-ci/browser-junit.xml\n",
+                    "if-no-files-found": "warn",
+                    "retention-days": 30,
+                },
+            },
         )
-        browser = next(
-            step for step in steps if "playwright install chromium" in step.get("run", "")
+        self.assertEqual(steps[-1].get("if"), "${{ success() }}")
+
+    def test_actual_timing_wrappers_keep_command_and_reporting_failures_visible(self):
+        cases = {
+            "Install pinned Chromium": (
+                "npm exec --prefix docs/site-assets -- playwright install chromium",
+                "install",
+            ),
+            "Run browser journeys": (
+                "npm run test:browser --prefix docs/site-assets -- "
+                "--global-timeout=90000 --reporter=list,junit",
+                "test",
+            ),
+        }
+        for name, (command, label) in cases.items():
+            actual = next(
+                (
+                    step.get("run", "")
+                    for step in JOBS["documentation"]["steps"]
+                    if step.get("name") == name
+                ),
+                "",
+            )
+            self.assertEqual(actual, timed_command(command, label))
+            for code, broken_report in ((0, False), (7, False), (0, True), (7, True)):
+                with self.subTest(name=name, code=code, broken_report=broken_report):
+                    self.check_wrapper(actual, code, broken_report)
+
+    def check_wrapper(self, script: str, code: int, broken_report: bool) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            logs = root / "tmp/documentation-ci"
+            logs.mkdir(parents=True)
+            binary = root / "npm"
+            binary.write_text(f"#!/bin/bash\nprintf 'captured output\\n'\nexit {code}\n")
+            binary.chmod(0o700)
+            if broken_report:
+                (logs / "phase-timings.txt").mkdir()
+            result = subprocess.run(  # noqa: S603 - exact repository-owned shell contract
+                ["/bin/bash", "-euo", "pipefail", "-c", script],
+                cwd=root,
+                env=os.environ | {"PATH": f"{root}:" + os.environ["PATH"]},
+                text=True,
+                capture_output=True,
+                timeout=10,
+                check=False,
+            )
+            self.assertEqual(result.returncode, code or int(broken_report), result.stderr)
+            self.assertEqual(len(list(logs.glob("browser-*.log"))), 1)
+            self.assertIn("captured output", next(logs.glob("browser-*.log")).read_text())
+
+    def test_failed_documentation_guard_really_exits_nonzero(self):
+        guard = next(
+            step
+            for step in JOBS["companions"]["steps"]
+            if step.get("if") == "needs.documentation.result != 'success'"
         )
-        self.assertEqual(browser["if"], "steps.playwright-cache.outputs.cache-hit != 'true'")
+        result = subprocess.run(  # noqa: S603 - exact repository-owned shell contract
+            ["/bin/bash", "-euo", "pipefail", "-c", guard["run"]],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 1)
         self.assertEqual(
-            browser["run"], "npm exec --prefix docs/site-assets -- playwright install chromium"
+            result.stdout, "::error::The documentation artifact producer did not succeed.\n"
         )
 
     def test_node_contract_matches_the_ci_major_in_package_and_operator_docs(self):
