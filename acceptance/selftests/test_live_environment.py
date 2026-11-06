@@ -7,7 +7,6 @@ import runpy
 import subprocess
 import sys
 from http import HTTPStatus
-from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import ProxyHandler, build_opener
@@ -15,9 +14,9 @@ from urllib.request import ProxyHandler, build_opener
 import pytest
 import yaml
 
+from conftest import FIXTURES, furnished_child
 from nci_si_acceptance import environments
 from nci_si_acceptance.client import Target, server_environment
-from nci_si_acceptance.denied_surfaces import DeniedSurfaces
 from nci_si_acceptance.fixture_server import (
     UPSTREAM_VARIABLES,
     FixtureServer,
@@ -51,8 +50,10 @@ def clean_settings(monkeypatch):
 def test_selection_precedes_process_or_request(monkeypatch, name):
     if name is not None:
         monkeypatch.setenv(ENVIRONMENT, name)
-    with pytest.raises(ValueError, match=ENVIRONMENT):
+    with pytest.raises(ValueError) as error:
         Target.from_env()
+    reason = "is required for live mode" if not name else "does not name a reviewed environment"
+    assert str(error.value) == f"{ENVIRONMENT} {reason}"
 
 
 @pytest.mark.parametrize(
@@ -65,15 +66,10 @@ def test_selection_precedes_process_or_request(monkeypatch, name):
         ("hTtPs_PrOxY", "http://127.0.0.1:1"),
         ("NO_PROXY", "*"),
         ("PYTHONPATH", "/external/module-substitution"),
-        *(
-            (key, "private-marker")
-            for key in (
-                "LD_PRELOAD",
-                "LD_LIBRARY_PATH",
-                "DYLD_INSERT_LIBRARIES",
-                "DYLD_LIBRARY_PATH",
-            )
-        ),
+        ("LD_PRELOAD", "private-marker"),
+        ("LD_LIBRARY_PATH", "private-marker"),
+        ("DYLD_INSERT_LIBRARIES", "private-marker"),
+        ("DYLD_LIBRARY_PATH", "private-marker"),
         ("NCI_SI_ACCEPTANCE_SERVER", "python alternate-server.py"),
         ("NCI_SI_ACCEPTANCE_SERVER", "nci-si-mcp serve; alternate"),
         (
@@ -115,9 +111,9 @@ def test_selected_live_server_uses_only_the_furnished_isolated_launcher(monkeypa
     ]
 
 
-def test_selected_destinations_and_credentials_are_one_private_snapshot(monkeypatch, tmp_path):
-    fixtures = Path(__file__).parents[1] / "fixtures"
-    with FixtureServer(load_fixtures(fixtures)) as upstream, DeniedSurfaces() as denied:
+@pytest.fixture
+def selected_policy(monkeypatch, tmp_path):
+    with FixtureServer(load_fixtures(FIXTURES)) as upstream:
         policy = yaml.safe_load(environments.POLICY.read_bytes())
         for surface in ("evs", "evs-fhir"):
             policy["allowed"][surface] = upstream.base_url(surface)
@@ -127,31 +123,34 @@ def test_selected_destinations_and_credentials_are_one_private_snapshot(monkeypa
         monkeypatch.setattr(environments, "POLICY", path)
         monkeypatch.setenv(ENVIRONMENT, "evs-only")
         monkeypatch.setenv("NCI_SI_EVS_LICENSE_KEY", "selected-private-marker")
-        target = Target.from_env()
-        expected = json.loads(json.dumps(target.environment.to_record()))
-        assert expected["policy_sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
-        path.write_text("invalid replacement policy")
-        assert target.environment.to_record() == expected
-        assert "selected-private-marker" not in json.dumps(expected)
-        with pytest.raises(TypeError):
-            target.environment.origins["evs"] = "http://127.0.0.1:1"
-        monkeypatch.setenv("NCI_SI_EVS_LICENSE_KEY", "later-private-marker")
+        yield upstream, path
+
+
+def test_selected_destinations_and_credentials_are_one_private_snapshot(
+    monkeypatch, tmp_path, selected_policy
+):
+    upstream, path = selected_policy
+    monkeypatch.setenv("OTHER_BASE_URL", "unrelated-private-marker")
+    target = Target.from_env()
+    selected = target.environment
+    expected = json.loads(json.dumps(selected.to_record()))
+    assert expected["policy_sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    path.write_text("invalid replacement policy")
+    assert selected.to_record() == expected
+    assert "selected-private-marker" not in json.dumps(expected)
+    with pytest.raises(TypeError):
+        selected.origins["evs"] = "http://127.0.0.1:1"
+    monkeypatch.setenv("NCI_SI_EVS_LICENSE_KEY", "later-private-marker")
+    with target.managed() as managed:
         env = server_environment(
-            "live", tmp_path / "data", None, environment=target.environment, denied_url=denied
+            "live", tmp_path / "data", None, environment=selected, denied_url=managed.denied_url
         )
         assert env["NCI_SI_EVS_LICENSE_KEY"] == "selected-private-marker"
         assert "selected-private-marker" not in repr(target)
         # This assertion guards the old/red and mutated implementation from nonlocal sends.
         for key in UPSTREAM_VARIABLES:
             assert env[key].startswith("http://127.0.0.1:")
-        ran = subprocess.run(  # noqa: S603 - fixed furnished interpreter and guarded local bases.
-            [*environments.LAUNCHER, "index-sample", "C4817"],
-            env=env,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=30,
-        )
+        ran = furnished_child([*environments.LAUNCHER, "index-sample", "C4817"], env)
         assert ran.returncode == 0, ran.stderr
         received = upstream.log()
         assert received and all(row["surface"] == "evs" for row in received)
@@ -193,41 +192,33 @@ def test_preparation_accepts_only_harness_concept_arguments(monkeypatch, codes):
 
 
 def test_actual_managed_preparation_and_mcp_keep_the_selected_item_origin(
-    tmp_path, tmp_path_factory
+    monkeypatch, tmp_path, tmp_path_factory, selected_policy
 ):
-    fixtures = Path(__file__).parents[1] / "fixtures"
-    with FixtureServer(load_fixtures(fixtures)) as upstream:
-        origins = dict.fromkeys(environments.SURFACES)
-        origins.update({surface: upstream.base_url(surface) for surface in ("evs", "evs-fhir")})
-        selected = environments.Environment("local-test", origins, {}, "a" * 64)
-        target = Target(
-            "live",
-            [*environments.LAUNCHER, "serve"],
-            prepare="nci-si-mcp index-sample",
-            environment=selected,
-        )
-        suite = runpy.run_path(str(fixtures.parent / "tests/conftest.py"))
-        prepare = suite["prepared"].__wrapped__
-        (tmp_path / "manifest.yaml").write_text(
-            yaml.safe_dump({"record": {"concepts": {"full": ["C4817"]}}})
-        )
-        prepare.__globals__["FIXTURES"] = tmp_path
-        with target.managed() as managed:
-            data = prepare(managed, None, tmp_path_factory)
-            assert data.is_dir()
-            prepared = upstream.log()
-            assert any(row["params"].get("list") == ["C4817"] for row in prepared), prepared
-            with suite["_tools"](managed, None, tmp_path_factory, data) as tools:
-                result = tools.call(
-                    "get_concept", {"terminology": "ncit", "release": "26.09d", "code": "C4817"}
-                )
-                assert not result.is_error, result.content
-                uri = result.content["provenance"]["sourceUri"]
-                assert uri == upstream.base_url("evs") + "/api/v1/concept/ncit_26.09d/C4817"
-                assert not uri.startswith(managed.denied_url)
-            received = upstream.log()
-            assert all(row["surface"] == "evs" for row in received)
-            assert all(row["fixture"] is not None for row in received)
+    upstream, _path = selected_policy
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_PREPARE", "nci-si-mcp index-sample")
+    target = Target.from_env()
+    suite = runpy.run_path(str(FIXTURES.parent / "tests/conftest.py"))
+    prepare = suite["prepared"].__wrapped__
+    (tmp_path / "manifest.yaml").write_text(
+        yaml.safe_dump({"record": {"concepts": {"full": ["C4817"]}}})
+    )
+    prepare.__globals__["FIXTURES"] = tmp_path
+    with target.managed() as managed:
+        data = prepare(managed, None, tmp_path_factory)
+        assert data.is_dir()
+        prepared = upstream.log()
+        assert any(row["params"].get("list") == ["C4817"] for row in prepared), prepared
+        with suite["_tools"](managed, None, tmp_path_factory, data) as tools:
+            result = tools.call(
+                "get_concept", {"terminology": "ncit", "release": "26.09d", "code": "C4817"}
+            )
+            assert not result.is_error, result.content
+            uri = result.content["provenance"]["sourceUri"]
+            assert uri == upstream.base_url("evs") + "/api/v1/concept/ncit_26.09d/C4817"
+            assert not uri.startswith(managed.denied_url)
+        received = upstream.log()
+        assert all(row["surface"] == "evs" for row in received)
+        assert all(row["fixture"] is not None for row in received)
 
 
 @pytest.mark.parametrize("variable", ["NCI_SI_CADSR_BASE_URL", "NCI_SI_SSIS_SPARQL_URL"])

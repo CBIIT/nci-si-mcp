@@ -3,13 +3,14 @@
 import pytest
 import yaml
 
+from conftest import REVIEWED_ORIGINS
 from nci_si_acceptance import environments
 
 
-def policy_with_origin(monkeypatch, tmp_path, origin):
+def policy_with_origin(monkeypatch, tmp_path, origin, enabled=True):
     document = yaml.safe_load(environments.POLICY.read_bytes())
     document["allowed"]["evs"] = origin
-    document["environments"]["evs-only"]["evs"] = origin
+    document["environments"]["evs-only"]["evs"] = origin if enabled else None
     path = tmp_path / "policy.yaml"
     path.write_text(yaml.safe_dump(document))
     monkeypatch.setattr(environments, "POLICY", path)
@@ -28,23 +29,32 @@ def policy_with_origin(monkeypatch, tmp_path, origin):
         "https://api-evsrest.nci.nih.gov/space path",
         "https://api-evsrest.nci.nih.gov\n",
         "https://api-evsrest.nci.nih.gov/\x80",
+        "https://api-evsrest.nci.nih.gov/a\x00b",
+        "ftp://api-evsrest.nci.nih.gov/path",
+        "https:///missing-host",
     ],
 )
 def test_raw_ambiguous_origin_is_rejected_without_echo(monkeypatch, tmp_path, origin):
     policy_with_origin(monkeypatch, tmp_path, origin)
-    with pytest.raises(ValueError, match="invalid reviewed environment origin") as error:
+    with pytest.raises(ValueError, match=r"\Ainvalid reviewed environment origin\Z") as error:
         environments.selection("live")
     assert origin not in str(error.value)
 
 
 @pytest.mark.parametrize(
-    "origin",
-    ["https://api-evsrest.nci.nih.gov:8443/api/v1", "https://api-evsrest.nci.nih.gov/a%20b"],
+    ("origin", "enabled"),
+    [
+        ("https://api-evsrest.nci.nih.gov:8443/api/v1", True),
+        ("https://api-evsrest.nci.nih.gov/a%20b", True),
+        ("https://api-evsrest.nci.nih.gov", False),
+    ],
 )
-def test_explicit_paths_ports_and_encoded_path_data_stay_exact(monkeypatch, tmp_path, origin):
-    policy_with_origin(monkeypatch, tmp_path, origin)
+def test_selected_origins_preserve_exact_values_and_valid_narrowing(
+    monkeypatch, tmp_path, origin, enabled
+):
+    policy_with_origin(monkeypatch, tmp_path, origin, enabled)
     selected = environments.selection("live")
-    assert selected.origins["evs"] == origin
+    assert selected.origins == REVIEWED_ORIGINS | {"evs": origin if enabled else None}
 
 
 POLICY_EDITS = {
@@ -59,11 +69,12 @@ POLICY_EDITS = {
     "scalar": ("  evs: https:", "  evs: !!int https:"),
     "syntax": ("allowed:", "allowed: ["),
     "unreadable": None,
+    "complex-key": ("allowed:", "allowed:\n  ? !!str [private-marker]\n  : null"),
 }
 
 
-@pytest.mark.parametrize("edit", POLICY_EDITS.values(), ids=POLICY_EDITS)
-def test_policy_structure_and_permission_are_closed(monkeypatch, tmp_path, edit):
+@pytest.mark.parametrize(("case", "edit"), POLICY_EDITS.items(), ids=POLICY_EDITS)
+def test_policy_structure_and_permission_are_closed(monkeypatch, tmp_path, case, edit):
     raw = environments.POLICY.read_text()
     path = tmp_path / "policy.yaml"
     if edit is not None:
@@ -75,19 +86,12 @@ def test_policy_structure_and_permission_are_closed(monkeypatch, tmp_path, edit)
     with pytest.raises(ValueError) as error:
         environments.selection("live")
     assert "private-marker" not in str(error.value)
+    if case == "complex-key":
+        assert str(error.value) == "invalid reviewed environment policy key"
 
 
 def test_shipped_policy_is_exactly_the_reviewed_evs_only_permission():
-    expected = {
-        "evs": "https://api-evsrest.nci.nih.gov",
-        "evs-fhir": "https://api-evsrest.nci.nih.gov/fhir/r4",
-        "cadsr": None,
-        "cadsr-ftp": None,
-        "cadsr-contracts": None,
-        "ssis": None,
-        "ssis-sparql": None,
-    }
     assert yaml.safe_load(environments.POLICY.read_bytes()) == {
-        "allowed": expected,
-        "environments": {"evs-only": expected},
+        "allowed": REVIEWED_ORIGINS,
+        "environments": {"evs-only": REVIEWED_ORIGINS},
     }

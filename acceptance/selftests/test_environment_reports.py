@@ -9,23 +9,16 @@ from types import SimpleNamespace
 import pytest
 from test_report import live_test, run
 
-from conftest import STAND_IN
+from conftest import REVIEWED_ORIGINS, STAND_IN
 from nci_si_acceptance import environments
 from nci_si_acceptance.report import Collector, NativeReport, ReportFieldError, complete, main
 
 pytest_plugins = ["pytester"]
 
+
 ENVIRONMENT = {
     "name": "evs-only",
-    "origins": {
-        "evs": "https://api-evsrest.nci.nih.gov",
-        "evs-fhir": "https://api-evsrest.nci.nih.gov/fhir/r4",
-        "cadsr": None,
-        "cadsr-ftp": None,
-        "cadsr-contracts": None,
-        "ssis": None,
-        "ssis-sparql": None,
-    },
+    "origins": REVIEWED_ORIGINS,
     "policy_sha256": "a" * 64,
 }
 
@@ -82,19 +75,26 @@ def test_native_producer_preserves_selection(compliant, monkeypatch, workers):
 
 
 @pytest.mark.parametrize(
-    "change",
+    ("mode", "environment"),
     [
-        {"name": None},
-        {"origins": ENVIRONMENT["origins"] | {"evs": False}},
-        {"policy_sha256": "private-marker"},
-        {"origins": {"evs": "https://private-marker@example.com/"}},
-        {"origins": ENVIRONMENT["origins"] | {"evs": "https://private-marker@example.com/"}},
-        {"private-marker": "private-marker"},
+        ("fixture", ENVIRONMENT),
+        ("live", None),
+        ("live", ENVIRONMENT | {"origins": None}),
+        ("live", ENVIRONMENT | {"name": None}),
+        ("live", ENVIRONMENT | {"origins": ENVIRONMENT["origins"] | {"evs": False}}),
+        ("live", ENVIRONMENT | {"policy_sha256": "private-marker"}),
+        ("live", ENVIRONMENT | {"origins": {"evs": "https://private-marker@example.com/"}}),
+        (
+            "live",
+            ENVIRONMENT
+            | {"origins": ENVIRONMENT["origins"] | {"evs": "https://private-marker@example.com/"}},
+        ),
+        ("live", ENVIRONMENT | {"private-marker": "private-marker"}),
     ],
 )
-def test_invalid_environment_records_fail_at_the_sanitized_field_boundary(change):
+def test_invalid_environment_records_fail_at_the_sanitized_field_boundary(mode, environment):
     with pytest.raises(ReportFieldError) as error:
-        NativeReport.from_dict(native() | {"environment": ENVIRONMENT | change})
+        NativeReport.from_dict(native() | {"mode": mode, "environment": environment})
     assert str(error.value) == "Invalid acceptance field: environment"
     assert "private-marker" not in str(error.value)
 
@@ -125,14 +125,22 @@ def test_crashed_fixture_worker_retains_its_incomplete_report():
     assert not complete(emitted)
 
 
-@pytest.mark.parametrize("selected,reported", [(ENVIRONMENT, None), (None, ENVIRONMENT)])
-def test_crash_never_excuses_unknown_live_or_unexpected_fixture_provenance(selected, reported):
+@pytest.mark.parametrize(
+    ("selected", "reported", "error"),
+    [
+        (ENVIRONMENT, None, "worker exited"),
+        (None, ENVIRONMENT, "worker exited"),
+        (None, None, None),
+    ],
+)
+def test_workers_cannot_omit_required_or_report_unexpected_provenance(selected, reported, error):
     collector = Collector()
     collector.environment = selected
     output = {} if reported is None else {"nci_si_environment": reported}
-    collector.pytest_testnodedown(SimpleNamespace(workeroutput=output), "worker exited")
-    with pytest.raises(ReportFieldError, match="environment"):
+    collector.pytest_testnodedown(SimpleNamespace(workeroutput=output), error)
+    with pytest.raises(ReportFieldError) as failure:
         collector.report("live" if selected else "fixture")
+    assert str(failure.value) == "Invalid acceptance field: environment"
 
 
 def test_combined_renderer_labels_only_the_supplied_live_environment(tmp_path, capsys):

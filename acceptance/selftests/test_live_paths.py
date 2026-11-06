@@ -3,7 +3,6 @@
 import os
 import runpy
 import socket
-import subprocess
 import sys
 import threading
 import urllib.request
@@ -16,14 +15,20 @@ from urllib.request import ProxyHandler, Request, build_opener
 
 import pytest
 
-from nci_si_acceptance import environments, live_launcher
+from conftest import FIXTURES, furnished_child
+from nci_si_acceptance import denied_surfaces, environments, live_launcher
 from nci_si_acceptance.client import server_environment
 from nci_si_acceptance.denied_surfaces import DeniedSurfaces
 from nci_si_acceptance.fixture_server import FixtureServer, FixtureSet, Response, load_fixtures
 from nci_si_mcp import cli, http_client
 
-FIXTURES = Path(__file__).parents[1] / "fixtures"
 FURNISHED_PREFIX = Path(live_launcher.__file__).resolve().parents[3] / ".venv"
+
+
+def listener_closed(address):
+    with socket.socket() as probe:
+        probe.settimeout(2)
+        return probe.connect_ex(address) != 0
 
 
 def test_real_furnished_child_ignores_ambient_os_proxy(tmp_path):
@@ -45,21 +50,22 @@ def test_real_furnished_child_ignores_ambient_os_proxy(tmp_path):
             "from nci_si_acceptance.live_launcher import main; "
             "sys.argv=['launcher','index-sample','C4817']; raise SystemExit(main())"
         )
-        ran = subprocess.run(  # noqa: S603 - fixed isolated interpreter; all destinations are loopback fixtures.
-            [sys.executable, "-I", "-c", script],
-            env=environment,
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
-        )
+        ran = furnished_child([sys.executable, "-I", "-c", script], environment)
         assert ran.returncode == 0, ran.stderr
         assert upstream.log(), "the approved local destination must receive the actual request"
         assert proxy.log() == [], "neither environment nor OS proxy discovery may reroute the child"
         assert not marker.exists()
 
 
-def test_owned_refusal_has_no_echo_or_forwarding_and_closes_on_exception(capfd):
+def test_owned_refusal_has_no_echo_or_forwarding_and_closes_on_exception(monkeypatch, capfd):
+    timeouts = []
+    original = denied_surfaces._Refusal.handle
+
+    def observed(request):
+        original(request)
+        timeouts.append(request.request.gettimeout())
+
+    monkeypatch.setattr(denied_surfaces._Refusal, "handle", observed)
     denied = DeniedSurfaces()
     with pytest.raises(RuntimeError, match="owner interrupted"), denied as url:
         address = url.removeprefix("http://").split(":")
@@ -69,12 +75,12 @@ def test_owned_refusal_has_no_echo_or_forwarding_and_closes_on_exception(capfd):
         assert error.value.code == HTTPStatus.FORBIDDEN
         assert error.value.read() == b"surface disabled by run policy"
         raise RuntimeError("owner interrupted")
+    assert timeouts == [1.0]
     output = capfd.readouterr()
     assert "private-marker" not in output.out + output.err
     assert "secret-marker" not in output.out + output.err
     assert not denied.thread.is_alive()
-    with socket.socket() as probe:
-        assert probe.connect_ex(("127.0.0.1", port)) != 0
+    assert listener_closed(("127.0.0.1", port))
 
 
 def test_partial_request_cannot_hold_the_refusal_listener_open():
@@ -90,13 +96,23 @@ def test_partial_request_cannot_hold_the_refusal_listener_open():
     assert not denied.thread.is_alive()
 
 
-def test_live_environment_requires_an_owned_refusal_endpoint(monkeypatch, tmp_path):
+@pytest.mark.parametrize(
+    ("selected", "denied_url"),
+    [(False, None), (False, "http://127.0.0.1:1"), (True, None)],
+)
+def test_live_environment_requires_both_owned_prerequisites(
+    monkeypatch, tmp_path, selected, denied_url
+):
     for key in list(os.environ):
         if key.startswith(("NCI_SI_", "PYTHON")) or key.lower().endswith("_proxy"):
             monkeypatch.delenv(key)
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_ENVIRONMENT", "evs-only")
-    with pytest.raises(ValueError, match="owned refusal"):
-        server_environment("live", tmp_path, None)
+    environment = environments.selection("live") if selected else None
+    with pytest.raises(ValueError) as error:
+        server_environment("live", tmp_path, None, environment=environment, denied_url=denied_url)
+    assert (
+        str(error.value) == "live mode requires a selected environment and owned refusal endpoint"
+    )
 
 
 START_FAILED = "owned refusal listener failed to start"
@@ -129,7 +145,7 @@ def test_listener_failures_are_visible_sanitized_and_leave_no_owned_resource(
     )
     close = denied._server.server_close
     entered = threading.Event()
-    stopped = []
+    stopped, closed, received = [], [], []
 
     def fail(*_args):
         if boundary == "server_close":
@@ -147,20 +163,49 @@ def test_listener_failures_are_visible_sanitized_and_leave_no_owned_resource(
             assert entered.wait(2)
             if not stopping:
                 denied.thread.join(2)
+                closed.append(listener_closed(("127.0.0.1", port)))
         elif boundary == "finish_request":
             with socket.create_connection(("127.0.0.1", port), timeout=2) as peer:
-                assert peer.recv(1) == b""
+                received.append(peer.recv(1))
     if expected_error:
         assert str(error.value) == message
     assert entered.is_set()
-    assert bool(stopped) is stopping
-    assert all(stopped)
+    assert stopped == ([True] if stopping else [])
+    assert closed == ([True] if boundary == "handle_request" and not stopping else [])
+    assert received == ([b""] if boundary == "finish_request" else [])
     assert not denied.thread.is_alive()
-    with socket.socket() as probe:
-        assert probe.connect_ex(("127.0.0.1", port)) != 0
+    assert listener_closed(("127.0.0.1", port))
     output = capfd.readouterr()
     assert "private-marker" not in output.out + output.err
     assert thread_errors == []
+
+
+def test_held_handler_keeps_incomplete_shutdown_visible_and_owner_socket_closed(monkeypatch):
+    denied = DeniedSurfaces()
+    entered, release = threading.Event(), threading.Event()
+
+    def held(_request):
+        entered.set()
+        assert release.wait(5)
+
+    monkeypatch.setattr(denied_surfaces._Refusal, "handle", held)
+    monkeypatch.setattr(denied_surfaces, "JOIN_SECONDS", 0.01)
+    url = denied.__enter__()
+    address = ("127.0.0.1", int(url.rsplit(":", 1)[1]))
+    try:
+        with socket.create_connection(address, timeout=2):
+            assert entered.wait(2)
+            with pytest.raises(RuntimeError) as error:
+                denied.__exit__(None, None, None)
+            assert str(error.value) == FINISH_FAILED
+            assert denied.thread.is_alive()
+            assert listener_closed(address)
+    finally:
+        release.set()
+        denied.thread.join(2)
+        denied._close()
+    assert not denied.thread.is_alive()
+    assert listener_closed(address)
 
 
 @pytest.mark.parametrize(
@@ -193,44 +238,45 @@ def test_launcher_refuses_untrusted_installation_before_cli(
     assert not marker.exists()
 
 
-@pytest.mark.parametrize("credential", [None, "private-marker"])
-def test_furnished_child_never_forwards_cross_origin_redirect_or_credentials(tmp_path, credential):
-    fixtures = load_fixtures(FIXTURES)
+@pytest.fixture
+def redirect_receivers():
     with FixtureServer(FixtureSet({}, {})) as forbidden:
         redirect = Response(302, {"Location": forbidden.url + "/must-not-arrive"})
+        fixtures = load_fixtures(FIXTURES)
         redirected = replace(
             fixtures,
             ordinary={
-                key: replace(fixture, responses=(redirect,))
-                for key, fixture in fixtures.ordinary.items()
+                key: replace(row, responses=(redirect,)) for key, row in fixtures.ordinary.items()
             },
         )
-        with FixtureServer(redirected) as selected, DeniedSurfaces() as denied:
-            origins = dict.fromkeys(environments.SURFACES)
-            origins["evs"] = selected.base_url("evs")
-            credentials = {"NCI_SI_EVS_LICENSE_KEY": credential} if credential else {}
-            environment = server_environment(
-                "live",
-                tmp_path,
-                None,
-                environment=environments.Environment("local-test", origins, credentials, "a" * 64),
-                denied_url=denied,
-            )
-            ran = subprocess.run(  # noqa: S603 - furnished interpreter, selected/forbidden receivers local only.
-                [*environments.LAUNCHER, "index-sample", "C4817"],
-                env=environment,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-            )
-            assert ran.returncode != 0
-            assert forbidden.log() == []
-            received = selected.log()
-            assert len(received) == 1
-            headers = {key.lower(): value for key, value in received[0]["headers"].items()}
-            assert headers.get("x-evsrestapi-license-key") == credential
-            assert "private-marker" not in ran.stdout + ran.stderr
+        with FixtureServer(redirected) as selected:
+            yield selected, forbidden
+
+
+@pytest.mark.parametrize("credential", [None, "private-marker"])
+def test_furnished_child_never_forwards_cross_origin_redirect_or_credentials(
+    tmp_path, credential, redirect_receivers
+):
+    selected, forbidden = redirect_receivers
+    with DeniedSurfaces() as denied:
+        origins = dict.fromkeys(environments.SURFACES)
+        origins["evs"] = selected.base_url("evs")
+        credentials = {"NCI_SI_EVS_LICENSE_KEY": credential} if credential else {}
+        environment = server_environment(
+            "live",
+            tmp_path,
+            None,
+            environment=environments.Environment("local-test", origins, credentials, "a" * 64),
+            denied_url=denied,
+        )
+        ran = furnished_child([*environments.LAUNCHER, "index-sample", "C4817"], environment)
+        assert ran.returncode != 0
+        assert forbidden.log() == []
+        received = selected.log()
+        assert len(received) == 1
+        headers = {key.lower(): value for key, value in received[0]["headers"].items()}
+        assert headers.get("x-evsrestapi-license-key") == credential
+        assert "private-marker" not in ran.stdout + ran.stderr
 
 
 @pytest.fixture
@@ -255,6 +301,8 @@ def callable_launcher(monkeypatch):
         (["index-sample"], None),
         (["index-sample", "bad"], None),
         (["other"], None),
+        (["other", "C4817"], None),
+        (["index-sample", "C4817"], ["index-sample", "C4817"]),
     ],
 )
 def test_imported_launcher_dispatch_and_refusal(
@@ -280,48 +328,37 @@ def test_imported_launcher_dispatch_and_refusal(
 
 
 def test_imported_launcher_transport_never_proxies_or_forwards_redirects(
-    monkeypatch, callable_launcher
+    monkeypatch, callable_launcher, redirect_receivers
 ):
     expected_exit = 23
-    fixtures = load_fixtures(FIXTURES)
-    with FixtureServer(FixtureSet({}, {})) as forbidden, FixtureServer(FixtureSet({}, {})) as proxy:
-        redirect = Response(302, {"Location": forbidden.url + "/must-not-arrive"})
-        redirected = replace(
-            fixtures,
-            ordinary={
-                key: replace(fixture, responses=(redirect,))
-                for key, fixture in fixtures.ordinary.items()
-            },
-        )
-        with FixtureServer(redirected) as selected:
-            monkeypatch.setattr(urllib.request, "getproxies", lambda: {"http": proxy.url})
-            monkeypatch.setattr(urllib.request, "proxy_bypass", lambda host: False)
-            monkeypatch.setattr(
-                http_client, "_OPENER", build_opener(ProxyHandler({"http": proxy.url}))
+    selected, forbidden = redirect_receivers
+    with FixtureServer(FixtureSet({}, {})) as proxy:
+        monkeypatch.setattr(urllib.request, "getproxies", lambda: {"http": proxy.url})
+        monkeypatch.setattr(urllib.request, "proxy_bypass", lambda host: False)
+        monkeypatch.setattr(http_client, "_OPENER", build_opener(ProxyHandler({"http": proxy.url})))
+        monkeypatch.setattr(sys, "argv", ["launcher", "serve"])
+
+        def transported():
+            request = Request(  # noqa: S310 - owned loopback fixture URL.
+                selected.base_url("evs") + "/api/v1/metadata/terminologies",
+                headers={"X-EVSRESTAPI-License-Key": "private-marker"},
             )
-            monkeypatch.setattr(sys, "argv", ["launcher", "serve"])
+            with pytest.raises(HTTPError) as error:
+                http_client._OPENER.open(request, timeout=2)
+            with error.value:
+                assert proxy.log() == []
+                assert forbidden.log() == []
+                assert error.value.code == HTTPStatus.FOUND
+            return expected_exit
 
-            def transported():
-                request = Request(  # noqa: S310 - owned loopback fixture URL.
-                    selected.base_url("evs") + "/api/v1/metadata/terminologies",
-                    headers={"X-EVSRESTAPI-License-Key": "private-marker"},
-                )
-                with pytest.raises(HTTPError) as error:
-                    http_client._OPENER.open(request, timeout=2)
-                with error.value:
-                    assert proxy.log() == []
-                    assert forbidden.log() == []
-                    assert error.value.code == HTTPStatus.FOUND
-                return expected_exit
-
-            monkeypatch.setattr(cli, "main", transported)
-            assert callable_launcher() == expected_exit
-            received = selected.log()
-            assert len(received) == 1
-            assert received[0]["fixture"] is not None
-            assert {key.lower(): value for key, value in received[0]["headers"].items()}[
-                "x-evsrestapi-license-key"
-            ] == "private-marker"
+        monkeypatch.setattr(cli, "main", transported)
+        assert callable_launcher() == expected_exit
+        received = selected.log()
+        assert len(received) == 1
+        assert received[0]["fixture"] is not None
+        assert {key.lower(): value for key, value in received[0]["headers"].items()}[
+            "x-evsrestapi-license-key"
+        ] == "private-marker"
 
 
 @pytest.mark.parametrize("exit_code", [0, 17])

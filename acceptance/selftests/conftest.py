@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -13,6 +14,17 @@ import pytest
 
 from nci_si_acceptance.craft import Recorded, craft, release_session
 from nci_si_acceptance.record import FIXTURES
+
+# Independent literal expected origins shared by policy and native-report owners.
+REVIEWED_ORIGINS = {
+    "evs": "https://api-evsrest.nci.nih.gov",
+    "evs-fhir": "https://api-evsrest.nci.nih.gov/fhir/r4",
+    "cadsr": None,
+    "cadsr-ftp": None,
+    "cadsr-contracts": None,
+    "ssis": None,
+    "ssis-sparql": None,
+}
 
 # "i/n": run the i-th of n shards of the self-tests (CI's selftest jobs).
 SHARD_VARIABLE = "SELFTEST_SHARD"
@@ -244,3 +256,9 @@ def without_crafted(root):
     text = "\n".join([*kept, f"crafted: {crafted_digest(CRAFTED)}", ""])
     (root / "manifest.yaml").write_text(text, encoding="utf-8")
     return root
+
+
+def furnished_child(command, environment):
+    return subprocess.run(  # noqa: S603 - callers furnish isolated argv and local-only bases.
+        command, env=environment, capture_output=True, text=True, timeout=30, check=False
+    )

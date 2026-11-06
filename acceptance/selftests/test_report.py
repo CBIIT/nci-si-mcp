@@ -617,6 +617,11 @@ def test_a_worker_that_started_no_server_forwards_only_environment():
     )
 
     assert output == {"nci_si_environment": None}
+    controller = Collector()
+    controller.pytest_testnodedown(SimpleNamespace(workeroutput=output), None)
+    emitted = controller.report("fixture")
+    assert emitted["mode"] == "fixture"
+    assert "environment" not in emitted
 
 
 def test_an_unrun_gate_leaves_no_tool_passing():
