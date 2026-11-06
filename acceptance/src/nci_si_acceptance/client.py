@@ -51,6 +51,7 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.client.streamable_http import streamable_http_client
 from mcp.shared._httpx_utils import create_mcp_http_client
 
+from nci_si_acceptance.environments import LAUNCHER, Environment, selection, validate_live_inputs
 from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES
 from nci_si_acceptance.spec import PROFILES
 
@@ -132,12 +133,16 @@ class Target:
     # alike: the harness starts it itself beside the server under test.
     security_server: str | None = None
     registry_release: Literal["required", "optional"] = "optional"
+    environment: Environment | None = None
 
     @classmethod
     def from_env(cls) -> Target:
         mode = os.environ.get(MODE_VARIABLE, "fixture")
         if mode not in ("fixture", "live"):
             raise ValueError(f"{MODE_VARIABLE} must be fixture or live, not {mode!r}")
+        environment = selection(mode)
+        if environment is not None:
+            validate_live_inputs(environment)
         profile = os.environ.get(PROFILE_VARIABLE, "unified")
         if profile not in PROFILES:
             raise ValueError(f"{PROFILE_VARIABLE} must be one of {', '.join(PROFILES)}")
@@ -149,12 +154,13 @@ class Target:
             _refuse_remote_only()
             return cls(
                 mode,
-                _command(),
+                [*LAUNCHER, "serve"] if environment is not None else _command(),
                 profile,
                 prepare,
                 fixture_bind=bind,
                 security_server=security_server,
                 registry_release=registry_release,
+                environment=environment,
             )
         return cls(
             mode,

@@ -1,0 +1,18 @@
+# Executable permission is separate from manifest.yaml's historical source identities.
+allowed:
+  evs: https://api-evsrest.nci.nih.gov
+  evs-fhir: https://api-evsrest.nci.nih.gov/fhir/r4
+  cadsr: null
+  cadsr-ftp: null
+  cadsr-contracts: null
+  ssis: null
+  ssis-sparql: null
+environments:
+  evs-only:
+    evs: https://api-evsrest.nci.nih.gov
+    evs-fhir: https://api-evsrest.nci.nih.gov/fhir/r4
+    cadsr: null
+    cadsr-ftp: null
+    cadsr-contracts: null
+    ssis: null
+    ssis-sparql: null
