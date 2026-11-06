@@ -144,8 +144,8 @@ class Target:
     denied_url: str | None = field(default=None, repr=False)
 
     @classmethod
-    def from_env(cls, *, mode_override: Mode | None = None) -> Target:
-        mode = mode_override or os.environ.get(MODE_VARIABLE, "fixture")
+    def from_env(cls) -> Target:
+        mode = os.environ.get(MODE_VARIABLE, "fixture")
         if mode not in ("fixture", "live"):
             raise ValueError(f"{MODE_VARIABLE} must be fixture or live, not {mode!r}")
         environment = selection(mode)
