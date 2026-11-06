@@ -103,10 +103,6 @@ READ_TIMEOUT_SECONDS = 60
 
 type Transport = Literal["stdio", "streamable-http"]
 
-# Credentials for licensed upstream content (docs/implementation-plan.md §8), used in live mode
-# only.
-CREDENTIAL_VARIABLES = ("NCI_SI_EVS_LICENSE_KEY", "NCI_SI_CADSR_CREDENTIAL")
-
 
 @dataclass(frozen=True, slots=True)
 class Target:
@@ -270,11 +266,9 @@ def _declared(name: str) -> bool:
     return value == "1"
 
 
-def _upstream_settings(mode: Mode, fixture_url: str | None) -> dict[str, str]:
-    """Fixture mode: every upstream names the fixture server. Live: only the credentials."""
+def _upstream_settings(fixture_url: str | None) -> dict[str, str]:
+    """Every fixture upstream names the owned fixture server, never a runtime default."""
 
-    if mode == "live":
-        return {name: os.environ[name] for name in CREDENTIAL_VARIABLES if name in os.environ}
     if fixture_url is None:
         raise ValueError("fixture mode needs the fixture server's URL")
     return {name: f"{fixture_url}/{surface}" for name, surface in UPSTREAM_VARIABLES.items()}
@@ -297,7 +291,7 @@ def remote_settings(fixture_url: str) -> dict[str, str]:
     """What the operator sets on a remote server in fixture mode: the harness cannot set the
     environment of a process it did not start."""
 
-    return {"NCI_SI_UPSTREAM_MODE": "fixture"} | _upstream_settings("fixture", fixture_url)
+    return {"NCI_SI_UPSTREAM_MODE": "fixture"} | _upstream_settings(fixture_url)
 
 
 def without_nci_si_settings(environment: Mapping[str, str]) -> dict[str, str]:
@@ -317,9 +311,9 @@ def server_environment(
 ) -> dict[str, str]:
     """The environment of the server under test.
 
-    The developer's own `NCI_SI_*` settings never reach it, so a run depends only on
-    the mode; in live mode the upstream credentials are the exception. In fixture mode
-    every upstream base URL names the fixture server.
+    Fixture bases name the owned fixture server. Live bases and private credentials
+    come from the single immutable selection; blocked bases name its owned refusal
+    endpoint. A live caller cannot fall through to production defaults.
     """
 
     inherited = without_nci_si_settings(os.environ)
@@ -331,8 +325,8 @@ def server_environment(
             variable: environment.origins[surface] or denied_url
             for variable, surface in UPSTREAM_VARIABLES.items()
         }
-        return inherited | _upstream_settings(mode, None)
-    return inherited | _upstream_settings(mode, fixture_url)
+        return inherited | dict(environment.credentials)
+    return inherited | _upstream_settings(fixture_url)
 
 
 class Session:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Literal, get_args
@@ -23,6 +23,7 @@ SURFACES = get_args(Surface.__value__)
 VARIABLE = "NCI_SI_ACCEPTANCE_ENVIRONMENT"
 POLICY = Path(__file__).parents[2] / "fixtures/environments.yaml"
 LAUNCHER = [sys.executable, "-I", "-m", "nci_si_acceptance.live_launcher"]
+CREDENTIAL_SURFACES = {"NCI_SI_EVS_LICENSE_KEY": "evs", "NCI_SI_CADSR_CREDENTIAL": "cadsr"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +32,7 @@ class Environment:
 
     name: str
     origins: Mapping[str, str | None]
+    credentials: Mapping[str, str] = field(repr=False)
 
 
 def _mapping(node: Node | None) -> dict[str, Node]:
@@ -105,7 +107,8 @@ def _selected(name: str) -> Environment:
     origins = _origins(maps[name])
     if any(value is not None and value != allowed[key] for key, value in origins.items()):
         raise ValueError("selected environment exceeds reviewed surface permission")
-    return Environment(name, MappingProxyType(origins))
+    credentials = {key: os.environ[key] for key in CREDENTIAL_SURFACES if key in os.environ}
+    return Environment(name, MappingProxyType(origins), MappingProxyType(credentials))
 
 
 def _policy() -> tuple[dict[str, str | None], dict[str, Node]]:
@@ -148,4 +151,4 @@ def _incompatible(key: str, environment: Environment) -> bool:
     }
     if key in forbidden:
         return True
-    return key == "NCI_SI_CADSR_CREDENTIAL" and environment.origins["cadsr"] is None
+    return key in CREDENTIAL_SURFACES and environment.origins[CREDENTIAL_SURFACES[key]] is None
