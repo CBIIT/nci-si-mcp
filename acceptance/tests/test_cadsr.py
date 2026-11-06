@@ -162,8 +162,9 @@ def test_reference_enumerated_domain_preserves_terminology_and_uri_values(tools,
 @pytest.mark.requirement("get_data_element-1")
 @pytest.mark.live_capable
 def test_live_component_citations_match_the_explicit_api_version(tools, upstream):
-    base = upstream.base_url("cadsr") if upstream else "https://cadsrapi.cancer.gov/rad"
-    content = verify_citations(tools, base)
+    if upstream is None:
+        raise ValueError("live caDSR citation comparison is disabled by run policy")
+    content = verify_citations(tools, upstream.base_url("cadsr"))
     assert (content["publicId"], content["version"]) == (DATA_ELEMENT, "4")
 
 
