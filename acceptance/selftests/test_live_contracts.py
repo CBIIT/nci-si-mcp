@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import STAND_IN, SUITE
+from conftest import STAND_IN, SUITE, synthetic_live
 
 pytest_plugins = ["pytester"]
 
@@ -241,6 +241,7 @@ def cross_replies():
 
 @pytest.fixture
 def live_suite(compliant, monkeypatch):
+    synthetic_live(compliant)
     for module in ("evs", "cadsr", "cross_domain"):
         shutil.copy(SUITE / f"test_{module}.py", compliant.path / "tests")
     # A real fixture consumer isolates discovery from later content checks.

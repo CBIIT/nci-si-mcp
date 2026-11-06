@@ -1,13 +1,19 @@
 """Selected live provenance survives strict records without inventing historical data."""
 
+import hashlib
 import json
+import os
 from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
 from test_report import live_test, run
 
+from conftest import STAND_IN
+from nci_si_acceptance import environments
 from nci_si_acceptance.report import Collector, NativeReport, ReportFieldError, complete, main
+
+pytest_plugins = ["pytester"]
 
 ENVIRONMENT = {
     "name": "evs-only",
@@ -40,16 +46,6 @@ def native():
 def test_native_roundtrip_and_historical_omission():
     old = native()
     assert NativeReport.from_dict(old).to_dict() == old
-    current = old | {"environment": deepcopy(ENVIRONMENT)}
-    rejected = None
-    try:
-        actual = NativeReport.from_dict(current).to_dict()
-    except ReportFieldError as error:
-        rejected = str(error)
-        actual = None
-    assert rejected is None, rejected
-    assert actual == current
-    assert "environment" not in NativeReport.from_dict(old).to_dict()
 
 
 @pytest.mark.parametrize("worker", [None, {}, ENVIRONMENT | {"policy_sha256": "b" * 64}])
@@ -62,13 +58,32 @@ def test_current_workers_cannot_omit_or_conflict_with_controller_selection(worke
         collector.report("live")
 
 
-def test_current_workers_preserve_the_exact_controller_selection():
-    collector = Collector()
-    collector.environment = deepcopy(ENVIRONMENT)
-    collector.pytest_testnodedown(
-        SimpleNamespace(workeroutput={"nci_si_environment": ENVIRONMENT}), None
+@pytest.mark.parametrize("workers", [0, 2])
+def test_native_producer_preserves_selection(compliant, monkeypatch, workers):
+    for key in [key for key in os.environ if key.startswith("NCI_SI_")]:
+        monkeypatch.delenv(key)
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
+    monkeypatch.setenv(environments.VARIABLE, "evs-only")
+    plugin = compliant.path / f"{STAND_IN}.py"
+    plugin.write_text(
+        "import os\nfor key in list(os.environ):\n"
+        "    if key.startswith('PYTHON') or key.lower().endswith('_proxy'): os.environ.pop(key)\n"
+        + plugin.read_text()
     )
-    assert collector.report("live").get("environment") == ENVIRONMENT
+    (compliant.path / "tests/test_selected.py").write_text(
+        "import pytest\n@pytest.mark.live_capable\n@pytest.mark.gate\n"
+        "def test_selected(target):\n    assert target.environment.name == 'evs-only'\n"
+    )
+    output = compliant.path / "native.json"
+    result = compliant.runpytest_subprocess(
+        "tests/test_selected.py", "-p", STAND_IN, "-n", str(workers), f"--report={output}"
+    )
+    result.assert_outcomes(passed=1)
+    produced = json.loads(output.read_text())
+    raw_policy = environments.POLICY.read_bytes()
+    expected = ENVIRONMENT | {"policy_sha256": hashlib.sha256(raw_policy).hexdigest()}
+    assert produced.get("environment") == expected
+    assert NativeReport.from_dict(produced).to_dict() == produced
 
 
 @pytest.mark.parametrize(

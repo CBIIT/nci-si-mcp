@@ -21,6 +21,7 @@ from nci_si_acceptance.fixture_server import FixtureServer, FixtureSet, Response
 from nci_si_mcp import cli
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
+FURNISHED_PREFIX = Path(live_launcher.__file__).resolve().parents[3] / ".venv"
 
 
 def listener():
@@ -158,6 +159,7 @@ def test_launcher_refuses_untrusted_installation_before_cli(
     marker = tmp_path / "cli-ran"
     monkeypatch.setattr(cli, "main", lambda: marker.write_text("ran"))
     monkeypatch.setattr(sys, "argv", ["launcher", "serve"])
+    monkeypatch.setattr(sys, "prefix", str(FURNISHED_PREFIX))
     if boundary == "module":
         monkeypatch.setattr(live_launcher.nci_si_acceptance, "__file__", str(tmp_path / "other.py"))
     elif boundary == "prefix":

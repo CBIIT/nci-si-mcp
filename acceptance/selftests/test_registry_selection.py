@@ -6,7 +6,7 @@ from xml.etree import ElementTree
 
 import pytest
 
-from conftest import STAND_IN, SUITE
+from conftest import STAND_IN, SUITE, synthetic_live
 
 pytest_plugins = ["pytester"]
 
@@ -27,6 +27,7 @@ REASON = (
     ("mode", "run_mode"), [("optional", "fixture"), ("required", "fixture"), ("optional", "live")]
 )
 def test_registry_checks_skip_only_in_optional_mode(compliant, monkeypatch, mode, run_mode):
+    synthetic_live(compliant)
     # Given a server that returns unpinned content even when a registry pin is requested,
     # when the real caDSR checks run, optional suspends exactly five in fixture or live mode
     # as ordinary skips; required detects the violation against fixtures.
