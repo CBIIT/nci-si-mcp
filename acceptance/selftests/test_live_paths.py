@@ -79,7 +79,10 @@ def test_partial_request_cannot_hold_the_refusal_listener_open():
         port = int(url.rsplit(":", 1)[1])
         with socket.create_connection(("127.0.0.1", port), timeout=2) as peer:
             peer.sendall(b"GET /incomplete-private-marker")
-            assert peer.recv(4096).startswith(b"HTTP/1.0 403")
+            expected = b"HTTP/1.0 403 Forbidden\r\n"
+            # Bound the status read independently; buffered reads tolerate TCP fragmentation.
+            with peer.makefile("rb") as response:
+                assert response.readline(len(expected) + 1) == expected
     assert not denied.thread.is_alive()
 
 
