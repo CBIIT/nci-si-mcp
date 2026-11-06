@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import tempfile
 import unittest
 from contextlib import contextmanager, redirect_stdout
@@ -29,6 +30,18 @@ def sample(elapsed=1.0, *, error=False, requests=2, size=9):
 
 
 class BenchmarkTest(unittest.TestCase):
+    def test_live_selection_is_validated_before_any_report_artifact(self):
+        for name in ("", "unreviewed"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "benchmark.json"
+                with (
+                    patch.dict(os.environ, {"NCI_SI_ACCEPTANCE_ENVIRONMENT": name}, clear=True),
+                    self.assertRaises(ValueError) as error,
+                ):
+                    benchmark.run("live", ["get_form"], 1, output)
+                self.assertFalse(output.exists())
+                self.assertIn("NCI_SI_ACCEPTANCE_ENVIRONMENT", str(error.exception))
+
     def test_an_interrupted_first_case_cannot_leave_a_stale_successful_report(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "benchmark.json"
