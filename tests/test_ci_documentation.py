@@ -152,16 +152,26 @@ class DocumentationWorkflowTest(unittest.TestCase):
     def test_cold_browser_directory_and_job_budget_are_explicit(self):
         job = JOBS["documentation"]
         self.assertEqual(job["timeout-minutes"], 15)
-        self.assertEqual(
-            job.get("env"),
-            {
-                "PLAYWRIGHT_BROWSERS_PATH": "${{ runner.temp }}/nci-si-documentation-browsers-"
-                "${{ github.run_id }}-${{ github.run_attempt }}",
-                "PLAYWRIGHT_JUNIT_OUTPUT_FILE": (
-                    "${{ github.workspace }}/tmp/documentation-ci/browser-junit.xml"
-                ),
-            },
-        )
+        self.assertNotIn("env", job)
+        expected_env = {
+            "PLAYWRIGHT_BROWSERS_PATH": "${{ runner.temp }}/nci-si-documentation-browsers-"
+            "${{ github.run_id }}-${{ github.run_attempt }}",
+            "PLAYWRIGHT_JUNIT_OUTPUT_FILE": (
+                "${{ github.workspace }}/tmp/documentation-ci/browser-junit.xml"
+            ),
+        }
+        browser_steps = [
+            step
+            for step in job["steps"]
+            if step.get("name")
+            in (
+                "Prepare cold browser verification",
+                "Install pinned Chromium",
+                "Run browser journeys",
+                "Record browser identity",
+            )
+        ]
+        self.assertEqual([step.get("env") for step in browser_steps], [expected_env] * 4)
         self.assertEqual(
             [step["timeout-minutes"] for step in job["steps"]],
             [1, 2, 1, 1, 1, 2, 2, 1, 1, 1],
@@ -302,9 +312,17 @@ class DocumentationWorkflowTest(unittest.TestCase):
         )
 
     def test_preparation_build_identity_and_usable_upload_are_exact(self):
+        browser_env = {
+            "PLAYWRIGHT_BROWSERS_PATH": "${{ runner.temp }}/nci-si-documentation-browsers-"
+            "${{ github.run_id }}-${{ github.run_attempt }}",
+            "PLAYWRIGHT_JUNIT_OUTPUT_FILE": (
+                "${{ github.workspace }}/tmp/documentation-ci/browser-junit.xml"
+            ),
+        }
         expected = {
             "Prepare cold browser verification": {
                 "name": "Prepare cold browser verification",
+                "env": browser_env,
                 "timeout-minutes": 1,
                 "shell": "bash",
                 "run": PREPARE,
@@ -317,6 +335,7 @@ class DocumentationWorkflowTest(unittest.TestCase):
             },
             "Record browser identity": {
                 "name": "Record browser identity",
+                "env": browser_env,
                 "if": "${{ always() }}",
                 "timeout-minutes": 1,
                 "shell": "bash",
