@@ -1,5 +1,7 @@
 """A live selection must fail safely before any process or request can start."""
 
+import hashlib
+import json
 import os
 import subprocess
 import sys
@@ -106,6 +108,13 @@ def test_selected_destinations_and_credentials_are_one_private_snapshot(monkeypa
         monkeypatch.setenv(ENVIRONMENT, "evs-only")
         monkeypatch.setenv("NCI_SI_EVS_LICENSE_KEY", "selected-private-marker")
         target = Target.from_env()
+        expected = json.loads(json.dumps(target.environment.to_record()))
+        assert expected["policy_sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+        path.write_text("invalid replacement policy")
+        assert target.environment.to_record() == expected
+        assert "selected-private-marker" not in json.dumps(expected)
+        with pytest.raises(TypeError):
+            target.environment.origins["evs"] = "http://127.0.0.1:1"
         monkeypatch.setenv("NCI_SI_EVS_LICENSE_KEY", "later-private-marker")
         env = server_environment(
             "live", tmp_path / "data", None, environment=target.environment, denied_url=denied
@@ -147,3 +156,17 @@ def test_live_child_environment_discards_later_ambient_injection(monkeypatch, tm
         "live", tmp_path, None, environment=target.environment, denied_url="http://127.0.0.1:1"
     )
     assert key not in child
+
+
+@pytest.mark.parametrize("codes", [[], ["C0"], ["C4817; touch marker"], ["$(touch marker)"]])
+def test_preparation_accepts_only_harness_concept_arguments(monkeypatch, codes):
+    monkeypatch.setenv(ENVIRONMENT, "evs-only")
+    target = Target.from_env()
+    assert target.prepare_command(["C4817", "C17049"]) == [
+        *environments.LAUNCHER,
+        "index-sample",
+        "C4817",
+        "C17049",
+    ]
+    with pytest.raises(ValueError, match="validated harness concept list"):
+        target.prepare_command(codes)

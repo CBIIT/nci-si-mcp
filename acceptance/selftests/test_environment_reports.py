@@ -77,6 +77,7 @@ def test_current_workers_preserve_the_exact_controller_selection():
         {"name": None},
         {"policy_sha256": "private-marker"},
         {"origins": {"evs": "https://private-marker@example.com/"}},
+        {"origins": ENVIRONMENT["origins"] | {"evs": "https://private-marker@example.com/"}},
         {"private-marker": "private-marker"},
     ],
 )

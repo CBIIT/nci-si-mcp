@@ -14,8 +14,10 @@ from urllib.request import ProxyHandler, build_opener
 
 import pytest
 
+from nci_si_acceptance import live_launcher
 from nci_si_acceptance.client import server_environment
 from nci_si_acceptance.fixture_server import FixtureServer, FixtureSet, load_fixtures
+from nci_si_mcp import cli
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 
@@ -34,6 +36,11 @@ def test_real_furnished_child_ignores_ambient_os_proxy(tmp_path):
         FixtureServer(FixtureSet({}, {})) as proxy,
     ):
         environment = server_environment("fixture", tmp_path, upstream.url)
+        shadow = tmp_path / "external"
+        shadow.mkdir()
+        marker = tmp_path / "external-code-ran"
+        (shadow / "sitecustomize.py").write_text(f"open({str(marker)!r}, 'w').close()")
+        environment["PYTHONPATH"] = str(shadow)
         # All five core bases are already loopback fixtures before the missing-entrypoint red.
         script = (
             "import sys, urllib.request as u; "
@@ -53,6 +60,7 @@ def test_real_furnished_child_ignores_ambient_os_proxy(tmp_path):
         assert ran.returncode == 0, ran.stderr
         assert upstream.log(), "the approved local destination must receive the actual request"
         assert proxy.log() == [], "neither environment nor OS proxy discovery may reroute the child"
+        assert not marker.exists()
 
 
 def test_owned_refusal_has_no_echo_or_forwarding_and_closes_on_exception(capfd):
@@ -133,3 +141,32 @@ def test_listener_failures_are_visible_sanitized_and_leave_no_owned_resource(
     output = capfd.readouterr()
     assert "private-marker" not in output.out + output.err
     assert thread_errors == []
+
+
+@pytest.mark.parametrize(
+    ("boundary", "message"),
+    [
+        ("module", "imported an unexpected module origin"),
+        ("prefix", "requires the furnished project environment"),
+        ("hook", "transport integration is unavailable"),
+    ],
+)
+def test_launcher_refuses_untrusted_installation_before_cli(
+    monkeypatch, tmp_path, boundary, message
+):
+    marker = tmp_path / "cli-ran"
+    monkeypatch.setattr(cli, "main", lambda: marker.write_text("ran"))
+    monkeypatch.setattr(sys, "argv", ["launcher", "serve"])
+    if boundary == "module":
+        monkeypatch.setattr(live_launcher.nci_si_acceptance, "__file__", str(tmp_path / "other.py"))
+    elif boundary == "prefix":
+        monkeypatch.setattr(sys, "prefix", str(tmp_path))
+    else:
+        monkeypatch.setattr(live_launcher.http_client, "_OPENER", None)
+    with pytest.raises(ValueError) as error:
+        live_launcher.main()
+    assert (
+        str(error.value)
+        == "controlled live " + ("launcher " if boundary != "hook" else "") + message
+    )
+    assert not marker.exists()
