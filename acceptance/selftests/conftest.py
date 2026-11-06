@@ -51,6 +51,35 @@ def stand_in(pytester: pytest.Pytester) -> None:
     (pytester.path / f"{STAND_IN}.py").write_text(STAND_IN_SOURCE, encoding="utf-8")
 
 
+def synthetic_live(pytester: pytest.Pytester) -> None:
+    """Opt a copied-suite component simulation into local-only execution, not policy tests."""
+    conftest = pytester.path / "tests/conftest.py"
+    conftest.write_text(f"{conftest.read_text()}\n{SYNTHETIC_LIVE}", encoding="utf-8")
+
+
+SYNTHETIC_LIVE = """import os as _synthetic_os
+from nci_si_acceptance import client as _synthetic_client
+from nci_si_acceptance.denied_surfaces import DeniedSurfaces as _SyntheticRefusal
+
+_synthetic_configure = pytest_configure
+
+def pytest_configure(config):
+    if _synthetic_os.environ.get("NCI_SI_ACCEPTANCE_MODE") != "live":
+        return _synthetic_configure(config)
+    denied = _SyntheticRefusal()
+    endpoint = denied.__enter__()
+    config.add_cleanup(lambda: denied.__exit__(None, None, None))
+    patch = pytest.MonkeyPatch()
+    config.add_cleanup(patch.undo)
+    original = server_environment
+    def offline_environment(mode, data, fixture_url, **kwargs):
+        return original("fixture", data, endpoint, **kwargs)
+    patch.setitem(globals(), "server_environment", offline_environment)
+    patch.setattr(_synthetic_client, "selection", lambda mode: None)
+    return _synthetic_configure(config)
+"""
+
+
 SUITE = Path(__file__).parent.parent / "tests"
 COMPLIANT_SERVER = Path(__file__).parent / "compliant_server.py"
 # Any parameters: the compliant server sends a call's free text as parameters (A7.7).

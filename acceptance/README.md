@@ -2,14 +2,14 @@
 
 The behavioural acceptance suite for the NCI SI MCP tools, which tests the requirements of the
 [specification](../docs/specification.md), and the upstream fixture server it runs against. It tests the MCP
-tool surface of a server it starts as a command or of a remote one it connects to; it knows
-nothing of the server's code.
+tool surface of a command or remote fixture server. Managed live execution uses the furnished
+CLI and its verified transport integration; assertions remain at the public MCP boundary.
 
 From the repository root:
 
 ```bash
 pdm run acceptance --report=fixture.json             # fixture mode; writes acceptance/fixture.json
-NCI_SI_ACCEPTANCE_MODE=live pdm run acceptance --report=live.json  # live-capable tests
+NCI_SI_ACCEPTANCE_MODE=live NCI_SI_ACCEPTANCE_ENVIRONMENT=evs-only pdm run acceptance --report=live.json
 NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance    # another server (default: nci-si-mcp serve)
 NCI_SI_ACCEPTANCE_URL=https://... pdm run acceptance # a remote server over streamable HTTP (below)
 NCI_SI_ACCEPTANCE_PROFILE=evs NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance  # a server of one profile (default: unified)
@@ -28,6 +28,44 @@ pdm run acceptance-stories                           # regenerate the complete d
 pdm run acceptance-stories --check                   # verify its mapping and generated content
 pdm run spec-render                                  # regenerate docs/specification.md from spec/
 ```
+
+## Managed live environments
+
+Local live acceptance requires `NCI_SI_ACCEPTANCE_ENVIRONMENT=evs-only`.
+This selects the reviewed executable policy in `fixtures/environments.yaml`; the historical
+origins in `fixtures/manifest.yaml` grant no permission. Only EVS REST and EVS FHIR are enabled.
+caDSR, its FTP/contracts surfaces, SSIS and SSIS SPARQL stay blocked, including anonymous calls.
+Live caDSR citation comparison fails before transport with
+`live caDSR citation comparison is disabled by run policy`; fixture comparison is unchanged.
+A caDSR-enabled map needs the reviewed bounded direct reader from #448 and separate access
+approval. These settings do not authorize upstream traffic or enable the disabled live workflow.
+
+Live execution uses this checkout's furnished `.venv` interpreter, isolated Python and the
+verified CLI with a no-proxy transport and same-origin redirects. It requires the unified
+profile; custom server commands, shell preparation, remote/fixture settings, upstream overrides,
+proxy/Python/native-loader injection and credentials for blocked surfaces are rejected before
+launch. Later parent injection settings are filtered from managed children. This controls the
+local managed harness with a trusted installation; it is not an OS sandbox or a recorder guard.
+Fixture custom commands and remote fixture operation keep their existing semantics.
+
+For live preparation set `NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample'`; the harness supplies
+validated concept arguments without a shell. The shell-expanded command below remains fixture
+syntax and is rejected live. Selected real origins reach the server and item provenance;
+blocked surfaces use an owned local refusal endpoint, which never forwards requests.
+
+Current live reports record `environment`: name, all surface origins and the SHA-256 of the
+exact selected policy bytes. Each process freezes its selection for managed prepare/server
+children. Current worker provenance must agree with the controller before a report is accepted;
+this is not pre-send agreement across workers.
+No credentials or local policy path enter this record. Native/evidence/portal and combined
+reports preserve it. Historical omission stays unknown rather
+than acquiring a fabricated selection. The policy hash identifies configuration, not approval
+or evidence authenticity. Fixture reports and expected outcomes remain unchanged.
+
+Live stdio benchmarking is temporarily disabled, including with a supplied environment. It fails
+before child/request/report creation and leaves existing reports unchanged. Selected-environment
+benchmarking and its provenance consumers follow together in [#453](https://github.com/CBIIT/nci-sip-mcp/issues/453);
+fixture benchmarking and historical report parsing remain available.
 
 ## Writing a test
 
@@ -143,9 +181,9 @@ re-recording, under change control) or the live service has changed: both are fi
 that passes live and fails against fixtures means the server behaves differently against
 different upstreams: a defect.
 
-A run may begin with one operator-supplied prepare command, `NCI_SI_ACCEPTANCE_PREPARE`, a
+A fixture run may begin with one operator-supplied prepare command, `NCI_SI_ACCEPTANCE_PREPARE`, a
 shell command line run once, before the first test that starts a server, in the server's
-environment against the ordinary fixtures (in live mode, the live services): the same settings
+environment against the ordinary fixtures: the same settings
 the server gets, its upstream base URLs and a fresh `NCI_SI_DATA_DIR`. The file that
 `NCI_SI_ACCEPTANCE_INDEX_CODES` names holds the index set, one code per line: every concept the
 fixture set records at an include that holds its summary. Every server then
@@ -312,22 +350,11 @@ classification was changed to hide that failure.
 All 991 fixture outcomes remain passing. The stored scheduled-main observation stays separate: its
 19 October **46 / 0 / 920** counts describe an older collection.
 
-`.github/workflows/acceptance-live.yml` runs by hand (`workflow_dispatch`) and every Monday at
-06:41 UTC; the scheduled run fails when a test that passes on the fixtures fails live. It runs the
-fixture suite and the live suite (`NCI_SI_ACCEPTANCE_MODE=live`, both with `-n 4 --dist worksteal`,
-so that no worker is left with the slow tail; the live outcomes are not ratcheted), renders the
-combined report into the job summary and uploads
-`fixture.json`, `live.json`, the rendered report and `network.md` as the artifact
-`acceptance-live`. `network.md` records where the run came from: the runner's environment,
-operating system, architecture and name, and whether EVS answers over IPv4 and over IPv6
-(`curl -4` and `curl -6`, 10 seconds each; a failure is recorded and does not fail the job). The
-repository secrets `NCI_SI_EVS_LICENSE_KEY` and `NCI_SI_CADSR_CREDENTIAL` are optional and reach
-only the step that runs the live suite, then the preparation command and server processes in
-live mode. The harness removes inherited `NCI_SI_*` settings before adding its own settings and
-live credentials. An empty or
-setup-placeholder secret is unset in that step, never passed as a credential. A credential
-appears in no log, error or result (requirement A7.5); `network.md` names the credentials that
-are absent, never a value.
+`Acceptance (live)` (`.github/workflows/acceptance-live.yml`) remains disabled. Its retained
+schedule/dispatch configuration and credential forwarding are not a current execution plan.
+A reviewed workflow transition and the #448 prerequisites are required before enabling any
+live run. Offline fixture verification and stored historical live evidence remain separate;
+no scheduled refresh or automatic wake-up is implied.
 
 ### README live evidence (local rendering)
 

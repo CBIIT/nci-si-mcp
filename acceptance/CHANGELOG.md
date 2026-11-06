@@ -14,6 +14,12 @@ Changes until then are development under the plan and need no approval reference
 under construction: the per-tool tests, the protocol gates, the prompts and resources, and the
 fixture set pinned to NCIt 26.09d.
 
+- #447: require the reviewed named environment for managed live execution and preserve its
+  immutable, credential-free provenance through native/evidence reports. Live stdio benchmarking is temporarily disabled pending #453.
+  Block caDSR
+  citation transport pending #448; preserve fixture comparison and all fixture expectations.
+  Plan approval: [6678764601](https://github.com/CBIIT/nci-sip-mcp/issues/447#issuecomment-6678764601),
+  scope revision: [6679884146](https://github.com/CBIIT/nci-sip-mcp/issues/447#issuecomment-6679884146).
 - Phase 5 #41 (A11.1–A11.2): allow the stdio client helper's caller to select its read
   timeout, retaining 60 seconds for acceptance tests. The benchmark uses 300 seconds so
   upstream retries can finish and provide their actual audit counts. A real-session

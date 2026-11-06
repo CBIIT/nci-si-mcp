@@ -609,14 +609,14 @@ def test_what_a_worker_noted_of_the_server_reaches_the_controller_once():
     )
 
 
-def test_a_worker_that_started_no_server_forwards_nothing():
+def test_a_worker_that_started_no_server_forwards_only_environment():
     output = {}
 
     Collector().pytest_sessionfinish(
         SimpleNamespace(config=SimpleNamespace(workeroutput=output), testscollected=0), 0
     )
 
-    assert output == {}
+    assert output == {"nci_si_environment": None}
 
 
 def test_an_unrun_gate_leaves_no_tool_passing():

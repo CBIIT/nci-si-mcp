@@ -31,6 +31,7 @@ def test_probe(case, request):
 def produce(compliant, *options, body="assert case != 0", workers=2):
     (compliant.path / "tests/test_completion.py").write_text(PROBE.format(body=body))
     report = compliant.path / "report.json"
+    report.unlink(missing_ok=True)
     result = compliant.runpytest_subprocess(
         "tests/test_completion.py",
         "-n",
@@ -42,6 +43,7 @@ def produce(compliant, *options, body="assert case != 0", workers=2):
         f"--report={report}",
         *options,
     )
+    assert report.is_file(), "subprocess did not produce its own report"
     return result, report, json.loads(report.read_text())
 
 
@@ -302,12 +304,15 @@ def test_wrong_mode_names_the_expected_run(complete):
 
 
 @pytest.mark.parametrize("options", [(), ("--drift",)], ids=["combined", "drift"])
-def test_combined_consumers_refuse_different_complete_selections(compliant, monkeypatch, options):
+def test_combined_consumers_refuse_different_complete_selections(compliant, options):
     _, path, _ = produce(compliant)
     fixture = path.with_name("fixture.json")
     fixture.write_bytes(path.read_bytes())
-    monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
-    _, live, _ = produce(compliant, "--deselect=tests/test_completion.py::test_probe[1]")
+    _, _, historical = produce(compliant, "--deselect=tests/test_completion.py::test_probe[1]")
+    # Synthetic legacy-shaped consumer input, NOT evidence of a live execution.
+    historical["mode"] = "live"
+    live = path.with_name("synthetic-historical-live.json")
+    live.write_text(json.dumps(historical))
 
     refused = command("report", fixture, "--live", live, *options)
 
