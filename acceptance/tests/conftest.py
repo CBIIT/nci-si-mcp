@@ -104,6 +104,11 @@ def pytest_sessionfinish(session: pytest.Session) -> None:
     write_report(session.config, target.mode)
 
 
+def pytest_sessionstart(session: pytest.Session) -> None:
+    selected = session.config.stash[TARGET].environment
+    session.config.stash[COLLECTOR].environment = selected.to_record() if selected else None
+
+
 @pytest.fixture(scope="session")
 def target(pytestconfig: pytest.Config) -> Iterator[Target]:
     with pytestconfig.stash[TARGET].managed() as current:

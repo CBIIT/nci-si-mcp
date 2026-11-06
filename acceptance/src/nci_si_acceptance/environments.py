@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Literal, get_args
+from typing import TYPE_CHECKING, Literal, TypedDict, get_args
 from urllib.parse import urlsplit
 
 import yaml
@@ -33,6 +35,42 @@ class Environment:
     name: str
     origins: Mapping[str, str | None]
     credentials: Mapping[str, str] = field(repr=False)
+    policy_sha256: str
+
+    def to_record(self) -> EnvironmentRecord:
+        return {
+            "name": self.name,
+            "origins": dict(self.origins),
+            "policy_sha256": self.policy_sha256,
+        }
+
+
+class EnvironmentRecord(TypedDict):
+    name: str
+    origins: dict[str, str | None]
+    policy_sha256: str
+
+
+def _record_map(value: object, keys: set[str]) -> dict[str, object]:
+    if not isinstance(value, dict) or set(value) != keys:
+        raise ValueError("invalid environment record")
+    return {key: value[key] for key in keys}
+
+
+def _record_text(value: object, pattern: str) -> str:
+    if not isinstance(value, str) or not re.fullmatch(pattern, value):
+        raise ValueError("invalid environment record")
+    return value
+
+
+def environment_record(value: object) -> EnvironmentRecord:
+    data = _record_map(value, {"name", "origins", "policy_sha256"})
+    origins = _record_map(data["origins"], set(SURFACES))
+    return {
+        "name": _record_text(data["name"], r"[a-z][a-z0-9-]*"),
+        "origins": {surface: _origin(origins[surface]) for surface in SURFACES},
+        "policy_sha256": _record_text(data["policy_sha256"], r"[a-f0-9]{64}"),
+    }
 
 
 def _mapping(node: Node | None) -> dict[str, Node]:
@@ -53,15 +91,24 @@ def _url(node: Node) -> str | None:
         raise ValueError("invalid reviewed environment origin")
     if node.tag == "tag:yaml.org,2002:null":
         return None
-    _check_raw_url(node.value)
+    if node.tag != "tag:yaml.org,2002:str":
+        raise ValueError("invalid reviewed environment origin")
+    return _origin(node.value)
+
+
+def _origin(value: object) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("invalid reviewed environment origin")
+    _check_raw_url(value)
     try:
-        parsed = urlsplit(node.value)
+        parsed = urlsplit(value)
         port = parsed.port
     except ValueError:
         raise ValueError("invalid reviewed environment origin") from None
     if any(
         (
-            node.tag != "tag:yaml.org,2002:str",
             parsed.scheme not in ("http", "https"),
             not parsed.hostname,
             parsed.username is not None,
@@ -72,7 +119,7 @@ def _url(node: Node) -> str | None:
         )
     ):
         raise ValueError("invalid reviewed environment origin")
-    return node.value.rstrip("/")
+    return value
 
 
 def _check_raw_url(value: str) -> None:
@@ -101,17 +148,22 @@ def selection(mode: str) -> Environment | None:
 
 
 def _selected(name: str) -> Environment:
-    allowed, maps = _policy()
+    allowed, maps, digest = _policy()
     if name not in maps:
         raise ValueError(f"{VARIABLE} does not name a reviewed environment")
     origins = _origins(maps[name])
     if any(value is not None and value != allowed[key] for key, value in origins.items()):
         raise ValueError("selected environment exceeds reviewed surface permission")
     credentials = {key: os.environ[key] for key in CREDENTIAL_SURFACES if key in os.environ}
-    return Environment(name, MappingProxyType(origins), MappingProxyType(credentials))
+    return Environment(
+        _record_text(name, r"[a-z][a-z0-9-]*"),
+        MappingProxyType(origins),
+        MappingProxyType(credentials),
+        digest,
+    )
 
 
-def _policy() -> tuple[dict[str, str | None], dict[str, Node]]:
+def _policy() -> tuple[dict[str, str | None], dict[str, Node], str]:
     try:
         raw = POLICY.read_bytes()
         document = _mapping(yaml.compose(raw))
@@ -121,7 +173,7 @@ def _policy() -> tuple[dict[str, str | None], dict[str, Node]]:
         raise ValueError("invalid reviewed environment policy fields")
     allowed = _origins(document["allowed"])
     maps = _mapping(document["environments"])
-    return allowed, maps
+    return allowed, maps, hashlib.sha256(raw).hexdigest()
 
 
 def validate_live_inputs(environment: Environment) -> None:
