@@ -117,9 +117,13 @@ def test_listener_failures_are_visible_sanitized_and_leave_no_owned_resource(
         monkeypatch.setattr(denied._server, "handle_request", fail)
     else:
         monkeypatch.setattr(denied._server, "server_close", fail_close)
-    with pytest.raises(RuntimeError, match="owned refusal listener"), denied:
+    with pytest.raises(RuntimeError, match="owned refusal listener") as error, denied:
         if phase == "serve":
             denied.thread.join(2)
+    expected = {"startup": "owned refusal listener failed to start"}.get(
+        phase, "owned refusal listener did not finish cleanly"
+    )
+    assert str(error.value) == expected
     assert not denied.thread.is_alive()
     with socket.socket() as probe:
         assert probe.connect_ex(("127.0.0.1", port)) != 0
