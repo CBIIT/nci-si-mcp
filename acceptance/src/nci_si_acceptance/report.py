@@ -387,13 +387,18 @@ class Collector:
         if error is not None:
             self.worker_crashes += 1
         output = getattr(node, "workeroutput", {})
-        if (
-            self.environment is not Absent.FIELD
-            and output.get("nci_si_environment", Absent.FIELD) != self.environment
-        ):
+        if not self._worker_environment_matches(output, error):
             self._environment_conflict = True
         if noted := output.get(WORKER_TOOLS):
             self.merge_tools(noted)
+
+    def _worker_environment_matches(self, output: dict[str, object], error: object) -> bool:
+        reported = output.get("nci_si_environment", Absent.FIELD)
+        # A crashed fixture worker cannot send its header; keep the crash counter/report.
+        # A selected live identity or an unexpected reported identity still cannot be lost.
+        if self.environment is None and error is not None and reported is Absent.FIELD:
+            return True
+        return self.environment is Absent.FIELD or reported == self.environment
 
     def record(self, report: pytest.TestReport) -> None:
         """Take one phase of a test; its tool and gate come in the report's own properties,
