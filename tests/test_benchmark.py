@@ -50,7 +50,7 @@ class BenchmarkTest(unittest.TestCase):
                 patch.object(benchmark, "run_case", side_effect=ValueError("missing audit")),
                 self.assertRaisesRegex(ValueError, "missing audit"),
             ):
-                benchmark.run("live", ["get_form"], 1, output)
+                benchmark.run("fixture", ["get_form"], 1, output)
             report = json.loads(output.read_text())
         self.assertFalse(report["complete"])
         self.assertEqual(report["cases"], [])

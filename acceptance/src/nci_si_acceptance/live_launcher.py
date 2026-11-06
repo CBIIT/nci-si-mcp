@@ -1,12 +1,12 @@
 """Run only the verified furnished CLI with ambient proxy routing disabled."""
 
-import re
 import sys
 from pathlib import Path
 from urllib.request import OpenerDirector, ProxyHandler, build_opener
 
 import nci_si_acceptance
 from nci_si_mcp import http_client
+from nci_si_mcp.validation import NCIT_CODE_RE
 
 
 def main() -> int:
@@ -38,7 +38,7 @@ def _prepare(arguments: list[str]) -> bool:
     return (
         len(arguments) > 1
         and arguments[0] == "index-sample"
-        and all(re.fullmatch(r"C[0-9]+", code) for code in arguments[1:])
+        and all(NCIT_CODE_RE.fullmatch(code) for code in arguments[1:])
     )
 
 

@@ -39,7 +39,7 @@ import subprocess
 import sys
 import time
 from contextlib import asynccontextmanager, contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, Literal, Self, TextIO
 from urllib.parse import urlsplit
@@ -51,9 +51,11 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.client.streamable_http import streamable_http_client
 from mcp.shared._httpx_utils import create_mcp_http_client
 
+from nci_si_acceptance.denied_surfaces import DeniedSurfaces
 from nci_si_acceptance.environments import LAUNCHER, Environment, selection, validate_live_inputs
 from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES
 from nci_si_acceptance.spec import PROFILES
+from nci_si_mcp.validation import NCIT_CODE_RE
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Mapping
@@ -130,10 +132,11 @@ class Target:
     security_server: str | None = None
     registry_release: Literal["required", "optional"] = "optional"
     environment: Environment | None = None
+    denied_url: str | None = field(default=None, repr=False)
 
     @classmethod
-    def from_env(cls) -> Target:
-        mode = os.environ.get(MODE_VARIABLE, "fixture")
+    def from_env(cls, *, mode_override: Mode | None = None) -> Target:
+        mode = mode_override or os.environ.get(MODE_VARIABLE, "fixture")
         if mode not in ("fixture", "live"):
             raise ValueError(f"{MODE_VARIABLE} must be fixture or live, not {mode!r}")
         environment = selection(mode)
@@ -173,6 +176,21 @@ class Target:
             security_server,
             registry_release,
         )
+
+    @contextmanager
+    def managed(self) -> Iterator[Target]:
+        if self.environment is None:
+            yield self
+            return
+        with DeniedSurfaces() as url:
+            yield replace(self, denied_url=url)
+
+    def prepare_command(self, codes: list[str]) -> list[str]:
+        if not codes or not all(
+            isinstance(code, str) and NCIT_CODE_RE.fullmatch(code) for code in codes
+        ):
+            raise ValueError("live preparation requires the validated harness concept list")
+        return [*LAUNCHER, "index-sample", *codes]
 
     @property
     def transport(self) -> Transport:

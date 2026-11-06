@@ -105,8 +105,9 @@ def pytest_sessionfinish(session: pytest.Session) -> None:
 
 
 @pytest.fixture(scope="session")
-def target(pytestconfig: pytest.Config) -> Target:
-    return pytestconfig.stash[TARGET]
+def target(pytestconfig: pytest.Config) -> Iterator[Target]:
+    with pytestconfig.stash[TARGET].managed() as current:
+        yield current
 
 
 @pytest.fixture(scope="session")
@@ -208,13 +209,20 @@ def prepared(
     manifest = yaml.safe_load((FIXTURES / MANIFEST).read_text(encoding="utf-8"))
     codes.write_text("\n".join(index_set(manifest)) + "\n", encoding="utf-8")
     url = upstream.url if upstream else None
-    environment = server_environment(target.mode, data, url) | {INDEX_CODES_VARIABLE: str(codes)}
+    environment = server_environment(
+        target.mode, data, url, environment=target.environment, denied_url=target.denied_url
+    ) | {INDEX_CODES_VARIABLE: str(codes)}
     if upstream:
         upstream.reset()
-    # The operator's own command line, as a shell runs it (the acceptance README); its output
-    # is kept with the failure of every dependent test.
-    ran = subprocess.run(  # noqa: S602
-        target.prepare, shell=True, env=environment, check=False, capture_output=True, text=True
+    # Fixture custom commands keep their shell semantics; live uses only harness-owned argv.
+    command = target.prepare_command(index_set(manifest)) if target.environment else target.prepare
+    ran = subprocess.run(  # noqa: S603 - fixture commands are explicit; live argv is validated.
+        command,
+        shell=target.environment is None,
+        env=environment,
+        check=False,
+        capture_output=True,
+        text=True,
     )
     if ran.returncode:
         said = (ran.stdout + ran.stderr)[-2000:]
@@ -280,7 +288,9 @@ def _tools(
     data = tmp_path_factory.mktemp("data")
     if prepared is not None:
         shutil.copytree(prepared, data, dirs_exist_ok=True)
-    environment = server_environment(target.mode, data, url)
+    environment = server_environment(
+        target.mode, data, url, environment=target.environment, denied_url=target.denied_url
+    )
     log = tmp_path_factory.mktemp("server") / "stderr.log"
     try:
         with (
