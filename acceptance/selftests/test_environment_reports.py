@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from nci_si_acceptance.report import Collector, NativeReport, ReportFieldError
+from nci_si_acceptance.report import Collector, NativeReport, ReportFieldError, complete
 
 ENVIRONMENT = {
     "name": "evs-only",
@@ -83,3 +83,39 @@ def test_invalid_environment_records_fail_at_the_sanitized_field_boundary(change
         NativeReport.from_dict(native() | {"environment": ENVIRONMENT | change})
     assert str(error.value) == "Invalid acceptance field: environment"
     assert "private-marker" not in str(error.value)
+
+
+def test_crashed_fixture_worker_retains_its_incomplete_report():
+    collector = Collector()
+    collector.environment = None
+    collector.pytest_testnodedown(SimpleNamespace(workeroutput={}), "worker exited")
+    collector.tests["test_fixture"] = {
+        "tool": "get_form",
+        "gate": False,
+        "outcome": "passed",
+        "unmatched": [],
+    }
+    collector.run = {
+        "exit_status": 1,
+        "selected": 1,
+        "finished": 1,
+        "worker_crashes": collector.worker_crashes,
+    }
+    try:
+        emitted = collector.report("fixture")
+    except ReportFieldError:
+        emitted = None
+    assert emitted is not None, "fixture worker crash must retain its report"
+    assert emitted["run"] == {"exit_status": 1, "selected": 1, "finished": 1, "worker_crashes": 1}
+    assert "environment" not in emitted
+    assert not complete(emitted)
+
+
+@pytest.mark.parametrize("selected,reported", [(ENVIRONMENT, None), (None, ENVIRONMENT)])
+def test_crash_never_excuses_unknown_live_or_unexpected_fixture_provenance(selected, reported):
+    collector = Collector()
+    collector.environment = selected
+    output = {} if reported is None else {"nci_si_environment": reported}
+    collector.pytest_testnodedown(SimpleNamespace(workeroutput=output), "worker exited")
+    with pytest.raises(ReportFieldError, match="environment"):
+        collector.report("live" if selected else "fixture")
