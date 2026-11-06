@@ -182,6 +182,7 @@ def run(mode: Mode, names: list[str], repetitions: int, output: Path) -> dict[st
     (ROOT / "tmp").mkdir(exist_ok=True)
     report = Report(
         mode=mode,
+        environment=target.environment.to_record() if target.environment else None,
         transport="stdio",
         createdAt=datetime.now(UTC).isoformat(),
         serverVersion=version("nci-si-mcp"),

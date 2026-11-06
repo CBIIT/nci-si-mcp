@@ -265,6 +265,12 @@ def run_page(record: dict[str, Any], *, tool: str = "", story: str = "") -> str:
             }.items()
         ],
     )
+    if "environment" in evidence:
+        body += table(
+            "Live environment",
+            ["Field", "Recorded value"],
+            [[name, value] for name, value in evidence["environment"].items()],
+        )
     body += f"<p>Local sequence {record['sequence']}; bundle SHA-256 "
     body += f"<code>{text(record['checksum'])}</code>.</p>"
     if evidence["state"] == "unverified":

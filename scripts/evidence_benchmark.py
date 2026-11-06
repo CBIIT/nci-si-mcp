@@ -41,6 +41,8 @@ def project_benchmark(
         "selection_verified": selection is not None,
         "fingerprint": asdict(selection_fingerprint(selection, record["selection_sha256"], native)),
     }
+    if native.environment is not None:
+        result["environment"] = native.environment
     if native.transport == "streamable-http":
         result["phase_labels"] = PHASE_LABELS
     result["comparison_ready"] = comparable(result, result)[0]
