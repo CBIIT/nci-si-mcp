@@ -123,35 +123,139 @@ jobs:
   documentation:
     name: documentation artifact
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # Thirteen minutes of capped steps plus two minutes for action/post-action overhead.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        timeout-minutes: 1
         with:
           fetch-depth: 0
           persist-credentials: false
       - uses: $/.github/actions/setup
+        timeout-minutes: 2
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        timeout-minutes: 1
         with:
           node-version: "24"
           package-manager-cache: false
-      - run: npm ci --prefix docs/site-assets --ignore-scripts
-      - run: npm audit --prefix docs/site-assets --audit-level high
-      - run: npm run build --prefix docs/site-assets
-      - run: pdm run acceptance-stories --check
-      - run: pdm run docs-build
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
-        id: playwright-cache
+      - name: Prepare cold browser verification
+        timeout-minutes: 1
+        env: &documentation-browser
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/nci-si-documentation-browsers-${{ github.run_id }}-${{ github.run_attempt }}
+          PLAYWRIGHT_JUNIT_OUTPUT_FILE: ${{ github.workspace }}/tmp/documentation-ci/browser-junit.xml
+        shell: bash
+        run: |
+          mkdir -p tmp/documentation-ci
+          test ! -e "$PLAYWRIGHT_BROWSERS_PATH"
+          printf 'browser_directory_initially_absent=true\n' > tmp/documentation-ci/phase-timings.txt
+          time npm ci --prefix docs/site-assets --ignore-scripts
+          time npm audit --prefix docs/site-assets --audit-level high
+          time npm run build --prefix docs/site-assets
+          node <<'JS'
+          const fs = require('node:fs');
+          const prefix = './docs/site-assets/';
+          const lock = JSON.parse(fs.readFileSync(prefix + 'package-lock.json', 'utf8'));
+          const versions = {};
+          for (const name of ['@playwright/test', 'playwright', 'playwright-core']) {
+            const file = prefix + 'node_modules/' + name + '/package.json';
+            const installed = JSON.parse(fs.readFileSync(file, 'utf8')).version;
+            if (installed !== lock.packages['node_modules/' + name].version)
+              throw new Error('Installed Playwright version differs from package-lock: ' + name);
+            versions[name] = installed;
+          }
+          const identity = {
+            runnerImageOS: process.env.ImageOS,
+            runnerImageVersion: process.env.ImageVersion,
+            runnerOS: process.platform,
+            runnerArchitecture: process.arch,
+            nodeVersion: process.version,
+            versions,
+            browsers: JSON.parse(fs.readFileSync(
+              prefix + 'node_modules/playwright-core/browsers.json', 'utf8')).browsers,
+            browserDirectory: process.env.PLAYWRIGHT_BROWSERS_PATH,
+            browserDirectoryInitiallyAbsent: true,
+          };
+          fs.writeFileSync('tmp/documentation-ci/identity.json', JSON.stringify(identity, null, 2) + '\n');
+          console.log(JSON.stringify(identity));
+          JS
+      - name: Build validated site
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          time pdm run acceptance-stories --check
+          time pdm run docs-build
+      - name: Install pinned Chromium
+        timeout-minutes: 2
+        env: *documentation-browser
+        shell: bash
+        run: |
+          started=$SECONDS
+          set +e
+          { time npm exec --prefix docs/site-assets -- playwright install chromium; } > tmp/documentation-ci/browser-install.log 2>&1
+          gate_status=$?
+          cat tmp/documentation-ci/browser-install.log
+          display_status=$?
+          printf 'install exit=%d elapsed_seconds=%d\n' "$gate_status" "$((SECONDS - started))" >> tmp/documentation-ci/phase-timings.txt
+          timing_status=$?
+          if [ "$gate_status" -ne 0 ]; then exit "$gate_status"; fi
+          if [ "$display_status" -ne 0 ]; then exit "$display_status"; fi
+          exit "$timing_status"
+      - name: Run browser journeys
+        timeout-minutes: 2
+        env: *documentation-browser
+        shell: bash
+        run: |
+          started=$SECONDS
+          set +e
+          { time npm run test:browser --prefix docs/site-assets -- --global-timeout=90000 --reporter=list,junit; } > tmp/documentation-ci/browser-test.log 2>&1
+          gate_status=$?
+          cat tmp/documentation-ci/browser-test.log
+          display_status=$?
+          printf 'test exit=%d elapsed_seconds=%d\n' "$gate_status" "$((SECONDS - started))" >> tmp/documentation-ci/phase-timings.txt
+          timing_status=$?
+          if [ "$gate_status" -ne 0 ]; then exit "$gate_status"; fi
+          if [ "$display_status" -ne 0 ]; then exit "$display_status"; fi
+          exit "$timing_status"
+      - name: Record browser identity
+        env: *documentation-browser
+        if: ${{ always() }}
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          node <<'JS'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const { chromium } = require('./docs/site-assets/node_modules/playwright');
+          const file = 'tmp/documentation-ci/identity.json';
+          const identity = JSON.parse(fs.readFileSync(file, 'utf8'));
+          const executable = chromium.executablePath();
+          const relative = path.relative(process.env.PLAYWRIGHT_BROWSERS_PATH, executable);
+          if (!relative || relative.startsWith('..') || path.isAbsolute(relative))
+            throw new Error('Chromium executable is outside the owned browser directory');
+          fs.accessSync(executable, fs.constants.X_OK);
+          identity.chromiumExecutable = executable;
+          fs.writeFileSync(file, JSON.stringify(identity, null, 2) + '\n');
+          console.log(JSON.stringify(identity));
+          JS
+      - name: Retain documentation diagnostics
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: ${{ always() }}
+        timeout-minutes: 1
         with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('docs/site-assets/package-lock.json') }}
-      # Browser binaries can be reused; Linux system libraries belong to this runner.
-      - run: npm exec --prefix docs/site-assets -- playwright install-deps chromium
-      - run: npm exec --prefix docs/site-assets -- playwright install chromium
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-      - run: npm run test:browser --prefix docs/site-assets
-      # Documentation only: never upload an evidence database, operational report or tmp/ tree.
-      # PR artifacts are previews; this job has no deployment permissions or promotion step.
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+          name: documentation-diagnostics-${{ github.sha }}
+          path: |
+            tmp/documentation-ci/identity.json
+            tmp/documentation-ci/phase-timings.txt
+            tmp/documentation-ci/browser-install.log
+            tmp/documentation-ci/browser-test.log
+            tmp/documentation-ci/browser-junit.xml
+          if-no-files-found: warn
+          retention-days: 30
+      # Preview only: a successful complete site, never operational evidence or diagnostics.
+      - name: Upload validated site
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: ${{ success() }}
+        timeout-minutes: 1
         with:
           name: documentation-preview-${{ github.sha }}
           path: tmp/docs-site/

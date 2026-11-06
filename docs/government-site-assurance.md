@@ -106,7 +106,14 @@ pdm run docs-build
 npm run test:browser --prefix docs/site-assets
 ```
 
-Linux CI installs Chromium's system dependencies with `playwright install --with-deps chromium`.
+Linux CI downloads locked Chromium into an initially absent, run-owned directory. It relies
+on the hosted Ubuntu 24.04 libraries; future runner drift fails visibly and requires
+re-evaluation. No apt installation, host-Chrome substitution or dependency-validation bypass
+is used. Browser downloads remain a network dependency; this does not eliminate all
+transient failures. The browser suite has a 90-second internal deadline inside a two-minute
+step, with separate job headroom for teardown and diagnostic upload. SHA-bound diagnostics
+contain only named identity, timing, install/test log and JUnit files; only the validated
+same-SHA site can feed the companion images.
 The dashboard imports synthetic, validated evidence into a temporary store. The run/cancel
 journey injects a controlled executor through the existing worker interface; it proves browser
 form admission, navigation, cancellation feedback and absence of invented successful evidence.
