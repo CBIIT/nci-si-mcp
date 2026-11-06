@@ -43,24 +43,34 @@ class DeniedSurfaces:
         try:
             while not self._stop.is_set():
                 self._server.handle_request()
-        except OSError, ValueError:
-            if not self._stop.is_set():
+        except Exception as error:  # noqa: BLE001 - owner raises the sanitized thread failure.
+            # Background failures are reported by the owner, never by a raw thread traceback.
+            if not self._stop.is_set() or not isinstance(error, (OSError, ValueError)):
                 self._server.failed = True
         finally:
+            self._close()
+
+    def _close(self) -> None:
+        try:
             self._server.server_close()
+        except OSError:
+            self._server.failed = True
 
     def __enter__(self) -> str:
         try:
             self.thread.start()
+        except OSError, RuntimeError:
+            self._close()
+            raise RuntimeError("owned refusal listener failed to start") from None
         except BaseException:
-            self._server.server_close()
+            self._close()
             raise
         return f"http://127.0.0.1:{self._server.server_address[1]}"
 
     def __exit__(self, *_exception: object) -> None:
         self._stop.set()
         try:
-            self._server.server_close()
+            self._close()
         finally:
             self.thread.join(JOIN_SECONDS)
         if self.thread.is_alive() or self._server.failed:
