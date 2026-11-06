@@ -7,8 +7,23 @@ from copy import deepcopy
 
 from scripts.evidence_acceptance import project_acceptance
 from scripts.evidence_envelope import EvidenceError
+from scripts.portal_views import run_page
 
 from test_evidence_envelope import envelope
+
+ENVIRONMENT = {
+    "name": "evs-only",
+    "origins": {
+        "evs": "https://example.test/api",
+        "evs-fhir": "https://example.test/fhir/r4",
+        "cadsr": None,
+        "cadsr-ftp": None,
+        "cadsr-contracts": None,
+        "ssis": None,
+        "ssis-sparql": None,
+    },
+    "policy_sha256": "a" * 64,
+}
 
 
 def encoded(value):
@@ -79,6 +94,23 @@ def missing_report():
 
 
 class AcceptanceProjectionTest(unittest.TestCase):
+    def test_acceptance_projection_and_portal_preserve_only_recorded_live_provenance(self):
+        historical = report() | {"mode": "live"}
+        self.assertNotIn("environment", project(historical))
+        current = project(historical | {"environment": deepcopy(ENVIRONMENT)})
+        self.assertEqual(current.get("environment"), ENVIRONMENT)
+        html = run_page(
+            {
+                "sequence": 1,
+                "checksum": "a" * 64,
+                "origin": "local-import-unverified",
+                "evidence": current,
+            }
+        )
+        self.assertIn("Live environment", html)
+        self.assertIn("evs-only", html)
+        self.assertIn("https://example.test/api", html)
+
     def test_additive_live_skip_evidence_preserves_the_strict_companion_projection(self):
         native = report()
         key = "tests/test_example.py::test_lookup"
