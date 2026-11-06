@@ -1,11 +1,13 @@
 """Selected live provenance survives strict records without inventing historical data."""
 
+import json
 from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
+from test_report import live_test, run
 
-from nci_si_acceptance.report import Collector, NativeReport, ReportFieldError, complete
+from nci_si_acceptance.report import Collector, NativeReport, ReportFieldError, complete, main
 
 ENVIRONMENT = {
     "name": "evs-only",
@@ -119,3 +121,17 @@ def test_crash_never_excuses_unknown_live_or_unexpected_fixture_provenance(selec
     collector.pytest_testnodedown(SimpleNamespace(workeroutput=output), "worker exited")
     with pytest.raises(ReportFieldError, match="environment"):
         collector.report("live" if selected else "fixture")
+
+
+def test_combined_renderer_labels_only_the_supplied_live_environment(tmp_path, capsys):
+    fixture = run({"get_form": "PASS"}, {"test.py::one": live_test("get_form", "passed")})
+    live = fixture | {"mode": "live", "environment": deepcopy(ENVIRONMENT)}
+    first, second = tmp_path / "fixture.json", tmp_path / "synthetic-live.json"
+    first.write_text(json.dumps(fixture))
+    second.write_text(json.dumps(live))
+    assert main([str(first), "--live", str(second)]) == 0
+    displayed = capsys.readouterr().out
+    assert "Live environment" in displayed
+    assert "evs-only" in displayed
+    assert ENVIRONMENT["policy_sha256"] in displayed
+    assert "environment" not in json.loads(first.read_text())
