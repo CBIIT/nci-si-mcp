@@ -54,7 +54,9 @@ syntax and is rejected live. Selected real origins reach the server and item pro
 blocked surfaces use an owned local refusal endpoint, which never forwards requests.
 
 Current live reports record `environment`: name, all surface origins and the SHA-256 of the
-exact selected policy bytes. Controller, workers, preparation and benchmark share one snapshot.
+exact selected policy bytes. Each process freezes its selection for managed prepare/server
+children. Current worker provenance must agree with the controller before a report is accepted;
+this is not pre-send agreement across workers. A benchmark records its own selection.
 No credentials or local policy path enter this record. Native/evidence/portal and combined
 reports preserve it; benchmark comparisons bind it. Historical omission stays unknown rather
 than acquiring a fabricated selection. The policy hash identifies configuration, not approval
