@@ -57,7 +57,7 @@ const relative = path.relative(process.env.PLAYWRIGHT_BROWSERS_PATH, executable)
 if (!relative || relative.startsWith('..') || path.isAbsolute(relative))
   throw new Error('Chromium executable is outside the owned browser directory');
 fs.accessSync(executable, fs.constants.X_OK);
-identity.chromiumExecutable = executable;
+identity.installedChromiumExecutable = executable;
 fs.writeFileSync(file, JSON.stringify(identity, null, 2) + '\n');
 console.log(JSON.stringify(identity));
 JS
@@ -154,6 +154,7 @@ class DocumentationWorkflowTest(unittest.TestCase):
         self.assertEqual(job["timeout-minutes"], 15)
         self.assertNotIn("env", job)
         expected_env = {
+            "DEBUG": "pw:browser",
             "PLAYWRIGHT_BROWSERS_PATH": "${{ runner.temp }}/nci-si-documentation-browsers-"
             "${{ github.run_id }}-${{ github.run_attempt }}",
             "PLAYWRIGHT_JUNIT_OUTPUT_FILE": (
@@ -313,6 +314,7 @@ class DocumentationWorkflowTest(unittest.TestCase):
 
     def test_preparation_build_identity_and_usable_upload_are_exact(self):
         browser_env = {
+            "DEBUG": "pw:browser",
             "PLAYWRIGHT_BROWSERS_PATH": "${{ runner.temp }}/nci-si-documentation-browsers-"
             "${{ github.run_id }}-${{ github.run_attempt }}",
             "PLAYWRIGHT_JUNIT_OUTPUT_FILE": (
