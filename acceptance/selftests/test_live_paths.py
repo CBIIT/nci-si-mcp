@@ -7,18 +7,19 @@ import socket
 import subprocess
 import sys
 import threading
+import urllib.request
 from dataclasses import replace
 from http import HTTPStatus
 from pathlib import Path
 from urllib.error import HTTPError
-from urllib.request import ProxyHandler, build_opener
+from urllib.request import ProxyHandler, Request, build_opener
 
 import pytest
 
 from nci_si_acceptance import environments, live_launcher
 from nci_si_acceptance.client import server_environment
 from nci_si_acceptance.fixture_server import FixtureServer, FixtureSet, Response, load_fixtures
-from nci_si_mcp import cli
+from nci_si_mcp import cli, http_client
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 FURNISHED_PREFIX = Path(live_launcher.__file__).resolve().parents[3] / ".venv"
@@ -213,3 +214,94 @@ def test_furnished_child_never_forwards_cross_origin_redirect_or_credentials(tmp
             headers = {key.lower(): value for key, value in received[0]["headers"].items()}
             assert headers.get("x-evsrestapi-license-key") == credential
             assert "private-marker" not in ran.stdout + ran.stderr
+
+
+@pytest.fixture
+def callable_launcher(monkeypatch):
+    root = Path(__file__).resolve().parents[2]
+    assert (
+        Path(live_launcher.__file__).resolve()
+        == root / "acceptance/src/nci_si_acceptance/live_launcher.py"
+    )
+    assert Path(http_client.__file__).resolve() == root / "src/nci_si_mcp/http_client.py"
+    monkeypatch.setattr(sys, "prefix", str(root / ".venv"))
+    monkeypatch.setattr(http_client, "_OPENER", http_client._OPENER)
+    return live_launcher.main
+
+
+@pytest.mark.parametrize(
+    ("arguments", "expected"),
+    [
+        (["serve"], ["serve", "--transport", "stdio"]),
+        (["index-sample", "C4817", "C2991"], ["index-sample", "C4817", "C2991"]),
+        ([], None),
+        (["index-sample"], None),
+        (["index-sample", "bad"], None),
+        (["other"], None),
+    ],
+)
+def test_imported_launcher_dispatch_and_refusal(
+    monkeypatch, callable_launcher, arguments, expected
+):
+    seen = []
+    expected_exit = 17
+
+    def dispatched():
+        seen.append(sys.argv.copy())
+        return expected_exit
+
+    monkeypatch.setattr(cli, "main", dispatched)
+    monkeypatch.setattr(sys, "argv", ["launcher", *arguments])
+    if expected is None:
+        with pytest.raises(ValueError) as error:
+            callable_launcher()
+        assert str(error.value) == "controlled live launcher requires a furnished operation"
+        assert seen == []
+    else:
+        assert callable_launcher() == expected_exit
+        assert seen == [["nci-si-mcp", *expected]]
+
+
+def test_imported_launcher_transport_never_proxies_or_forwards_redirects(
+    monkeypatch, callable_launcher
+):
+    expected_exit = 23
+    fixtures = load_fixtures(FIXTURES)
+    with FixtureServer(FixtureSet({}, {})) as forbidden, FixtureServer(FixtureSet({}, {})) as proxy:
+        redirect = Response(302, {"Location": forbidden.url + "/must-not-arrive"})
+        redirected = replace(
+            fixtures,
+            ordinary={
+                key: replace(fixture, responses=(redirect,))
+                for key, fixture in fixtures.ordinary.items()
+            },
+        )
+        with FixtureServer(redirected) as selected:
+            monkeypatch.setattr(urllib.request, "getproxies", lambda: {"http": proxy.url})
+            monkeypatch.setattr(urllib.request, "proxy_bypass", lambda host: False)
+            monkeypatch.setattr(
+                http_client, "_OPENER", build_opener(ProxyHandler({"http": proxy.url}))
+            )
+            monkeypatch.setattr(sys, "argv", ["launcher", "serve"])
+
+            def transported():
+                request = Request(  # noqa: S310 - owned loopback fixture URL.
+                    selected.base_url("evs") + "/api/v1/metadata/terminologies",
+                    headers={"X-EVSRESTAPI-License-Key": "private-marker"},
+                )
+                with pytest.raises(HTTPError) as error:
+                    http_client._OPENER.open(request, timeout=2)
+                with error.value:
+                    assert proxy.log() == []
+                    assert forbidden.log() == []
+                    assert error.value.code == HTTPStatus.FOUND
+                return expected_exit
+
+            monkeypatch.setattr(cli, "main", transported)
+            assert callable_launcher() == expected_exit
+            received = selected.log()
+            assert len(received) == 1
+            assert received[0]["fixture"] is not None
+            assert {key.lower(): value for key, value in received[0]["headers"].items()}[
+                "x-evsrestapi-license-key"
+            ] == "private-marker"
