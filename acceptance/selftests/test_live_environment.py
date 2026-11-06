@@ -45,6 +45,15 @@ def test_selection_precedes_process_or_request(monkeypatch, name):
         ("hTtPs_PrOxY", "http://127.0.0.1:1"),
         ("NO_PROXY", "*"),
         ("PYTHONPATH", "/external/module-substitution"),
+        *(
+            (key, "private-marker")
+            for key in (
+                "LD_PRELOAD",
+                "LD_LIBRARY_PATH",
+                "DYLD_INSERT_LIBRARIES",
+                "DYLD_LIBRARY_PATH",
+            )
+        ),
         ("NCI_SI_ACCEPTANCE_SERVER", "python alternate-server.py"),
         ("NCI_SI_ACCEPTANCE_SERVER", "nci-si-mcp serve; alternate"),
         (
@@ -126,3 +135,15 @@ def test_selected_destinations_and_credentials_are_one_private_snapshot(monkeypa
             )
         assert error.value.code == HTTPStatus.FORBIDDEN
         assert upstream.log() == received
+
+
+@pytest.mark.parametrize("key", ["LD_PRELOAD", "DYLD_INSERT_LIBRARIES", "PYTHONPATH", "HTTP_PROXY"])
+def test_live_child_environment_discards_later_ambient_injection(monkeypatch, tmp_path, key):
+    monkeypatch.setenv(ENVIRONMENT, "evs-only")
+    target = Target.from_env()
+    # Set only in this process; never execute a loader with an injected variable.
+    monkeypatch.setenv(key, "private-marker")
+    child = server_environment(
+        "live", tmp_path, None, environment=target.environment, denied_url="http://127.0.0.1:1"
+    )
+    assert key not in child

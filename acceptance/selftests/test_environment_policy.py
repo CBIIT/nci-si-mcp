@@ -25,6 +25,7 @@ def policy_with_origin(monkeypatch, tmp_path, origin):
         " https://api-evsrest.nci.nih.gov",
         "https://api-evsrest.nci.nih.gov/space path",
         "https://api-evsrest.nci.nih.gov\n",
+        "https://api-evsrest.nci.nih.gov/\x80",
     ],
 )
 def test_raw_ambiguous_origin_is_rejected_without_echo(monkeypatch, tmp_path, origin):
