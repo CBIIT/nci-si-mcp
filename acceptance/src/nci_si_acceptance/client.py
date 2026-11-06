@@ -1,17 +1,17 @@
 """Run the server under test and talk to it over MCP, in fixture or live mode.
 
-The harness knows nothing of the server's implementation. It launches the server's
-command over stdio with an environment that names the upstream of the run mode:
+Fixture and remote targets use the public MCP interface; managed live targets use the
+furnished CLI. Each stdio command receives the upstream environment of the run mode:
 in `fixture` mode every upstream base URL points at the fixture server, in `live`
-mode the server's own defaults (the production services) apply, and the developer's
-upstream credentials are passed on.
+mode one reviewed named environment supplies every origin and permitted credential.
+Blocked surfaces use an owned refusal endpoint; production defaults never apply.
 
     NCI_SI_ACCEPTANCE_MODE     fixture (default) or live
-    NCI_SI_ACCEPTANCE_SERVER   the command that starts the server, default "nci-si-mcp serve"
-    NCI_SI_ACCEPTANCE_PROFILE  the profile that command serves (M1.5): evs, cadsr or unified
-                               (default)
-    NCI_SI_ACCEPTANCE_PREPARE  the operator's prepare command, a shell command line run once
-                               before any test (the acceptance README); without it the tests
+    NCI_SI_ACCEPTANCE_ENVIRONMENT  required live: evs-only (acceptance README)
+    NCI_SI_ACCEPTANCE_SERVER   fixture command; live only "nci-si-mcp serve"
+    NCI_SI_ACCEPTANCE_PROFILE  fixture: evs, cadsr or unified (default); live: unified only
+    NCI_SI_ACCEPTANCE_PREPARE  fixture shell command; live only "nci-si-mcp index-sample"
+                               with harness-owned argv; without it the tests
                                that need its result are NOT RUN
 
 A remote server, named by its streamable-HTTP endpoint in place of a command, is tested
@@ -53,6 +53,7 @@ from mcp.shared._httpx_utils import create_mcp_http_client
 
 from nci_si_acceptance.denied_surfaces import DeniedSurfaces
 from nci_si_acceptance.environments import (
+    CREDENTIAL_SURFACES,
     LAUNCHER,
     Environment,
     external_runtime_setting,
@@ -84,6 +85,8 @@ STATE_HOOK_TIMEOUT_VARIABLE = "NCI_SI_ACCEPTANCE_STATE_HOOK_TIMEOUT"
 PREPARED_VARIABLE = "NCI_SI_ACCEPTANCE_PREPARED"
 SECURITY_SERVER_VARIABLE = "NCI_SI_ACCEPTANCE_SECURITY_SERVER"
 REGISTRY_RELEASE_VARIABLE = "NCI_SI_ACCEPTANCE_REGISTRY_RELEASE"
+CREDENTIAL_VARIABLES = tuple(CREDENTIAL_SURFACES)
+
 # The settings that mean something only for a remote server: naming one without the URL is a
 # usage error, never silently ignored.
 REMOTE_ONLY = (

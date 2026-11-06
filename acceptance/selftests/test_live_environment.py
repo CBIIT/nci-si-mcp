@@ -17,7 +17,12 @@ import yaml
 from nci_si_acceptance import environments
 from nci_si_acceptance.client import Target, server_environment
 from nci_si_acceptance.denied_surfaces import DeniedSurfaces
-from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES, FixtureServer, load_fixtures
+from nci_si_acceptance.fixture_server import (
+    UPSTREAM_VARIABLES,
+    FixtureServer,
+    FixtureSet,
+    load_fixtures,
+)
 
 ENVIRONMENT = "NCI_SI_ACCEPTANCE_ENVIRONMENT"
 
@@ -42,7 +47,6 @@ def test_selection_precedes_process_or_request(monkeypatch, name):
     ("key", "value"),
     [
         ("NCI_SI_EVS_BASE_URL", "http://127.0.0.1:1"),
-        ("NCI_SI_CADSR_BASE_URL", "http://127.0.0.1:1"),
         ("NCI_SI_CADSR_CREDENTIAL", "private-marker"),
         ("HTTP_PROXY", "http://127.0.0.1:1"),
         ("hTtPs_PrOxY", "http://127.0.0.1:1"),
@@ -209,3 +213,18 @@ def test_actual_managed_preparation_and_mcp_keep_the_selected_item_origin(
             received = upstream.log()
             assert all(row["surface"] == "evs" for row in received)
             assert all(row["fixture"] is not None for row in received)
+
+
+@pytest.mark.parametrize("variable", ["NCI_SI_CADSR_BASE_URL", "NCI_SI_SSIS_SPARQL_URL"])
+@pytest.mark.parametrize("credential", [None, "private-marker"])
+def test_prohibited_destination_attempts_reach_no_receiver(monkeypatch, variable, credential):
+    with FixtureServer(FixtureSet({}, {})) as forbidden:
+        monkeypatch.setenv(ENVIRONMENT, "evs-only")
+        monkeypatch.setenv(variable, forbidden.url)
+        if credential:
+            monkeypatch.setenv("NCI_SI_CADSR_CREDENTIAL", credential)
+        with pytest.raises(ValueError) as error:
+            Target.from_env()
+        assert forbidden.url not in str(error.value)
+        assert "private-marker" not in str(error.value)
+        assert forbidden.log() == []
