@@ -7,6 +7,7 @@ import socket
 import subprocess
 import sys
 import threading
+from dataclasses import replace
 from http import HTTPStatus
 from pathlib import Path
 from urllib.error import HTTPError
@@ -14,9 +15,9 @@ from urllib.request import ProxyHandler, build_opener
 
 import pytest
 
-from nci_si_acceptance import live_launcher
+from nci_si_acceptance import environments, live_launcher
 from nci_si_acceptance.client import server_environment
-from nci_si_acceptance.fixture_server import FixtureServer, FixtureSet, load_fixtures
+from nci_si_acceptance.fixture_server import FixtureServer, FixtureSet, Response, load_fixtures
 from nci_si_mcp import cli
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
@@ -170,3 +171,43 @@ def test_launcher_refuses_untrusted_installation_before_cli(
         == "controlled live " + ("launcher " if boundary != "hook" else "") + message
     )
     assert not marker.exists()
+
+
+@pytest.mark.parametrize("credential", [None, "private-marker"])
+def test_furnished_child_never_forwards_cross_origin_redirect_or_credentials(tmp_path, credential):
+    fixtures = load_fixtures(FIXTURES)
+    with FixtureServer(FixtureSet({}, {})) as forbidden:
+        redirect = Response(302, {"Location": forbidden.url + "/must-not-arrive"})
+        redirected = replace(
+            fixtures,
+            ordinary={
+                key: replace(fixture, responses=(redirect,))
+                for key, fixture in fixtures.ordinary.items()
+            },
+        )
+        with FixtureServer(redirected) as selected, listener() as denied:
+            origins = dict.fromkeys(environments.SURFACES)
+            origins["evs"] = selected.base_url("evs")
+            credentials = {"NCI_SI_EVS_LICENSE_KEY": credential} if credential else {}
+            environment = server_environment(
+                "live",
+                tmp_path,
+                None,
+                environment=environments.Environment("local-test", origins, credentials, "a" * 64),
+                denied_url=denied,
+            )
+            ran = subprocess.run(  # noqa: S603 - furnished interpreter, selected/forbidden receivers local only.
+                [*environments.LAUNCHER, "index-sample", "C4817"],
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            assert ran.returncode != 0
+            assert forbidden.log() == []
+            received = selected.log()
+            assert len(received) == 1
+            headers = {key.lower(): value for key, value in received[0]["headers"].items()}
+            assert headers.get("x-evsrestapi-license-key") == credential
+            assert "private-marker" not in ran.stdout + ran.stderr

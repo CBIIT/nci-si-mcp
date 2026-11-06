@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import runpy
 import subprocess
 import sys
 from http import HTTPStatus
@@ -170,3 +171,41 @@ def test_preparation_accepts_only_harness_concept_arguments(monkeypatch, codes):
     ]
     with pytest.raises(ValueError, match="validated harness concept list"):
         target.prepare_command(codes)
+
+
+def test_actual_managed_preparation_and_mcp_keep_the_selected_item_origin(
+    tmp_path, tmp_path_factory
+):
+    fixtures = Path(__file__).parents[1] / "fixtures"
+    with FixtureServer(load_fixtures(fixtures)) as upstream:
+        origins = dict.fromkeys(environments.SURFACES)
+        origins.update({surface: upstream.base_url(surface) for surface in ("evs", "evs-fhir")})
+        selected = environments.Environment("local-test", origins, {}, "a" * 64)
+        target = Target(
+            "live",
+            [*environments.LAUNCHER, "serve"],
+            prepare="nci-si-mcp index-sample",
+            environment=selected,
+        )
+        suite = runpy.run_path(str(fixtures.parent / "tests/conftest.py"))
+        prepare = suite["prepared"].__wrapped__
+        (tmp_path / "manifest.yaml").write_text(
+            yaml.safe_dump({"record": {"concepts": {"full": ["C4817"]}}})
+        )
+        prepare.__globals__["FIXTURES"] = tmp_path
+        with target.managed() as managed:
+            data = prepare(managed, None, tmp_path_factory)
+            assert data.is_dir()
+            prepared = upstream.log()
+            assert any(row["params"].get("list") == ["C4817"] for row in prepared), prepared
+            with suite["_tools"](managed, None, tmp_path_factory, data) as tools:
+                result = tools.call(
+                    "get_concept", {"terminology": "ncit", "release": "26.09d", "code": "C4817"}
+                )
+                assert not result.is_error, result.content
+                uri = result.content["provenance"]["sourceUri"]
+                assert uri == upstream.base_url("evs") + "/api/v1/concept/ncit_26.09d/C4817"
+                assert not uri.startswith(managed.denied_url)
+            received = upstream.log()
+            assert all(row["surface"] == "evs" for row in received)
+            assert all(row["fixture"] is not None for row in received)

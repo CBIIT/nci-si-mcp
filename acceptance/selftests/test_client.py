@@ -47,11 +47,11 @@ def test_the_default_target_is_the_installed_server_against_fixtures(monkeypatch
 
 
 def test_the_target_is_read_from_the_environment(monkeypatch):
-    monkeypatch.setenv(MODE_VARIABLE, "live")
+    monkeypatch.setenv(MODE_VARIABLE, "fixture")
     monkeypatch.setenv(SERVER_VARIABLE, "python -m 'my server' --flag")
     monkeypatch.setenv(PROFILE_VARIABLE, "evs")
 
-    assert Target.from_env() == Target("live", ["python", "-m", "my server", "--flag"], "evs")
+    assert Target.from_env() == Target("fixture", ["python", "-m", "my server", "--flag"], "evs")
 
 
 @pytest.mark.parametrize("value", [None, "optional", "required", "", "REQUIRED", "other"])
@@ -74,7 +74,9 @@ def test_registry_selection_is_validated_and_never_given_to_the_server(
         )
     else:
         assert Target.from_env().registry_release == (value or "optional")
-    assert REGISTRY_RELEASE_VARIABLE not in server_environment("live", tmp_path, None)
+    assert REGISTRY_RELEASE_VARIABLE not in server_environment(
+        "fixture", tmp_path, "http://127.0.0.1:9"
+    )
 
 
 def test_the_secured_fixture_adapter_is_read_for_a_local_and_a_remote_target(monkeypatch):
@@ -129,19 +131,21 @@ def test_in_fixture_mode_every_upstream_names_the_fixture_server(monkeypatch, tm
     assert "NCI_SI_LOG_LEVEL" not in environment
 
 
-def test_in_live_mode_the_server_keeps_its_upstream_and_gets_the_credentials(monkeypatch, tmp_path):
+def test_fixture_mode_strips_credentials_and_preserves_custom_runtime_settings(
+    monkeypatch, tmp_path
+):
     monkeypatch.setenv("NCI_SI_EVS_BASE_URL", "https://developer.example")
     # The credentials of docs/implementation-plan.md §8.
     credentials = {"NCI_SI_EVS_LICENSE_KEY": "evs key", "NCI_SI_CADSR_CREDENTIAL": "cadsr key"}
     for name, value in credentials.items():
         monkeypatch.setenv(name, value)
 
-    live = server_environment("live", tmp_path, None)
+    monkeypatch.setenv("LD_LIBRARY_PATH", "synthetic-never-executed")
     fixture = server_environment("fixture", tmp_path, "http://127.0.0.1:9")
 
-    assert not set(UPSTREAM_VARIABLES) & set(live)
-    assert live["NCI_SI_UPSTREAM_MODE"] == "live"
-    assert {name: live.get(name) for name in credentials} == credentials
+    assert fixture["NCI_SI_EVS_BASE_URL"] == "http://127.0.0.1:9/evs"
+    assert fixture["NCI_SI_UPSTREAM_MODE"] == "fixture"
+    assert fixture["LD_LIBRARY_PATH"] == "synthetic-never-executed"
     assert not set(credentials) & set(fixture)
 
 
@@ -216,7 +220,9 @@ def test_a_server_that_never_answers_ends_the_session_with_a_timeout(monkeypatch
 
     with (
         pytest.raises(ExceptionGroup) as raised,
-        open_session(["sleep", "30"], server_environment("live", tmp_path, None)) as session,
+        open_session(
+            ["sleep", "30"], server_environment("fixture", tmp_path, "http://127.0.0.1:9")
+        ) as session,
     ):
         session.list_tools()
 
