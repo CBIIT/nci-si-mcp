@@ -39,7 +39,7 @@ def test_real_furnished_child_ignores_ambient_os_proxy(tmp_path):
             f"u.getproxies=lambda: {{'http': {proxy.url!r}}}; "
             "u.proxy_bypass=lambda host: False; "
             "from nci_si_acceptance.live_launcher import main; "
-            "sys.argv=['launcher','index-sample','C3262']; raise SystemExit(main())"
+            "sys.argv=['launcher','index-sample','C4817']; raise SystemExit(main())"
         )
         ran = subprocess.run(  # noqa: S603 - fixed isolated interpreter; all destinations are loopback fixtures.
             [sys.executable, "-I", "-c", script],
