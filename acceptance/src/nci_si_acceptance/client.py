@@ -307,7 +307,14 @@ def without_nci_si_settings(environment: Mapping[str, str]) -> dict[str, str]:
     return {key: value for key, value in environment.items() if not key.startswith("NCI_SI_")}
 
 
-def server_environment(mode: Mode, data_dir: Path, fixture_url: str | None) -> dict[str, str]:
+def server_environment(
+    mode: Mode,
+    data_dir: Path,
+    fixture_url: str | None,
+    *,
+    environment: Environment | None = None,
+    denied_url: str | None = None,
+) -> dict[str, str]:
     """The environment of the server under test.
 
     The developer's own `NCI_SI_*` settings never reach it, so a run depends only on
@@ -315,9 +322,17 @@ def server_environment(mode: Mode, data_dir: Path, fixture_url: str | None) -> d
     every upstream base URL names the fixture server.
     """
 
-    environment = without_nci_si_settings(os.environ)
-    environment |= {"NCI_SI_UPSTREAM_MODE": mode, "NCI_SI_DATA_DIR": str(data_dir)}
-    return environment | _upstream_settings(mode, fixture_url)
+    inherited = without_nci_si_settings(os.environ)
+    inherited |= {"NCI_SI_UPSTREAM_MODE": mode, "NCI_SI_DATA_DIR": str(data_dir)}
+    if mode == "live":
+        if environment is None or denied_url is None:
+            raise ValueError("live mode requires a selected environment and owned refusal endpoint")
+        inherited |= {
+            variable: environment.origins[surface] or denied_url
+            for variable, surface in UPSTREAM_VARIABLES.items()
+        }
+        return inherited | _upstream_settings(mode, None)
+    return inherited | _upstream_settings(mode, fixture_url)
 
 
 class Session:
