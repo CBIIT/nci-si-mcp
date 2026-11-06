@@ -9,6 +9,7 @@ import sys
 from http import HTTPStatus
 from pathlib import Path
 from urllib.error import HTTPError
+from urllib.parse import urlsplit
 from urllib.request import ProxyHandler, build_opener
 
 import pytest
@@ -33,6 +34,17 @@ def clean_settings(monkeypatch):
         if key.startswith(("NCI_SI_", "PYTHON")) or key.lower().endswith("_proxy"):
             monkeypatch.delenv(key)
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
+    popen = subprocess.Popen
+
+    def local_process(command, *args, **kwargs):
+        if "nci_si_acceptance.live_launcher" in command:
+            env = kwargs.get("env") or {}
+            assert all(
+                urlsplit(env.get(key, "")).hostname == "127.0.0.1" for key in UPSTREAM_VARIABLES
+            )
+        return popen(command, *args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", local_process)
 
 
 @pytest.mark.parametrize("name", [None, "", "stage", "production", "unknown"])
@@ -178,7 +190,7 @@ def test_preparation_accepts_only_harness_concept_arguments(monkeypatch, codes):
 
 
 def test_actual_managed_preparation_and_mcp_keep_the_selected_item_origin(
-    tmp_path, tmp_path_factory
+    tmp_path, tmp_path_factory, monkeypatch
 ):
     fixtures = Path(__file__).parents[1] / "fixtures"
     with FixtureServer(load_fixtures(fixtures)) as upstream:

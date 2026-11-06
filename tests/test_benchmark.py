@@ -30,17 +30,37 @@ def sample(elapsed=1.0, *, error=False, requests=2, size=9):
 
 
 class BenchmarkTest(unittest.TestCase):
-    def test_live_selection_is_validated_before_any_report_artifact(self):
-        for name in ("", "unreviewed"):
-            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
-                output = Path(directory) / "benchmark.json"
+    def test_live_refusal_precedes_selection_process_and_report(self):
+        expected = "live stdio benchmarking is disabled pending the environment follow-up"
+        for name in (None, "", "evs-only", "unreviewed"):
+            for existing in (False, True):
                 with (
-                    patch.dict(os.environ, {"NCI_SI_ACCEPTANCE_ENVIRONMENT": name}, clear=True),
-                    self.assertRaises(ValueError) as error,
+                    self.subTest(name=name, existing=existing),
+                    tempfile.TemporaryDirectory() as directory,
                 ):
-                    benchmark.run("live", ["get_form"], 1, output)
-                self.assertFalse(output.exists())
-                self.assertIn("NCI_SI_ACCEPTANCE_ENVIRONMENT", str(error.exception))
+                    output = Path(directory) / "benchmark.json"
+                    original = b"preserved prior report bytes"
+                    if existing:
+                        output.write_bytes(original)
+                    settings = {} if name is None else {"NCI_SI_ACCEPTANCE_ENVIRONMENT": name}
+                    reached = []
+
+                    def unsafe_target(*args, reached=reached, **kwargs):
+                        reached.append("target")
+                        raise ValueError("benchmark setup reached")
+
+                    with (
+                        patch.dict(os.environ, settings, clear=True),
+                        patch.object(client.Target, "from_env", unsafe_target),
+                        self.assertRaises(ValueError) as error,
+                    ):
+                        benchmark.run("live", ["get_form"], 1, output)
+                    self.assertEqual(str(error.exception), expected)
+                    self.assertEqual(reached, [])
+                    self.assertEqual(
+                        output.read_bytes() if output.exists() else None,
+                        original if existing else None,
+                    )
 
     def test_an_interrupted_first_case_cannot_leave_a_stale_successful_report(self):
         with tempfile.TemporaryDirectory() as directory:
