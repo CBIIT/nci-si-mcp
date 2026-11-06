@@ -59,6 +59,7 @@ def test_selection_precedes_process_or_request(monkeypatch, name):
     ("key", "value"),
     [
         ("NCI_SI_EVS_BASE_URL", "http://127.0.0.1:1"),
+        ("NCI_SI_CADSR_FTP_URL", "http://127.0.0.1:1"),
         ("NCI_SI_CADSR_CREDENTIAL", "private-marker"),
         ("HTTP_PROXY", "http://127.0.0.1:1"),
         ("hTtPs_PrOxY", "http://127.0.0.1:1"),
@@ -82,6 +83,8 @@ def test_selection_precedes_process_or_request(monkeypatch, name):
         ("NCI_SI_ACCEPTANCE_PREPARE", "nci-si-mcp index-sample C2991"),
         ("NCI_SI_ACCEPTANCE_PROFILE", "evs"),
         ("NCI_SI_ACCEPTANCE_SECURITY_SERVER", "python alternate.py"),
+        ("NCI_SI_ACCEPTANCE_FIXTURE_BIND", "127.0.0.1:1"),
+        ("NCI_SI_ACCEPTANCE_FIXTURE_URL", "http://127.0.0.1:1"),
         ("NCI_SI_ACCEPTANCE_URL", "http://127.0.0.1:1/mcp"),
     ],
 )

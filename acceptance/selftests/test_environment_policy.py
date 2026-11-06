@@ -20,6 +20,7 @@ def policy_with_origin(monkeypatch, tmp_path, origin):
     "origin",
     [
         "https://api-evsrest.nci.nih.gov:invalid",
+        "https://api-evsrest.nci.nih.gov:0",
         "https://api-evsrest.nci.nih.gov\t",
         "https://api-evsrest.nci.nih.gov?",
         "https://api-evsrest.nci.nih.gov#",
