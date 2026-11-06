@@ -52,6 +52,13 @@ class EnvironmentConsumerTest(unittest.TestCase):
         for change in ({"private-extra": "private-marker"}, {"environment": None}):
             with self.subTest(change=change), self.assertRaises(EvidenceError):
                 Report.from_dict(historical | change, "completed")
+        for value in (None, ENVIRONMENT | {"private-extra": "private-marker"}):
+            with self.subTest(live_environment=value):
+                with self.assertRaises(EvidenceError) as raised:
+                    Report.from_dict(
+                        historical | {"mode": "live", "environment": value}, "completed"
+                    )
+                self.assertEqual(str(raised.exception), "Invalid benchmark field: environment")
         missing = deepcopy(historical)
         missing.pop("sourceSha256")
         with self.assertRaises(EvidenceError):
