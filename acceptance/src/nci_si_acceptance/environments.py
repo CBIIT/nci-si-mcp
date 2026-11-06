@@ -51,6 +51,7 @@ def _url(node: Node) -> str | None:
         raise ValueError("invalid reviewed environment origin")
     if node.tag == "tag:yaml.org,2002:null":
         return None
+    _check_raw_url(node.value)
     try:
         parsed = urlsplit(node.value)
         port = parsed.port
@@ -70,6 +71,13 @@ def _url(node: Node) -> str | None:
     ):
         raise ValueError("invalid reviewed environment origin")
     return node.value.rstrip("/")
+
+
+def _check_raw_url(value: str) -> None:
+    if any(char.isspace() or char < " " or char == "\x7f" for char in value):
+        raise ValueError("invalid reviewed environment origin")
+    if "?" in value or "#" in value:
+        raise ValueError("invalid reviewed environment origin")
 
 
 def _origins(node: Node) -> dict[str, str | None]:
