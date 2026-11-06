@@ -190,7 +190,7 @@ def test_preparation_accepts_only_harness_concept_arguments(monkeypatch, codes):
 
 
 def test_actual_managed_preparation_and_mcp_keep_the_selected_item_origin(
-    tmp_path, tmp_path_factory, monkeypatch
+    tmp_path, tmp_path_factory
 ):
     fixtures = Path(__file__).parents[1] / "fixtures"
     with FixtureServer(load_fixtures(fixtures)) as upstream:

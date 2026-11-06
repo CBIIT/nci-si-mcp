@@ -45,13 +45,13 @@ class BenchmarkTest(unittest.TestCase):
                     settings = {} if name is None else {"NCI_SI_ACCEPTANCE_ENVIRONMENT": name}
                     reached = []
 
-                    def unsafe_target(*args, reached=reached, **kwargs):
-                        reached.append("target")
-                        raise ValueError("benchmark setup reached")
+                    def attempted_process(*args, reached=reached, **kwargs):
+                        reached.append("process")
+                        raise ValueError(expected)
 
                     with (
                         patch.dict(os.environ, settings, clear=True),
-                        patch.object(client.Target, "from_env", unsafe_target),
+                        patch("subprocess.Popen", attempted_process),
                         self.assertRaises(ValueError) as error,
                     ):
                         benchmark.run("live", ["get_form"], 1, output)
