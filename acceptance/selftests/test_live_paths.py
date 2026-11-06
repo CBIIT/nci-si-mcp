@@ -1,13 +1,12 @@
 """Managed transport paths use real local receivers and never contact an upstream."""
 
-import importlib
-import importlib.util
 import os
 import socket
 import subprocess
 import sys
 import threading
 import urllib.request
+from contextlib import nullcontext
 from dataclasses import replace
 from http import HTTPStatus
 from pathlib import Path
@@ -18,19 +17,12 @@ import pytest
 
 from nci_si_acceptance import environments, live_launcher
 from nci_si_acceptance.client import server_environment
+from nci_si_acceptance.denied_surfaces import DeniedSurfaces
 from nci_si_acceptance.fixture_server import FixtureServer, FixtureSet, Response, load_fixtures
 from nci_si_mcp import cli, http_client
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 FURNISHED_PREFIX = Path(live_launcher.__file__).resolve().parents[3] / ".venv"
-
-
-def listener():
-    name = "nci_si_acceptance.denied_surfaces"
-    assert importlib.util.find_spec(name) is not None, (
-        "blocked surfaces need an owned refusal endpoint"
-    )
-    return importlib.import_module(name).DeniedSurfaces()
 
 
 def test_real_furnished_child_ignores_ambient_os_proxy(tmp_path):
@@ -67,7 +59,7 @@ def test_real_furnished_child_ignores_ambient_os_proxy(tmp_path):
 
 
 def test_owned_refusal_has_no_echo_or_forwarding_and_closes_on_exception(capfd):
-    denied = listener()
+    denied = DeniedSurfaces()
     with pytest.raises(RuntimeError, match="owner interrupted"), denied as url:
         address = url.removeprefix("http://").split(":")
         port = int(address[1])
@@ -85,7 +77,7 @@ def test_owned_refusal_has_no_echo_or_forwarding_and_closes_on_exception(capfd):
 
 
 def test_partial_request_cannot_hold_the_refusal_listener_open():
-    denied = listener()
+    denied = DeniedSurfaces()
     with denied as url:
         port = int(url.rsplit(":", 1)[1])
         with socket.create_connection(("127.0.0.1", port), timeout=2) as peer:
@@ -110,7 +102,7 @@ def test_live_environment_requires_an_owned_refusal_endpoint(monkeypatch, tmp_pa
 def test_listener_failures_are_visible_sanitized_and_leave_no_owned_resource(
     monkeypatch, capfd, phase
 ):
-    denied = listener()
+    denied = DeniedSurfaces()
     port = denied._server.server_address[1]
     thread_errors = []
     monkeypatch.setattr(
@@ -144,6 +136,31 @@ def test_listener_failures_are_visible_sanitized_and_leave_no_owned_resource(
     output = capfd.readouterr()
     assert "private-marker" not in output.out + output.err
     assert thread_errors == []
+
+
+@pytest.mark.parametrize("error", [OSError, ValueError, RuntimeError])
+def test_refusal_shutdown_distinguishes_expected_and_unexpected_errors(monkeypatch, error):
+    denied = DeniedSurfaces()
+    entered = threading.Event()
+    stopped = []
+
+    def interrupted():
+        entered.set()
+        stopped.append(denied._stop.wait(2))
+        raise error("private-marker")
+
+    monkeypatch.setattr(denied._server, "handle_request", interrupted)
+    expectation = (
+        pytest.raises(RuntimeError, match=r"\Aowned refusal listener did not finish cleanly\Z")
+        if error is RuntimeError
+        else nullcontext()
+    )
+    with expectation, denied:
+        assert entered.wait(2)
+    assert stopped == [True]
+    assert not denied.thread.is_alive()
+    with socket.socket() as probe:
+        assert probe.connect_ex(denied._server.server_address) != 0
 
 
 @pytest.mark.parametrize(
@@ -188,7 +205,7 @@ def test_furnished_child_never_forwards_cross_origin_redirect_or_credentials(tmp
                 for key, fixture in fixtures.ordinary.items()
             },
         )
-        with FixtureServer(redirected) as selected, listener() as denied:
+        with FixtureServer(redirected) as selected, DeniedSurfaces() as denied:
             origins = dict.fromkeys(environments.SURFACES)
             origins["evs"] = selected.base_url("evs")
             credentials = {"NCI_SI_EVS_LICENSE_KEY": credential} if credential else {}
