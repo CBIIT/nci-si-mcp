@@ -210,3 +210,36 @@ def test_combined_cli_does_not_invent_environment_for_historical_or_fixture_inpu
     assert "Live environment" not in capsys.readouterr().out
     assert main([str(first)]) == 0
     assert "Live environment" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "suffix,encoded",
+    [
+        ("**recorded**", "&#42;&#42;recorded&#42;&#42;"),
+        (
+            "![label](https://destination.invalid/image.png)",
+            "&#33;&#91;label&#93;&#40;https://destination.invalid/image.png&#41;",
+        ),
+        (
+            "[label](https://destination.invalid/)",
+            "&#91;label&#93;&#40;https://destination.invalid/&#41;",
+        ),
+        ("`recorded`", "&#96;recorded&#96;"),
+        ("\\recorded\\path", "&#92;recorded&#92;path"),
+        ("_recorded_", "&#95;recorded&#95;"),
+        ("{recorded}", "&#123;recorded&#125;"),
+    ],
+)
+def test_combined_cli_preserves_markdown_delimiters_as_literal_origin(
+    tmp_path, capsys, suffix, encoded
+):
+    environment = deepcopy(ENVIRONMENT)
+    origin = "https://example.test/" + suffix
+    environment["origins"]["evs"] = origin
+    first, second = combined_inputs(tmp_path, environment)
+    original = second.read_bytes()
+    assert main([str(first), "--live", str(second)]) == 0
+    displayed = capsys.readouterr().out
+    assert f"| evs | https://example.test/{encoded} |\n" in displayed
+    assert json.loads(second.read_text())["environment"]["origins"]["evs"] == origin
+    assert second.read_bytes() == original
