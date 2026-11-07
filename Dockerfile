@@ -1,5 +1,5 @@
 # Build a wheel with `pdm build` first. Both stages use AL2023's Python 3.14.
-FROM public.ecr.aws/amazonlinux/amazonlinux@sha256:d9c9967b3d895c4c423f54b6562fbf5d18a5b68f5df54908c29e88cba4efcc04 AS base
+FROM public.ecr.aws/amazonlinux/amazonlinux@sha256:381352c430f36d8aa6b8b670de06e7e4e5642fe0cb9dbd463bb8d1e79aefc0c7 AS base
 RUN dnf -y upgrade --refresh
 RUN dnf -y install python3.14 libgomp
 RUN dnf clean all
