@@ -62,7 +62,6 @@ from nci_si_acceptance.environments import (
 )
 from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES
 from nci_si_acceptance.spec import PROFILES
-from nci_si_mcp.validation import NCIT_CODE_RE
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Mapping
@@ -195,6 +194,9 @@ class Target:
             yield replace(self, denied_url=url)
 
     def prepare_command(self, codes: list[str]) -> list[str]:
+        # Standalone fixture/remote harnesses do not install the furnished server.
+        from nci_si_mcp.validation import NCIT_CODE_RE  # noqa: PLC0415 - managed path only.
+
         if not codes or not all(NCIT_CODE_RE.fullmatch(code) for code in codes):
             raise ValueError("live preparation requires the validated harness concept list")
         return [*LAUNCHER, "index-sample", *codes]
