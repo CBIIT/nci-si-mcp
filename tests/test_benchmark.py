@@ -1,6 +1,9 @@
+import hashlib
 import io
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import contextmanager, redirect_stdout
@@ -11,11 +14,12 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.parse import urlsplit
 
+import yaml
 from scripts import benchmark
 from scripts.benchmark_records import percentile, summarize
 
-from nci_si_acceptance import client
-from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
+from nci_si_acceptance import client, environments
+from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES, FixtureServer, load_fixtures
 
 
 def sample(elapsed=1.0, *, error=False, requests=2, size=9):
@@ -29,38 +33,184 @@ def sample(elapsed=1.0, *, error=False, requests=2, size=9):
     }
 
 
+def local_policy_inputs(selected, forbidden, directory):
+    """Write independent seven-surface test inputs; never substitute selection or output."""
+    names = (
+        "evs",
+        "evs-fhir",
+        "cadsr",
+        "cadsr-ftp",
+        "cadsr-contracts",
+        "ssis",
+        "ssis-sparql",
+    )
+    origins = dict.fromkeys(names)
+    origins.update({"evs": selected.base_url("evs"), "evs-fhir": selected.base_url("evs-fhir")})
+    policy = {
+        "allowed": {name: origins[name] or forbidden.base_url(name) for name in names},
+        "environments": {"local-measurement": origins},
+    }
+    raw_policy = yaml.safe_dump(policy).encode()
+    path = Path(directory) / "policy.yaml"
+    path.write_bytes(raw_policy)
+    expected = {
+        "name": "local-measurement",
+        "origins": origins,
+        "policy_sha256": hashlib.sha256(raw_policy).hexdigest(),
+    }
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith("NCI_SI_") and not environments.external_runtime_setting(key)
+    }
+    env |= {
+        "NCI_SI_ACCEPTANCE_MODE": "fixture",
+        "NCI_SI_ACCEPTANCE_ENVIRONMENT": "local-measurement",
+    }
+    return path, expected, env
+
+
 class BenchmarkTest(unittest.TestCase):
-    def test_live_refusal_precedes_selection_process_and_report(self):
-        expected = "live stdio benchmarking is disabled pending the environment follow-up"
-        for name in (None, "", "evs-only", "unreviewed"):
+    def test_live_selection_and_prepare_fail_before_process_or_report(self):
+        variable = "NCI_SI_ACCEPTANCE_ENVIRONMENT"
+        cases = [
+            ({}, f"{variable} is required for live mode"),
+            ({variable: ""}, f"{variable} is required for live mode"),
+            ({variable: "unreviewed"}, f"{variable} does not name a reviewed environment"),
+            (
+                {variable: "evs-only", "NCI_SI_ACCEPTANCE_PREPARE": "nci-si-mcp index-sample"},
+                "NCI_SI_ACCEPTANCE_PREPARE is not supported by the index-free benchmark",
+            ),
+            (
+                {variable: "evs-only", "NCI_SI_ACCEPTANCE_URL": "http://private-marker.test/mcp"},
+                "NCI_SI_ACCEPTANCE_URL is incompatible with the selected live environment",
+            ),
+        ]
+        for settings, expected in cases:
             for existing in (False, True):
                 with (
-                    self.subTest(name=name, existing=existing),
-                    tempfile.TemporaryDirectory() as directory,
+                    self.subTest(settings=settings, existing=existing),
+                    tempfile.TemporaryDirectory() as d,
                 ):
-                    output = Path(directory) / "benchmark.json"
+                    output = Path(d) / "report.json"
                     original = b"preserved prior report bytes"
                     if existing:
                         output.write_bytes(original)
-                    settings = {} if name is None else {"NCI_SI_ACCEPTANCE_ENVIRONMENT": name}
                     reached = []
 
-                    def attempted_process(*args, reached=reached, **kwargs):
-                        reached.append("process")
-                        raise ValueError(expected)
+                    def forbidden_child(*args, reached=reached, **kwargs):
+                        reached.append("child")
+                        raise AssertionError("preflight launched a child")
 
                     with (
                         patch.dict(os.environ, settings, clear=True),
-                        patch("subprocess.Popen", attempted_process),
-                        self.assertRaises(ValueError) as error,
+                        patch("subprocess.Popen", forbidden_child),
+                        self.assertRaises(ValueError) as caught,
                     ):
-                        benchmark.run("live", ["get_form"], 1, output)
-                    self.assertEqual(str(error.exception), expected)
+                        benchmark.run("live", ["get_concept"], 1, output)
+                    self.assertEqual(str(caught.exception), expected)
+                    self.assertNotIn("private-marker", str(caught.exception))
                     self.assertEqual(reached, [])
                     self.assertEqual(
                         output.read_bytes() if output.exists() else None,
                         original if existing else None,
                     )
+
+    def test_explicit_target_mode_does_not_mutate_ambient_or_change_default_callers(self):
+        settings = {"NCI_SI_ACCEPTANCE_MODE": "live"}
+        with patch.dict(os.environ, settings, clear=True):
+            failure = None
+            selected = None
+            try:
+                selected = client.Target.from_env(mode_override="fixture")
+            except TypeError as error:
+                failure = str(error)
+            self.assertIsNone(failure, "explicit mode must be supported without global mutation")
+            self.assertEqual(selected.mode, "fixture")
+            self.assertEqual(os.environ["NCI_SI_ACCEPTANCE_MODE"], "live")
+            with self.assertRaisesRegex(ValueError, "is required for live mode"):
+                client.Target.from_env()
+        with patch.dict(os.environ, {"NCI_SI_ACCEPTANCE_MODE": "fixture"}, clear=True):
+            self.assertEqual(client.Target.from_env().mode, "fixture")
+
+    def test_fixture_producer_ignores_acceptance_only_target_selectors(self):
+        settings = {
+            "NCI_SI_ACCEPTANCE_MODE": "live",
+            "NCI_SI_ACCEPTANCE_ENVIRONMENT": "unreviewed",
+            "NCI_SI_ACCEPTANCE_SERVER": "must-not-execute",
+            "NCI_SI_ACCEPTANCE_PROFILE": "evs",
+            "NCI_SI_ACCEPTANCE_PREPARE": "must-not-prepare",
+            "NCI_SI_ACCEPTANCE_URL": "http://must-not-contact.test/mcp",
+        }
+        with patch.dict(os.environ, settings), tempfile.TemporaryDirectory() as d:
+            output = Path(d) / "report.json"
+            report = benchmark.run("fixture", ["match_data_elements"], 1, output)
+            self.assertEqual(json.loads(output.read_text()), report)
+            self.assertEqual({key: os.environ[key] for key in settings}, settings)
+        self.assertEqual(
+            (report["mode"], report["transport"], report["complete"]), ("fixture", "stdio", True)
+        )
+        self.assertNotIn("environment", report)
+        self.assertEqual(
+            report["conditions"]["index"],
+            "none; lexical search; no semantic-quality or production latency claim",
+        )
+        for phase in ("cold", "warm"):
+            self.assertEqual(report["cases"][0][phase]["summary"]["errorRate"], 0)
+
+    def test_real_local_policy_producer_persists_selected_evs_and_fhir_measurements(self):
+        real_process = subprocess.Popen
+        launches = []
+
+        def local_child(command, *args, **kwargs):
+            env = kwargs.get("env") or {}
+            for key in UPSTREAM_VARIABLES:
+                self.assertEqual(urlsplit(env.get(key, "")).hostname, "127.0.0.1")
+            self.assertEqual(
+                command[:5],
+                [sys.executable, "-I", "-m", "nci_si_acceptance.live_launcher", "serve"],
+            )
+            launches.append(dict(env))
+            return real_process(command, *args, **kwargs)
+
+        with (
+            tempfile.TemporaryDirectory() as d,
+            FixtureServer(load_fixtures(benchmark.FIXTURES)) as selected,
+            FixtureServer(load_fixtures(benchmark.FIXTURES)) as forbidden,
+        ):
+            path, expected, env = local_policy_inputs(selected, forbidden, d)
+            output = Path(d) / "report.json"
+            failure = None
+            report = None
+            with (
+                patch.dict(os.environ, env, clear=True),
+                patch.object(environments, "POLICY", path),
+                patch("subprocess.Popen", local_child),
+            ):
+                try:
+                    report = benchmark.run("live", ["get_concept", "expand_value_set"], 1, output)
+                except ValueError as error:
+                    failure = str(error)
+            self.assertIsNone(failure, "the real selected-policy benchmark must complete")
+            self.assertEqual(json.loads(output.read_text()), report)
+            self.assertEqual(report["environment"], expected)
+            self.assertEqual(
+                (report["mode"], report["transport"], report["complete"]), ("live", "stdio", True)
+            )
+            self.assertEqual(report["expectedCases"], ["get_concept", "expand_value_set"])
+            self.assertEqual(
+                [row["tool"] for row in report["cases"]], ["get_concept", "expand_value_set"]
+            )
+            for row in report["cases"]:
+                for phase in ("cold", "warm"):
+                    self.assertEqual(len(row[phase]["samples"]), 1)
+                    self.assertEqual(row[phase]["summary"]["errorRate"], 0)
+                    self.assertGreater(row[phase]["summary"]["meanResultBytes"], 0)
+            self.assertEqual(len(launches), 4)
+            surfaces = {row["surface"] for row in selected.log()}
+            self.assertEqual(surfaces, {"evs", "evs-fhir"})
+            self.assertEqual(forbidden.log(), [])
+            self.assertTrue(all(row["NCI_SI_UPSTREAM_MODE"] == "live" for row in launches))
 
     def test_an_interrupted_first_case_cannot_leave_a_stale_successful_report(self):
         with tempfile.TemporaryDirectory() as directory:
