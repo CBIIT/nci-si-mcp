@@ -1,17 +1,17 @@
 """Run the server under test and talk to it over MCP, in fixture or live mode.
 
-The harness knows nothing of the server's implementation. It launches the server's
-command over stdio with an environment that names the upstream of the run mode:
+Fixture and remote targets use the public MCP interface; managed live targets use the
+furnished CLI. Each stdio command receives the upstream environment of the run mode:
 in `fixture` mode every upstream base URL points at the fixture server, in `live`
-mode the server's own defaults (the production services) apply, and the developer's
-upstream credentials are passed on.
+mode one reviewed named environment supplies every origin and permitted credential.
+Blocked surfaces use an owned refusal endpoint; production defaults never apply.
 
     NCI_SI_ACCEPTANCE_MODE     fixture (default) or live
-    NCI_SI_ACCEPTANCE_SERVER   the command that starts the server, default "nci-si-mcp serve"
-    NCI_SI_ACCEPTANCE_PROFILE  the profile that command serves (M1.5): evs, cadsr or unified
-                               (default)
-    NCI_SI_ACCEPTANCE_PREPARE  the operator's prepare command, a shell command line run once
-                               before any test (the acceptance README); without it the tests
+    NCI_SI_ACCEPTANCE_ENVIRONMENT  required live: evs-only (acceptance README)
+    NCI_SI_ACCEPTANCE_SERVER   fixture command; live only "nci-si-mcp serve"
+    NCI_SI_ACCEPTANCE_PROFILE  fixture: evs, cadsr or unified (default); live: unified only
+    NCI_SI_ACCEPTANCE_PREPARE  fixture shell command; live only "nci-si-mcp index-sample"
+                               with harness-owned argv; without it the tests
                                that need its result are NOT RUN
 
 A remote server, named by its streamable-HTTP endpoint in place of a command, is tested
@@ -39,7 +39,7 @@ import subprocess
 import sys
 import time
 from contextlib import asynccontextmanager, contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import partial
 from typing import TYPE_CHECKING, Any, Literal, Self, TextIO
 from urllib.parse import urlsplit
@@ -51,6 +51,15 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.client.streamable_http import streamable_http_client
 from mcp.shared._httpx_utils import create_mcp_http_client
 
+from nci_si_acceptance.denied_surfaces import DeniedSurfaces
+from nci_si_acceptance.environments import (
+    CREDENTIAL_SURFACES,
+    LAUNCHER,
+    Environment,
+    external_runtime_setting,
+    selection,
+    validate_live_inputs,
+)
 from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES
 from nci_si_acceptance.spec import PROFILES
 
@@ -75,6 +84,8 @@ STATE_HOOK_TIMEOUT_VARIABLE = "NCI_SI_ACCEPTANCE_STATE_HOOK_TIMEOUT"
 PREPARED_VARIABLE = "NCI_SI_ACCEPTANCE_PREPARED"
 SECURITY_SERVER_VARIABLE = "NCI_SI_ACCEPTANCE_SECURITY_SERVER"
 REGISTRY_RELEASE_VARIABLE = "NCI_SI_ACCEPTANCE_REGISTRY_RELEASE"
+CREDENTIAL_VARIABLES = tuple(CREDENTIAL_SURFACES)
+
 # The settings that mean something only for a remote server: naming one without the URL is a
 # usage error, never silently ignored.
 REMOTE_ONLY = (
@@ -102,10 +113,6 @@ READ_TIMEOUT_SECONDS = 60
 
 type Transport = Literal["stdio", "streamable-http"]
 
-# Credentials for licensed upstream content (docs/implementation-plan.md §8), used in live mode
-# only.
-CREDENTIAL_VARIABLES = ("NCI_SI_EVS_LICENSE_KEY", "NCI_SI_CADSR_CREDENTIAL")
-
 
 @dataclass(frozen=True, slots=True)
 class Target:
@@ -132,12 +139,17 @@ class Target:
     # alike: the harness starts it itself beside the server under test.
     security_server: str | None = None
     registry_release: Literal["required", "optional"] = "optional"
+    environment: Environment | None = None
+    denied_url: str | None = field(default=None, repr=False)
 
     @classmethod
     def from_env(cls) -> Target:
         mode = os.environ.get(MODE_VARIABLE, "fixture")
         if mode not in ("fixture", "live"):
             raise ValueError(f"{MODE_VARIABLE} must be fixture or live, not {mode!r}")
+        environment = selection(mode)
+        if environment is not None:
+            validate_live_inputs(environment)
         profile = os.environ.get(PROFILE_VARIABLE, "unified")
         if profile not in PROFILES:
             raise ValueError(f"{PROFILE_VARIABLE} must be one of {', '.join(PROFILES)}")
@@ -149,12 +161,13 @@ class Target:
             _refuse_remote_only()
             return cls(
                 mode,
-                _command(),
+                [*LAUNCHER, "serve"] if environment is not None else _command(),
                 profile,
                 prepare,
                 fixture_bind=bind,
                 security_server=security_server,
                 registry_release=registry_release,
+                environment=environment,
             )
         return cls(
             mode,
@@ -171,6 +184,22 @@ class Target:
             security_server,
             registry_release,
         )
+
+    @contextmanager
+    def managed(self) -> Iterator[Target]:
+        if self.environment is None:
+            yield self
+            return
+        with DeniedSurfaces() as url:
+            yield replace(self, denied_url=url)
+
+    def prepare_command(self, codes: list[str]) -> list[str]:
+        # Standalone fixture/remote harnesses do not install the furnished server.
+        from nci_si_mcp.validation import NCIT_CODE_RE  # noqa: PLC0415 - managed path only.
+
+        if not codes or not all(NCIT_CODE_RE.fullmatch(code) for code in codes):
+            raise ValueError("live preparation requires the validated harness concept list")
+        return [*LAUNCHER, "index-sample", *codes]
 
     @property
     def transport(self) -> Transport:
@@ -264,11 +293,9 @@ def _declared(name: str) -> bool:
     return value == "1"
 
 
-def _upstream_settings(mode: Mode, fixture_url: str | None) -> dict[str, str]:
-    """Fixture mode: every upstream names the fixture server. Live: only the credentials."""
+def _upstream_settings(fixture_url: str | None) -> dict[str, str]:
+    """Every fixture upstream names the owned fixture server, never a runtime default."""
 
-    if mode == "live":
-        return {name: os.environ[name] for name in CREDENTIAL_VARIABLES if name in os.environ}
     if fixture_url is None:
         raise ValueError("fixture mode needs the fixture server's URL")
     return {name: f"{fixture_url}/{surface}" for name, surface in UPSTREAM_VARIABLES.items()}
@@ -291,7 +318,7 @@ def remote_settings(fixture_url: str) -> dict[str, str]:
     """What the operator sets on a remote server in fixture mode: the harness cannot set the
     environment of a process it did not start."""
 
-    return {"NCI_SI_UPSTREAM_MODE": "fixture"} | _upstream_settings("fixture", fixture_url)
+    return {"NCI_SI_UPSTREAM_MODE": "fixture"} | _upstream_settings(fixture_url)
 
 
 def without_nci_si_settings(environment: Mapping[str, str]) -> dict[str, str]:
@@ -301,17 +328,44 @@ def without_nci_si_settings(environment: Mapping[str, str]) -> dict[str, str]:
     return {key: value for key, value in environment.items() if not key.startswith("NCI_SI_")}
 
 
-def server_environment(mode: Mode, data_dir: Path, fixture_url: str | None) -> dict[str, str]:
+def server_environment(
+    mode: Mode,
+    data_dir: Path,
+    fixture_url: str | None,
+    *,
+    environment: Environment | None = None,
+    denied_url: str | None = None,
+) -> dict[str, str]:
     """The environment of the server under test.
 
-    The developer's own `NCI_SI_*` settings never reach it, so a run depends only on
-    the mode; in live mode the upstream credentials are the exception. In fixture mode
-    every upstream base URL names the fixture server.
+    Fixture bases name the owned fixture server. Live bases and private credentials
+    come from the single immutable selection; blocked bases name its owned refusal
+    endpoint. A live caller cannot fall through to production defaults.
     """
 
-    environment = without_nci_si_settings(os.environ)
-    environment |= {"NCI_SI_UPSTREAM_MODE": mode, "NCI_SI_DATA_DIR": str(data_dir)}
-    return environment | _upstream_settings(mode, fixture_url)
+    inherited = without_nci_si_settings(os.environ)
+    inherited |= {"NCI_SI_UPSTREAM_MODE": mode, "NCI_SI_DATA_DIR": str(data_dir)}
+    if mode == "live":
+        return _live_environment(inherited, environment, denied_url)
+    return inherited | _upstream_settings(fixture_url)
+
+
+def _live_environment(
+    inherited: dict[str, str], environment: Environment | None, denied_url: str | None
+) -> dict[str, str]:
+    if environment is None or denied_url is None:
+        raise ValueError("live mode requires a selected environment and owned refusal endpoint")
+    inherited = {
+        key: value for key, value in inherited.items() if not external_runtime_setting(key)
+    }
+    return (
+        inherited
+        | {
+            variable: environment.origins[surface] or denied_url
+            for variable, surface in UPSTREAM_VARIABLES.items()
+        }
+        | dict(environment.credentials)
+    )
 
 
 class Session:

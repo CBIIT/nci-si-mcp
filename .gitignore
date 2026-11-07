@@ -20,6 +20,7 @@ dist/
 .claude/worktrees/
 CLAUDE.local.md
 .mcp.json
+/opencode.json
 
 # ephemeral working artifacts, never committed
 tmp/

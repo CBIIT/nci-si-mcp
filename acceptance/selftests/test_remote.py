@@ -24,7 +24,7 @@ import pytest
 from restart_stub import stop
 
 from conftest import LICENCE_KEY, STAND_IN
-from nci_si_acceptance import client
+from nci_si_acceptance import client, environments
 from nci_si_acceptance import remote as remote_module
 from nci_si_acceptance.client import Target, open_remote_session, wait_for_endpoint
 from nci_si_acceptance.fixture_server import FixtureServer, FixtureSet
@@ -285,14 +285,23 @@ def test_every_dependent_test_fails_when_the_server_does_not_answer(remote, monk
     result.stdout.fnmatch_lines(["*the server under test does not answer (*"])
 
 
-def test_a_live_run_only_needs_the_server_to_answer(remote, monkeypatch):
+def test_selected_live_mode_refuses_a_remote_target_without_a_report(remote, monkeypatch):
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
-
+    monkeypatch.setenv(environments.VARIABLE, "evs-only")
+    monkeypatch.setenv("NCI_SI_ACCEPTANCE_PROFILE", "unified")
+    for key in list(os.environ):
+        if environments.external_runtime_setting(key) or key in {
+            *client.UPSTREAM_VARIABLES,
+            *environments.CREDENTIAL_SURFACES,
+            "NCI_SI_ACCEPTANCE_FIXTURE_BIND",
+        }:
+            monkeypatch.delenv(key)
     result, report = remote(TOOLS_LIST)
-
-    assert (report["mode"], report["transport"]) == ("live", "streamable-http")
-    assert outcomes_of(report) == {TOOLS_LIST.partition("::")[2]: "passed"}
-    assert "settings of the server under test" not in result.stdout.str()
+    assert result.ret == USAGE_ERROR
+    assert report is None
+    assert result.stderr.str().strip() == (
+        "ERROR: NCI_SI_ACCEPTANCE_URL is incompatible with the selected live environment"
+    )
 
 
 def test_naming_a_command_and_an_endpoint_stops_the_run_with_a_usage_error(compliant, monkeypatch):

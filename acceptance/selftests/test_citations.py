@@ -1,15 +1,19 @@
 """Independent API/MCP comparison rejects corrupted citations on its first attempt."""
 
 import importlib
+import json
+import runpy
 from copy import deepcopy
 from dataclasses import replace
 from http import HTTPStatus
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.error import HTTPError
 
 import pytest
 
+from nci_si_acceptance import citations
 from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
@@ -146,4 +150,24 @@ def test_reference_http_failure_is_one_attempt_and_never_calls_mcp():
             check(tools, upstream.base_url("cadsr"))
         assert failure.value.code == HTTPStatus.SERVICE_UNAVAILABLE
         assert len(upstream.log()) == 1
+    assert tools.calls == []
+
+
+def test_controlled_live_citation_refuses_before_any_transport(monkeypatch):
+    # Serve recorded bytes in memory even on the old path: no possible external send.
+    recorded = json.loads((FIXTURES / "recorded/cadsr/data-element-2200604.json").read_bytes())
+    raw = json.dumps(recorded["response"]["body"]).encode()
+    fetched = []
+
+    def recorded_response(request, **kwargs):
+        fetched.append(request.full_url)
+        return BytesIO(raw)
+
+    monkeypatch.setattr(citations, "urlopen", recorded_response)
+    caller = runpy.run_path(str(FIXTURES.parent / "tests/test_cadsr.py"))
+    tools = Tools(answer())
+    with pytest.raises(ValueError) as error:
+        caller["test_live_component_citations_match_the_explicit_api_version"](tools, None)
+    assert str(error.value) == "live caDSR citation comparison is disabled by run policy"
+    assert fetched == []
     assert tools.calls == []

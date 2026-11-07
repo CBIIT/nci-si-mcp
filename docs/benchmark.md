@@ -9,8 +9,12 @@ a requested future platform contract.
 
 ```bash
 pdm run python -m scripts.benchmark --repetitions 20 --output tmp/benchmark-fixture.json
-pdm run python -m scripts.benchmark --mode live --repetitions 20 --output tmp/benchmark-live.json
 ```
+
+Live stdio benchmarking, including with a selection, refuses with
+`live stdio benchmarking is disabled pending the environment follow-up` before child/request/report creation, preserving existing output.
+The managed producer and provenance consumers follow [#453](https://github.com/CBIIT/nci-sip-mcp/issues/453); fixture benchmarking, historical parsing and HTTP execution are unchanged.
+This grants no upstream access or live-workflow enablement.
 
 Run these sequentially. `--case TOOL` selects a case; `--repetitions 1` is an orchestration
 smoke test, not the published measurement. Each run exercises the actual MCP stdio boundary
@@ -130,7 +134,7 @@ remote-unprepared skips are a deliberate transport contract and remain visible.
 Run the live-capable suite with:
 
 ```bash
-NCI_SI_ACCEPTANCE_MODE=live NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample $(cat "$NCI_SI_ACCEPTANCE_INDEX_CODES")' pdm run acceptance -n 4 --dist worksteal --report=live.json
+NCI_SI_ACCEPTANCE_MODE=live NCI_SI_ACCEPTANCE_ENVIRONMENT=evs-only NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample' pdm run acceptance -n 4 --dist worksteal --report=live.json
 pdm run python -m nci_si_acceptance.report acceptance/fixture.json --live acceptance/live.json
 ```
 

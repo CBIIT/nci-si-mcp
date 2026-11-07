@@ -48,6 +48,7 @@ import pytest
 import yaml
 
 from nci_si_acceptance.client import withhold_authorization
+from nci_si_acceptance.environments import EnvironmentRecord, environment_record
 from nci_si_acceptance.spec import REQUIRED_TOOLS
 from nci_si_acceptance.suite import NOT_LIVE_REASON, SKIP, UnmatchedUpstream
 from nci_si_acceptance.suite_identity import (
@@ -226,6 +227,7 @@ class NativeReport:
     tools: dict[str, ToolResult]
     tests: dict[str, TestResult]
     suite: ReportSuite | Absent = Absent.FIELD
+    environment: EnvironmentRecord | Absent = Absent.FIELD
 
     def to_dict(self) -> dict[str, Any]:
         result = {name: value for name, value in asdict(self).items() if value != Absent.FIELD}
@@ -254,9 +256,24 @@ class NativeReport:
         return cls(
             **(
                 value
-                | {"tests": tests, "tools": tools, "suite": ReportSuite.from_dict(value["suite"])}
+                | {
+                    "tests": tests,
+                    "tools": tools,
+                    "suite": ReportSuite.from_dict(value["suite"]),
+                    "environment": _report_environment(value["environment"], value["mode"])
+                    if "environment" in value
+                    else Absent.FIELD,
+                }
             )
         )
+
+
+def _report_environment(value: object, mode: str) -> EnvironmentRecord:
+    require_field(mode == "live", "environment")
+    try:
+        return environment_record(value)
+    except ValueError:
+        raise ReportFieldError("Invalid acceptance field: environment") from None
 
 
 def tool_outcome(
@@ -332,6 +349,8 @@ class Collector:
         self.listing_bytes: int | None = None
         # Set from the target at the end of the run; the default is the harness's original one.
         self.transport = "stdio"
+        self.environment: EnvironmentRecord | Absent | None = Absent.FIELD
+        self._environment_conflict = False
         self.finished: set[str] = set()
         self.worker_crashes = 0
         self.run: dict[str, int] | None = None
@@ -356,6 +375,10 @@ class Collector:
             )
         )
         output = getattr(session.config, "workeroutput", None)  # set on an xdist worker only
+        if output is not None:
+            output["nci_si_environment"] = (
+                None if self.environment is Absent.FIELD else self.environment
+            )
         if (noted := self.noted_tools()) is not None and output is not None:
             output[WORKER_TOOLS] = noted
 
@@ -363,8 +386,19 @@ class Collector:
     def pytest_testnodedown(self, node: Any, error: Any) -> None:
         if error is not None:
             self.worker_crashes += 1
-        if noted := getattr(node, "workeroutput", {}).get(WORKER_TOOLS):
+        output = getattr(node, "workeroutput", {})
+        if not self._worker_environment_matches(output, error):
+            self._environment_conflict = True
+        if noted := output.get(WORKER_TOOLS):
             self.merge_tools(noted)
+
+    def _worker_environment_matches(self, output: dict[str, object], error: object) -> bool:
+        reported = output.get("nci_si_environment", Absent.FIELD)
+        # A crashed fixture worker cannot send its header; keep the crash counter/report.
+        # A selected live identity or an unexpected reported identity still cannot be lost.
+        if self.environment is None and error is not None and reported is Absent.FIELD:
+            return True
+        return self.environment is Absent.FIELD or reported == self.environment
 
     def record(self, report: pytest.TestReport) -> None:
         """Take one phase of a test; its tool and gate come in the report's own properties,
@@ -413,6 +447,15 @@ class Collector:
             dict(counts),
         ).to_dict()
 
+    def _environment_record(self, mode: str) -> EnvironmentRecord | Absent:
+        if self._environment_conflict:
+            raise ReportFieldError("Invalid acceptance field: environment")
+        return (
+            _report_environment(self.environment, mode)
+            if isinstance(self.environment, dict)
+            else Absent.FIELD
+        )
+
     def report(self, mode: str) -> dict[str, Any]:
         gates, unrun = gate_names(self.tests, FAILED), gate_names(self.tests, UNRUN)
         blocked = bool(gate_names(self.tests, CANNOT_RUN))
@@ -423,6 +466,7 @@ class Collector:
         return NativeReport(
             mode=mode,
             transport=self.transport,
+            environment=self._environment_record(mode),
             run=self.run,
             failed_gates=gates,
             unrun_gates=unrun,

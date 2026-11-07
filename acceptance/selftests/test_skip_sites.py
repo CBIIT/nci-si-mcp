@@ -2,7 +2,7 @@
 
 import json
 
-from conftest import STAND_IN
+from conftest import STAND_IN, synthetic_live
 
 pytest_plugins = ["pytester"]
 
@@ -38,6 +38,7 @@ def test_a_call_to_a_tool_the_server_does_not_list_is_not_implemented(compliant)
 
 
 def test_a_live_run_counts_a_test_that_is_not_live_capable_as_not_live(compliant, monkeypatch):
+    synthetic_live(compliant)
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
 
     assert _outcome(compliant, FIXTURE_ONLY) == {
