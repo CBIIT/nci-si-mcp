@@ -570,6 +570,12 @@ def render(
     return "\n".join(lines) + "\n"
 
 
+def _markdown_cell(value: str | None) -> str:
+    # Entities survive Markdown parsing as literal text, including image/link delimiters.
+    delimiters = str.maketrans({character: f"&#{ord(character)};" for character in r"\`*_{}[]()!|"})
+    return escape("disabled" if value is None else value).translate(delimiters)
+
+
 def _environment_lines(environment: EnvironmentRecord | None) -> list[str]:
     if environment is None:
         return []
@@ -584,11 +590,7 @@ def _environment_lines(environment: EnvironmentRecord | None) -> list[str]:
         "",
         "| Field | Recorded value |",
         "|---|---|",
-        *[
-            f"| {escape(name)} | "
-            f"{escape('disabled' if value is None else value).replace('|', '&#124;')} |"
-            for name, value in rows
-        ],
+        *[f"| {escape(name)} | {_markdown_cell(value)} |" for name, value in rows],
     ]
 
 
