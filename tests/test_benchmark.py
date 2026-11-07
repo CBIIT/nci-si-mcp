@@ -167,7 +167,7 @@ class BenchmarkTest(unittest.TestCase):
             for key in UPSTREAM_VARIABLES:
                 self.assertEqual(urlsplit(env.get(key, "")).hostname, "127.0.0.1")
             self.assertEqual(
-                command[:5],
+                list(command[:5]),
                 [sys.executable, "-I", "-m", "nci_si_acceptance.live_launcher", "serve"],
             )
             launches.append(dict(env))
