@@ -51,11 +51,12 @@ def test_native_producer_preserves_selection(compliant, monkeypatch, workers):
         monkeypatch.delenv(key)
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
     monkeypatch.setenv(environments.VARIABLE, "evs-only")
+    monkeypatch.setenv("Python_ROOT_DIR", "/ci-python")
     plugin = compliant.path / f"{STAND_IN}.py"
     plugin.write_text(
-        "import os\nfor key in list(os.environ):\n"
-        "    if key.startswith('PYTHON') or key.lower().endswith('_proxy'): os.environ.pop(key)\n"
-        + plugin.read_text()
+        "import os\nfrom nci_si_acceptance.environments import external_runtime_setting\n"
+        "for key in list(os.environ):\n"
+        "    if external_runtime_setting(key): os.environ.pop(key)\n" + plugin.read_text()
     )
     (compliant.path / "tests/test_selected.py").write_text(
         "import pytest\n@pytest.mark.live_capable\n@pytest.mark.gate\n"
@@ -65,6 +66,7 @@ def test_native_producer_preserves_selection(compliant, monkeypatch, workers):
     result = compliant.runpytest_subprocess(
         "tests/test_selected.py", "-p", STAND_IN, "-n", str(workers), f"--report={output}"
     )
+    assert result.ret == 0, result.stdout.str() + result.stderr.str()
     result.assert_outcomes(passed=1)
     produced = json.loads(output.read_text())
     raw_policy = environments.POLICY.read_bytes()

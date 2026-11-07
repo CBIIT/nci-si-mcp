@@ -25,12 +25,13 @@ from nci_si_acceptance.fixture_server import (
 )
 
 ENVIRONMENT = "NCI_SI_ACCEPTANCE_ENVIRONMENT"
+pytest_plugins = ["pytester"]
 
 
 @pytest.fixture(autouse=True)
 def clean_settings(monkeypatch):
     for key in os.environ:
-        if key.startswith(("NCI_SI_", "PYTHON")) or key.lower().endswith("_proxy"):
+        if key.startswith("NCI_SI_") or environments.external_runtime_setting(key):
             monkeypatch.delenv(key)
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
     popen = subprocess.Popen
@@ -66,6 +67,7 @@ def test_selection_precedes_process_or_request(monkeypatch, name):
         ("hTtPs_PrOxY", "http://127.0.0.1:1"),
         ("NO_PROXY", "*"),
         ("PYTHONPATH", "/external/module-substitution"),
+        ("Python_ROOT_DIR", "/external/runner-python"),
         ("LD_PRELOAD", "private-marker"),
         ("LD_LIBRARY_PATH", "private-marker"),
         ("DYLD_INSERT_LIBRARIES", "private-marker"),
@@ -109,6 +111,14 @@ def test_selected_live_server_uses_only_the_furnished_isolated_launcher(monkeypa
         "nci_si_acceptance.live_launcher",
         "serve",
     ]
+
+
+def test_ci_host_settings_preserve_the_positive_owner(pytester, monkeypatch):
+    monkeypatch.delenv("SELFTEST_SHARD", raising=False)
+    pytester.makepyfile(ci_host="import os\nos.environ['Python_ROOT_DIR'] = '/ci-python'\n")
+    node = f"{__file__}::test_selected_live_server_uses_only_the_furnished_isolated_launcher"
+    result = pytester.runpytest_subprocess("-p", "ci_host", node, "-q")
+    assert result.ret == 0, result.stdout.str() + result.stderr.str()
 
 
 @pytest.fixture
@@ -165,7 +175,9 @@ def test_selected_destinations_and_credentials_are_one_private_snapshot(
         assert upstream.log() == received
 
 
-@pytest.mark.parametrize("key", ["LD_PRELOAD", "DYLD_INSERT_LIBRARIES", "PYTHONPATH", "HTTP_PROXY"])
+@pytest.mark.parametrize(
+    "key", ["LD_PRELOAD", "DYLD_INSERT_LIBRARIES", "PYTHONPATH", "HTTP_PROXY", "Python_ROOT_DIR"]
+)
 def test_live_child_environment_discards_later_ambient_injection(monkeypatch, tmp_path, key):
     monkeypatch.setenv(ENVIRONMENT, "evs-only")
     target = Target.from_env()
