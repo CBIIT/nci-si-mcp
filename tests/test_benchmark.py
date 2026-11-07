@@ -34,6 +34,16 @@ def sample(elapsed=1.0, *, error=False, requests=2, size=9):
     }
 
 
+def local_platform_query(command):
+    """Allow only stdlib OS queries, normalizing symlinks to this interpreter."""
+    match command:
+        case ["uname", "-p"]:
+            return True
+        case ["file", "-b", target]:
+            return Path(target).resolve() == Path(sys.executable).resolve()
+    return False
+
+
 def local_policy_inputs(selected, forbidden, directory):
     """Write independent seven-surface test inputs; never substitute selection or output."""
     names = (
@@ -177,8 +187,8 @@ class BenchmarkTest(unittest.TestCase):
             refusals.append("refused")
 
         def local_child(command, *args, **kwargs):
-            # platform.platform() may query the local OS before any MCP listener exists.
-            if tuple(command) == ("uname", "-p"):
+            # stdlib platform metadata queries are local; no other child bypasses the guard.
+            if local_platform_query(command):
                 return real_process(command, *args, **kwargs)
             env = kwargs.get("env") or {}
             self.assertEqual(len(listeners), 1)
