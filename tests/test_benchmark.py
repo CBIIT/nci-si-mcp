@@ -177,6 +177,9 @@ class BenchmarkTest(unittest.TestCase):
             refusals.append("refused")
 
         def local_child(command, *args, **kwargs):
+            # platform.platform() may query the local OS before any MCP listener exists.
+            if tuple(command) == ("uname", "-p"):
+                return real_process(command, *args, **kwargs)
             env = kwargs.get("env") or {}
             self.assertEqual(len(listeners), 1)
             self.assertEqual(
