@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from mcp.shared.exceptions import MCPError
 
+from conftest import STAND_IN
 from nci_si_acceptance import client
 from nci_si_acceptance.client import (
     AUTHORIZATION_VARIABLE,
@@ -33,9 +34,37 @@ from nci_si_acceptance.client import (
 from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES, FixtureServer, FixtureSet
 from nci_si_acceptance.spec import PROMPTS, resources_listed
 
+pytest_plugins = ["pytester"]
+
 # The furnished server, started from the environment the tests run in.
 BASELINE_SERVER = [sys.executable, "-m", "nci_si_mcp.cli", "serve"]
 COMPLIANT_SERVER = Path(__file__).parent / "compliant_server.py"
+
+
+@pytest.mark.parametrize("remote", [False, True], ids=["fixture", "remote"])
+def test_standalone_harness_collects_without_server(compliant, monkeypatch, remote):
+    (compliant.path / "without_server.py").write_text(
+        "import sys\nfrom pathlib import Path\n"
+        "class MissingServer:\n"
+        "    def find_spec(self, name, path=None, target=None):\n"
+        "        if name.partition('.')[0] == 'nci_si_mcp':\n"
+        "            raise ModuleNotFoundError(name, name=name)\n"
+        "sys.meta_path.insert(0, MissingServer())\n"
+        "try: import nci_si_mcp\n"
+        "except ModuleNotFoundError: Path('core-availability').write_text('absent')\n"
+        "else: Path('core-availability').write_text('present')\n"
+    )
+    with FixtureServer(FixtureSet({}, {})) as endpoint:
+        if remote:
+            monkeypatch.delenv(SERVER_VARIABLE)
+            monkeypatch.delenv(PREPARE_VARIABLE)
+            monkeypatch.setenv(URL_VARIABLE, endpoint.url + "/mcp")
+        result = compliant.runpytest_subprocess(
+            "tests/test_protocol.py", "--collect-only", "-q", "-p", "without_server", "-p", STAND_IN
+        )
+        assert endpoint.log() == []
+    assert (compliant.path / "core-availability").read_text() == "absent"
+    assert result.ret == 0, result.stdout.str() + result.stderr.str()
 
 
 def test_the_default_target_is_the_installed_server_against_fixtures(monkeypatch):
