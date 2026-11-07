@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from nci_si_acceptance import client
+from nci_si_acceptance import client, environments
 from nci_si_acceptance.client import (
     ADAPTER_AUTHORITY_VARIABLE,
     ADAPTER_PORT_VARIABLE,
@@ -416,6 +416,7 @@ def test_the_specification_names_every_setting_of_a_run_and_the_readme_links_it(
         and value.startswith("NCI_SI_ACCEPTANCE_")
         and value != INDEX_CODES_VARIABLE
     }
+    operator.add(environments.VARIABLE)
     rows = _section("Settings of a run")
     readme = (Path(__file__).parents[1] / "README.md").read_text(encoding="utf-8")
 

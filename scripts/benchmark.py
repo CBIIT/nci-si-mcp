@@ -156,6 +156,8 @@ def source_digest() -> str:
 
 
 def run(mode: Mode, names: list[str], repetitions: int, output: Path) -> dict[str, Any]:
+    if mode == "live":
+        raise ValueError("live stdio benchmarking is disabled pending the environment follow-up")
     if repetitions < 1:
         raise ValueError("At least one measured repetition is required")
     (ROOT / "tmp").mkdir(exist_ok=True)

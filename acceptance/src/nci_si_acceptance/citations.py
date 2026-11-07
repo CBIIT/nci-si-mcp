@@ -63,7 +63,7 @@ def _mcp_citations(content):
 
 def verify_citations(tools: Any, base_url: str) -> dict[str, Any]:
     """GET 2200604/v4 once; failures and in-place edit races stay visible without retry."""
-    request = Request(  # noqa: S310 - fixed live HTTPS or the harness's HTTP fixture URL.
+    request = Request(  # noqa: S310 - the harness's fixture URL; controlled live callers refuse before entry.
         base_url.rstrip("/") + "/NCIAPI/1.0/api/DataElement/2200604?version=4",
         headers={"Accept": "application/json"},
     )

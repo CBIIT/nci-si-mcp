@@ -3,7 +3,7 @@ that writes it sees only what the workers forward."""
 
 import json
 
-from conftest import STAND_IN
+from conftest import STAND_IN, synthetic_live
 
 pytest_plugins = ["pytester"]
 
@@ -44,6 +44,7 @@ def test_a_report_of_a_real_run_attributes_each_test_to_its_tool_and_gate(compli
 def test_live_skip_reasons_cross_two_worker_boundary_without_an_upstream_call(
     compliant, monkeypatch
 ):
+    synthetic_live(compliant)
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
     (compliant.path / "tests" / "test_reasons.py").write_text(
         'import pytest\npytestmark = pytest.mark.tool("get_form")\n'

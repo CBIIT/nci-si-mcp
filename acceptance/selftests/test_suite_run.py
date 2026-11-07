@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import STAND_IN, stand_in
+from conftest import STAND_IN, stand_in, synthetic_live
 
 pytest_plugins = ["pytester"]
 
@@ -166,6 +166,7 @@ def test_second(server):
 def test_a_live_run_reports_its_mode_and_a_tool_with_only_fixture_tests_as_not_run(
     suite, monkeypatch
 ):
+    synthetic_live(suite)
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
 
     result = run(suite, PROBE.format(marker=""), "--report=report.json")
@@ -456,6 +457,7 @@ def test_a_prepare_command_failure_is_reported_for_each_dependent_test(
 
 @pytest.mark.parametrize("workers", [0, 2])
 def test_a_live_prepare_failure_is_reported_without_aborting_the_run(suite, monkeypatch, workers):
+    synthetic_live(suite)
     prepare(suite, monkeypatch, "raise SystemExit('live preparation unavailable')")
     monkeypatch.setenv("NCI_SI_ACCEPTANCE_MODE", "live")
     test = (

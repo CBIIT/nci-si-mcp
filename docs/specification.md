@@ -1070,9 +1070,9 @@ timeout or a log level sets it.
 |---|---|---|
 | `NCI_SI_UPSTREAM_MODE` | Always | `fixture` or `live` |
 | `NCI_SI_DATA_DIR` | Always | A directory of the server's own, fresh for each server; a copy of the prepare command's where one is given |
-| `NCI_SI_EVS_BASE_URL`, `NCI_SI_EVS_FHIR_BASE_URL`, `NCI_SI_CADSR_BASE_URL`, `NCI_SI_CADSR_FTP_URL`, `NCI_SI_SSIS_SPARQL_URL` | Fixture mode | A base URL, to which the server adds the platform's own paths as it does to the production one (`…/evs` + `/api/v1/…`; `…/cadsr` + `/NCIAPI/1.0/api/…`; `…/ssis-sparql` + `/sparql`) |
+| `NCI_SI_EVS_BASE_URL`, `NCI_SI_EVS_FHIR_BASE_URL`, `NCI_SI_CADSR_BASE_URL`, `NCI_SI_CADSR_FTP_URL`, `NCI_SI_SSIS_SPARQL_URL` | Always | Fixture bases or selected live origins; blocked live surfaces use an owned refusal URL. A base URL, to which the server adds the platform's own paths as it does to the production one (`…/evs` + `/api/v1/…`; `…/cadsr` + `/NCIAPI/1.0/api/…`; `…/ssis-sparql` + `/sparql`) |
 | `NCI_SI_EVS_LICENSE_KEY` | Live mode, from the operator; the `license/restricted` and `license/attributed` scenarios | The key, sent as the `X-EVSRESTAPI-License-Key` header on EVS requests |
-| `NCI_SI_CADSR_CREDENTIAL` | Live mode, from the operator; the `cadsr/credentialed` and `cadsr/match-timeout` scenarios | `user:password`, sent as HTTP Basic authentication (`Authorization: Basic` and its base64), as every caDSR contract declares |
+| `NCI_SI_CADSR_CREDENTIAL` | Fixture `cadsr/credentialed` and `cadsr/match-timeout` scenarios only; refused live | `user:password`, sent as HTTP Basic authentication (`Authorization: Basic` and its base64), as every caDSR contract declares |
 | `NCI_SI_TIMEOUT_SECONDS` | The `upstream/unavailable` scenario | Seconds an upstream request may take |
 | `NCI_SI_MATCH_TIMEOUT_SECONDS` | The `cadsr/match-timeout` scenario | Seconds a caDSR match request may take |
 | `NCI_SI_LOG_LEVEL` | The `license/restricted` scenario | `DEBUG`, so that a secret logged as a detail shows |
@@ -1088,11 +1088,12 @@ given all of them but the credential, besides the fixture settings and a scenari
 
 | Setting | Format |
 |---|---|
-| `NCI_SI_ACCEPTANCE_MODE` | `fixture` (default) or `live` |
+| `NCI_SI_ACCEPTANCE_MODE` | `fixture` (default) or local managed `live` |
+| `NCI_SI_ACCEPTANCE_ENVIRONMENT` | Required live: `evs-only`; incompatible with fixture/remote mode. Policy and provenance: [managed live environments](../acceptance/README.md#managed-live-environments) |
 | `NCI_SI_ACCEPTANCE_REGISTRY_RELEASE` | `optional` (default) or `required`; other values are rejected |
-| `NCI_SI_ACCEPTANCE_SERVER` | The command that starts the server over stdio (default `nci-si-mcp serve`) |
-| `NCI_SI_ACCEPTANCE_PROFILE` | `evs`, `cadsr` or `unified` (default), the profile the server serves |
-| `NCI_SI_ACCEPTANCE_PREPARE` | A shell command line, run once before any test, that builds the index of a server the harness starts |
+| `NCI_SI_ACCEPTANCE_SERVER` | Fixture command; live accepts only `nci-si-mcp serve` and uses the furnished isolated launcher |
+| `NCI_SI_ACCEPTANCE_PROFILE` | Fixture: `evs`, `cadsr` or `unified` (default); live: `unified` only |
+| `NCI_SI_ACCEPTANCE_PREPARE` | Fixture shell command; live only `nci-si-mcp index-sample`, with harness-owned validated argv |
 | `NCI_SI_ACCEPTANCE_URL` | The streamable-HTTP endpoint of a remote server, in place of `NCI_SI_ACCEPTANCE_SERVER`; naming both is a usage error |
 | `NCI_SI_ACCEPTANCE_AUTHORIZATION` | The `Authorization` header sent on every request to a remote server: a credential, in no output of the harness |
 | `NCI_SI_ACCEPTANCE_FIXTURE_BIND` | `HOST` or `HOST:PORT` the fixture server listens on (default `127.0.0.1`, any port) |

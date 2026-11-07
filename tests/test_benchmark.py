@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import tempfile
 import unittest
 from contextlib import contextmanager, redirect_stdout
@@ -29,6 +30,38 @@ def sample(elapsed=1.0, *, error=False, requests=2, size=9):
 
 
 class BenchmarkTest(unittest.TestCase):
+    def test_live_refusal_precedes_selection_process_and_report(self):
+        expected = "live stdio benchmarking is disabled pending the environment follow-up"
+        for name in (None, "", "evs-only", "unreviewed"):
+            for existing in (False, True):
+                with (
+                    self.subTest(name=name, existing=existing),
+                    tempfile.TemporaryDirectory() as directory,
+                ):
+                    output = Path(directory) / "benchmark.json"
+                    original = b"preserved prior report bytes"
+                    if existing:
+                        output.write_bytes(original)
+                    settings = {} if name is None else {"NCI_SI_ACCEPTANCE_ENVIRONMENT": name}
+                    reached = []
+
+                    def attempted_process(*args, reached=reached, **kwargs):
+                        reached.append("process")
+                        raise ValueError(expected)
+
+                    with (
+                        patch.dict(os.environ, settings, clear=True),
+                        patch("subprocess.Popen", attempted_process),
+                        self.assertRaises(ValueError) as error,
+                    ):
+                        benchmark.run("live", ["get_form"], 1, output)
+                    self.assertEqual(str(error.exception), expected)
+                    self.assertEqual(reached, [])
+                    self.assertEqual(
+                        output.read_bytes() if output.exists() else None,
+                        original if existing else None,
+                    )
+
     def test_an_interrupted_first_case_cannot_leave_a_stale_successful_report(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "benchmark.json"
@@ -37,7 +70,7 @@ class BenchmarkTest(unittest.TestCase):
                 patch.object(benchmark, "run_case", side_effect=ValueError("missing audit")),
                 self.assertRaisesRegex(ValueError, "missing audit"),
             ):
-                benchmark.run("live", ["get_form"], 1, output)
+                benchmark.run("fixture", ["get_form"], 1, output)
             report = json.loads(output.read_text())
         self.assertFalse(report["complete"])
         self.assertEqual(report["cases"], [])

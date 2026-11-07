@@ -2,14 +2,14 @@
 
 The behavioural acceptance suite for the NCI SI MCP tools, which tests the requirements of the
 [specification](../docs/specification.md), and the upstream fixture server it runs against. It tests the MCP
-tool surface of a server it starts as a command or of a remote one it connects to; it knows
-nothing of the server's code.
+tool surface of a command or remote fixture server. Managed live execution uses the furnished
+CLI and its verified transport integration; assertions remain at the public MCP boundary.
 
 From the repository root:
 
 ```bash
 pdm run acceptance --report=fixture.json             # fixture mode; writes acceptance/fixture.json
-NCI_SI_ACCEPTANCE_MODE=live pdm run acceptance --report=live.json  # live-capable tests
+NCI_SI_ACCEPTANCE_MODE=live NCI_SI_ACCEPTANCE_ENVIRONMENT=evs-only pdm run acceptance --report=live.json
 NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance    # another server (default: nci-si-mcp serve)
 NCI_SI_ACCEPTANCE_URL=https://... pdm run acceptance # a remote server over streamable HTTP (below)
 NCI_SI_ACCEPTANCE_PROFILE=evs NCI_SI_ACCEPTANCE_SERVER="..." pdm run acceptance  # a server of one profile (default: unified)
@@ -28,6 +28,33 @@ pdm run acceptance-stories                           # regenerate the complete d
 pdm run acceptance-stories --check                   # verify its mapping and generated content
 pdm run spec-render                                  # regenerate docs/specification.md from spec/
 ```
+
+## Managed live environments
+
+Local live acceptance requires `NCI_SI_ACCEPTANCE_ENVIRONMENT=evs-only`, selecting the reviewed
+`fixtures/environments.yaml` policy. Historical manifest origins grant no permission. Only EVS
+REST/FHIR are enabled; caDSR (including anonymous/FTP/contracts), SSIS and SPARQL stay blocked.
+A caDSR-enabled map needs #448's reviewed bounded reader and separate access approval. These
+settings grant no upstream access and do not enable the disabled live workflow.
+
+Managed live execution requires the furnished `.venv`, isolated CLI and unified profile, with
+no proxy and same-origin redirects. Custom commands, remote/fixture settings, upstream overrides,
+proxy/Python/native-loader injection and blocked-surface credentials fail before launch; later
+injection is filtered. This assumes a trusted installation, not an OS sandbox or recorder guard.
+
+Set live preparation to `NCI_SI_ACCEPTANCE_PREPARE='nci-si-mcp index-sample'`; the harness supplies
+validated argv without a shell. The shell-expanded fixture command below is rejected live.
+Selected origins reach item provenance; blocked surfaces use an owned non-forwarding refusal.
+Live caDSR citation comparison fails before transport with
+`live caDSR citation comparison is disabled by run policy`; fixture comparison is unchanged.
+
+Native/evidence reports preserve the frozen name, all origins and exact policy-byte SHA-256,
+without credentials or local paths. Workers must agree with the controller at report time;
+historical omission stays unknown. The hash identifies configuration rather than approval or
+authenticity. Fixture reports/outcomes are unchanged; combined/portal display follows [#453](https://github.com/CBIIT/nci-sip-mcp/issues/453).
+
+Live stdio benchmarking is temporarily disabled; [Benchmark](../docs/benchmark.md) documents its
+refusal and preserved-output contract. Its producer/consumers follow #453; fixtures and historical parsing remain available.
 
 ## Writing a test
 
@@ -143,9 +170,9 @@ re-recording, under change control) or the live service has changed: both are fi
 that passes live and fails against fixtures means the server behaves differently against
 different upstreams: a defect.
 
-A run may begin with one operator-supplied prepare command, `NCI_SI_ACCEPTANCE_PREPARE`, a
+A fixture run may begin with one operator-supplied prepare command, `NCI_SI_ACCEPTANCE_PREPARE`, a
 shell command line run once, before the first test that starts a server, in the server's
-environment against the ordinary fixtures (in live mode, the live services): the same settings
+environment against the ordinary fixtures: the same settings
 the server gets, its upstream base URLs and a fresh `NCI_SI_DATA_DIR`. The file that
 `NCI_SI_ACCEPTANCE_INDEX_CODES` names holds the index set, one code per line: every concept the
 fixture set records at an include that holds its summary. Every server then
@@ -312,22 +339,11 @@ classification was changed to hide that failure.
 All 991 fixture outcomes remain passing. The stored scheduled-main observation stays separate: its
 19 October **46 / 0 / 920** counts describe an older collection.
 
-`.github/workflows/acceptance-live.yml` runs by hand (`workflow_dispatch`) and every Monday at
-06:41 UTC; the scheduled run fails when a test that passes on the fixtures fails live. It runs the
-fixture suite and the live suite (`NCI_SI_ACCEPTANCE_MODE=live`, both with `-n 4 --dist worksteal`,
-so that no worker is left with the slow tail; the live outcomes are not ratcheted), renders the
-combined report into the job summary and uploads
-`fixture.json`, `live.json`, the rendered report and `network.md` as the artifact
-`acceptance-live`. `network.md` records where the run came from: the runner's environment,
-operating system, architecture and name, and whether EVS answers over IPv4 and over IPv6
-(`curl -4` and `curl -6`, 10 seconds each; a failure is recorded and does not fail the job). The
-repository secrets `NCI_SI_EVS_LICENSE_KEY` and `NCI_SI_CADSR_CREDENTIAL` are optional and reach
-only the step that runs the live suite, then the preparation command and server processes in
-live mode. The harness removes inherited `NCI_SI_*` settings before adding its own settings and
-live credentials. An empty or
-setup-placeholder secret is unset in that step, never passed as a credential. A credential
-appears in no log, error or result (requirement A7.5); `network.md` names the credentials that
-are absent, never a value.
+`Acceptance (live)` (`.github/workflows/acceptance-live.yml`) remains disabled. Its retained
+schedule/dispatch configuration and credential forwarding are not a current execution plan.
+A reviewed workflow transition and the #448 prerequisites are required before enabling any
+live run. Offline fixture verification and stored historical live evidence remain separate;
+no scheduled refresh or automatic wake-up is implied.
 
 ### README live evidence (local rendering)
 

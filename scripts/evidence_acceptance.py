@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
 from typing import Any
 
 from scripts.evidence_envelope import EvidenceError, decode_json, validate_envelope
@@ -176,7 +177,7 @@ def project_acceptance(
     native, tools = _native(report, context) if report is not None else ({"tests": {}}, None)
     tests = native["tests"]
     missing = [digest(name.encode()) for name in context["selection"] if name not in tests]
-    return record | {
+    result = record | {
         "mode": native.get("mode"),
         "transport": native.get("transport"),
         "inventory_complete": _inventory_complete(native, missing, record["state"]),
@@ -188,3 +189,9 @@ def project_acceptance(
         if report is not None
         else None,
     }
+    result.update(_recorded_environment(native))
+    return result
+
+
+def _recorded_environment(native: Mapping[str, object]) -> dict[str, object]:
+    return {"environment": native["environment"]} if "environment" in native else {}

@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -13,6 +14,17 @@ import pytest
 
 from nci_si_acceptance.craft import Recorded, craft, release_session
 from nci_si_acceptance.record import FIXTURES
+
+# Independent literal expected origins shared by policy and native-report owners.
+REVIEWED_ORIGINS = {
+    "evs": "https://api-evsrest.nci.nih.gov",
+    "evs-fhir": "https://api-evsrest.nci.nih.gov/fhir/r4",
+    "cadsr": None,
+    "cadsr-ftp": None,
+    "cadsr-contracts": None,
+    "ssis": None,
+    "ssis-sparql": None,
+}
 
 # "i/n": run the i-th of n shards of the self-tests (CI's selftest jobs).
 SHARD_VARIABLE = "SELFTEST_SHARD"
@@ -49,6 +61,35 @@ STAND_IN_SOURCE = (
 
 def stand_in(pytester: pytest.Pytester) -> None:
     (pytester.path / f"{STAND_IN}.py").write_text(STAND_IN_SOURCE, encoding="utf-8")
+
+
+def synthetic_live(pytester: pytest.Pytester) -> None:
+    """Opt a copied-suite component simulation into local-only execution, not policy tests."""
+    conftest = pytester.path / "tests/conftest.py"
+    conftest.write_text(f"{conftest.read_text()}\n{SYNTHETIC_LIVE}", encoding="utf-8")
+
+
+SYNTHETIC_LIVE = """import os as _synthetic_os
+from nci_si_acceptance import client as _synthetic_client
+from nci_si_acceptance.denied_surfaces import DeniedSurfaces as _SyntheticRefusal
+
+_synthetic_configure = pytest_configure
+
+def pytest_configure(config):
+    if _synthetic_os.environ.get("NCI_SI_ACCEPTANCE_MODE") != "live":
+        return _synthetic_configure(config)
+    denied = _SyntheticRefusal()
+    endpoint = denied.__enter__()
+    config.add_cleanup(lambda: denied.__exit__(None, None, None))
+    patch = pytest.MonkeyPatch()
+    config.add_cleanup(patch.undo)
+    original = server_environment
+    def offline_environment(mode, data, fixture_url, **kwargs):
+        return original("fixture", data, endpoint, **kwargs)
+    patch.setitem(globals(), "server_environment", offline_environment)
+    patch.setattr(_synthetic_client, "selection", lambda mode: None)
+    return _synthetic_configure(config)
+"""
 
 
 SUITE = Path(__file__).parent.parent / "tests"
@@ -215,3 +256,9 @@ def without_crafted(root):
     text = "\n".join([*kept, f"crafted: {crafted_digest(CRAFTED)}", ""])
     (root / "manifest.yaml").write_text(text, encoding="utf-8")
     return root
+
+
+def furnished_child(command, environment):
+    return subprocess.run(  # noqa: S603 - callers furnish isolated argv and local-only bases.
+        command, env=environment, capture_output=True, text=True, timeout=30, check=False
+    )
