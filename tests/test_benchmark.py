@@ -2,6 +2,7 @@ import hashlib
 import io
 import json
 import os
+import socket
 import subprocess
 import sys
 import tempfile
@@ -18,8 +19,8 @@ import yaml
 from scripts import benchmark
 from scripts.benchmark_records import percentile, summarize
 
-from nci_si_acceptance import client, environments
-from nci_si_acceptance.fixture_server import UPSTREAM_VARIABLES, FixtureServer, load_fixtures
+from nci_si_acceptance import client, denied_surfaces, environments
+from nci_si_acceptance.fixture_server import FixtureServer, load_fixtures
 
 
 def sample(elapsed=1.0, *, error=False, requests=2, size=9):
@@ -161,11 +162,38 @@ class BenchmarkTest(unittest.TestCase):
     def test_real_local_policy_producer_persists_selected_evs_and_fhir_measurements(self):
         real_process = subprocess.Popen
         launches = []
+        listeners = []
+        refusals = []
+        enter = denied_surfaces.DeniedSurfaces.__enter__
+        handle = denied_surfaces._Refusal.handle
+
+        def observed_listener(listener):
+            url = enter(listener)
+            listeners.append((listener, url))
+            return url
+
+        def observed_refusal(request):
+            handle(request)
+            refusals.append("refused")
 
         def local_child(command, *args, **kwargs):
             env = kwargs.get("env") or {}
-            for key in UPSTREAM_VARIABLES:
-                self.assertEqual(urlsplit(env.get(key, "")).hostname, "127.0.0.1")
+            self.assertEqual(len(listeners), 1)
+            self.assertEqual(
+                {
+                    key: value
+                    for key, value in env.items()
+                    if key.startswith("NCI_SI_")
+                    and key.endswith(("_BASE_URL", "_FTP_URL", "_SPARQL_URL"))
+                },
+                {
+                    "NCI_SI_EVS_BASE_URL": expected["origins"]["evs"],
+                    "NCI_SI_EVS_FHIR_BASE_URL": expected["origins"]["evs-fhir"],
+                    "NCI_SI_CADSR_BASE_URL": listeners[0][1],
+                    "NCI_SI_CADSR_FTP_URL": listeners[0][1],
+                    "NCI_SI_SSIS_SPARQL_URL": listeners[0][1],
+                },
+            )
             self.assertEqual(
                 list(command[:5]),
                 [sys.executable, "-I", "-m", "nci_si_acceptance.live_launcher", "serve"],
@@ -186,9 +214,13 @@ class BenchmarkTest(unittest.TestCase):
                 patch.dict(os.environ, env, clear=True),
                 patch.object(environments, "POLICY", path),
                 patch("subprocess.Popen", local_child),
+                patch.object(denied_surfaces.DeniedSurfaces, "__enter__", observed_listener),
+                patch.object(denied_surfaces._Refusal, "handle", observed_refusal),
             ):
                 try:
-                    report = benchmark.run("live", ["get_concept", "expand_value_set"], 1, output)
+                    report = benchmark.run(
+                        "live", ["get_concept", "expand_value_set", "get_data_element"], 1, output
+                    )
                 except ValueError as error:
                     failure = str(error)
             self.assertIsNone(failure, "the real selected-policy benchmark must complete")
@@ -197,20 +229,45 @@ class BenchmarkTest(unittest.TestCase):
             self.assertEqual(
                 (report["mode"], report["transport"], report["complete"]), ("live", "stdio", True)
             )
-            self.assertEqual(report["expectedCases"], ["get_concept", "expand_value_set"])
             self.assertEqual(
-                [row["tool"] for row in report["cases"]], ["get_concept", "expand_value_set"]
+                report["expectedCases"], ["get_concept", "expand_value_set", "get_data_element"]
             )
-            for row in report["cases"]:
-                for phase in ("cold", "warm"):
-                    self.assertEqual(len(row[phase]["samples"]), 1)
-                    self.assertEqual(row[phase]["summary"]["errorRate"], 0)
-                    self.assertGreater(row[phase]["summary"]["meanResultBytes"], 0)
-            self.assertEqual(len(launches), 4)
+            self.assertEqual(
+                [row["tool"] for row in report["cases"]],
+                ["get_concept", "expand_value_set", "get_data_element"],
+            )
+            self.assert_producer_phases(report["cases"])
+            self.assertEqual(len(launches), 6)
             surfaces = {row["surface"] for row in selected.log()}
             self.assertEqual(surfaces, {"evs", "evs-fhir"})
             self.assertEqual(forbidden.log(), [])
+            self.assertEqual(
+                len(selected.log()), 6
+            )  # cold, excluded prime, warm for each allowed case
+            self.assertEqual(refusals, ["refused"] * 3)
+            self.assertEqual(len(listeners), 1)
+            listener, url = listeners[0]
+            self.assertFalse(listener.thread.is_alive())
+            with socket.socket() as probe:
+                probe.settimeout(2)
+                self.assertNotEqual(probe.connect_ex(("127.0.0.1", urlsplit(url).port)), 0)
             self.assertTrue(all(row["NCI_SI_UPSTREAM_MODE"] == "live" for row in launches))
+
+    def assert_producer_phases(self, cases):
+        rates = {"get_concept": 0, "expand_value_set": 0, "get_data_element": 1}
+        codes = {
+            "get_concept": "ok",
+            "expand_value_set": "ok",
+            "get_data_element": "upstream_unavailable",
+        }
+        for row in cases:
+            for phase in ("cold", "warm"):
+                self.assertEqual(len(row[phase]["samples"]), 1)
+                self.assertEqual(row[phase]["summary"]["errorRate"], rates[row["tool"]])
+                self.assertGreater(row[phase]["summary"]["meanResultBytes"], 0)
+                self.assertEqual(row[phase]["samples"][0]["outboundRequests"], 1)
+                self.assertEqual(row[phase]["summary"]["meanOutboundRequests"], 1)
+                self.assertEqual(row[phase]["samples"][0]["responseCode"], codes[row["tool"]])
 
     def test_an_interrupted_first_case_cannot_leave_a_stale_successful_report(self):
         with tempfile.TemporaryDirectory() as directory:
